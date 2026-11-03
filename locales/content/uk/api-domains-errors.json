@@ -1,0 +1,62 @@
+{
+  "api.domains.errors.domain_id_required": {
+    "text": "Потрібен ID домену",
+    "source_hash": "6837426b"
+  },
+  "api.domains.errors.domain_not_found": {
+    "text": "Домен не знайдено: %{extid}",
+    "source_hash": "a0fd1025"
+  },
+  "api.domains.errors.organization_not_found": {
+    "text": "Організацію не знайдено для домену: %{domain}",
+    "source_hash": "632afc93"
+  },
+  "api.domains.errors.incoming_secrets_disabled": {
+    "text": "Вхідні таємниці не ввімкнено на цьому екземплярі",
+    "source_hash": "45c0b5c4"
+  },
+  "api.domains.errors.incoming_secrets_entitlement_required": {
+    "text": "Керування вхідними таємницями потребує права incoming_secrets. Будь ласка, оновіть свій тарифний план.",
+    "source_hash": "1af54ec2"
+  },
+  "api.domains.errors.incoming_config_not_found": {
+    "text": "Конфігурацію вхідних не знайдено для домену: %{extid}",
+    "source_hash": "491644a8"
+  },
+  "api.domains.errors.recipients_max_exceeded": {
+    "text": "Дозволено щонайбільше %{max} одержувачів",
+    "source_hash": "159842ad"
+  },
+  "api.domains.errors.recipients_invalid_email": {
+    "text": "Недійсна електронна адреса: %{email}",
+    "source_hash": "e9c729c7"
+  },
+  "api.domains.errors.recipients_duplicate": {
+    "text": "Повторювані електронні адреси одержувачів не дозволені",
+    "source_hash": "6de22182"
+  },
+  "api.domains.errors.homepage_secrets_mode_invalid": {
+    "text": "Недійсний secrets_mode: %{secrets_mode}",
+    "source_hash": "cf093a04"
+  },
+  "api.domains.errors.homepage_incoming_entitlement_required": {
+    "text": "Режим вхідних таємниць потребує права incoming_secrets. Будь ласка, оновіть свій тарифний план.",
+    "source_hash": "d68b13d8"
+  },
+  "api.domains.errors.homepage_incoming_not_ready": {
+    "text": "Вхідні таємниці мають бути ввімкнені принаймні з одним одержувачем, перш ніж їх можна буде використовувати як головну сторінку.",
+    "source_hash": "556da6e2"
+  },
+  "api.domains.errors.related_origins_invalid": {
+    "text": "Недійсне джерело (origin): %{origins}. Введіть схему та хост, наприклад https://vault.example.com",
+    "source_hash": "5acb92ca"
+  },
+  "api.domains.errors.related_origins_foreign_organization": {
+    "text": "Ці джерела належать іншій організації, і їх не можна додати: %{origins}",
+    "source_hash": "ac21c1e7"
+  },
+  "api.domains.errors.allowed_signup_domains_invalid": {
+    "text": "Недійсний домен: %{domains}. Введіть доменне ім'я, яке можна зареєструвати, наприклад example.com",
+    "source_hash": "2d93472c"
+  }
+}

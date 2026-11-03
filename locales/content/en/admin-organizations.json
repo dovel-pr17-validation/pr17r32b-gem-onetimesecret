@@ -1,0 +1,834 @@
+{
+  "web.admin.organizations.list.loadError": {
+    "text": "Could not load organizations.",
+    "content_hash": "130d5e70"
+  },
+  "web.admin.organizations.retry": {
+    "text": "Retry",
+    "content_hash": "942087cc"
+  },
+  "web.admin.organizations.fields.contactEmail": {
+    "text": "Contact email",
+    "content_hash": "6d7fce11"
+  },
+  "web.admin.organizations.fields.owner": {
+    "text": "Owner",
+    "content_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.fields.plan": {
+    "text": "Plan",
+    "content_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.actions.plan.label": {
+    "text": "Plan",
+    "content_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.actions.plan.apply": {
+    "text": "Apply",
+    "content_hash": "31e392d1"
+  },
+  "web.admin.organizations.actions.plan.confirmTitle": {
+    "text": "Change plan?",
+    "content_hash": "910a4de9"
+  },
+  "web.admin.organizations.actions.plan.confirmDescription": {
+    "text": "Change {org} to the {plan} plan.",
+    "content_hash": "aecf8277"
+  },
+  "web.admin.organizations.actions.plan.success": {
+    "text": "Plan updated.",
+    "content_hash": "ebe8d40c"
+  },
+  "web.admin.organizations.actions.plan.problem": {
+    "text": "Plan saved, but entitlements were not updated. Run reconcile on this organization.",
+    "content_hash": "2addb095"
+  },
+  "web.admin.organizations.actions.plan.localConfigWarning": {
+    "text": "Plans loaded from local config — Stripe is not configured or unreachable.",
+    "content_hash": "df83e326"
+  },
+  "web.admin.organizations.fields.subscription": {
+    "text": "Subscription status",
+    "content_hash": "f0723c4e"
+  },
+  "web.admin.organizations.fields.periodEnd": {
+    "text": "Period end",
+    "content_hash": "eeae9fdd"
+  },
+  "web.admin.organizations.fields.billingEmail": {
+    "text": "Billing email",
+    "content_hash": "8805b928"
+  },
+  "web.admin.organizations.fields.stripeCustomer": {
+    "text": "Stripe customer",
+    "content_hash": "8f169be1"
+  },
+  "web.admin.organizations.fields.stripeSubscription": {
+    "text": "Stripe subscription",
+    "content_hash": "53f71e08"
+  },
+  "web.admin.organizations.fields.orgId": {
+    "text": "Organization ID",
+    "content_hash": "1f466322"
+  },
+  "web.admin.organizations.fields.created": {
+    "text": "Created",
+    "content_hash": "d70b9e24"
+  },
+  "web.admin.organizations.fields.updated": {
+    "text": "Updated",
+    "content_hash": "3a5ecca1"
+  },
+  "web.admin.organizations.investigate.description": {
+    "text": "Compare local billing state against the live Stripe subscription.",
+    "content_hash": "d7bbe9ed"
+  },
+  "web.admin.organizations.investigate.rawPayload": {
+    "text": "Raw investigation payload",
+    "content_hash": "29ca7df2"
+  },
+  "web.admin.organizations.investigate.parseError": {
+    "text": "The investigation response did not match the expected format.",
+    "content_hash": "db59cab1"
+  },
+  "web.admin.organizations.entitlements.section": {
+    "text": "Entitlement overrides",
+    "content_hash": "48812068"
+  },
+  "web.admin.organizations.entitlements.description": {
+    "text": "Grant or revoke entitlements independently of the plan. Effective = plan entitlements + grants - revokes.",
+    "content_hash": "4c38425b"
+  },
+  "web.admin.organizations.entitlements.inputLabel": {
+    "text": "Entitlement",
+    "content_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.placeholder": {
+    "text": "e.g. custom_domains",
+    "content_hash": "05346c68"
+  },
+  "web.admin.organizations.entitlements.grant": {
+    "text": "Grant",
+    "content_hash": "78b7d037"
+  },
+  "web.admin.organizations.entitlements.revoke": {
+    "text": "Revoke",
+    "content_hash": "87e6d00b"
+  },
+  "web.admin.organizations.entitlements.clear": {
+    "text": "Clear all overrides",
+    "content_hash": "f0e485c3"
+  },
+  "web.admin.organizations.entitlements.effective": {
+    "text": "Effective entitlements",
+    "content_hash": "b840f8c8"
+  },
+  "web.admin.organizations.entitlements.grants": {
+    "text": "Grants",
+    "content_hash": "b3e1c95a"
+  },
+  "web.admin.organizations.entitlements.revokes": {
+    "text": "Revokes",
+    "content_hash": "f0e69b17"
+  },
+  "web.admin.organizations.entitlements.noOverrides": {
+    "text": "Perform an action to view this organization's current override state.",
+    "content_hash": "98d2e30d"
+  },
+  "web.admin.organizations.entitlements.confirm.grantTitle": {
+    "text": "Grant entitlement?",
+    "content_hash": "a4b2c57b"
+  },
+  "web.admin.organizations.entitlements.confirm.grantDescription": {
+    "text": "Grant “{entitlement}” to {org}. This changes the organization's billing entitlements.",
+    "content_hash": "542ce26a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeTitle": {
+    "text": "Revoke entitlement?",
+    "content_hash": "c93d520a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeDescription": {
+    "text": "Revoke “{entitlement}” from {org}. This changes the organization's billing entitlements.",
+    "content_hash": "a5d2a8a6"
+  },
+  "web.admin.organizations.entitlements.confirm.clearTitle": {
+    "text": "Clear all entitlement overrides?",
+    "content_hash": "e36eb218"
+  },
+  "web.admin.organizations.entitlements.confirm.clearDescription": {
+    "text": "Remove every grant and revoke override for {org}, resetting it to its plan entitlements.",
+    "content_hash": "96bad079"
+  },
+  "web.admin.organizations.entitlements.success.granted": {
+    "text": "Entitlement “{entitlement}” granted.",
+    "content_hash": "cf52fb0e"
+  },
+  "web.admin.organizations.entitlements.success.revoked": {
+    "text": "Entitlement “{entitlement}” revoked.",
+    "content_hash": "279d425d"
+  },
+  "web.admin.organizations.entitlements.success.cleared": {
+    "text": "All entitlement overrides cleared.",
+    "content_hash": "a482743b"
+  },
+  "web.admin.organizations.entitlements.matrix.caption": {
+    "text": "Entitlement resolution matrix: plan, override grants and revokes, the resolved set, and what is materialized.",
+    "content_hash": "9eac8999"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.entitlement": {
+    "text": "Entitlement",
+    "content_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.inPlan": {
+    "text": "In plan",
+    "content_hash": "e2222361"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.granted": {
+    "text": "Granted",
+    "content_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.revoked": {
+    "text": "Revoked",
+    "content_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.expected": {
+    "text": "Expected",
+    "content_hash": "ca99b7f1"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.materialized": {
+    "text": "Materialized",
+    "content_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.state": {
+    "text": "State",
+    "content_hash": "a3b50c47"
+  },
+  "web.admin.organizations.entitlements.matrix.yes": {
+    "text": "Yes",
+    "content_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.matrix.no": {
+    "text": "No",
+    "content_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.matrix.empty": {
+    "text": "This organization has no entitlements from its plan and no overrides.",
+    "content_hash": "f6cf2169"
+  },
+  "web.admin.organizations.entitlements.matrix.state.plan": {
+    "text": "From plan",
+    "content_hash": "1d346b26"
+  },
+  "web.admin.organizations.entitlements.matrix.state.granted": {
+    "text": "Granted",
+    "content_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.state.revoked": {
+    "text": "Revoked",
+    "content_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.state.orphaned": {
+    "text": "Orphaned",
+    "content_hash": "8d827807"
+  },
+  "web.admin.organizations.entitlements.matrix.state.missing": {
+    "text": "Missing",
+    "content_hash": "6be36ca4"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.formula": {
+    "text": "Resolution: expected = (plan ∪ grants) − revokes. Materialized is what is actually stored on the organization.",
+    "content_hash": "bc4bff2d"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.orphaned": {
+    "text": "Orphaned — materialized but not expected, typically left behind by a revoke that was never re-materialized. Reconcile removes it.",
+    "content_hash": "3a27a9af"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.missing": {
+    "text": "Missing — expected but not materialized. This is the permission members are actually missing right now.",
+    "content_hash": "485e44ad"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.revoked": {
+    "text": "Struck-through rows are revoked by an admin override, which removes them from the expected set.",
+    "content_hash": "89a2e9b6"
+  },
+  "web.admin.organizations.entitlements.summary.sync": {
+    "text": "Sync",
+    "content_hash": "8d261a37"
+  },
+  "web.admin.organizations.entitlements.summary.materialized": {
+    "text": "Materialized",
+    "content_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.summary.materializedAt": {
+    "text": "Last materialized",
+    "content_hash": "9325dce9"
+  },
+  "web.admin.organizations.entitlements.summary.planDefinition": {
+    "text": "Plan definition",
+    "content_hash": "6b531454"
+  },
+  "web.admin.organizations.entitlements.summary.yes": {
+    "text": "Yes",
+    "content_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.summary.no": {
+    "text": "No",
+    "content_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.summary.never": {
+    "text": "Never",
+    "content_hash": "6300ef80"
+  },
+  "web.admin.organizations.entitlements.summary.planStale": {
+    "text": "Changed since materialization",
+    "content_hash": "e682d8a4"
+  },
+  "web.admin.organizations.entitlements.summary.planCurrent": {
+    "text": "Current",
+    "content_hash": "e0d1b682"
+  },
+  "web.admin.organizations.entitlements.summary.planUnknown": {
+    "text": "Unknown — could not compare",
+    "content_hash": "b607e540"
+  },
+  "web.admin.organizations.entitlements.picker.selectPlaceholder": {
+    "text": "Select an entitlement…",
+    "content_hash": "53af3be8"
+  },
+  "web.admin.organizations.entitlements.picker.other": {
+    "text": "Other — not in the catalog…",
+    "content_hash": "f08bc3a3"
+  },
+  "web.admin.organizations.entitlements.picker.customLabel": {
+    "text": "Entitlement name (not in the catalog)",
+    "content_hash": "52783229"
+  },
+  "web.admin.organizations.entitlements.picker.backToCatalog": {
+    "text": "Back to the catalog",
+    "content_hash": "9b727f40"
+  },
+  "web.admin.organizations.entitlements.picker.uncategorized": {
+    "text": "Uncategorized",
+    "content_hash": "8d40d123"
+  },
+  "web.admin.organizations.entitlements.picker.catalogUnavailable": {
+    "text": "The billing catalog could not be read, so entitlement names are not checked here.",
+    "content_hash": "724869ec"
+  },
+  "web.admin.organizations.entitlements.picker.tags.inPlan": {
+    "text": "in plan",
+    "content_hash": "5f2251bb"
+  },
+  "web.admin.organizations.entitlements.picker.tags.granted": {
+    "text": "granted",
+    "content_hash": "dd515d19"
+  },
+  "web.admin.organizations.entitlements.picker.tags.revoked": {
+    "text": "revoked",
+    "content_hash": "4bb47f18"
+  },
+  "web.admin.organizations.entitlements.catalogWarning": {
+    "text": "“{entitlement}” is not in the billing catalog — check for a typo. Proceeding anyway: granting an entitlement that ships in a later catalog is supported and deliberately not blocked.",
+    "content_hash": "cbde548a"
+  },
+  "web.admin.organizations.detail.backToList": {
+    "text": "Back to organizations",
+    "content_hash": "2257dc4a"
+  },
+  "web.admin.organizations.detail.notFound": {
+    "text": "Organization not found",
+    "content_hash": "00c50f7a"
+  },
+  "web.admin.organizations.detail.notFoundDescription": {
+    "text": "This organization may have been deleted, or the id is incorrect.",
+    "content_hash": "e5459ef5"
+  },
+  "web.admin.organizations.detail.loadError": {
+    "text": "Could not load this organization.",
+    "content_hash": "9df8ad50"
+  },
+  "web.admin.organizations.detail.none": {
+    "text": "—",
+    "content_hash": "bda05058"
+  },
+  "web.admin.organizations.detail.sections.billing": {
+    "text": "Billing",
+    "content_hash": "3ac8bbca"
+  },
+  "web.admin.organizations.detail.sections.members": {
+    "text": "Members",
+    "content_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.sections.domains": {
+    "text": "Domains",
+    "content_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.sections.investigate": {
+    "text": "Investigate & reconcile",
+    "content_hash": "b05aa349"
+  },
+  "web.admin.organizations.detail.badges.default": {
+    "text": "Default workspace",
+    "content_hash": "6d67c6eb"
+  },
+  "web.admin.organizations.detail.badges.archived": {
+    "text": "Archived",
+    "content_hash": "bdb86505"
+  },
+  "web.admin.organizations.detail.entitlements.description": {
+    "text": "Effective entitlements resolve to (plan ∪ grants) − revokes. Review the breakdown before making an override.",
+    "content_hash": "23080475"
+  },
+  "web.admin.organizations.detail.entitlements.inSync": {
+    "text": "In sync",
+    "content_hash": "5701958c"
+  },
+  "web.admin.organizations.detail.entitlements.driftBadge": {
+    "text": "Drift",
+    "content_hash": "8b4c8240"
+  },
+  "web.admin.organizations.detail.entitlements.staleBadge": {
+    "text": "Plan stale",
+    "content_hash": "ffe63800"
+  },
+  "web.admin.organizations.detail.entitlements.driftWarning": {
+    "text": "Materialized entitlements do not match the expected set. Reconcile to re-materialize.",
+    "content_hash": "4859983a"
+  },
+  "web.admin.organizations.detail.entitlements.driftExtra": {
+    "text": "Extra (materialized, not expected)",
+    "content_hash": "08d60730"
+  },
+  "web.admin.organizations.detail.entitlements.driftMissing": {
+    "text": "Missing (expected, not materialized)",
+    "content_hash": "fe12c83a"
+  },
+  "web.admin.organizations.detail.entitlements.plan": {
+    "text": "From plan",
+    "content_hash": "1d346b26"
+  },
+  "web.admin.organizations.detail.entitlements.materialized": {
+    "text": "Materialized (effective)",
+    "content_hash": "72ca5f45"
+  },
+  "web.admin.organizations.detail.members.email": {
+    "text": "Member",
+    "content_hash": "7c968fb7"
+  },
+  "web.admin.organizations.detail.members.role": {
+    "text": "Role",
+    "content_hash": "14736a2e"
+  },
+  "web.admin.organizations.detail.members.status": {
+    "text": "Status",
+    "content_hash": "920e413c"
+  },
+  "web.admin.organizations.detail.members.joined": {
+    "text": "Joined",
+    "content_hash": "69318b0c"
+  },
+  "web.admin.organizations.detail.members.owner": {
+    "text": "Owner",
+    "content_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.openCustomer": {
+    "text": "Open customer record",
+    "content_hash": "c057ca13"
+  },
+  "web.admin.organizations.detail.members.empty": {
+    "text": "No members.",
+    "content_hash": "b99c59dc"
+  },
+  "web.admin.organizations.detail.domains.domain": {
+    "text": "Domain",
+    "content_hash": "79fa3361"
+  },
+  "web.admin.organizations.detail.domains.state": {
+    "text": "State",
+    "content_hash": "a3b50c47"
+  },
+  "web.admin.organizations.detail.domains.created": {
+    "text": "Created",
+    "content_hash": "d70b9e24"
+  },
+  "web.admin.organizations.detail.domains.ready": {
+    "text": "Ready",
+    "content_hash": "5fa7aac5"
+  },
+  "web.admin.organizations.detail.domains.resolving": {
+    "text": "Resolving",
+    "content_hash": "3287a034"
+  },
+  "web.admin.organizations.detail.domains.empty": {
+    "text": "No domains.",
+    "content_hash": "1b840c7e"
+  },
+  "web.admin.organizations.detail.domains.openDomain": {
+    "text": "Open domain record",
+    "content_hash": "416b0d48"
+  },
+  "web.admin.organizations.detail.reconcile.button": {
+    "text": "Reconcile",
+    "content_hash": "b59be565"
+  },
+  "web.admin.organizations.detail.reconcile.confirmTitle": {
+    "text": "Reconcile organization billing?",
+    "content_hash": "fc1a2762"
+  },
+  "web.admin.organizations.detail.reconcile.confirmDescription": {
+    "text": "This re-pulls Stripe and rewrites the billing state and entitlements for {org}. Retype the organization id to confirm.",
+    "content_hash": "b4ef0850"
+  },
+  "web.admin.organizations.detail.reconcile.success": {
+    "text": "Organization reconciled.",
+    "content_hash": "caf87844"
+  },
+  "web.admin.organizations.detail.reconcile.resultTitle": {
+    "text": "Reconcile result",
+    "content_hash": "11f4c6b8"
+  },
+  "web.admin.organizations.detail.reconcile.before": {
+    "text": "Before",
+    "content_hash": "9bb72500"
+  },
+  "web.admin.organizations.detail.reconcile.after": {
+    "text": "After",
+    "content_hash": "7b68fe55"
+  },
+  "web.admin.organizations.detail.reconcile.materializedCount": {
+    "text": "Entitlement count",
+    "content_hash": "59cede5c"
+  },
+  "web.admin.organizations.detail.reconcile.memberships": {
+    "text": "Memberships re-materialized:",
+    "content_hash": "fe7db10c"
+  },
+  "web.admin.organizations.detail.reconcile.membershipsFailed": {
+    "text": "failed, stale entitlements remain:",
+    "content_hash": "cc4dae37"
+  },
+  "web.admin.organizations.detail.reconcile.mode.stripe_sync": {
+    "text": "Stripe sync",
+    "content_hash": "02f9546c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.entitlements_only": {
+    "text": "Entitlements only",
+    "content_hash": "8cf49a5d"
+  },
+  "web.admin.organizations.addMember.button": {
+    "text": "Add existing account",
+    "content_hash": "45a3b757"
+  },
+  "web.admin.organizations.addMember.title": {
+    "text": "Add an existing account",
+    "content_hash": "2f676a94"
+  },
+  "web.admin.organizations.addMember.description": {
+    "text": "Add someone who already has an account to {org}. Use this when a person signed up on their own and cannot be invited because the account already exists.",
+    "content_hash": "bb41faa6"
+  },
+  "web.admin.organizations.addMember.searchLabel": {
+    "text": "Email address or account id",
+    "content_hash": "82b3040b"
+  },
+  "web.admin.organizations.addMember.searchPlaceholder": {
+    "text": "Search by email address",
+    "content_hash": "b75cc66c"
+  },
+  "web.admin.organizations.addMember.searchHint": {
+    "text": "Matches part of an email address, or an exact account id.",
+    "content_hash": "84547a60"
+  },
+  "web.admin.organizations.addMember.searchError": {
+    "text": "Could not search accounts. Check the connection and try again.",
+    "content_hash": "4b6caa41"
+  },
+  "web.admin.organizations.addMember.searchParseError": {
+    "text": "The account search returned an unexpected response. Results may be incomplete.",
+    "content_hash": "0c814231"
+  },
+  "web.admin.organizations.addMember.idle": {
+    "text": "Enter an email address to find the account.",
+    "content_hash": "f6340d35"
+  },
+  "web.admin.organizations.addMember.noResults": {
+    "text": "No account matches “{term}”.",
+    "content_hash": "199b662a"
+  },
+  "web.admin.organizations.addMember.noResultsHint": {
+    "text": "Only existing accounts can be added here. If the person has never signed up, invite them instead.",
+    "content_hash": "ee90aeeb"
+  },
+  "web.admin.organizations.addMember.select": {
+    "text": "Select",
+    "content_hash": "2a78025d"
+  },
+  "web.admin.organizations.addMember.selectedEyebrow": {
+    "text": "Selected account",
+    "content_hash": "8b63d947"
+  },
+  "web.admin.organizations.addMember.change": {
+    "text": "Choose a different account",
+    "content_hash": "d4fe39ab"
+  },
+  "web.admin.organizations.addMember.createdOn": {
+    "text": "Signed up {date}",
+    "content_hash": "cfc0e19f"
+  },
+  "web.admin.organizations.addMember.badges.verified": {
+    "text": "Verified",
+    "content_hash": "4f783840"
+  },
+  "web.admin.organizations.addMember.badges.unverified": {
+    "text": "Not verified",
+    "content_hash": "15133907"
+  },
+  "web.admin.organizations.addMember.badges.suspended": {
+    "text": "Suspended",
+    "content_hash": "e392a389"
+  },
+  "web.admin.organizations.addMember.badges.alreadyMember": {
+    "text": "Already a member",
+    "content_hash": "1739ed7c"
+  },
+  "web.admin.organizations.addMember.fields.created": {
+    "text": "Signed up",
+    "content_hash": "486b3fe0"
+  },
+  "web.admin.organizations.addMember.fields.verified": {
+    "text": "Verification",
+    "content_hash": "7140f4f1"
+  },
+  "web.admin.organizations.addMember.fields.lastLogin": {
+    "text": "Last sign-in",
+    "content_hash": "0b70af7a"
+  },
+  "web.admin.organizations.addMember.fields.organizations": {
+    "text": "Current organizations",
+    "content_hash": "cbb5b92f"
+  },
+  "web.admin.organizations.addMember.organizationsUnavailable": {
+    "text": "Could not load this account's current organizations.",
+    "content_hash": "a35b6bfc"
+  },
+  "web.admin.organizations.addMember.defaultOrg": {
+    "text": "default",
+    "content_hash": "37a8eec1"
+  },
+  "web.admin.organizations.addMember.roleLabel": {
+    "text": "Role in this organization",
+    "content_hash": "817475fa"
+  },
+  "web.admin.organizations.addMember.roles.member": {
+    "text": "Member",
+    "content_hash": "7c968fb7"
+  },
+  "web.admin.organizations.addMember.roles.admin": {
+    "text": "Admin",
+    "content_hash": "c1c224b0"
+  },
+  "web.admin.organizations.addMember.roles.owner": {
+    "text": "Owner",
+    "content_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.addMember.roleHints.member": {
+    "text": "Everyday access to the organization's secrets and domains.",
+    "content_hash": "d0c7439e"
+  },
+  "web.admin.organizations.addMember.roleHints.admin": {
+    "text": "Can manage members, domains, and organization settings.",
+    "content_hash": "beaa50d7"
+  },
+  "web.admin.organizations.addMember.roleHints.owner": {
+    "text": "Full control, including billing. Grant this only when asked to.",
+    "content_hash": "614ace63"
+  },
+  "web.admin.organizations.addMember.submit": {
+    "text": "Add to organization",
+    "content_hash": "0e0cb636"
+  },
+  "web.admin.organizations.addMember.success": {
+    "text": "Added {account} as {role}.",
+    "content_hash": "533be0dc"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMember": {
+    "text": "This account is already a member of this organization, with the role {role}. Adding does not change an existing role — use the set-role action for that.",
+    "content_hash": "cb6a4774"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMemberUnknownRole": {
+    "text": "This account is already a member of this organization. Adding does not change an existing role.",
+    "content_hash": "035641ec"
+  },
+  "web.admin.organizations.addMember.errors.notFound": {
+    "text": "That account or organization no longer exists. Search again to confirm the account.",
+    "content_hash": "bd88db18"
+  },
+  "web.admin.organizations.addMember.errors.invalidRole": {
+    "text": "That role was rejected. Choose one of the listed roles and try again.",
+    "content_hash": "eb696a8f"
+  },
+  "web.admin.organizations.addMember.errors.noSelection": {
+    "text": "No account selected.",
+    "content_hash": "dd15bb5b"
+  },
+  "web.admin.organizations.detail.delete.button": {
+    "text": "Delete organization",
+    "content_hash": "a70d189a"
+  },
+  "web.admin.organizations.detail.delete.previewing": {
+    "text": "Loading plan…",
+    "content_hash": "c9773eb9"
+  },
+  "web.admin.organizations.detail.delete.warning": {
+    "text": "Permanently deletes the organization, its memberships and its pending invitations, and emails the former members. This cannot be undone.",
+    "content_hash": "fd314131"
+  },
+  "web.admin.organizations.detail.delete.confirmTitle": {
+    "text": "Delete this organization?",
+    "content_hash": "6a3bba0f"
+  },
+  "web.admin.organizations.detail.delete.confirmDescription": {
+    "text": "This permanently deletes {org}. Retype the organization id to confirm.",
+    "content_hash": "c63a0221"
+  },
+  "web.admin.organizations.detail.delete.membersLabel": {
+    "text": "Members",
+    "content_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.delete.invitationsLabel": {
+    "text": "Pending invitations",
+    "content_hash": "76198e63"
+  },
+  "web.admin.organizations.detail.delete.domainsLabel": {
+    "text": "Domains",
+    "content_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.delete.defaultOrgLabel": {
+    "text": "Clears default workspace for",
+    "content_hash": "d535ac2a"
+  },
+  "web.admin.organizations.detail.delete.forceDefault": {
+    "text": "This is the owner's default (personal) workspace. Delete it anyway.",
+    "content_hash": "1a8b0f7d"
+  },
+  "web.admin.organizations.detail.delete.forceSubscription": {
+    "text": "The subscription is active. Delete anyway — this does not cancel Stripe billing.",
+    "content_hash": "51cb3456"
+  },
+  "web.admin.organizations.detail.delete.blocked.hasDomains": {
+    "text": "Blocked: remove the custom domains first ({domains}).",
+    "content_hash": "dc3248b2"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsLabel": {
+    "text": "Drifted domains",
+    "content_hash": "fef96f49"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsRepair": {
+    "text": "Repair with: bin/ots domains doctor --all --repair",
+    "content_hash": "14c9c59f"
+  },
+  "web.admin.organizations.detail.delete.blocked.driftedDomains": {
+    "text": "Blocked: these domain records still reference this organization but are missing from its domain list ({domains}). Run bin/ots domains doctor --all --repair first — there is no override.",
+    "content_hash": "3136496c"
+  },
+  "web.admin.organizations.detail.delete.blocked.isDefault": {
+    "text": "Blocked: this is the owner's default workspace. Tick the override below to delete it anyway.",
+    "content_hash": "09d5baa4"
+  },
+  "web.admin.organizations.detail.delete.blocked.activeSubscription": {
+    "text": "Blocked: the organization has an active subscription. Cancel it in Stripe first, or tick the override below.",
+    "content_hash": "68663641"
+  },
+  "web.admin.organizations.detail.delete.blocked.lastOrg": {
+    "text": "Blocked: this is the only organization {owner} belongs to, and deleting it would leave them with no workspace. There is no override — create a replacement organization first.",
+    "content_hash": "f09b4f9a"
+  },
+  "web.admin.organizations.detail.delete.success": {
+    "text": "{org} deleted.",
+    "content_hash": "9cdda5d0"
+  },
+  "web.admin.organizations.detail.delete.errors.planUnreadable": {
+    "text": "Could not read the deletion plan from the server. Nothing was deleted.",
+    "content_hash": "91406cbb"
+  },
+  "web.admin.organizations.detail.delete.errors.unverified": {
+    "text": "The server response could not be verified. Reload the organization list to check whether the delete completed.",
+    "content_hash": "7a261fb0"
+  },
+  "web.admin.organizations.detail.delete.errors.notApplied": {
+    "text": "The server returned a preview, not a deletion. Nothing was deleted.",
+    "content_hash": "9d84971d"
+  },
+  "web.admin.organizations.members.columns.actions": {
+    "text": "Actions",
+    "content_hash": "ff8059dc"
+  },
+  "web.admin.organizations.members.ownerLocked": {
+    "text": "The owner cannot be removed or given another role here. Ownership moves only by transferring it to another member (bin/ots organizations transfer-ownership).",
+    "content_hash": "f527d469"
+  },
+  "web.admin.organizations.members.changeRole.button": {
+    "text": "Change role",
+    "content_hash": "a43a8d8c"
+  },
+  "web.admin.organizations.members.changeRole.ariaLabel": {
+    "text": "Change the role of {member}",
+    "content_hash": "65dafc43"
+  },
+  "web.admin.organizations.members.changeRole.title": {
+    "text": "Change member role?",
+    "content_hash": "008d4c6c"
+  },
+  "web.admin.organizations.members.changeRole.description": {
+    "text": "Choose a new role for {member} in {org}. Their access in this organization is recalculated for the new role.",
+    "content_hash": "95c2ed5f"
+  },
+  "web.admin.organizations.members.changeRole.currentRole": {
+    "text": "Current role: {role}",
+    "content_hash": "d3a1c171"
+  },
+  "web.admin.organizations.members.changeRole.roleLabel": {
+    "text": "New role",
+    "content_hash": "500f2f9d"
+  },
+  "web.admin.organizations.members.changeRole.confirm": {
+    "text": "Change role",
+    "content_hash": "a43a8d8c"
+  },
+  "web.admin.organizations.members.changeRole.success": {
+    "text": "{member} is now {role}.",
+    "content_hash": "185c9a43"
+  },
+  "web.admin.organizations.members.changeRole.noChange": {
+    "text": "This member already has the role {role}. Nothing changed.",
+    "content_hash": "a65653c7"
+  },
+  "web.admin.organizations.members.remove.button": {
+    "text": "Remove",
+    "content_hash": "c3812fc4"
+  },
+  "web.admin.organizations.members.remove.ariaLabel": {
+    "text": "Remove {member} from this organization",
+    "content_hash": "05439575"
+  },
+  "web.admin.organizations.members.remove.title": {
+    "text": "Remove member?",
+    "content_hash": "fd8bd097"
+  },
+  "web.admin.organizations.members.remove.description": {
+    "text": "Remove {member} from {org}. They lose the access this membership gave them. Their account itself is not deleted.",
+    "content_hash": "bbe4d614"
+  },
+  "web.admin.organizations.members.remove.confirm": {
+    "text": "Remove member",
+    "content_hash": "9438e0ba"
+  },
+  "web.admin.organizations.members.remove.success": {
+    "text": "{member} removed from {org}.",
+    "content_hash": "6dde0210"
+  },
+  "web.admin.organizations.members.remove.defaultOrgCleanupFailed": {
+    "text": "{member} was removed from {org}, but their default organization may still point to it. Run bin/ots customers doctor {member} --repair to clear it.",
+    "content_hash": "34f3793d"
+  }
+}

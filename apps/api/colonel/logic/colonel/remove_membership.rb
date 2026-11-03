@@ -1,0 +1,123 @@
+# apps/api/colonel/logic/colonel/remove_membership.rb
+#
+# frozen_string_literal: true
+
+require_relative '../base'
+require_relative 'membership_resolvers'
+require 'onetime/operations/memberships/remove'
+
+module ColonelAPI
+  module Logic
+    module Colonel
+      # Remove a member from an organization (Colonel) — #3731.
+      #
+      # DELETE /api/colonel/organizations/:org_id/members/:member_id
+      #
+      # Thin adapter over {Onetime::Operations::Memberships::Remove} — the single,
+      # audited implementation. It tears down the membership and clears the
+      # member's materialized entitlements. The OP owns the ColonelAuditEvent (do
+      # NOT audit here).
+      #
+      # MUTATING + destructive; the colonel UI guards it behind a typed
+      # confirmation client-side. The sole-owner guardrail lives in the op.
+      #
+      # `details.default_org_cleanup` is the op's default_org_id cleanup
+      # outcome (Remove::Result#default_org_cleanup). A `failed` cleanup does
+      # not undo the removal, so the response still reports it as removed;
+      # `customers doctor MEMBER --repair` clears the pointer.
+      #
+      # Security invariant: BOTH the router (role=colonel) AND this logic
+      # (verify_one_of_roles!) enforce the colonel role.
+      class RemoveMembership < ColonelAPI::Logic::Base
+        include MembershipResolvers
+        include Onetime::LoggerMethods
+
+        attr_reader :org, :customer, :result
+
+        def process_params
+          @org_id    = sanitize_identifier(params['org_id'])
+          # Email-tolerant (see AccountIdentifier) — sanitize_identifier strips
+          # '@' and '.', which made the resolver's email arm unreachable.
+          @member_id = sanitize_account_identifier(params['member_id'])
+          # OPTIONAL operator-supplied why (#4338) — query string, since this is
+          # a DELETE. See ColonelAPI::Logic::Base#operator_reason_param.
+          @reason    = operator_reason_param
+        end
+
+        def raise_concerns
+          verify_one_of_roles!(colonel: true)
+
+          raise_form_error('Organization ID is required', field: :org_id) if @org_id.to_s.empty?
+          raise_form_error('Member ID is required', field: :member_id) if @member_id.to_s.empty?
+
+          @org = resolve_org(@org_id)
+          raise_not_found('Organization not found') unless @org&.exists?
+
+          @customer = resolve_customer(@member_id)
+          raise_not_found('Member not found') unless @customer
+
+          # TIER 1 (#4326). The URL carries the member's extid; the confirmation
+          # is their EMAIL. The sole-owner interlock stays in the op, which runs
+          # in #process — structurally after this guard.
+          guard_destructive_action!(
+            tier: :destructive,
+            confirm_with: account_confirm_token(customer),
+            confirm_subject: "the member's email address",
+            field: :member_id,
+          )
+          charge_destructive_budget!
+        end
+
+        def process
+          @result = Onetime::Operations::Memberships::Remove.new(
+            org: org,
+            customer: customer,
+            actor: cust.extid, # acting colonel's PUBLIC id (never an objid)
+            reason: @reason,
+          ).call
+
+          handle_result_status
+
+          # A pointer that may have survived logs at warn; the model has
+          # already logged the error.
+          level = result.default_org_cleanup == :failed ? :warn : :info
+          app_logger.public_send(
+            level,
+            '[RemoveMembership] Member removal',
+            org_id: org.extid,
+            member_id: customer.extid,
+            status: result.status.to_s,
+            default_org_cleanup: result.default_org_cleanup.to_s,
+          )
+
+          success_data
+        end
+
+        def success_data
+          {
+            record: {
+              org_id: org.extid,
+              member_id: customer.extid,
+              status: result.status.to_s,
+              role: result.role,
+            },
+            details: {
+              default_org_cleanup: result.default_org_cleanup&.to_s,
+            },
+          }
+        end
+
+        private
+
+        def handle_result_status
+          case result.status
+          when :not_found
+            raise_not_found('Membership not found')
+          when :last_owner
+            raise_form_error('Cannot remove the last remaining owner of the organization', field: :member_id)
+          end
+        end
+      end
+    end
+  end
+end

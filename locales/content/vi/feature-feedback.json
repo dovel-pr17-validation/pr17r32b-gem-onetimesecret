@@ -1,0 +1,74 @@
+{
+  "web.feedback.your_feedback": {
+    "text": "Phản hồi của bạn",
+    "source_hash": "cdb1c0a5"
+  },
+  "web.feedback.all_feedback_welcome": {
+    "text": "Mọi phản hồi đều được hoan nghênh!",
+    "source_hash": "c57d3006"
+  },
+  "web.feedback.help_us_improve": {
+    "text": "Giúp chúng tôi cải thiện",
+    "source_hash": "f35439c4"
+  },
+  "web.feedback.close_feedback_modal": {
+    "text": "Đóng hộp thoại phản hồi",
+    "source_hash": "41689bb4"
+  },
+  "web.feedback.share_your_feedback": {
+    "text": "Chia sẻ phản hồi của bạn",
+    "source_hash": "6d62dfbd"
+  },
+  "web.feedback.delano_mandelbaum": {
+    "text": "Delano Mandelbaum",
+    "source_hash": "6da0b72b"
+  },
+  "web.feedback.delano": {
+    "text": "Delano",
+    "source_hash": "f58154f7"
+  },
+  "web.feedback.help_content_goes_here": {
+    "text": "Nội dung trợ giúp ở đây.",
+    "source_hash": "796979ea"
+  },
+  "web.feedback.founder_note_line1": {
+    "text": "Tôi đọc mọi phản hồi gửi đến đây. Đó là cách tôi xác định nên dành thời gian cho điều gì.",
+    "source_hash": "8b430d93"
+  },
+  "web.feedback.founder_note_line2": {
+    "text": "Nếu có điều gì không ổn, hoặc bạn có ý tưởng về cách nó nên hoạt động, đây là nơi phù hợp.",
+    "source_hash": "d4b8f073"
+  },
+  "web.feedback.open_feedback_form": {
+    "text": "Mở biểu mẫu phản hồi",
+    "source_hash": "acd8409b"
+  },
+  "web.feedback.enter_your_feedback": {
+    "text": "Nhập phản hồi của bạn",
+    "source_hash": "1bb310f4"
+  },
+  "web.feedback.send_feedback": {
+    "text": "Gửi phản hồi",
+    "source_hash": "8235980b"
+  },
+  "web.feedback.sending_ellipses": {
+    "text": "Đang gửi...",
+    "source_hash": "286a3af7"
+  },
+  "web.feedback.reason_email_change_unauthorized": {
+    "text": "Có vẻ như bạn đang báo cáo một thay đổi email trái phép trên tài khoản của bạn. Vui lòng mô tả những gì đã xảy ra và chúng tôi sẽ điều tra ngay.",
+    "source_hash": "00e56551"
+  },
+  "web.feedback.anonymous_no_reply": {
+    "text": "Lưu ý: nếu bạn muốn nhận phản hồi, vui lòng ký tên hoặc đưa địa chỉ email vào tin nhắn.",
+    "source_hash": "c984f705"
+  },
+  "web.feedback.characters_remaining": {
+    "text": "Còn lại {count} ký tự",
+    "source_hash": "8d796f40"
+  },
+  "web.feedback.character_limit_reached": {
+    "text": "Đã đạt giới hạn ký tự",
+    "source_hash": "031e9310"
+  }
+}

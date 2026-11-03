@@ -1,0 +1,349 @@
+# lib/onetime/mail/sender_strategies/base_sender_strategy.rb
+#
+# frozen_string_literal: true
+
+require 'resolv'
+require 'digest'
+
+require_relative '../../domain_validation/record_matcher'
+
+module Onetime
+  module Mail
+    module SenderStrategies
+      # BaseSenderStrategy - Interface for sender domain provisioning strategies.
+      #
+      # Sender strategies handle DNS record provisioning for email sender
+      # authentication (DKIM, SPF, etc.) through mail provider APIs. This is
+      # separate from the Delivery backends which handle actual email sending.
+      #
+      # Each strategy implements provider-specific logic for:
+      #   - Provisioning sender identities and retrieving DNS records
+      #   - Checking verification status
+      #   - Cleaning up/removing sender identities
+      #
+      # Strategy Capabilities:
+      #
+      #   | Strategy   | provision | verify | cleanup |
+      #   |------------|-----------|--------|---------|
+      #   | SES        | yes       | yes    | yes     |
+      #   | SendGrid   | yes       | yes    | yes     |
+      #   | Lettermint | yes       | yes    | yes     |
+      #   | SMTP       | no-op     | no-op  | no-op   |
+      #
+      # DNS Record Types by Provider:
+      #
+      #   SES:       3 CNAME records for DKIM tokens
+      #   SendGrid:  Multiple CNAME/TXT records (branded links, DKIM, SPF)
+      #   Lettermint: CNAME/TXT records for DKIM selectors and SPF
+      #
+      class BaseSenderStrategy
+        attr_reader :config
+
+        # Initialize with provider configuration.
+        #
+        # @param config [Hash] Provider-specific configuration (credentials, region, etc.)
+        #
+        def initialize(config = {})
+          @config = config
+          validate_config!
+        end
+
+        # Provisions sender DNS records through the provider API.
+        #
+        # This creates or retrieves the sender identity/domain in the provider
+        # and returns the DNS records that must be configured for authentication.
+        #
+        # @param mailer_config [CustomDomain::MailerConfig] The mailer configuration
+        # @param credentials [Hash] Provider credentials (api_key, region, etc.)
+        # @return [Hash] Provider-specific DNS provisioning data:
+        #   - :success [Boolean] Whether provisioning succeeded
+        #   - :message [String] Human-readable result
+        #   - :dns_records [Array<Hash>] Normalized DNS records, each with:
+        #     - :type [String] Record type ('CNAME', 'TXT', etc.)
+        #     - :name [String] DNS hostname
+        #     - :value [String] DNS record value
+        #   - :provider_data [Hash] Raw provider metadata (tokens, regions, status)
+        #   - :identity_id [String, nil] Provider's identity identifier
+        #   - :error [String, nil] Error message if failed
+        #
+        def provision_dns_records(mailer_config, credentials:)
+          raise NotImplementedError, "#{self.class} must implement #provision_dns_records"
+        end
+
+        # Checks the provider-level verification status of a sender identity.
+        #
+        # Queries the provider API (SES, SendGrid, Lettermint) to determine
+        # whether the provider considers the sender domain verified. This is
+        # distinct from check_dns_records which verifies DNS propagation
+        # independently of the provider.
+        #
+        # Tri-state :verified contract (all subclasses must honor this):
+        #   true  - the provider confirms the domain is verified
+        #   false - the provider authoritatively says it is NOT verified
+        #           (pending records, or the identity is absent at the provider)
+        #   nil   - the answer could not be determined (missing/blank
+        #           credential, provider API error, transport failure).
+        #           Callers must NOT treat nil as a failed check — a rotated
+        #           API key must never demote a verified domain.
+        #
+        # @param mailer_config [CustomDomain::MailerConfig] The mailer configuration
+        # @param credentials [Hash] Provider credentials
+        # @return [Hash] Verification status:
+        #   - :verified [Boolean, nil] Tri-state, see above
+        #   - :status [String] Provider-specific status code
+        #   - :message [String] Human-readable status
+        #   - :details [Hash, nil] Additional verification details
+        #
+        def check_provider_verification_status(mailer_config, credentials:)
+          raise NotImplementedError, "#{self.class} must implement #check_provider_verification_status"
+        end
+
+        # Checks DNS record propagation for provisioned sender records.
+        #
+        # Reads the provisioned DNS records from mailer_config.dns_records
+        # and performs live DNS lookups to determine whether each record
+        # exists and whether its value matches what was provisioned.
+        #
+        # This is a fact-finding operation — it reports what DNS returns
+        # without making pass/fail judgements. Consumers decide whether
+        # record existence alone is sufficient or if value matching is
+        # required.
+        #
+        # Implemented at the base class level because it uses provisioned
+        # records (provider-agnostic). Override in subclasses only if the
+        # provider's DNS record format requires special lookup handling.
+        #
+        # NOTE: This is FACT-FINDING only. Returns dns_exists/value_matches booleans
+        # but does NOT determine verification_status. For verification with status
+        # determination, see DomainValidation::SenderStrategies::BaseStrategy#verify_dns_records.
+        #
+        # Used by: DnsRecordCheckWorker (populates mailer_config.dns_check_results)
+        #
+        # @param mailer_config [CustomDomain::MailerConfig] The mailer configuration
+        # @param credentials [Hash] Unused (DNS lookups need no credentials)
+        # @return [Hash] DNS check results:
+        #   - :records [Array<Hash>] Per-record results, each with:
+        #     - :type [String] Record type (TXT, CNAME, MX)
+        #     - :name [String] DNS hostname
+        #     - :value [String] Expected value from provisioning
+        #     - :dns_exists [Boolean] Whether any DNS records exist for this name+type
+        #     - :value_matches [Boolean] Whether provisioned value matches DNS
+        #     - :error [String, nil] Error message on lookup failure, or
+        #       'ambiguous_record_set' when duplicate DMARC/SPF records were found
+        #     - :expected_digest [String] SHA256 hex digest of the expected value
+        #       (reporting-only; does not gate matching)
+        #     - :actual_digest [String, nil] SHA256 hex digest of the sorted,
+        #       joined actual values (reporting-only; does not gate matching)
+        #   - :checked_at [Time] When the check was performed
+        #
+        def check_dns_records(mailer_config, credentials: {}) # rubocop:disable Lint/UnusedMethodArgument
+          provisioned = mailer_config.dns_records&.value
+          return { records: [], checked_at: Time.now } if provisioned.nil? || provisioned.empty?
+
+          resolver          = Resolv::DNS.new
+          resolver.timeouts = 5
+
+          # Skip optional/advisory records (e.g. DMARC) — they are
+          # recommendations, not requirements for verification.
+          required = provisioned.reject { |r| [true, 'true'].include?(r['optional']) }
+
+          results = required.map do |record|
+            check_single_dns_record(record, resolver)
+          end
+
+          { records: results, checked_at: Time.now }
+        ensure
+          resolver&.close
+        end
+
+        # Removes the sender identity from the provider.
+        #
+        # @param mailer_config [CustomDomain::MailerConfig] The mailer configuration
+        # @param credentials [Hash] Provider credentials
+        # @return [Hash] Deletion result:
+        #   - :outcome [Symbol] :deleted, :absent, :skipped, or :failed
+        #   - :deleted [Boolean] True only for :deleted
+        #   - :message [String] Nonempty human-readable result
+        #   - :error [String, nil] Nonempty for :failed, nil otherwise
+        # All four keys are required, including :error when nil.
+        #
+        def delete_sender_identity(mailer_config, credentials:)
+          raise NotImplementedError, "#{self.class} must implement #delete_sender_identity"
+        end
+
+        # Returns the strategy name for logging and debugging.
+        #
+        # @return [String] Strategy identifier (e.g., 'ses', 'sendgrid')
+        #
+        def strategy_name
+          self.class.name.split('::').last.sub('SenderStrategy', '').downcase
+        end
+
+        # Checks if this strategy supports DNS provisioning.
+        #
+        # SMTP strategy returns false since it doesn't have API-based provisioning.
+        #
+        # @return [Boolean]
+        #
+        def supports_provisioning?
+          true
+        end
+
+        protected
+
+        def deletion_result(outcome:, message:, error: nil)
+          unless [:deleted, :absent, :skipped, :failed].include?(outcome)
+            raise ArgumentError, 'Invalid deletion outcome'
+          end
+          unless message.is_a?(String) && !message.strip.empty?
+            raise ArgumentError, 'Deletion message must be a nonempty string'
+          end
+
+          valid_error = outcome == :failed ? error.is_a?(String) && !error.strip.empty? : error.nil?
+          raise ArgumentError, 'Deletion error contradicts outcome' unless valid_error
+
+          { outcome: outcome, deleted: outcome == :deleted, message: message, error: error }
+        end
+
+        def deletion_error_message(exception)
+          message = exception.message.to_s
+          message.strip.empty? ? exception.class.to_s : message
+        end
+
+        # Override in subclasses for provider-specific validation.
+        #
+        def validate_config!
+          # Base implementation does nothing
+        end
+
+        # Log info message with OT logger fallback.
+        #
+        # @param message [String] Message to log
+        #
+        def log_info(message)
+          if defined?(OT) && OT.respond_to?(:info)
+            OT.info message
+          else
+            puts message
+          end
+        end
+
+        # Log warning message with OT logger fallback.
+        #
+        # @param message [String] Message to log
+        #
+        def log_warn(message)
+          if defined?(OT) && OT.respond_to?(:lw)
+            OT.lw message
+          else
+            warn message
+          end
+        end
+
+        # Log error message with OT logger fallback.
+        #
+        # @param message [String] Message to log
+        #
+        def log_error(message)
+          if defined?(OT) && OT.respond_to?(:le)
+            OT.le message
+          else
+            warn message
+          end
+        end
+
+        # Extract the domain from an email address.
+        #
+        # Uses Truemail regex validation to reject malformed addresses
+        # before extracting the domain portion.
+        #
+        # @param email [String] Email address
+        # @return [String, nil] Domain portion, or nil if invalid
+        #
+        def extract_domain(email)
+          return nil if email.to_s.empty?
+
+          result = Truemail.validate(email, with: :regex)
+          return nil unless result.result.valid?
+
+          email.split('@', 2).last
+        end
+
+        private
+
+        # Check a single DNS record against live DNS.
+        #
+        # Matching delegates to DomainValidation::RecordMatcher, the same
+        # dispatch used by the verification pipeline (issues #4023/#4047):
+        # record-set selection first (duplicate DMARC/SPF records are
+        # ambiguous, never a pass), then content-aware comparison. The
+        # digests are reporting-only diagnostics and do not gate matching.
+        #
+        # @param record [Hash] Provisioned record with string keys: 'type', 'name', 'value'
+        # @param resolver [Resolv::DNS] Shared resolver instance
+        # @return [Hash] Check result with :dns_exists, :value_matches, :error, digests
+        #
+        def check_single_dns_record(record, resolver)
+          rec_type  = record['type'].to_s.upcase
+          rec_name  = record['name'].to_s
+          rec_value = record['value'].to_s
+
+          actual_values, error = lookup_dns_record(rec_type, rec_name, resolver)
+
+          dns_exists = !actual_values.empty?
+
+          matcher               = Onetime::DomainValidation::RecordMatcher
+          candidates, ambiguous = matcher.select_txt_record_set(rec_type, rec_value, actual_values)
+
+          if ambiguous
+            value_matches = false
+            error       ||= 'ambiguous_record_set'
+          else
+            value_matches = matcher.record_matches?(rec_type, rec_value, candidates)
+          end
+
+          {
+            'type' => rec_type,
+            'name' => rec_name,
+            'value' => rec_value,
+            'dns_exists' => dns_exists,
+            'value_matches' => value_matches,
+            'error' => error,
+            'expected_digest' => Digest::SHA256.hexdigest(rec_value),
+            'actual_digest' => dns_exists ? Digest::SHA256.hexdigest(actual_values.sort.join("\n")) : nil,
+          }
+        end
+
+        # Perform a DNS lookup by record type.
+        #
+        # @param type [String] Record type: TXT, CNAME, or MX
+        # @param hostname [String] Fully qualified hostname
+        # @param resolver [Resolv::DNS] DNS resolver instance
+        # @return [Array] Tuple of [Array<String>, String|nil] — [values, error]
+        #
+        def lookup_dns_record(type, hostname, resolver)
+          case type
+          when 'TXT'
+            resources = resolver.getresources(hostname, Resolv::DNS::Resource::IN::TXT)
+            [resources.map { |r| r.strings.join }, nil]
+          when 'CNAME'
+            resources = resolver.getresources(hostname, Resolv::DNS::Resource::IN::CNAME)
+            [resources.map { |r| r.name.to_s }, nil]
+          when 'MX'
+            resources = resolver.getresources(hostname, Resolv::DNS::Resource::IN::MX)
+            [resources.map { |r| r.exchange.to_s }, nil]
+          else
+            [[], nil]
+          end
+        rescue Resolv::ResolvError
+          # NXDOMAIN or similar authoritative "not found" — definitive answer, not an error
+          [[], nil]
+        rescue Resolv::ResolvTimeout
+          [[], 'timeout']
+        rescue StandardError => ex
+          [[], ex.message]
+        end
+      end
+    end
+  end
+end

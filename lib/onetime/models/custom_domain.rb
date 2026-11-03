@@ -1,0 +1,1812 @@
+# lib/onetime/models/custom_domain.rb
+#
+# frozen_string_literal: true
+
+require 'public_suffix'
+require 'simpleidn'
+
+require_relative 'field_types'
+require_relative '../domain_validation/ascii_hostname'
+
+module Onetime
+  # Custom Domain
+  #
+  # NOTE: CustomDomain records can only be created via V2 API
+  #
+  # Every customer can have one or more custom domains.
+  #
+  # The list of custom domains that are associated to a customer is
+  # distinct from a customer's subdomain.
+  #
+  # General techical terminology:
+  #
+  # `tld`` = Top level domain, this is in reference to the last segment of a
+  # domain, sometimes the part that is directly after the "dot" symbol. For
+  # example, mozilla.org, the .org portion is the tld.
+  #
+  # `sld` = Second level domain, a domain that is directly below a top-level
+  # domain. For example, in https://www.mozilla.org/en-US/, mozilla is the
+  # second-level domain of the .org tld.
+  #
+  # `trd` = Transit routing domain, or known as a subdomain. This is the part of
+  # the domain that is before the sld or root domain. For example, in
+  # https://www.mozilla.org/en-US/, www is the trd.
+  #
+  # `FQDN` = Fully Qualified Domain Names, are domain names that are written with
+  # the hostname and the domain name, and include the top-level domain, the
+  # format looks like [hostname].[domain].[tld]. for ex. [www].[mozilla].[org].
+  #
+  # Primary Keys & Identifiers:
+  #   - objid - Primary key (UUID), internal
+  #   - extid - External identifier (e.g., cd%{id}), user-facing
+  #
+  # As a Foreign Key in other models:
+  #   - domain_id (w/ underscore) - Foreign key field, stores the objid value
+  #   - All FK relationships use objid values for indexing
+  #
+  # API Layer:
+  #   - Public URLs/APIs should use extid for user-facing references
+  #   - Use find_by_extid(extid) to convert extid → object
+  #   - Internally, relationships always use objid
+  #
+  # Logging:
+  #   - Use extid. Don't log internal IDs.
+  #
+  # Easy way to remember: if you can see a UUID, it's an internal ID. If
+  # you can't and it has a two character prefix, it's an external ID.
+  class CustomDomain < Familia::Horreum
+    include Familia::Features::Autoloader
+
+    # Boolean fields are declared with `boolean_field ..., storage: :native`
+    # so every write path (setter, create!, the `field!` fast writer) stores
+    # a real Ruby boolean, and every read coerces legacy spellings ('true',
+    # '1', 'yes') back to one. Read them directly — `if domain.ownership_verified` —
+    # never `.to_s == 'true'` or `== true`.
+    # See Onetime::Models::FieldTypes::BooleanFieldType.
+    extend Onetime::Models::FieldTypes::BooleanFieldMacro
+
+    SCHEMA = 'models/custom-domain'
+
+    unless defined?(MAX_SUBDOMAIN_DEPTH)
+      MAX_SUBDOMAIN_DEPTH = 10  # e.g. a.b.c.d.e.f.g.h.i.j.example.com
+      MAX_TOTAL_LENGTH    = 253 # RFC 1034 section 3.1
+    end
+
+    # Marks an A-label ("xn--bcher-kva"), the ASCII form of a Unicode label.
+    IDN_ACE_PREFIX = 'xn--' unless defined?(IDN_ACE_PREFIX)
+
+    using Familia::Refinements::TimeLiterals
+
+    prefix :custom_domain
+
+    feature :safe_dump_fields
+    feature :relationships  # Enable Familia v2 features
+    feature :object_identifier  # Auto-generates objid
+    feature :external_identifier, format: 'cd%{id}' # use builtin extid_lookup index
+    feature :housekeeping
+
+    # Migration features - REMOVE after v1→v2 migration complete
+    feature :with_migration_fields
+    feature :custom_domain_migration_fields
+
+    class_hashkey :owners
+    # Uniqueness gate keyed by the DNS wire form, claimed when a record is
+    # first written: by create!, or by IdentityGuard for any other writer.
+    # Kept separate from display_domain_index so legacy Unicode/A-label
+    # duplicates retain exact-key-first lookup semantics.
+    class_hashkey :ascii_display_domain_index, class: self, reference: true
+
+    identifier_field :domainid
+
+    field :display_domain
+    field :org_id       # Organization objid (replaces custid because customdomains are now organization-level)
+    field :base_domain
+    field :subdomain
+    field :trd
+    field :tld
+    field :sld
+    field :txt_validation_host
+    field :txt_validation_value
+    field :status
+    field :vhost
+    # Load the old storage key without writing it back on save. A separate
+    # accessor keeps hydration from routing legacy data through verified=.
+    class LegacyOwnershipField < Onetime::Models::FieldTypes::BooleanFieldType
+      def persistent? = false
+    end
+    private_constant :LegacyOwnershipField
+
+    register_field_type LegacyOwnershipField.new(
+      :verified, as: :legacy_verified, storage: :native, fast_method: false
+    )
+    boolean_field :ownership_verified, storage: :native # ownership accepted by the validation strategy or operator
+    boolean_field :resolving, storage: :native # the strategy reports the domain as resolving
+    # An operator asserted ownership via the Colonel override. While set, a
+    # failed TXT check does not demote ownership_verified (VerifyDomain#persist_changes);
+    # cleared when DNS proves ownership or the operator overrides to false.
+    boolean_field :verified_by_override, storage: :native
+    # Bound on how long an indeterminate TXT check may hold ownership_verified
+    # (Operations::VerifyDomain::ConfirmationWindow). Both nil until the
+    # first check that sets them.
+    integer_field :verified_confirmed_at # epoch seconds of the last passing TXT check
+    integer_field :verified_unconfirmed_since # epoch seconds of the first indeterminate check since; nil when none
+    field :vhost_fetch_failed_at # epoch seconds; non-nil while last vhost fetch failed
+    field :created
+    field :updated
+    field :_original_value
+
+    # Auto-fetch favicon lifecycle/outcome (#3780). Written by the fetch
+    # worker via save_fields, kept off the icon hashkey so status updates
+    # don't race the icon image write.
+    field :favicon_fetch_status # JobLifecycle string (PENDING/PROCESSING/COMPLETED/FAILED)
+    boolean_field :favicon_fetched, storage: :native # true once an icon was actually stored
+    field :favicon_fetch_error # last failure message
+    field :favicon_fetch_started_at # epoch seconds a PROCESSING run began (stale-in-flight window)
+    field :favicon_fetch_completed_at # epoch seconds of the last terminal outcome
+    integer_field :favicon_fetch_attempts # count of terminal non-success attempts (backoff #3780)
+    integer_field :favicon_fetch_next_at # epoch seconds; earliest eligible re-fetch time (backoff #3780)
+
+    hashkey :brand
+    hashkey :logo # image fields need a corresponding v2 route and logic class
+    hashkey :icon
+
+    # Legacy JSON blob. Read-only; consumed by the migrate_incoming_secrets_to_config
+    # chore that copies entries into the IncomingConfig Familia model. The field
+    # declaration is intentionally retained so the chore can read the legacy
+    # value; remove it in a follow-up release once all domains report migrated.
+    jsonkey :incoming_secrets
+
+    # Familia v2 relationships
+    # Participate in Organization.domains collection (auto-generated sorted_set)
+    participates_in :Organization, :domains, score: :created
+
+    # CRITICAL: DO NOT manually define sorted_set :receipts
+    # This is AUTO-GENERATED by Familia v2 participates_in declaration:
+    # - Receipt.participates_in :CustomDomain, :receipts
+    # Manual declaration would CLOBBER the auto-generated relationship functionality!
+
+    # Global unique indexes
+    unique_index :display_domain, :display_domain_index  # Domain can only exist once
+
+    @txt_validation_prefix = '_onetime-challenge'
+
+    def init
+      # Display domain should already be set via accessor methods
+      # The ObjectIdentifier feature provides objid automatically via lazy generation
+      # which is aliased to domainid below
+      OT.ld "[CustomDomain.init] #{display_domain} id:#{domainid} org_id:#{org_id}"
+
+      # Parse the domain structure (will raise if invalid)
+      return unless display_domain && !display_domain.empty?
+
+      ps_domain    = PublicSuffix.parse(display_domain, default_rule: nil)
+
+      # Store the individual domain parts that PublicSuffix parsed out
+      @base_domain = ps_domain.domain.to_s
+      @subdomain   = ps_domain.subdomain.to_s
+      @trd         = ps_domain.trd.to_s
+      @tld         = ps_domain.tld.to_s
+      @sld         = ps_domain.sld.to_s
+
+      # Don't call generate_txt_validation_record here otherwise we'll
+      # create a new validation record every time we instantiate a
+      # custom domain object. Instead, we'll call it when we're ready
+      # to verify the domain.
+    end
+
+    # nil means unset; an explicit false must never fall back to legacy true.
+    # Reads use hydrated values only and never perform DNS or datastore I/O.
+    #
+    # PREPENDED (not `def ownership_verified` in the class body) because
+    # Familia's method_added guard raises on in-class redefinition of a
+    # field-generated method.
+    OwnershipVerifiedFallback = Module.new do
+      def ownership_verified
+        @ownership_verified.nil? ? @verified : @ownership_verified
+      end
+    end
+    prepend OwnershipVerifiedFallback
+
+    # Compatibility for callers using the old flag name. All writes now target
+    # the canonical field; bare bang reads retain Familia's raw-byte semantics.
+    def verified = ownership_verified
+
+    def verified=(value)
+      self.ownership_verified = value
+    end
+
+    def verified!(*) = ownership_verified!(*)
+
+    def save_fields(*names, **)
+      canonical_names = names.map { |name| name.to_s == 'verified' ? :ownership_verified : name }
+      super(*canonical_names.uniq, **)
+    end
+
+    # Familia skips absent persistent fields during hydration. Clear the new
+    # field before a full refresh so a removed value cannot shadow legacy data.
+    def refresh!
+      previous            = [@ownership_verified, @verified]
+      @ownership_verified = nil
+      super
+    rescue StandardError
+      @ownership_verified, @verified = previous
+      raise
+    end
+
+    def custid
+      objid
+    end
+
+    # Alias domainid to objid for API compatibility
+    # The object_identifier feature provides objid automatically
+    def domainid
+      objid
+    end
+
+    # Validate required fields before save
+    def save
+      raise Onetime::Problem, 'Organization ID required' if org_id.to_s.empty?
+      raise Onetime::Problem, 'Display domain required' if display_domain.to_s.empty?
+
+      super
+    end
+
+    # ASCII-claim and identity checks on every write path. Prepended
+    # after the fields so it can wrap their generated fast writers.
+    require_relative 'custom_domain/identity_guard'
+    prepend IdentityGuard
+
+    # Generate a unique identifier for this customer's custom domain.
+    #
+    # From a customer's perspective, the display_domain is what they see
+    # in their browser's address bar. We use display_domain in the identifier,
+    # b/c it's totally reasonable for a user to have multiple custom domains,
+    # like secrets.example.com and linx.example.com, and they want to be able
+    # to distinguish them from each other.
+    #
+    # The fact that we rely on this generating the same identifier for a
+    # given domain + customer is important b/c it's a means of making
+    # sure that the same domain can only be added once per customer.
+    #
+    # @return [String] A shortened hash of the domain name and custid.
+    def generate_id
+      self.class.generate_id
+    end
+
+    # Check if the given customer can access this domain through their
+    # organization membership (any role: owner, admin, or member).
+    #
+    # Active status is verified for owners only (via org.owner?); for other
+    # roles this checks presence in the org's members sorted set, which is
+    # intentionally tolerant of legacy members without an
+    # OrganizationMembership record (membership migration is incomplete).
+    # Endpoints needing active-status or role guarantees must follow this
+    # with require_entitlement_in!, which loads the membership record.
+    #
+    # @param cust [Onetime::Customer, String] The customer object or customer ID
+    # @return [Boolean] true if the customer belongs to the domain's organization
+    def accessible_by?(cust)
+      resolve_org_and_customer(cust) do |org, customer|
+        org.owner?(customer) || org.member?(customer)
+      end
+    end
+
+    # Strict ownership check: true only if the customer has an owner-role
+    # membership in the domain's organization. Delegates to Organization#owner?
+    # which verifies active membership with role='owner'.
+    #
+    # @param cust [Onetime::Customer, String] The customer object or customer ID
+    # @return [Boolean] true only if the customer is an org owner
+    def owner?(cust)
+      resolve_org_and_customer(cust) do |org, customer|
+        org.owner?(customer)
+      end
+    end
+
+    private
+
+    def resolve_org_and_customer(cust)
+      return false unless org_id
+
+      org = Onetime::Organization.load(org_id)
+      return false unless org
+
+      customer = cust.is_a?(Onetime::Customer) ? cust : Onetime::Customer.load(cust)
+      return false unless customer
+
+      yield org, customer
+    end
+
+    public
+
+    # Check if this domain is owned by the given organization
+    #
+    # @param org [Onetime::Organization] The organization to check
+    # @return [Boolean] true if the organization owns this domain
+    def owned_by_organization?(org)
+      organization_instances.any? { |o| o.objid == org.objid }
+    end
+
+    # Get the primary organization for this domain based on org_id field
+    # This works even if the participation has been removed
+    #
+    # Familia's load returns nil for a missing key; it does not raise. A
+    # datastore error propagates on purpose — callers gate authorization on
+    # the answer (OrganizationLoader, the tenant connect membership gate), so
+    # a swallowed outage must not read as "no organization".
+    #
+    # @return [Onetime::Organization, nil] The organization, or nil if org_id
+    #   is not set or names no stored organization
+    def primary_organization
+      return nil if org_id.to_s.empty?
+
+      Onetime::Organization.load(org_id)
+    end
+
+    # Forward navigation to config models
+    #
+    # Not memoized: each call is a single Redis HGETALL whose result is
+    # already materialized into in-memory fields. Memoizing would only
+    # save a repeated load within the same request — minimal benefit,
+    # and it risks serving stale state after writes.
+
+    def signin_config
+      Onetime::CustomDomain::SigninConfig.find_by_domain_id(identifier)
+    end
+
+    def signin_config?
+      Onetime::CustomDomain::SigninConfig.exists_for_domain?(identifier)
+    end
+
+    def sso_config
+      Onetime::CustomDomain::SsoConfig.find_by_domain_id(identifier)
+    end
+
+    def sso_config?
+      Onetime::CustomDomain::SsoConfig.exists_for_domain?(identifier)
+    end
+
+    def mailer_config
+      Onetime::CustomDomain::MailerConfig.find_by_domain_id(identifier)
+    end
+
+    def mailer_config?
+      Onetime::CustomDomain::MailerConfig.exists_for_domain?(identifier)
+    end
+
+    def incoming_config
+      Onetime::CustomDomain::IncomingConfig.find_by_domain_id(identifier)
+    end
+
+    def incoming_config?
+      Onetime::CustomDomain::IncomingConfig.exists_for_domain?(identifier)
+    end
+
+    # Receipt management - Familia v2 auto-generated methods wrapper
+    # The receipts sorted_set is auto-generated by Receipt.participates_in CustomDomain, :receipts
+
+    def receipt_count
+      receipts.size
+    end
+
+    def receipt?(receipt_or_objid)
+      return false unless receipt_or_objid
+
+      # Extract objid without loading the full object from Redis
+      objid = receipt_or_objid.is_a?(String) ? receipt_or_objid : receipt_or_objid.objid
+      return false unless objid
+
+      # Create a lightweight, temporary receipt instance for the membership check.
+      # This avoids a database call while still using Familia's serialization correctly.
+      dummy_receipt = Onetime::Receipt.new(objid: objid)
+      receipts.member?(dummy_receipt)
+    end
+
+    # Parses the vhost JSON string into a Ruby hash
+    #
+    # @return [Hash] The parsed vhost configuration, or empty hash if parsing fails
+    # @note Returns empty hash in two cases:
+    #   1. When vhost is nil or empty string
+    #   2. When JSON parsing fails (invalid JSON)
+    # @example
+    #   custom_domain.vhost = '{"ssl": true, "redirect": "https"}'
+    #   custom_domain.parse_vhost #=> {"ssl"=>true, "redirect"=>"https"}
+    def parse_vhost
+      return {} if vhost.nil?
+      return vhost if vhost.is_a?(Hash)
+      return {} if vhost.to_s.empty?
+
+      JSON.parse(vhost)
+    rescue JSON::ParserError, TypeError => ex
+      OT.le "[CustomDomain.parse_vhost] Error parsing JSON: #{vhost.inspect} - #{ex}"
+      {}
+    end
+
+    def to_s
+      # If we can treat familia objects as strings, then passing them as method
+      # arguments we don't need to check whether it is_a? RedisObject or not;
+      # we can simply call `fobj.to_s`. In both cases the result is the unqiue
+      # ID of the familia object. Usually that is all we need to maintain the
+      # relation records -- we don't actually need the instance of the familia
+      # object itself.
+      #
+      # As a pilot to trial this out, Customer has the equivalent method and
+      # comment. See the ClassMethods below for usage details.
+      identifier.to_s
+    end
+
+    def check_identifier!
+      return unless identifier.to_s.empty?
+
+      raise "Identifier cannot be empty for #{self.class}"
+    end
+
+    # Removes all database keys associated with this custom domain.
+    #
+    # This includes:
+    # - The main database key for the custom domain (`self.dbkey`)
+    # - database keys of all related objects specified in `self.class.data_types`
+    # - Familia v2 participations in organization.domains collections
+    # - Class indexes: instances, display_domain_index, owners (via Familia)
+    #
+    # @return [void]
+    def destroy!
+      # Clean up domain-specific configurations (idempotent, safe to call if
+      # none exist). Each sibling is wrapped individually so that a failure
+      # cleaning one config does not block the others — orphaned sibling
+      # records are preferable to a partial cleanup that can't be retried.
+      sibling_configs = [
+        Onetime::CustomDomain::HomepageConfig,
+        Onetime::CustomDomain::ApiConfig,
+        Onetime::CustomDomain::SigninConfig,
+        Onetime::CustomDomain::SignupConfig,
+        Onetime::CustomDomain::SsoConfig,
+        Onetime::CustomDomain::SsoSigninOutcome,
+        Onetime::CustomDomain::MailerConfig,
+        Onetime::CustomDomain::IncomingConfig,
+      ]
+      # Rescue only Familia's own errors (schema drift, field-level failures)
+      # so that infrastructure failures like Redis::BaseConnectionError surface
+      # to the caller — there's no value in continuing the cascade if the
+      # datastore is unreachable, and the subsequent super call would fail with
+      # a more accurate error anyway.
+      sibling_configs.each do |config_class|
+        config_class.delete_for_domain!(identifier)
+      rescue Familia::Problem => ex
+        OT.le "[CustomDomain.destroy!] Failed to clean up #{config_class}: #{ex.message}"
+      end
+
+      # Remove domain-scoped memberships (SSO-provisioned users restricted to this domain)
+      scoped_memberships = Onetime::OrganizationMembership.find_all_by_domain_scope(objid)
+      scoped_memberships.each do |membership|
+        OT.info "[CustomDomain.destroy!] Removing domain-scoped membership: #{membership.objid} (customer: #{membership.customer_objid})"
+        org      = Onetime::Organization.load(membership.organization_objid)
+        customer = Onetime::Customer.load(membership.customer_objid)
+        if org && customer
+          org.remove_members_instance(customer)
+          membership.destroy_with_index_cleanup!
+        else
+          # Orphaned membership — just destroy the hash
+          membership.destroy!
+        end
+      end
+      OT.info "[CustomDomain.destroy!] Cascade complete for #{display_domain}: removed #{scoped_memberships.size} domain-scoped membership(s)"
+
+      # Remove from organization participations before Familia cleanup
+      organization_instances.each do |o|
+        remove_from_organization_domains(o)
+      end
+
+      # The `owners` HashKey is a plain class_hashkey (domain.to_s -> org_id),
+      # not a Familia-managed index, so destroy! does not auto-purge it. Remove
+      # the entry manually to keep it in sync with the `instances` registry.
+      self.class.owners.remove(to_s)
+
+      # The name as stored, read before Familia opens its MULTI (a read
+      # inside it returns a future). remove_from_class_indexes! releases the
+      # index entries under that name, whatever this copy holds in memory.
+      @stored_display_domain_at_destroy = deserialize_value(dbclient.hget(dbkey, 'display_domain'), field_name: :display_domain)
+
+      # Familia handles the main object, related fields, and declared indexes
+      # in one MULTI. The ASCII gate is released from inside that
+      # transaction too (see #remove_from_class_indexes!).
+      super
+    end
+
+    private
+
+    # Familia's destroy! calls this inside its MULTI, after delete! and the
+    # declared-index cleanup. Familia releases the display_domain_index entry
+    # for the name this copy holds in memory. A copy can hold another name
+    # than the stored one, or none (a copy built from an identifier), and
+    # the entry under the stored name would then outlive the record; so the
+    # stored name, read in destroy!, is released too when it differs.
+    #
+    # The ASCII gate is app-managed (it indexes a normalized value rather
+    # than a model field), so it is not a declared index. Released after
+    # EXEC instead, a failed Redis call in between would leave a claim
+    # naming a record that no longer exists, and create! treats such a claim
+    # as another organization's in-flight registration: both spellings of
+    # the name stay blocked until an operator clears it.
+    #
+    # Every release is ownership-checked Lua (release_field): a shadow record
+    # that shares a hostname with the record the index names leaves that
+    # record's entries in place. release_field is documented safe to queue
+    # in a MULTI; its return value is not consulted.
+    def remove_from_class_indexes!
+      super
+
+      in_memory = display_domain.to_s
+      stored    = @stored_display_domain_at_destroy.to_s
+      if !stored.empty? && stored != in_memory
+        OT.lw "[CustomDomain.destroy!] #{extid} is stored as #{stored.inspect} but holds " \
+              "#{in_memory.inspect} in memory; releasing the stored name"
+        self.class.display_domain_index.release_field(stored, identifier)
+      end
+
+      [in_memory, stored].reject(&:empty?).filter_map { |name| ascii_display_domain_or_nil(name) }.uniq.each do |ascii_name|
+        self.class.ascii_display_domain_index.release_field(ascii_name, identifier)
+      end
+    end
+
+    # @return [String, nil] the ASCII form, or nil for a name without one
+    def ascii_display_domain_or_nil(name)
+      self.class.ascii_display_domain(name)
+    rescue Onetime::DomainValidation::AsciiHostname::ConversionError
+      nil
+    end
+
+    public
+
+    # Checks if the domain is an apex domain.
+    # An apex domain is a domain without any subdomains.
+    #
+    # Note: A subdomain can include nested subdomains (e.g., b.a.example.com),
+    # whereas TRD (Transit Routing Domain) refers to the part directly before
+    # the SLD.
+    #
+    # @return [Boolean] true if the domain is an apex domain, false otherwise
+    def apex?
+      subdomain.to_s.empty?
+    end
+
+    # Overrides Familia::Horreum#exists? to handle connection pool issues
+    #
+    # The original implementation may return false for existing keys
+    # when the connection is returned to the pool before checking.
+    # This implementation uses a fresh connection for the check.
+    #
+    # @return [Boolean] true if the domain exists in Redis
+    def exists?
+      dbclient.exists?(dbkey)
+    end
+
+    # Returns brand settings as an immutable BrandSettings Data object.
+    # Useful for pattern matching, validation, or when you need the full settings.
+    #
+    # @return [BrandSettings] Immutable brand settings instance
+    def brand_settings
+      @brand_settings ||= BrandSettings.from_hash(brand.hgetall)
+    end
+
+    def allow_public_homepage?
+      homepage_config = HomepageConfig.find_by_domain_id(identifier)
+      unless homepage_config
+        OT.le "[CustomDomain] HomepageConfig missing for domain #{identifier}; using safe default (false). Run migration 20260417_01_backfill_homepage_config to repair."
+        return false
+      end
+
+      homepage_config.enabled?
+    end
+
+    # Whether anonymous visitors may CREATE secrets on this domain — the
+    # capability behind the classic homepage create form and the anonymous
+    # secret-creation API gate (see base_secret_action#validate_domain_permissions).
+    #
+    # Distinct from allow_public_homepage?, which only says the homepage is
+    # enabled: a homepage in 'incoming' secrets_mode is public but must
+    # NOT authorize anonymous secret creation — visitors send secrets TO the
+    # domain's configured recipients instead, via the incoming API. Fails
+    # closed (false) when the config record is missing, and likewise when the
+    # stored secrets_mode is unrecognised (corruption): such a homepage must
+    # not default to authorizing the public create form the operator never
+    # selected.
+    #
+    # Shares the recognized_secrets_mode? fail-closed gate with
+    # HomepageConfig#effectively_enabled?, but the two answer different
+    # questions and are not otherwise equivalent: this authorizes CREATE
+    # specifically, so it excludes incoming mode outright (!incoming_mode?),
+    # whereas effectively_enabled? additionally weighs incoming availability
+    # (incoming_available?) for incoming-mode homepages.
+    #
+    # The answer is per-visitor once the homepage carries network rules
+    # (HomepageConfig#allowed_cidrs / #denied_cidrs): pass the request's
+    # env['otto.ip_match'] closure as ip_match so the gate judges the caller's
+    # network the same way the bootstrap serializer decided whether to show
+    # them the form. A domain with no rules ignores ip_match entirely; a
+    # domain WITH rules fails closed when none is supplied (a caller that
+    # cannot say where the request came from cannot be admitted by network).
+    #
+    # @param ip_match [#call, nil] env['otto.ip_match'] for the request
+    def allow_public_secret_creation?(ip_match: nil)
+      homepage_config = HomepageConfig.find_by_domain_id(identifier)
+      unless homepage_config
+        OT.le "[CustomDomain] HomepageConfig missing for domain #{identifier}; using safe default (false). Run migration 20260417_01_backfill_homepage_config to repair."
+        return false
+      end
+
+      homepage_config.enabled? &&
+        homepage_config.recognized_secrets_mode? &&
+        !homepage_config.incoming_mode? &&
+        homepage_config.network_allowed?(ip_match)
+    end
+
+    def allow_public_api?
+      api_config = ApiConfig.find_by_domain_id(identifier)
+      unless api_config
+        OT.le "[CustomDomain] ApiConfig missing for domain #{identifier}; using safe default (false). Run migration 20260417_01_backfill_homepage_config to repair."
+        return false
+      end
+
+      api_config.enabled?
+    end
+
+    # Validates the format of TXT record host and value used for domain verification.
+    # The host must be alphanumeric with dots, underscores, or hyphens only.
+    # The value must be a 32-character hexadecimal string.
+    #
+    # @raise [Onetime::Problem] If the TXT record host or value format is invalid
+    # @return [void]
+    def validate_txt_record!
+      unless txt_validation_host.to_s.match?(/\A[a-zA-Z0-9._-]+\z/)
+        raise Onetime::Problem, 'TXT record hostname can only contain letters, numbers, dots, underscores, and hyphens'
+      end
+
+      return if txt_validation_value.to_s.match?(/\A[a-f0-9]{32}\z/)
+
+      raise Onetime::Problem, 'TXT record value must be a 32-character hexadecimal string'
+    end
+
+    # Generates a TXT record for domain ownership verification.
+    # Format: _onetime-challenge-<short_id>[.subdomain]
+    #
+    # The record consists of:
+    # - A prefix (_onetime-challenge-)
+    # - First 7 chars of the domain identifier
+    # - Subdomain parts if present, as A-labels (e.g. .www, .status.www, or
+    #   .xn--bcher-kva for bücher.example.com)
+    # - A 32-char random hex value
+    #
+    # The host is relative to base_domain; validation_record is the full
+    # name. display_domain, trd and base_domain keep the spelling the
+    # customer typed.
+    #
+    # @return [Array<String, String>] The TXT record host and value
+    # @raise [Onetime::Problem] If the full record name does not fit the DNS
+    #   name limits, or the generated record is invalid
+    #
+    # Examples:
+    #   _onetime-challenge-domainid -> 7709715a6411631ce1d447428d8a70
+    #   _onetime-challenge-domainid.status -> cd94fec5a98fd33a0d70d069acaae9
+    #
+    def generate_txt_validation_record
+      record_host = txt_challenge_host
+
+      # The value needs to be sufficiently unique and non-guessable to
+      # function as a challenge response. IOW, if we check the DNS for
+      # the domain and match the value we've generated here, then we
+      # can reasonably assume that the customer controls the domain.
+      record_value = SecureRandom.hex(16)
+
+      OT.info "[CustomDomain] Generated txt record #{record_host} -> #{record_value}"
+
+      @txt_validation_host  = record_host
+      @txt_validation_value = record_value
+
+      validate_txt_record!
+
+      # These can now be displayed to the customer for them
+      # to continue the validation process.
+      [record_host, record_value]
+    end
+
+    # The TXT challenge host for this domain, relative to base_domain:
+    # "<prefix>-<short id>[.<trd>]", with the trd in A-label form because it
+    # is part of a DNS name.
+    #
+    # Also checks that the full record name fits the DNS name limits. That
+    # name is 27 bytes longer than the display domain, so a domain can fit
+    # while its challenge does not. parse calls this so such a domain is
+    # refused before create! claims it.
+    #
+    # @return [String]
+    # @raise [Onetime::Problem] if the full record name does not fit
+    def txt_challenge_host
+      # Include a short identifier that is unique to this domain. This
+      # allows for multiple customers to use the same domain without
+      # conflicting with each other.
+      host = "#{self.class.txt_validation_prefix}-#{identifier.to_s[0..6]}"
+
+      # Append the TRD if it exists. This allows for multiple subdomains
+      # to be used for the same domain.
+      # e.g. The `status` in status.example.com.
+      host = "#{host}.#{Onetime::DomainValidation::AsciiHostname.call(trd)}" unless trd.to_s.empty?
+
+      Onetime::DomainValidation::AsciiHostname.call("#{host}.#{base_domain}")
+      host
+    rescue Onetime::DomainValidation::AsciiHostname::ConversionError => ex
+      # A parsed display domain already converts, so the length is what fails.
+      OT.ld "[CustomDomain] No TXT challenge name for #{display_domain.inspect}: #{ex.message}"
+      raise Onetime::Problem, 'Domain too long for its TXT validation record'
+    end
+
+    # The fully qualified name of the TXT record, in A-label form.
+    #
+    # Used to validate the domain ownership by the customer: through the
+    # Approximated check_records API, or our own TXT lookup
+    # (DomainValidation::TxtVerifier) depending on the strategy. Both need
+    # the name as it goes on the wire, while base_domain is stored as typed.
+    # Converting here, rather than trusting the stored host, also covers a
+    # host stored with a Unicode subdomain label by earlier versions.
+    #
+    # e.g. `_onetime-challenge-domainid.froogle.com`, or
+    # `_onetime-challenge-domainid.xn--bcher-kva.example.com` for
+    # bücher.example.com
+    #
+    # @return [String, nil] nil until a challenge has been generated
+    # @raise [Onetime::DomainValidation::AsciiHostname::ConversionError] if
+    #   the stored name has no A-label form within the DNS name limits
+    def validation_record
+      return nil if txt_validation_host.to_s.empty?
+
+      Onetime::DomainValidation::AsciiHostname.call("#{txt_validation_host}.#{base_domain}")
+    end
+
+    # The TXT record name spelled like display_domain, e.g.
+    # `_onetime-challenge-domainid.bücher.example.com`. For showing beside
+    # validation_record when the two differ; never for a DNS query.
+    #
+    # @return [String, nil] nil until a challenge has been generated
+    def validation_record_display
+      return nil if txt_validation_host.to_s.empty?
+
+      "#{txt_validation_host.to_s.split('.', 2).first}.#{display_domain}"
+    end
+
+    # Derived lifecycle label, not an additional ownership check.
+    # txt_validation_value is the expected challenge generated by the app;
+    # its presence says nothing about whether a TXT record exists in DNS.
+    #
+    # States:
+    # - :unverified  No generated challenge
+    # - :pending     Challenge generated, not resolving (ownership may be verified)
+    # - :resolving   Resolving, ownership not verified
+    # - :verified    Resolving and ownership verified
+    #
+    # @return [Symbol] The current verification state
+    def verification_state
+      return :unverified unless txt_validation_value
+
+      if resolving
+        ownership_verified ? :verified : :resolving
+      else
+        :pending
+      end
+    end
+
+    # Checks if this domain is ready to serve traffic
+    #
+    # A domain is considered ready when a challenge has been generated,
+    # ownership is accepted by the validation strategy (or operator override),
+    # and the strategy reports the domain as resolving.
+    #
+    # @return [Boolean] true if the derived lifecycle state is :verified
+    def ready?
+      verification_state == :verified
+    end
+
+    # serving_authorized? / served_as_tenant?: whether this domain is served
+    # as a tenant domain at all. See ServingPolicy.
+    require_relative 'custom_domain/serving_policy'
+    include ServingPolicy
+
+    # Clears the ownership evidence and provider status an earlier owner left
+    # on this record, and gives the TXT challenge a new value. Used when an
+    # orphaned record is adopted by an organization
+    # (CustomDomain.claim_orphaned_domain), which keeps the record's
+    # identifier.
+    #
+    # Sets values in memory only; the caller persists them. The claim does
+    # that in its atomic_write, together with the new org_id.
+    #
+    # ownership_verified is set to false, not nil: nil reads through to a
+    # legacy `verified` value still stored on the record. The TXT host is
+    # derived from the identifier, so it stays the same and only the value
+    # changes. The record is :pending afterwards.
+    #
+    # @return [void]
+    # @raise [Onetime::Problem] if the TXT challenge name does not fit the
+    #   DNS name limits (see txt_challenge_host)
+    def reset_verification_for_adoption
+      self.ownership_verified         = false
+      self.verified_by_override       = false
+      self.resolving                  = false
+      self.verified_confirmed_at      = nil
+      self.verified_unconfirmed_since = nil
+      self.vhost                      = nil
+      self.vhost_fetch_failed_at      = nil
+      generate_txt_validation_record
+      nil
+    end
+
+    module ClassMethods
+      attr_reader :db, :values, :owners, :txt_validation_prefix
+
+      # Load a domain by its display_domain name
+      #
+      # Returns nil on any error (Redis connectivity, record not found, etc.)
+      # to allow callers to fall back gracefully. This is intentional fail-open
+      # behavior for the lookup layer; callers handle nil as "no custom domain".
+      #
+      # @param domain_name [String] The domain name to look up
+      # @return [CustomDomain, nil] The domain if found, nil otherwise
+      def load_by_display_domain(domain_name)
+        record_for_display_domain(domain_name)
+      rescue Redis::BaseError => ex
+        OT.ld "[CustomDomain.load_by_display_domain] Failed to load domain #{domain_name.inspect}: #{ex.message}"
+        nil
+      rescue StandardError => ex
+        # Fail-open: Redis errors during lookup should not block the request
+        OT.le "[CustomDomain.load_by_display_domain] Unexpected error for #{domain_name.inspect}: #{ex.class} - #{ex.message}"
+        nil
+      end
+
+      # Resolve an FQDN to its CustomDomain identifier.
+      #
+      # Looks up the record for the given FQDN (record_for_display_domain).
+      # Returns nil when the domain is blank, unregistered, or on any error —
+      # callers treat nil as "no custom domain".
+      #
+      # @param fqdn [String, nil] The fully-qualified domain name
+      # @return [String, nil] The CustomDomain objid, or nil
+      def resolve_domain_id(fqdn)
+        return nil if fqdn.nil? || fqdn.to_s.empty?
+
+        domain_id = record_for_display_domain(fqdn)&.identifier
+        OT.ld "[CustomDomain] Resolved #{fqdn} to domain_id=#{domain_id}" if domain_id
+        domain_id
+      rescue StandardError => ex
+        OT.le "[CustomDomain] Failed to resolve domain_id for #{fqdn}: #{ex.message}"
+        nil
+      end
+
+      # The record for a name: the one its index entry names, when that
+      # record is stored under the name looked up. Every lookup by name goes
+      # through here (load_by_display_domain, from_display_domain,
+      # resolve_domain_id).
+      #
+      # display_domain_id_for answers from the index alone. An entry can
+      # outlive the record it names, or name a record stored under another
+      # name (an index rebuilt under the wrong key, a stale entry a later
+      # registration did not replace). Served for the host, such a record
+      # would answer another domain's requests with this record's
+      # configuration. The entry is refused instead and logged for repair;
+      # the record stays reachable under its stored name.
+      #
+      # @param domain_name [String, #to_s]
+      # @return [CustomDomain, nil]
+      # @raise [Redis::BaseError] if reading the index or the record fails
+      def record_for_display_domain(domain_name)
+        domain_id = display_domain_id_for(domain_name)
+        return nil unless domain_id
+
+        record = find_by_identifier(domain_id)
+        return nil unless record
+        return record if display_domain_names_record?(domain_name, record.display_domain)
+
+        OT.le "[CustomDomain] Refused the index entry for #{domain_name.inspect}: it names " \
+              "#{record.extid}, which is stored as #{record.display_domain.inspect}"
+        nil
+      end
+
+      # Whether a record stored as +stored_name+ is the one a lookup of
+      # +domain_name+ asks for: stored under one of the lookup's keys, or
+      # under a name with the same ASCII form (the fallback that finds
+      # other Unicode normalisation forms).
+      #
+      # @param domain_name [String, #to_s] the name looked up
+      # @param stored_name [String, nil] the record's display_domain
+      # @return [Boolean]
+      def display_domain_names_record?(domain_name, stored_name)
+        stored = stored_name.to_s
+        return false if stored.empty? || !stored.valid_encoding?
+        return true if display_domain_lookup_keys(domain_name).include?(stored.downcase)
+
+        ascii_display_domain(stored) == ascii_display_domain(domain_name)
+      rescue Onetime::DomainValidation::AsciiHostname::ConversionError
+        false
+      end
+
+      # The index lookup behind record_for_display_domain.
+      #
+      # display_domain is stored as the customer typed it, so an
+      # internationalised name may be indexed in Unicode ("bücher.example")
+      # or in A-label form ("xn--bcher-kva.example"). Names that arrive over
+      # the wire are always A-labels: the SNI name Caddy hands to the ACME
+      # ask endpoint, and the Host header. Both forms name the same domain,
+      # so a miss on the name as given is retried with its other forms
+      # (see display_domain_lookup_keys), then the ASCII creation index.
+      # That final fallback also finds decomposed Unicode registrations.
+      # Stored data is not rewritten.
+      #
+      # When both forms were registered as separate records before this
+      # lookup existed, each is still found by its own exact name first.
+      #
+      # @param domain_name [String, #to_s]
+      # @return [String, nil] The CustomDomain objid, or nil
+      # @raise [Redis::BaseError] if reading the index fails
+      def display_domain_id_for(domain_name)
+        display_domain_lookup_keys(domain_name).each do |key|
+          domain_id = display_domain_index.get(key)
+          return domain_id if domain_id
+        end
+
+        ascii_name = begin
+          ascii_display_domain(domain_name)
+        rescue Onetime::DomainValidation::AsciiHostname::ConversionError
+          nil
+        end
+        return nil unless ascii_name
+
+        ascii_display_domain_index.get(ascii_name)
+      end
+
+      # ASCII DNS wire form used by the atomic creation gate and as a
+      # lookup fallback after display_domain_lookup_keys so legacy keys win.
+      #
+      # @param domain_name [String, #to_s]
+      # @return [String] lower-case A-label form
+      # @raise [Onetime::DomainValidation::AsciiHostname::ConversionError]
+      def ascii_display_domain(domain_name)
+        Onetime::DomainValidation::AsciiHostname.call(domain_name)
+      end
+
+      # Atomically claim the ASCII form for an object identifier. This is
+      # the app-layer counterpart to Familia's exact unique_index claim: both
+      # use HashKey#claim_field, but this gate folds Unicode and A-label input
+      # onto one field while leaving the exact display index unchanged.
+      #
+      # @return [Array(String, Symbol, String)] ASCII key and :created,
+      #   :owned, or the conflicting identifier
+      def claim_ascii_display_domain(domain_name, identifier)
+        ascii_name = ascii_display_domain(domain_name)
+        [ascii_name, ascii_display_domain_index.claim_field(ascii_name, identifier)]
+      end
+
+      # Index keys to try for a name, in order: the name as given
+      # (lower-case), then its A-label form, then its Unicode (NFC) form when
+      # that form encodes back to the same A-label (see idn_forms).
+      #
+      # A plain ASCII name has one key, so the common lookup costs one read
+      # and no conversion. A name that cannot be converted (overlong label,
+      # malformed punycode, invalid bytes) keeps whatever keys could be
+      # built; the lookup misses and nothing raises.
+      #
+      # Other stored Unicode normalisation forms are found through the
+      # ASCII index fallback in display_domain_id_for, not these keys.
+      #
+      # @param domain_name [String, #to_s]
+      # @return [Array<String>] one to three distinct keys; empty for a
+      #   blank or unreadable name
+      def display_domain_lookup_keys(domain_name)
+        name = domain_name.to_s
+        return [] if name.empty? || !name.valid_encoding?
+
+        typed = name.downcase
+        return [typed] if typed.ascii_only? && !typed.include?(IDN_ACE_PREFIX)
+
+        [typed, *idn_forms(typed)].uniq
+      end
+
+      # @return [Array<String>] A-label form, then Unicode form; fewer when a
+      #   conversion fails or the Unicode form does not encode back to the
+      #   same A-label
+      def idn_forms(name)
+        ascii   = Onetime::DomainValidation::AsciiHostname.call(name)
+        unicode = SimpleIDN.to_unicode(ascii).unicode_normalize(:nfc)
+        # Decoding is lossy in one direction: a crafted A-label can decode to
+        # the Unicode spelling of a different name ("xn--bucher-xyd" carries a
+        # decomposed u + combining diaeresis, which NFC folds into the same
+        # "bücher" that "xn--bcher-kva" stands for; "xn--secrets-" decodes to
+        # plain "secrets"). Only trust the Unicode key when it round-trips,
+        # or a lookup by one DNS name would find another name's record.
+        return [ascii] unless Onetime::DomainValidation::AsciiHostname.call(unicode) == ascii
+
+        [ascii, unicode]
+      rescue StandardError => ex
+        OT.ld "[CustomDomain] No alternate form for #{name.inspect}: #{ex.class}: #{ex.message}"
+        [ascii].compact
+      end
+
+      # Check if a domain exists but has no organization (orphaned)
+      # @param domain_name [String] The domain name to check
+      # @return [Boolean] true if domain exists without org_id
+      def orphaned?(domain_name)
+        domain = load_by_display_domain(domain_name)
+        domain && domain.org_id.to_s.empty?
+      end
+
+      # Creates a new custom domain record
+      #
+      # This method:
+      # 1. Validates and parses the input domain
+      # 2. Checks for duplicates
+      # 3. Saves the domain and updates related records atomically
+      #
+      # @param input [String] The domain name to create
+      # @param org_id [String] The organization ID to associate with this domain
+      # @param adopt_orphan [Boolean] When the name belongs to a record with
+      #   no organization (an orphan), assign that record to org_id through
+      #   claim_orphaned_domain. Only operator tools pass true. With false
+      #   (the default) an orphan is refused like a record of another
+      #   organization; see refuse_orphan_claim!.
+      # @return [Onetime::CustomDomain] The created custom domain
+      # @raise [Onetime::Problem] If domain is invalid or already exists
+      # @raise [Onetime::TemporarilyUnavailable] If the datastore failed, or
+      #   claiming an orphaned record lost to a concurrent write
+      # @raise [Onetime::RecordNotFound] If claiming an orphaned record and the
+      #   organization no longer exists
+      #
+      # @note BREAKING CHANGE: This method signature changed from (input, custid) to (input, org_id).
+      #   Domains are now owned by organizations, not individual customers. To migrate existing code:
+      #   OLD: CustomDomain.create!(domain, customer.custid)
+      #   NEW: CustomDomain.create!(domain, customer.organization_instances.first.objid)
+      #
+      # More Info:
+      # We need a minimum of a domain and organization id to create a custom
+      # domain -- or more specifically, a custom domain identifier. We
+      # allow instantiating a custom domain without an organization id, but
+      # instead raise a fuss if we try to save it later without one.
+      #
+      # See CustomDomain.base_domain and display_domain for details on
+      # the difference between display domain and base domain.
+      #
+      # NOTE: Internally within this class, we try not to use the
+      # unqualified term "domain" on its own since there's so much
+      # room for confusion.
+      #
+      def create!(input, org_id, adopt_orphan: false)
+        # Parse the domain to get normalized display_domain
+        obj               = parse(input, org_id)
+        normalized_domain = obj.display_domain.to_s.downcase
+
+        # System-integrity backstop: the logic layer already rejects
+        # canonical overlaps, but create! is also reachable from the
+        # console, CLI tooling, and future endpoints. Enforce the
+        # invariant at the write gate so no caller can register the
+        # canonical domain or a subdomain of it (#3841).
+        refuse_canonical_overlap!(normalized_domain)
+
+        # Check for existing domain BEFORE attempting creation
+        existing = load_by_display_domain(normalized_domain)
+
+        if existing
+          # Scenario 1: Domain already in customer's organization (same org_id)
+          if existing.org_id.to_s == org_id.to_s
+            OT.ld "[CustomDomain.create!] Domain already in organization: #{obj.display_domain} org_id=#{org_id}"
+            raise Onetime::Problem, 'Domain already registered in your organization'
+          end
+
+          # Scenario 2: Domain in another organization (different org_id)
+          unless existing.org_id.to_s.empty?
+            OT.le "[CustomDomain.create!] Domain belongs to another organization: #{obj.display_domain} existing_org_id=#{existing.org_id} requested_org_id=#{org_id}"
+            raise Onetime::Problem, 'Domain is registered to another organization'
+          end
+
+          # Scenario 3: Orphaned domain (no org_id). Only an operator adopts
+          # an orphan; anyone else gets the Scenario 2 answer.
+          refuse_orphan_claim!(existing, org_id) unless adopt_orphan
+
+          claim_result = claim_orphaned_domain(existing, org_id)
+          return claim_result if claim_result
+        end
+
+        # No existing domain: atomically claim one A-label key shared by the
+        # Unicode and A-label forms. Familia's save takes the lower-layer exact
+        # display_domain_index claim; this app-layer gate closes the cross-form
+        # race without changing exact-key lookup precedence for legacy data.
+        ascii_domain, ascii_claim = claim_ascii_display_domain(normalized_domain, obj.identifier)
+
+        unless [:created, :owned].include?(ascii_claim)
+          # Another process claimed this name between our lookup and write.
+          # Prefer its record when it has already landed; it may still be
+          # between its own claim and save, in which case the generic
+          # cross-organization refusal remains fail-closed.
+          concurrent_domain = find_by_identifier(ascii_claim) || load_by_display_domain(normalized_domain)
+          raise Onetime::Problem, 'Domain already registered in your organization' if concurrent_domain&.org_id.to_s == org_id.to_s
+
+          raise Onetime::Problem, 'Domain is registered to another organization'
+        end
+
+        # We own the ASCII claim - now create the full record.
+        begin
+          obj.generate_txt_validation_record
+          obj.save
+
+          # Use Familia v2 participation to add to organization.domains
+          org = Onetime::Organization.load(org_id)
+          obj.add_to_organization_domains(org) if org
+
+          # Add to other global indexes (instances sorted set, owners hash)
+          instances.add obj.to_s
+          record_owner(obj, obj.org_id)
+
+          # Maintain the per-domain config invariant: every CustomDomain has
+          # matching HomepageConfig/ApiConfig records. find_or_create_for_domain
+          # is idempotent + race-safe, so a concurrent PUT that wrote first
+          # keeps its value. Mirrors the destroy! sibling cleanup pattern.
+          bootstrap_per_domain_configs(obj)
+        rescue StandardError => ex
+          # Explicit per-step rollback. We previously tried obj.destroy! here
+          # as a "symmetric inverse", but destroy! transitively touches helpers
+          # (Organization.load via membership cascade, organization_instances,
+          # Familia super) any of which can themselves raise mid-rollback when
+          # the original failure was a Redis/infrastructure error. A single
+          # secondary raise inside destroy! aborts the cascade and leaves
+          # partial state. Independent rescues per step are uglier but stable:
+          # one step's failure can't block another's cleanup. Original
+          # exception is always re-raised at the end.
+          rollback_steps = [
+            # Familia's ownership-checked exact index claim from obj.save.
+            -> { obj.remove_from_class_display_domain_index },
+            # Manual class-index writes inside the begin block
+            -> { instances.remove(obj.to_s) },
+            -> { owners.remove(obj.to_s) },
+            # Sibling configs written by bootstrap_per_domain_configs (idempotent)
+            -> { Onetime::CustomDomain::HomepageConfig.delete_for_domain!(obj.identifier) },
+            -> { Onetime::CustomDomain::ApiConfig.delete_for_domain!(obj.identifier) },
+            # Main domain hash from obj.save (the orphan the original
+            # enumerated-cleanup left behind — #3026 review catch)
+            -> { Familia.dbclient.del(obj.dbkey) if Familia.dbclient.exists?(obj.dbkey) },
+            # Organization participation from add_to_organization_domains.
+            # Uses the in-memory participation set, not Organization.load, so
+            # it's safe even when the original failure was an org-lookup error.
+            -> {
+              obj.organization_instances.each do |o|
+                obj.remove_from_organization_domains(o)
+              end
+            },
+            # Release the ASCII gate last, after every record/index cleanup
+            # attempt, and only while it still names this object.
+            -> { ascii_display_domain_index.release_field(ascii_domain, obj.identifier) },
+          ]
+          rollback_steps.each do |step|
+            step.call
+          rescue StandardError => step_ex
+            OT.le "[CustomDomain.create!] rollback step failed for #{obj.display_domain}: #{step_ex.message}"
+          end
+          raise ex
+        end
+
+        obj # Return the created object
+      rescue Familia::RecordExistsError => ex
+        OT.le "[CustomDomain.create!] Duplicate domain: #{ex.message}"
+        raise Onetime::Problem, 'Duplicate domain for organization'
+      rescue Redis::BaseError => ex
+        # Not the caller's input: a retry can succeed (503, not 422).
+        OT.le "[CustomDomain.create!] Redis error: #{ex.message}"
+        raise Onetime::TemporarilyUnavailable.new(
+          'The domain could not be added right now. Please try again shortly.', reason: :datastore
+        )
+      end
+
+      # Refuses an orphaned record (no org_id) to a caller that may not adopt
+      # it. The answer is the one for a record of another organization, so it
+      # does not show that the name is registered without an owner. The
+      # refusal is logged with the record's extid, for support.
+      #
+      # @param existing [CustomDomain] the orphaned record
+      # @param org_id [String] the organization that asked for the name
+      # @raise [Onetime::Problem] always
+      def refuse_orphan_claim!(existing, org_id)
+        Onetime.get_logger('App').warn 'custom_domain.orphan_claim_refused',
+          extid: existing.extid,
+          org_id: org_id.to_s
+        raise Onetime::Problem, 'Domain is registered to another organization'
+      end
+
+      # Create default-disabled HomepageConfig and ApiConfig records for a
+      # freshly created CustomDomain. Idempotent via find_or_create_for_domain
+      # (WATCH+MULTI), so a concurrent PUT that wrote first preserves its value.
+      def bootstrap_per_domain_configs(obj)
+        Onetime::CustomDomain::HomepageConfig.find_or_create_for_domain(
+          domain_id: obj.identifier, enabled: false,
+        )
+        Onetime::CustomDomain::ApiConfig.find_or_create_for_domain(
+          domain_id: obj.identifier, enabled: false,
+        )
+      end
+
+      # Atomically claim an orphaned domain for an organization.
+      # Uses optimistic locking via WATCH to prevent race conditions.
+      #
+      # Before the WATCH/MULTI, the record's name is claimed in
+      # ascii_display_domain_index for the record, as create! does for a
+      # new record (claim_field cannot run inside a transaction). The claim
+      # succeeds when the entry is absent or already names the record, and is
+      # refused when another record holds the name. If the orphan claim then
+      # fails, the entry stays while the record exists, even if still
+      # orphaned; only a deleted record's claim is released (see
+      # release_orphan_ascii_claim).
+      #
+      # The record keeps its identifier, so the transaction that writes the
+      # new org_id also resets what an earlier owner left on it: ownership
+      # verification, resolving, the override, the confirmation timestamps
+      # and the provider status are cleared, and the TXT challenge gets a new
+      # value (reset_verification_for_adoption). The new organization has to
+      # verify the domain again. Per-domain configs, brand data and receipts
+      # are kept; the operator tools list them
+      # (Onetime::Operations::Domains::AdoptionReport).
+      #
+      # An orphan that another organization's domains collection still lists
+      # is refused before anything is written (see
+      # refuse_orphan_listed_elsewhere!).
+      #
+      # Callers: the operator tools only. Operations::Domains::Create through
+      # create!(..., adopt_orphan: true), and Operations::Domains::Repair and
+      # Transfer directly. Not reachable from the customer API.
+      #
+      # @param existing [CustomDomain] The orphaned domain to claim
+      # @param org_id [String] The organization ID claiming the domain
+      # @return [CustomDomain, nil] The claimed domain, or nil if claim failed
+      # @raise [Onetime::Problem] If domain was claimed by another org during
+      #   race, another organization still lists it, another record holds its
+      #   ASCII name, or the name has no A-label form
+      # @raise [Onetime::RecordNotFound] If the organization no longer exists
+      # @raise [Onetime::TemporarilyUnavailable] If a concurrent write to the
+      #   record discarded the claim (WATCH)
+      def claim_orphaned_domain(existing, org_id)
+        OT.info "[CustomDomain.create!] Claiming orphaned domain: #{existing.display_domain} for org_id=#{org_id}"
+
+        refuse_orphan_listed_elsewhere!(existing, org_id)
+        ascii_name, created_claim = claim_ascii_for_orphan!(existing, org_id)
+
+        begin
+          result = watch_and_assign_orphan(existing, org_id)
+        rescue StandardError
+          release_orphan_ascii_claim(existing, ascii_name) if created_claim
+          raise
+        end
+
+        # atomic_write returns false when EXEC is discarded (WATCH saw a
+        # concurrent modification). nil is defensive against unexpected
+        # returns from the enclosing watch block.
+        if result == false || result.nil?
+          release_orphan_ascii_claim(existing, ascii_name) if created_claim
+          # Another write landed on the record first; a retry sees its result.
+          OT.le "[CustomDomain.claim_orphaned_domain] WATCH conflict for #{existing.display_domain}"
+          raise Onetime::TemporarilyUnavailable.new(
+            'The domain could not be added right now. Please try again shortly.', reason: :concurrent_write
+          )
+        end
+
+        existing
+      end
+
+      # The WATCH/MULTI half of claim_orphaned_domain.
+      #
+      # @return [CustomDomain, Boolean, nil] the record when its stored org_id
+      #   already is org_id, else atomic_write's result (false when discarded)
+      def watch_and_assign_orphan(existing, org_id)
+        # Pin a single pool connection for the entire WATCH+MULTI critical
+        # section. Without the pin, each Familia.dbclient call (including
+        # the nested atomic_write's MULTI) may resolve to a different pool
+        # connection — WATCH on conn A and MULTI on conn C never pair up,
+        # so races go undetected.
+        Onetime.with_pinned_dbclient do |conn|
+          conn.watch(existing.dbkey) do
+            # Re-check org_id inside the watch - if changed, transaction will
+            # fail. Read from the datastore, decoded (stored_org_id).
+            current_org_id = stored_org_id(existing)
+
+            unless current_org_id.empty?
+              conn.unwatch
+              # We already own it (concurrent request from same org succeeded)
+              return existing if current_org_id == org_id.to_s
+
+              # Another org claimed it
+              raise Onetime::Problem, 'Domain is registered to another organization'
+            end
+
+            # Load org BEFORE multi — reads inside MULTI return QUEUED
+            org = Onetime::Organization.load(org_id)
+            unless org
+              conn.unwatch
+              # The caller resolved the organization; it is gone now. Not
+              # bad input, and its internal id stays out of the reply.
+              OT.le "[CustomDomain.claim_orphaned_domain] Organization not found while claiming #{existing.display_domain}"
+              raise Onetime::RecordNotFound, 'Organization not found'
+            end
+
+            existing.atomic_write do
+              existing.org_id  = org_id
+              existing.updated = OT.now.to_i
+              existing.reset_verification_for_adoption
+              existing.add_to_organization_domains(org) if org
+
+              # Update owners hash (Location E) to reflect new org ownership
+              record_owner(existing, org_id)
+            end
+          end
+        end
+      end
+
+      # The record's org_id as stored now, read from the datastore rather
+      # than the loaded copy, and decoded. Familia v2 JSON-encodes scalar
+      # fields, so hget returns a set org_id as a JSON-quoted string; a
+      # record written before that holds a bare value, which is returned as
+      # stored. An absent field, an empty value, JSON null and a JSON empty
+      # string all read as "" (no organization).
+      #
+      # @return [String]
+      def stored_org_id(existing)
+        raw = existing.hget(:org_id).to_s
+        return '' if raw.empty?
+
+        JSON.parse(raw).to_s
+      rescue JSON::ParserError
+        # Surface the fallback so ops can detect unmigrated rows in
+        # production and decide whether a backfill is warranted.
+        OT.le "[CustomDomain.claim_orphaned_domain] legacy org_id encoding on #{existing.display_domain}: raw=#{raw.inspect}"
+        raw
+      end
+
+      # Refuses to adopt an orphan that another organization's domains
+      # collection still lists. Organization#add_domain refuses a record that
+      # belongs to another organization; an orphan has no org_id, so a listing
+      # left behind by drift would otherwise leave the record listed in two
+      # organizations. The candidates come from the record's participation
+      # index (organization_instances), and each is confirmed against the
+      # collection itself, so a listing that was already removed does not
+      # count. A listing in the adopting organization is not refused. A record
+      # whose stored org_id is set is left to the WATCH section, which answers
+      # for it.
+      #
+      # @raise [Onetime::Problem] naming the organization and how to remove
+      #   the listing
+      def refuse_orphan_listed_elsewhere!(existing, org_id)
+        return unless stored_org_id(existing).empty?
+
+        listing = existing.organization_instances.find do |org|
+          org.objid != org_id.to_s && existing.in_organization_domains?(org)
+        end
+        return unless listing
+
+        OT.le "[CustomDomain.claim_orphaned_domain] #{existing.extid} has no org_id but is listed " \
+              "in the domains of #{listing.extid}"
+        raise Onetime::Problem,
+          "Domain #{existing.display_domain} has no organization but is still listed in the domains of " \
+          "organization #{listing.extid}. Remove that listing first: review it with " \
+          "`bin/ots domains doctor --org #{listing.extid}`, then run the same command with --repair. " \
+          'Then adopt the domain again.'
+      end
+
+      # Claims the orphan's ASCII name for the record.
+      #
+      # @return [Array(String, Boolean)] ASCII name, and whether this call
+      #   created the claim (eligible for cleanup if the record is deleted)
+      # @raise [Onetime::Problem] when another record holds the name, or the
+      #   name has no A-label form
+      def claim_ascii_for_orphan!(existing, org_id)
+        ascii_name, claim = claim_ascii_display_domain(existing.display_domain, existing.identifier)
+        if claim == :created
+          OT.info "[CustomDomain.claim_orphaned_domain] Entered #{ascii_name} into the ASCII index for #{existing.extid}"
+        end
+        return [ascii_name, claim == :created] if [:created, :owned].include?(claim)
+
+        OT.le "[CustomDomain.claim_orphaned_domain] #{ascii_name} is held by #{claim}, not #{existing.extid}"
+        holder = find_by_identifier(claim)
+        raise Onetime::Problem, 'Domain already registered in your organization' if holder&.org_id.to_s == org_id.to_s
+
+        raise Onetime::Problem, 'Domain is registered to another organization'
+      rescue Onetime::DomainValidation::AsciiHostname::ConversionError => ex
+        raise Onetime::Problem, ex.message
+      end
+
+      # Releases a claim created by a failed orphan adoption only if the
+      # record is gone. A live orphan keeps its entry: another adopter uses
+      # the same identifier, so an org_id check followed by release_field can
+      # remove that adopter's claim. Check absence and index ownership in one
+      # script so deletion/recreation cannot land between check and release.
+      # Datastore errors leave the claim in place rather than opening the name.
+      def release_orphan_ascii_claim(existing, ascii_name)
+        script = <<~LUA
+          if redis.call('EXISTS', KEYS[1]) == 1 then return 0 end
+          if redis.call('HGET', KEYS[2], ARGV[1]) ~= ARGV[2] then return 0 end
+          return redis.call('HDEL', KEYS[2], ARGV[1])
+        LUA
+        index  = ascii_display_domain_index
+        index.dbclient.eval(
+          script,
+          keys: [existing.dbkey, index.dbkey],
+          argv: [ascii_name, existing.identifier],
+        )
+      rescue StandardError => ex
+        OT.le "[CustomDomain.claim_orphaned_domain] Kept the ASCII claim for #{existing.extid}: #{ex.class}: #{ex.message}"
+      end
+
+      private :watch_and_assign_orphan,
+        :refuse_orphan_listed_elsewhere!,
+        :claim_ascii_for_orphan!,
+        :release_orphan_ascii_claim
+
+      # Returns a new Onetime::CustomDomain object (without saving it).
+      #
+      # @param input [String] The domain name to parse
+      # @param org_id [String] Organization ID to associate with this domain
+      #
+      # @return [Onetime::CustomDomain]
+      #
+      # @raise [PublicSuffix::DomainInvalid] If domain is invalid
+      # @raise [PublicSuffix::DomainNotAllowed] If domain is not allowed
+      # @raise [PublicSuffix::Error] For other PublicSuffix errors
+      # @raise [Onetime::Problem] If domain exceeds MAX_SUBDOMAIN_DEPTH or MAX_TOTAL_LENGTH,
+      #   or its TXT challenge record name would not fit the DNS name limits
+      #
+      # @note BREAKING CHANGE: Second parameter changed from custid to org_id.
+      #   See {create!} for migration details.
+      #
+      def parse(input, org_id)
+        raise Onetime::Problem, 'Organization ID required' if org_id.to_s.empty?
+
+        segments = input.to_s.split('.').reject(&:empty?)
+        raise Onetime::Problem, 'Invalid domain format' if segments.empty?
+
+        raise Onetime::Problem, "Domain too deep (max: #{MAX_SUBDOMAIN_DEPTH})" if segments.length > MAX_SUBDOMAIN_DEPTH
+
+        raise Onetime::Problem, "Domain too long (max: #{MAX_TOTAL_LENGTH})" if input.length > MAX_TOTAL_LENGTH
+
+        display_domain      = self.display_domain(input)
+        # Reject wire-length failures before constructing or claiming a record.
+        begin
+          ascii_display_domain(display_domain)
+        rescue Onetime::DomainValidation::AsciiHostname::ConversionError => ex
+          raise Onetime::Problem, ex.message
+        end
+        OT.ld "[CustomDomain.parse] Creating with display_domain=#{display_domain.inspect}, org_id=#{org_id.inspect}"
+        obj                 = new(display_domain: display_domain, org_id: org_id)
+        obj._original_value = input
+        # The TXT challenge name is longer than the domain: refuse a domain
+        # whose challenge cannot fit before anything is claimed.
+        obj.txt_challenge_host
+
+        # Debug the created object
+        OT.ld "[CustomDomain.parse] display_domain=#{obj.display_domain.inspect}, org_id=#{obj.org_id.inspect}, identifier=#{obj.identifier.inspect}"
+
+        obj
+      end
+
+      # Takes the given input domain and returns the base domain,
+      # the one that the zone record would be created for. So
+      # froogle.com, www.froogle.com, subdir.www.froogle.com would
+      # all return froogle.com here.
+      #
+      # Another way to think about it, the TXT record we ask the user
+      # to create will be created on the base domain. So if we have
+      # www.froogle.com, we'll create the TXT record on froogle.com,
+      # like this: `_onetime-challenge-domainid.froogle.com`. This is
+      # distinct from the domain we ask the user to create an A
+      # record for, which is www.froogle.com. We also call this the
+      # display domain.
+      #
+      # Returns either a string or nil if invalid
+      def base_domain(input)
+        return nil if contains_control_chars?(input)
+
+        # We don't need to fuss with empty stripping spaces, prefixes,
+        # etc because PublicSuffix does that for us.
+        PublicSuffix.domain(input, default_rule: nil)
+      rescue PublicSuffix::DomainInvalid => ex
+        OT.le "[CustomDomain.base_domain] #{ex.message} for `#{input}`"
+        nil
+      end
+
+      # Takes the given input domain and returns the display domain,
+      # the one that we ask the user to create an A record for. So
+      # subdir.www.froogle.com would return subdir.www.froogle.com here;
+      # www.froogle.com would return www.froogle.com; and froogle.com
+      # would return froogle.com.
+      #
+      def display_domain(input)
+        raise Onetime::Problem, 'Domain contains invalid control characters' if contains_control_chars?(input)
+
+        ps_domain = PublicSuffix.parse(input, default_rule: nil)
+        result    = ps_domain.subdomain || ps_domain.domain
+
+        # Safety check to prevent nil display_domain which causes serialization issues
+        if result.nil?
+          OT.le "[CustomDomain.display_domain] Parsed domain resulted in nil: subdomain=#{ps_domain.subdomain.inspect}, domain=#{ps_domain.domain.inspect} for input `#{input}`"
+          raise Onetime::Problem, 'Invalid domain format - unable to determine display domain'
+        end
+
+        result
+      rescue PublicSuffix::Error => ex
+        OT.le "[CustomDomain.parse] #{ex.message} for `#{input}`"
+        raise Onetime::Problem, ex.message
+      end
+
+      # Checks both the public suffix and the DNS wire-format length limits.
+      def valid?(input)
+        return false if contains_control_chars?(input)
+
+        return false unless PublicSuffix.valid?(input, default_rule: nil)
+
+        ascii_display_domain(input)
+        true
+      rescue Onetime::DomainValidation::AsciiHostname::ConversionError
+        false
+      end
+
+      # Whether the input is exactly one of the link-ANCHOR hosts
+      # (site.host or features.domains.default). Narrower than
+      # overlaps_canonical_domain? by design: exact match only, no
+      # base-domain overlap. Callers (e.g. share_domain filtering) ask
+      # "is this THE default domain?", not "does this collide with any
+      # canonical host or subdomain thereof?". Covers both anchor
+      # hosts so a split deployment (site.host=api.example.com,
+      # domains.default=secrets.example.com) filters the default link
+      # domain the same way the DomainStrategy middleware classifies it.
+      #
+      # DELIBERATELY reads the ANCHOR set, not the full canonical set
+      # (#4063). Do NOT "fix" this to canonical_hosts/normalized_hosts for
+      # consistency with overlaps_canonical_domain? -- the two questions
+      # diverged when features.domains.link_domains joined the canonical
+      # set. process_share_domain (apps/api/v{1,2}/logic/secrets/
+      # base_secret_action.rb) returns early WITHOUT setting @share_domain
+      # when this returns true, so an operator link-pool host answering
+      # true here silently discards every picker selection and re-anchors
+      # the generated link on the canonical host the operator configured
+      # LINK_DOMAINS to hide. No exception, no log line: every link is
+      # simply wrong. Link-pool hosts are hosts we SERVE, not hosts we
+      # ANCHOR on.
+      def default_domain?(input)
+        display_domain = Onetime::CustomDomain.display_domain(input)
+        hosts          = anchor_hosts
+        OT.ld "[CustomDomain.default_domain?] #{display_domain} in #{hosts.inspect}"
+        hosts.include?(display_domain)
+      rescue PublicSuffix::Error, Onetime::Problem => ex
+        OT.le "[CustomDomain.default_domain?] #{ex.message} for `#{input}`"
+        false
+      end
+
+      # The write-gate form of overlaps_canonical_domain?, shared by create!
+      # and IdentityGuard (a new record saved without create!) so the two
+      # cannot drift. Raises before anything is claimed or written.
+      #
+      # @param domain_name [String] display domain of the record to register
+      # @raise [Onetime::Problem] when the name overlaps a canonical host
+      # @return [void]
+      def refuse_canonical_overlap!(domain_name)
+        return unless overlaps_canonical_domain?(domain_name)
+
+        raise Onetime::Problem, 'This domain overlaps with the default site domain'
+      end
+
+      # Whether the input domain overlaps with a canonical site domain.
+      # Two arms with deliberately different reach (#4063):
+      #
+      #   exact match      - the FULL canonical set, including the operator
+      #                      link pool (features.domains.link_domains). A
+      #                      customer may never register a host the
+      #                      deployment already serves as canonical.
+      #   base-domain match - ANCHOR hosts only (site.host and
+      #                      features.domains.default), so subdomain
+      #                      siblings of an anchor are blocked too (e.g.
+      #                      secrets.example.com when the site host is
+      #                      eu.example.com — both resolve to example.com).
+      #
+      # The tradeoff, decided for #4063 and recorded here so it survives
+      # review: running the base-domain sweep over link-pool members would
+      # forbid customers from registering ANY sibling under that base
+      # domain — LINK_DOMAINS=short.example.com would block every
+      # *.example.com registration forever, which for an operator link
+      # domain on a shared public suffix is far worse than the loosening
+      # it replaces. The accepted consequence is that a customer MAY
+      # register a sibling of an operator link domain (other.example.com
+      # while short.example.com is in the pool). Exact-match protection of
+      # the pool member itself is retained.
+      #
+      # Covers both site.host and features.domains.default: the
+      # DomainStrategy middleware treats `domains.default || site.host`
+      # as canonical, so a distinct default link domain needs the same
+      # protection as the site host (#3841).
+      #
+      # Uses PublicSuffix for normalization, so leading/trailing whitespace,
+      # casing differences, and trailing dots cannot circumvent the check.
+      # Fails closed: input that cannot be parsed is treated as overlap.
+      #
+      # Placed before entitlement checks in AddDomain so it is absolute
+      # (no colonel bypass) — this is a system-integrity invariant.
+      def overlaps_canonical_domain?(input)
+        hosts = canonical_hosts
+        return false if hosts.empty?
+
+        # Control characters are invalid in domain names (RFC 952/1123).
+        # Treat as overlap to block registration -- a domain that cannot
+        # be valid should never bypass the canonical-domain guard.
+        #
+        # Ordering matters: this check must stay ahead of the
+        # display_domain call below, which raises Onetime::Problem for
+        # the same input (caught by the fail-closed rescue, but the
+        # explicit path is the one under test).
+        return true if contains_control_chars?(input)
+
+        input_display = display_domain(input)
+        input_base    = base_domain(input)
+
+        # Exact match against every canonical host, link pool included.
+        return true if hosts.include?(input_display)
+
+        # Base-domain sweep, anchors only. See the tradeoff note above.
+        anchor_hosts.any? do |host|
+          canonical_base = base_domain(host)
+
+          # Skip base-domain comparison when this canonical host can't be
+          # resolved (e.g. localhost in development)
+          next false if canonical_base.nil? || input_base.nil?
+
+          input_base == canonical_base
+        end
+      rescue PublicSuffix::Error, Onetime::Problem => ex
+        OT.le "[CustomDomain.overlaps_canonical_domain?] #{ex.message} for `#{input}`"
+        true
+      end
+
+      # The FULL canonical host set for this deployment, normalized
+      # (lowercased, port-stripped) with the primary host first:
+      # features.domains.default when present, else site.host, followed by
+      # site.host and then every features.domains.link_domains entry
+      # (#4063). These are the hosts the deployment SERVES.
+      #
+      # Derived through Utils::CanonicalHosts — the same derivation point
+      # the DomainStrategy middleware uses — so the registration guard can
+      # never disagree with request classification about which hosts are
+      # canonical.
+      #
+      # Sole consumer: overlaps_canonical_domain? (exact-match arm).
+      def canonical_hosts
+        Onetime::Utils::CanonicalHosts.normalized_hosts
+      end
+      private :canonical_hosts
+
+      # The link-ANCHOR host subset, normalized: features.domains.default
+      # and site.host only, primary first. NEVER contains an operator
+      # link-pool member. These are the hosts generated links anchor on.
+      #
+      # Consumers: default_domain? (whole predicate) and the base-domain
+      # arm of overlaps_canonical_domain?. Both would misbehave against
+      # the full set — see the comments on each.
+      def anchor_hosts
+        Onetime::Utils::CanonicalHosts.normalized_anchor_hosts
+      end
+      private :anchor_hosts
+
+      # ASCII control characters (0x00-0x1F, 0x7F) are invalid in domain
+      # names per RFC 952/1123. PublicSuffix does not reject them, so we
+      # guard at this layer.
+      def contains_control_chars?(input)
+        return false if input.nil?
+
+        input.match?(/[\x00-\x1f\x7f]/)
+      end
+
+      # Simply instatiates a new CustomDomain object and checks if it exists.
+      def exists?(input, org_id)
+        # The `parse` method instantiates a new CustomDomain object but does
+        # not save it to the database. We do that here to piggyback on the initial
+        # validation and parsing. We use the derived identifier to load
+        # the object from the database.
+        obj = parse(input, org_id)
+        OT.ld "[CustomDomain.exists?] Got #{obj.identifier} #{obj.display_domain} #{obj.org_id}"
+        obj.exists?
+      rescue Onetime::Problem => ex
+        OT.le "[CustomDomain.exists?] #{ex.message}"
+        false
+      end
+
+      # SINGLE WRITER for the `owners` class hashkey (domainid => org_id).
+      #
+      # `owners` is a plain class_hashkey, NOT a Familia-managed index: nothing
+      # keeps it in step with the authoritative `CustomDomain#org_id` field.
+      # Organization#unlisted_owned_domains reads it as the second source of
+      # truth for the org-deletion drift guard, so an entry left pointing at a
+      # previous owner makes THAT organization permanently undeletable
+      # (`bin/ots domains transfer` used to do exactly this). Every writer that
+      # changes a domain's owning organization must route through here.
+      #
+      # A blank org_id REMOVES the entry rather than writing an empty string: an
+      # empty value matches no org's objid, but it would still be walked by the
+      # HGETALL scan and reported as drift forever.
+      #
+      # Safe to call inside a MULTI (it only issues writes, never reads).
+      #
+      # NOTE (#4217): this hashkey is slated for replacement by a Familia
+      # `multi_index :org_id`. Keep this helper thin so that swap stays a
+      # single-site change.
+      #
+      # @param fobj [Onetime::CustomDomain, String] domain, or its identifier.
+      # @param org_id [String, nil] the new owning organization's objid.
+      def record_owner(fobj, org_id)
+        domain_id = fobj.to_s
+        return if domain_id.empty?
+
+        if org_id.to_s.empty?
+          owners.remove domain_id
+        else
+          owners.put domain_id, org_id.to_s
+        end
+      end
+
+      def all
+        # Load all instances from the sorted set. No need
+        # to involve the owners HashKey here.
+        instances.revrangeraw(0, -1).collect { |identifier| find_by_identifier(identifier) }
+      end
+
+      def count
+        instances.count # e.g. zcard dbkey
+      end
+
+      def recent(duration = 48.hours)
+        spoint = OT.now.to_i - duration
+        epoint = OT.now.to_i
+        instances.rangebyscoreraw(spoint, epoint).collect { |identifier| load(identifier) }
+      end
+
+      # Finds a custom domain by its display domain.
+      #
+      # The lookup normalizes `display_domain` to lowercase to match the index.
+      # Returns `nil` when the domain is blank, absent from the index, its
+      # indexed record no longer exists, or that record is stored under another
+      # name (record_for_display_domain). Datastore errors intentionally propagate:
+      # callers use this lookup to resolve tenant policy and must not treat a failed
+      # read as an absent tenant configuration.
+      #
+      # @param display_domain [String, #to_s] Display domain to look up
+      # @return [Onetime::CustomDomain, nil]
+      # @raise [Redis::BaseError] if reading the index or domain record fails
+      def from_display_domain(display_domain)
+        # The index entry (trying the name's A-label and Unicode forms too),
+        # then the record it names, which must be stored under that name.
+        record_for_display_domain(display_domain)
+      end
+
+      # Generate a cryptographically secure short identifier using
+      # 256-bit random value truncated to 64 bits for shorter length.
+      # @return [String] A secure short identifier in base-36 encoding
+      def generate_id
+        Familia.generate_id
+      end
+
+      # Find all custom domains for a given organization
+      # Uses the Familia v2 participates_in relationship
+      #
+      # @param org_id [String] The organization internal identifier (objid)
+      # @return [Array<String>] Array of domain identifiers
+      def find_all_by_org_id(org_id)
+        org = Onetime::Organization.load(org_id)
+        return [] unless org
+
+        # org.domains is the auto-generated SortedSet from participates_in
+        org.domains.to_a
+      end
+    end
+
+    extend ClassMethods
+  end
+end
+
+# CustomDomain sibling configs (api_config, brand_settings, homepage_config,
+# incoming_config, mailer_config, signup_config, sso_config) are required from
+# lib/onetime/models.rb after this file loads. Loading them here would create
+# a circular require since they reopen Onetime::CustomDomain.

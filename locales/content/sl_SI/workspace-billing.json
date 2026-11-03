@@ -1,0 +1,1064 @@
+{
+  "web.billing.subscription_synced_title": {
+    "text": "Naročnina sinhronizirana",
+    "source_hash": "3086ef43"
+  },
+  "web.billing.subscription_synced_description": {
+    "text": "Ugodnosti vaše naročnine so bile sinhronizirane iz druge regije.",
+    "source_hash": "a99b7a98"
+  },
+  "web.billing.upgrade.required": {
+    "text": "Potrebna nadgradnja",
+    "source_hash": "16487236"
+  },
+  "web.billing.upgrade.viewPlans": {
+    "text": "Ogled paketov",
+    "source_hash": "a865d424"
+  },
+  "web.billing.upgrade.needTeams": {
+    "text": "Upravljanje ekip zahteva Identity Plus ali višji paket",
+    "source_hash": "95bdda65"
+  },
+  "web.billing.upgrade.needCustomDomains": {
+    "text": "Lastne domene zahtevajo Identity Plus ali višji paket",
+    "source_hash": "e8af8484"
+  },
+  "web.billing.upgrade.needApiAccess": {
+    "text": "Dostop do API-ja zahteva Identity Plus ali višji paket",
+    "source_hash": "ab8be865"
+  },
+  "web.billing.upgrade.needAuditLogs": {
+    "text": "Revizijski dnevniki zahtevajo paket Več ekip ali višji",
+    "source_hash": "91df96b0"
+  },
+  "web.billing.manage_subscription_and_billing": {
+    "text": "Upravljajte svojo naročnino, organizacije in nastavitve obračunavanja",
+    "source_hash": "3995095c"
+  },
+  "web.billing.overview.title": {
+    "text": "Pregled obračunavanja",
+    "source_hash": "479a3c4c"
+  },
+  "web.billing.overview.description": {
+    "text": "Oglejte si in upravljajte naročnino ter podatke o plačilu",
+    "source_hash": "60e5a00e"
+  },
+  "web.billing.overview.billing_for_organization": {
+    "text": "Obračunavanje za to organizacijo",
+    "source_hash": "21806992"
+  },
+  "web.billing.overview.current_plan": {
+    "text": "Trenutni paket",
+    "source_hash": "5d856320"
+  },
+  "web.billing.overview.plan_features": {
+    "text": "Funkcije paketa",
+    "source_hash": "fbab9086"
+  },
+  "web.billing.overview.payment_method": {
+    "text": "Način plačila",
+    "source_hash": "f89a4e17"
+  },
+  "web.billing.overview.next_billing_date": {
+    "text": "Naslednji datum obračuna",
+    "source_hash": "3d1df54e"
+  },
+  "web.billing.overview.quick_actions": {
+    "text": "Hitra dejanja",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.billing.overview.manage_billing": {
+    "text": "Upravljaj obračunavanje",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.view_invoices": {
+    "text": "Ogled računov",
+    "source_hash": "cfc0404e"
+  },
+  "web.billing.overview.upgrade_plan": {
+    "text": "Nadgradi paket",
+    "source_hash": "17787ab7"
+  },
+  "web.billing.overview.change_plan": {
+    "text": "Spremeni paket",
+    "source_hash": "2d0b195b"
+  },
+  "web.billing.overview.manage_subscription": {
+    "text": "Upravljanje naročnine",
+    "source_hash": "cbc4ef92"
+  },
+  "web.billing.plans.legacy_plan_info": {
+    "text": "Uporabljate starejši načrt s posebnimi cenami.",
+    "source_hash": "e9aa8bf0"
+  },
+  "web.billing.plans.early_supporter_plan": {
+    "text": "Identity Plus (Zgodnji podpornik)",
+    "source_hash": "f37cd0d9"
+  },
+  "web.billing.plans.legacy_plan_warning": {
+    "text": "Zamenjava načrta pomeni izgubo vaših posebnih pogojev. Tega ni mogoče razveljaviti.",
+    "source_hash": "eda13d64"
+  },
+  "web.billing.overview.no_payment_method": {
+    "text": "Ni shranjenega načina plačila",
+    "source_hash": "77f71037"
+  },
+  "web.billing.overview.no_upcoming_billing": {
+    "text": "Ni prihajajočih obračunov",
+    "source_hash": "746314de"
+  },
+  "web.billing.overview.days_remaining": {
+    "text": "preostalih dni",
+    "source_hash": "385438a3"
+  },
+  "web.billing.overview.billing_on": {
+    "text": "Obračun {date}",
+    "source_hash": "40dcb7cf"
+  },
+  "web.billing.overview.view_plans_action": {
+    "text": "Ogled paketov",
+    "source_hash": "a865d424"
+  },
+  "web.billing.overview.view_plans_description": {
+    "text": "Primerjajte in nadgradite",
+    "source_hash": "40e02bff"
+  },
+  "web.billing.overview.view_invoices_action": {
+    "text": "Ogled računov",
+    "source_hash": "cfc0404e"
+  },
+  "web.billing.overview.view_invoices_description": {
+    "text": "Prenos zgodovine",
+    "source_hash": "b8ff5cac"
+  },
+  "web.billing.overview.manage_billing_action": {
+    "text": "Upravljaj obračunavanje",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.manage_billing_description": {
+    "text": "Posodobite podatke o plačilu",
+    "source_hash": "1f981aaf"
+  },
+  "web.billing.overview.no_organizations_title": {
+    "text": "Ni delovnih prostorov",
+    "source_hash": "c7f70723"
+  },
+  "web.billing.overview.no_organizations_description": {
+    "text": "Ustvarite delovni prostor za upravljanje obračunavanja in naročnine",
+    "source_hash": "e0fd27a5"
+  },
+  "web.billing.overview.load_error": {
+    "text": "Nalaganje podatkov o obračunu ni uspelo",
+    "source_hash": "3bc44882"
+  },
+  "web.billing.overview.upgrade_success": {
+    "text": "Vaš paket je bil uspešno nadgrajen",
+    "source_hash": "00ac43f8"
+  },
+  "web.billing.overview.upgrade_success_description": {
+    "text": "Vaš novi paket je zdaj aktiven. Hvala za nakup.",
+    "source_hash": "fd1caeb1"
+  },
+  "web.billing.overview.billing_contact": {
+    "text": "Kontakt za obračunavanje",
+    "source_hash": "8f782ad8"
+  },
+  "web.billing.overview.entitlements.create_secrets": {
+    "text": "Ustvarjanje skrivnosti",
+    "source_hash": "0320541d"
+  },
+  "web.billing.overview.entitlements.view_receipt": {
+    "text": "Ogled računov",
+    "source_hash": "6c664c31"
+  },
+  "web.billing.overview.entitlements.api_access": {
+    "text": "Dostop do API-ja",
+    "source_hash": "5f31cc2f"
+  },
+  "web.billing.overview.entitlements.custom_domains": {
+    "text": "Lastne domene",
+    "source_hash": "6170ab94"
+  },
+  "web.billing.overview.entitlements.custom_privacy_defaults": {
+    "text": "Privzete nastavitve zasebnosti po meri",
+    "source_hash": "e677e27d"
+  },
+  "web.billing.overview.entitlements.extended_default_expiration": {
+    "text": "Podaljšan privzeti rok poteka",
+    "source_hash": "19b19637"
+  },
+  "web.billing.overview.entitlements.custom_mail_sender": {
+    "text": "Privzete nastavitve e-pošte po meri",
+    "source_hash": "95aebfb9"
+  },
+  "web.billing.overview.entitlements.custom_branding": {
+    "text": "Lastna blagovna znamka",
+    "source_hash": "237dabec"
+  },
+  "web.billing.overview.entitlements.homepage_secrets": {
+    "text": "Skrivnosti na domači strani",
+    "source_hash": "6360f7ec"
+  },
+  "web.billing.overview.entitlements.incoming_secrets": {
+    "text": "Dohodne skrivnosti",
+    "source_hash": "883dbca9"
+  },
+  "web.billing.overview.entitlements.manage_org": {
+    "text": "Upravljaj organizacijo",
+    "source_hash": "f03a4985"
+  },
+  "web.billing.overview.entitlements.manage_teams": {
+    "text": "Upravljanje ekip",
+    "source_hash": "2a52d5b4"
+  },
+  "web.billing.overview.entitlements.manage_members": {
+    "text": "Upravljanje članov",
+    "source_hash": "af812b01"
+  },
+  "web.billing.overview.entitlements.audit_logs": {
+    "text": "Revizijski dnevniki",
+    "source_hash": "5428d7fe"
+  },
+  "web.billing.overview.entitlements.sso": {
+    "text": "Enotna prijava (SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.billing.overview.entitlements.priority_support": {
+    "text": "Prednostna podpora",
+    "source_hash": "ed8a65c8"
+  },
+  "web.billing.overview.entitlements.sla": {
+    "text": "Sporazum o ravni storitve",
+    "source_hash": "436f2550"
+  },
+  "web.billing.overview.entitlements_load_error": {
+    "text": "Ni bilo mogoče naložiti podrobnosti funkcij",
+    "source_hash": "c350973c"
+  },
+  "web.billing.overview.no_entitlements": {
+    "text": "Ni razpoložljivih funkcij",
+    "source_hash": "03d195e8"
+  },
+  "web.billing.features.create_secrets": {
+    "text": "Ustvarjanje in deljenje skrivnosti",
+    "source_hash": "303f9386"
+  },
+  "web.billing.features.api_access": {
+    "text": "Dostop do API-ja",
+    "source_hash": "5f31cc2f"
+  },
+  "web.billing.features.custom_domains": {
+    "text": "Lastne domene",
+    "source_hash": "6170ab94"
+  },
+  "web.billing.features.custom_domain": {
+    "text": "1 lastna domena",
+    "source_hash": "6a6be744"
+  },
+  "web.billing.features.unlimited_custom_domains": {
+    "text": "Neomejeno lastnih domen",
+    "source_hash": "53eb7521"
+  },
+  "web.billing.features.custom_branding": {
+    "text": "Lastna blagovna znamka",
+    "source_hash": "237dabec"
+  },
+  "web.billing.features.homepage_secrets": {
+    "text": "Skrivnosti na domači strani",
+    "source_hash": "6360f7ec"
+  },
+  "web.billing.features.manage_teams": {
+    "text": "Upravljanje ekip",
+    "source_hash": "6bcbac8f"
+  },
+  "web.billing.features.manage_members": {
+    "text": "Upravljanje članov",
+    "source_hash": "b38b89db"
+  },
+  "web.billing.features.audit_logs": {
+    "text": "Revizijski dnevniki",
+    "source_hash": "5428d7fe"
+  },
+  "web.billing.features.sso": {
+    "text": "SSO",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.billing.features.priority_support": {
+    "text": "Prednostna podpora",
+    "source_hash": "ed8a65c8"
+  },
+  "web.billing.features.sla": {
+    "text": "Sporazum o ravni storitve",
+    "source_hash": "436f2550"
+  },
+  "web.billing.features.centralized_billing": {
+    "text": "Centralizirano obračunavanje",
+    "source_hash": "62042d3b"
+  },
+  "web.billing.features.audit_trail": {
+    "text": "Revizijska sled",
+    "source_hash": "d52b4039"
+  },
+  "web.billing.features.activity_stream": {
+    "text": "Tok dejavnosti",
+    "source_hash": "b9c6cba7"
+  },
+  "web.billing.features.handoff_workflows": {
+    "text": "Delovni tokovi predaje",
+    "source_hash": "07202af3"
+  },
+  "web.billing.plans.title": {
+    "text": "Izberite paket",
+    "source_hash": "79506c82"
+  },
+  "web.billing.plans.choose_plan": {
+    "text": "Izberite paket, ki ustreza vašim potrebam",
+    "source_hash": "5f039cb9"
+  },
+  "web.billing.plans.subtitle": {
+    "text": "Izberite popoln paket za vašo organizacijo",
+    "source_hash": "308076f2"
+  },
+  "web.billing.plans.current": {
+    "text": "Trenutni paket",
+    "source_hash": "5d856320"
+  },
+  "web.billing.plans.current_badge": {
+    "text": "Trenutni",
+    "source_hash": "e0d1b682"
+  },
+  "web.billing.plans.upgrade": {
+    "text": "Nadgradi",
+    "source_hash": "7ec0261b"
+  },
+  "web.billing.plans.downgrade": {
+    "text": "Znižaj",
+    "source_hash": "d955b7e8"
+  },
+  "web.billing.plans.cancel_to_downgrade": {
+    "text": "Prekliči za zamenjavo",
+    "source_hash": "1c4cda89"
+  },
+  "web.billing.plans.monthly": {
+    "text": "Mesečno",
+    "source_hash": "9b11f6b7"
+  },
+  "web.billing.plans.yearly": {
+    "text": "Letno",
+    "source_hash": "6e69b59e"
+  },
+  "web.billing.plans.per_month": {
+    "text": "/mesec",
+    "source_hash": "eec5d08b"
+  },
+  "web.billing.plans.save_yearly": {
+    "text": "Prihranite {percent}% z letnim obračunavanjem",
+    "source_hash": "88c451f2"
+  },
+  "web.billing.plans.free_plan": {
+    "text": "Brezplačno",
+    "source_hash": "f411a1fb"
+  },
+  "web.billing.plans.single_team_plan": {
+    "text": "Ena ekipa",
+    "source_hash": "267ad4cf"
+  },
+  "web.billing.plans.multi_team_plan": {
+    "text": "Več ekip",
+    "source_hash": "ffc73d2c"
+  },
+  "web.billing.plans.individual_account": {
+    "text": "Osebni račun",
+    "source_hash": "324221e2"
+  },
+  "web.billing.plans.team_account": {
+    "text": "Ekipni račun",
+    "source_hash": "44e90aad"
+  },
+  "web.billing.plans.multi_team_account": {
+    "text": "Račun organizacije",
+    "source_hash": "86e3a165"
+  },
+  "web.billing.plans.features": {
+    "text": "Funkcije",
+    "source_hash": "5697d03d"
+  },
+  "web.billing.plans.unlimited_secrets": {
+    "text": "Neomejeno skrivnosti",
+    "source_hash": "0f077568"
+  },
+  "web.billing.plans.api_access": {
+    "text": "Dostop do API-ja",
+    "source_hash": "923fd434"
+  },
+  "web.billing.plans.priority_support": {
+    "text": "Prednostna podpora",
+    "source_hash": "acea4b40"
+  },
+  "web.billing.plans.select_plan": {
+    "text": "Izberi paket",
+    "source_hash": "8709f894"
+  },
+  "web.billing.plans.contact_sales": {
+    "text": "Kontaktirajte prodajo",
+    "source_hash": "484aa053"
+  },
+  "web.billing.plans.custom_needs_title": {
+    "text": "Imate vprašanja ali potrebujete kaj po meri?",
+    "source_hash": "2f68484c"
+  },
+  "web.billing.plans.custom_needs_description": {
+    "text": "Z veseljem vas slišimo. Sporočite nam, kaj iščete.",
+    "source_hash": "a6b7f407"
+  },
+  "web.billing.plans.teams_limit": {
+    "text": "{count} ekipa | {count} ekipi | {count} ekipe | {count} ekip",
+    "source_hash": "a83641bc"
+  },
+  "web.billing.plans.members_limit": {
+    "text": "{count} član na ekipo | {count} člana na ekipo | {count} člani na ekipo | {count} članov na ekipo",
+    "source_hash": "54fb2b4b"
+  },
+  "web.billing.plans.unlimited_teams": {
+    "text": "Neomejeno ekip",
+    "source_hash": "6d9fde65"
+  },
+  "web.billing.plans.unlimited_members": {
+    "text": "Neomejeno članov na ekipo",
+    "source_hash": "728ecef0"
+  },
+  "web.billing.plans.most_popular": {
+    "text": "Najbolj priljubljeno",
+    "source_hash": "9e1006a4"
+  },
+  "web.billing.plans.suggested": {
+    "text": "Priporočeno",
+    "source_hash": "93b63bab"
+  },
+  "web.billing.plans.everything_in": {
+    "text": "Vključuje vse iz {plan}",
+    "source_hash": "1c73c298"
+  },
+  "web.billing.plans.no_plans_available": {
+    "text": "Trenutno ni na voljo nobenih paketov {interval}.",
+    "source_hash": "d8454436"
+  },
+  "web.billing.plans.load_error": {
+    "text": "Nalaganje načrtov ni uspelo",
+    "source_hash": "a37d4d9a"
+  },
+  "web.billing.plans.change_immediate": {
+    "text": "Vaš paket se bo spremenil takoj.",
+    "source_hash": "889d13be"
+  },
+  "web.billing.plans.current_plan_label": {
+    "text": "Trenutni paket:",
+    "source_hash": "648a0ab2"
+  },
+  "web.billing.plans.new_plan_label": {
+    "text": "Nov paket:",
+    "source_hash": "edb868c4"
+  },
+  "web.billing.plans.credit_label": {
+    "text": "Dobropis za neuporabljen čas:",
+    "source_hash": "001e4901"
+  },
+  "web.billing.plans.due_today": {
+    "text": "Zapadlo danes:",
+    "source_hash": "e370e3aa"
+  },
+  "web.billing.plans.next_billing": {
+    "text": "Naslednji obračun ({date}):",
+    "source_hash": "a6846a85"
+  },
+  "web.billing.plans.next_invoice": {
+    "text": "Naslednji račun",
+    "source_hash": "5670e027"
+  },
+  "web.billing.plans.limits_update_notice": {
+    "text": "Omejitve funkcij se bodo posodobile takoj po spremembi paketa.",
+    "source_hash": "9cb09f73"
+  },
+  "web.billing.plans.change_failed": {
+    "text": "Sprememba paketa ni uspela. Poskusite znova.",
+    "source_hash": "a4e86372"
+  },
+  "web.billing.plans.confirm_upgrade": {
+    "text": "Potrdi nadgradnjo",
+    "source_hash": "71a4ab02"
+  },
+  "web.billing.plans.confirm_downgrade": {
+    "text": "Potrdi znižanje",
+    "source_hash": "deaf8189"
+  },
+  "web.billing.plans.upgrade_to": {
+    "text": "Nadgraditi na {plan}?",
+    "source_hash": "b1e4e88c"
+  },
+  "web.billing.plans.downgrade_to": {
+    "text": "Znižati na {plan}?",
+    "source_hash": "8eb8ea81"
+  },
+  "web.billing.plans.credit_applies_heading": {
+    "text": "Kako se upošteva vaš dobropis:",
+    "source_hash": "a0943c3b"
+  },
+  "web.billing.plans.next_bill_amount": {
+    "text": "Znesek naslednjega računa:",
+    "source_hash": "526ad28f"
+  },
+  "web.billing.plans.credit_applied_to_bill": {
+    "text": "Upoštevani dobropis:",
+    "source_hash": "e5f2e81a"
+  },
+  "web.billing.plans.amount_due_next_billing": {
+    "text": "Znesek ob naslednjem obračunu:",
+    "source_hash": "22ee868a"
+  },
+  "web.billing.plans.remaining_account_credit": {
+    "text": "Preostali dobropis računa:",
+    "source_hash": "eedd0c0a"
+  },
+  "web.billing.plans.credit_future_note": {
+    "text": "Upoštevano pri prihodnjih računih",
+    "source_hash": "5007add6"
+  },
+  "web.billing.invoices.title": {
+    "text": "Zgodovina obračunavanja",
+    "source_hash": "5ade0861"
+  },
+  "web.billing.invoices.view_history": {
+    "text": "Oglejte si zgodovino obračunavanja in prenesite račune",
+    "source_hash": "eb72573c"
+  },
+  "web.billing.invoices.invoice_date": {
+    "text": "Datum",
+    "source_hash": "99c40ab4"
+  },
+  "web.billing.invoices.invoice_amount": {
+    "text": "Znesek",
+    "source_hash": "49e96d7c"
+  },
+  "web.billing.invoices.invoice_status": {
+    "text": "Stanje",
+    "source_hash": "920e413c"
+  },
+  "web.billing.invoices.invoice_download": {
+    "text": "Prenesi",
+    "source_hash": "d6eafe82"
+  },
+  "web.billing.invoices.invoice_number": {
+    "text": "Račun št.",
+    "source_hash": "48a67cac"
+  },
+  "web.billing.invoices.no_invoices": {
+    "text": "Še ni računov",
+    "source_hash": "92d2d0ce"
+  },
+  "web.billing.invoices.no_invoices_description": {
+    "text": "Vaši računi se bodo prikazali tukaj, ko nadgradite na plačljiv načrt",
+    "source_hash": "7f16be70"
+  },
+  "web.billing.invoices.view_plans": {
+    "text": "Ogled načrtov",
+    "source_hash": "a865d424"
+  },
+  "web.billing.invoices.paid": {
+    "text": "Plačano",
+    "source_hash": "fb81b961"
+  },
+  "web.billing.invoices.pending": {
+    "text": "V čakanju",
+    "source_hash": "331551b0"
+  },
+  "web.billing.invoices.failed": {
+    "text": "Neuspelo",
+    "source_hash": "031a8f0f"
+  },
+  "web.billing.invoices.draft": {
+    "text": "Osnutek",
+    "source_hash": "ebf12ef4"
+  },
+  "web.billing.invoices.open": {
+    "text": "Odprt",
+    "source_hash": "ed077f3d"
+  },
+  "web.billing.invoices.uncollectible": {
+    "text": "Neizterjljiv",
+    "source_hash": "c8d3b241"
+  },
+  "web.billing.invoices.void": {
+    "text": "Razveljavljen",
+    "source_hash": "4e7ba403"
+  },
+  "web.billing.invoices.load_error": {
+    "text": "Nalaganje računov ni uspelo",
+    "source_hash": "0b0cb3f7"
+  },
+  "web.billing.notices.org_managed": {
+    "text": "Obračunavanje upravlja {orgName}",
+    "source_hash": "6cfe0fb4"
+  },
+  "web.billing.notices.view_org_billing": {
+    "text": "Ogled obračunavanja organizacije",
+    "source_hash": "2ae16262"
+  },
+  "web.billing.limits.members_reached": {
+    "text": "Dosegli ste omejitev članov za to ekipo",
+    "source_hash": "ce8f2a24"
+  },
+  "web.billing.limits.members_upgrade": {
+    "text": "Nadgradite za dodajanje več članov",
+    "source_hash": "602bdef4"
+  },
+  "web.billing.subscription.title": {
+    "text": "Naročnina",
+    "source_hash": "4999c6c6"
+  },
+  "web.billing.subscription.status": {
+    "text": "Stanje naročnine",
+    "source_hash": "c7a08e1d"
+  },
+  "web.billing.subscription.active": {
+    "text": "Aktivno",
+    "source_hash": "92340695"
+  },
+  "web.billing.subscription.inactive": {
+    "text": "Neaktivno",
+    "source_hash": "ac7c949f"
+  },
+  "web.billing.subscription.past_due": {
+    "text": "Zapadlo",
+    "source_hash": "2bda1c7b"
+  },
+  "web.billing.subscription.canceled": {
+    "text": "Preklicano",
+    "source_hash": "13ca2ee2"
+  },
+  "web.billing.subscription.catalog_name": {
+    "text": "Paket",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.billing.subscription.team_usage": {
+    "text": "Uporaba ekip",
+    "source_hash": "f9989642"
+  },
+  "web.billing.subscription.teams_used": {
+    "text": "{used} od {limit} ekip",
+    "source_hash": "1db6b53c"
+  },
+  "web.billing.portal.title": {
+    "text": "Portal za obračunavanje",
+    "source_hash": "9baaf69e"
+  },
+  "web.billing.portal.description": {
+    "text": "Upravljajte naročnino, načine plačila in zgodovino obračunavanja",
+    "source_hash": "1a8f3c19"
+  },
+  "web.billing.portal.open_portal": {
+    "text": "Odpri portal za obračunavanje",
+    "source_hash": "23fbfa2b"
+  },
+  "web.billing.portal.redirecting": {
+    "text": "Preusmerjanje na portal za obračunavanje ...",
+    "source_hash": "b6f47df3"
+  },
+  "web.billing.start_today": {
+    "text": "Začnite danes",
+    "source_hash": "80e73fc7"
+  },
+  "web.billing.start_today_with_identity_plus": {
+    "text": "Začnite danes z Identity Plus",
+    "source_hash": "cce4c7d7"
+  },
+  "web.billing.per_month": {
+    "text": "na mesec",
+    "source_hash": "88b1d1a6"
+  },
+  "web.billing.full_api_access": {
+    "text": "Popoln dostop do API-ja",
+    "source_hash": "f5bedf1c"
+  },
+  "web.billing.privacy_first_design": {
+    "text": "Zasebnost na prvem mestu",
+    "source_hash": "587d738c"
+  },
+  "web.billing.identity_plus": {
+    "text": "Identity Plus",
+    "source_hash": "bb273516"
+  },
+  "web.billing.click_this_lightning_bolt_to_upgrade_for_custom_domains": {
+    "text": "Kliknite to strelo za nadgradnjo za domene po meri",
+    "source_hash": "84cb4258"
+  },
+  "web.billing.maybe_later": {
+    "text": "Morda pozneje",
+    "source_hash": "166b26ab"
+  },
+  "web.billing.upgrade_account": {
+    "text": "Nadgradi račun",
+    "source_hash": "4799b02e"
+  },
+  "web.billing.upgrade_to_identity_plus": {
+    "text": "Nadgradite na Identity Plus",
+    "source_hash": "272d3c80"
+  },
+  "web.billing.upgrade_for_teams": {
+    "text": "Nadgradnja za ekipe",
+    "source_hash": "90dfb533"
+  },
+  "web.billing.benefits_of": {
+    "text": "Prednosti",
+    "source_hash": "75403743"
+  },
+  "web.billing.t_benefits_of_identity_plus": {
+    "text": "{0}: Identity Plus",
+    "source_hash": "f13e5f3e"
+  },
+  "web.billing.upgrade_to": {
+    "text": "Nadgradite na",
+    "source_hash": "2ecdd437"
+  },
+  "web.billing.upgrade_for_yourdomain": {
+    "text": "Nadgradnja za secrets.vasadomena.si",
+    "source_hash": "8e4d766a"
+  },
+  "web.billing.includes_all_features_and_unlimited_sharing_capa": {
+    "text": "Vsi načrti vključujejo funkcije zasebnosti in neomejeno zmogljivost deljenja",
+    "source_hash": "e728e4e1"
+  },
+  "web.billing.includes_all_data_locality_options": {
+    "text": "Vsi paketi vključujejo izbiro lokacije podatkov: {0} regij",
+    "source_hash": "22a60b49"
+  },
+  "web.billing.get_started": {
+    "text": "Začnite",
+    "source_hash": "61e8d44a"
+  },
+  "web.billing.frequency_value_annually_annual_monthly_subscrip": {
+    "text": "{0} naročnina",
+    "source_hash": "eaf5e2ef"
+  },
+  "web.billing.elevate_your_secure_sharing_with_custom_domains_": {
+    "text": "Povzdignite svoje varno deljenje z domenami po meri, neomejeno zmogljivostjo in funkcijami poslovnega razreda.",
+    "source_hash": "db458d30"
+  },
+  "web.billing.payment_frequency": {
+    "text": "Pogostost plačevanja",
+    "source_hash": "b2c87e39"
+  },
+  "web.billing.secure_your_brand_and_build_customer_trust_with_": {
+    "text": "Zavarujte svojo blagovno znamko in zgradite zaupanje strank s povezavami iz vaše domene. Popolno za podjetja, ki cenijo zasebnost in profesionalnost.",
+    "source_hash": "c07cd25c"
+  },
+  "web.billing.secure_links_stronger_connections": {
+    "text": "Varne povezave, močnejše povezanosti",
+    "source_hash": "dd8dae5d"
+  },
+  "web.billing.identity_tier_not_found_in_product_tiers": {
+    "text": "Stopnja identitete ni bila najdena v stopnjah produkta",
+    "source_hash": "d0204fc4"
+  },
+  "web.billing.cancel.link_text": {
+    "text": "Prekliči naročnino",
+    "context": "Link text shown below the plan selector for paid users",
+    "source_hash": "3f85967f"
+  },
+  "web.billing.cancel.title": {
+    "text": "Prekliči naročnino",
+    "context": "Modal dialog heading/title",
+    "source_hash": "882e0c83"
+  },
+  "web.billing.cancel.confirmation": {
+    "text": "Ali ste prepričani, da želite preklicati naročnino {plan}?",
+    "source_hash": "f4d1b6ee"
+  },
+  "web.billing.cancel.what_happens": {
+    "text": "Kaj se zgodi, ko prekličete:",
+    "source_hash": "4d8f5751"
+  },
+  "web.billing.cancel.access_until": {
+    "text": "Ohranili boste dostop do vseh funkcij do {date}",
+    "source_hash": "eab1efe3"
+  },
+  "web.billing.cancel.access_until_period_end": {
+    "text": "Dostop boste ohranili do konca tekočega obračunskega obdobja",
+    "source_hash": "1b07a54a"
+  },
+  "web.billing.cancel.no_future_charges": {
+    "text": "Ne boste več zaračunani",
+    "source_hash": "a01cdc16"
+  },
+  "web.billing.cancel.downgrade_to_free": {
+    "text": "Vaš račun se bo vrnil na brezplačni paket",
+    "source_hash": "e01b3fc3"
+  },
+  "web.billing.cancel.keep_subscription": {
+    "text": "Obdrži naročnino",
+    "context": "Secondary button in modal - keeps subscription active",
+    "source_hash": "31e80c41"
+  },
+  "web.billing.cancel.confirm_cancel": {
+    "text": "Prekliči naročnino",
+    "context": "Primary action button in modal - confirms the cancellation",
+    "source_hash": "882e0c83"
+  },
+  "web.billing.cancel.success": {
+    "text": "Vaša naročnina je bila preklicana. Dostop boste ohranili do konca obračunskega obdobja.",
+    "source_hash": "e18fd9d5"
+  },
+  "web.billing.cancel.error": {
+    "text": "Preklica naročnine ni uspel. Poskusite znova.",
+    "source_hash": "68e8bdde"
+  },
+  "web.billing.cancel.scheduled_title": {
+    "text": "Preklic naročnine načrtovan",
+    "context": "Alert banner heading shown when cancellation is pending",
+    "source_hash": "1427d139"
+  },
+  "web.billing.cancel.scheduled_description": {
+    "text": "Vaša naročnina bo ostala aktivna do {date}. Do takrat boste imeli popoln dostop do vseh funkcij.",
+    "context": "Alert banner description explaining continued access",
+    "source_hash": "aab4b1dc"
+  },
+  "web.billing.cancel.scheduled_note": {
+    "text": "Ste si premislili? Naročnino lahko kadarkoli ponovno aktivirate pred datumom preklica.",
+    "context": "Alert banner note encouraging reactivation",
+    "source_hash": "c94d5527"
+  },
+  "web.billing.overview.entitlements.notifications": {
+    "text": "E-poštna obvestila",
+    "source_hash": "04e0f1e9"
+  },
+  "web.billing.overview.entitlements.ip_access_rules": {
+    "text": "Pravila dostopa IP",
+    "source_hash": "db966d47"
+  },
+  "web.billing.overview.entitlements.workspace_branding": {
+    "text": "Blagovna znamka delovnega prostora",
+    "source_hash": "e7acbf6f"
+  },
+  "web.billing.features.extended_retention": {
+    "text": "30-dnevno hranjenje skrivnosti",
+    "source_hash": "21d6d514"
+  },
+  "web.billing.features.incoming_secrets": {
+    "text": "Dohodne skrivnosti",
+    "source_hash": "883dbca9"
+  },
+  "web.billing.features.team_members_5": {
+    "text": "Do 5 članov ekipe",
+    "source_hash": "e7518d07"
+  },
+  "web.billing.features.team_members_10": {
+    "text": "Do 10 članov ekipe",
+    "source_hash": "0c64c064"
+  },
+  "web.billing.features.team_members_25": {
+    "text": "Do 25 članov ekipe",
+    "source_hash": "bf3b84c8"
+  },
+  "web.billing.features.team_members_50": {
+    "text": "Do 50 članov ekipe",
+    "source_hash": "3c2d9a14"
+  },
+  "web.billing.features.unlimited_members": {
+    "text": "Neomejeno članov ekipe",
+    "source_hash": "b7491ee9"
+  },
+  "web.billing.features.notifications": {
+    "text": "E-poštna obvestila",
+    "source_hash": "04e0f1e9"
+  },
+  "web.billing.features.ip_access_rules": {
+    "text": "Pravila dostopa IP",
+    "source_hash": "db966d47"
+  },
+  "web.billing.features.workspace_branding": {
+    "text": "Blagovna znamka delovnega prostora",
+    "source_hash": "e7acbf6f"
+  },
+  "web.billing.features.dedicated_infrastructure": {
+    "text": "Namenska infrastruktura",
+    "source_hash": "0c10aea7"
+  },
+  "web.billing.features.shared_workflows": {
+    "text": "Deljeni delovni tokovi",
+    "source_hash": "158f558e"
+  },
+  "web.billing.currency_migration.title": {
+    "text": "Potrebna je sprememba valute",
+    "context": "Modal title when plan requires different currency than current subscription",
+    "source_hash": "2cd800c5"
+  },
+  "web.billing.currency_migration.description": {
+    "text": "Vaša trenutna naročnina uporablja {from}. Izbrani načrt se zaračunava v {to}. Za to je potreben prehod vaše naročnine na novo valuto.",
+    "source_hash": "f0cdf727"
+  },
+  "web.billing.currency_migration.current_plan": {
+    "text": "Trenutni načrt:",
+    "source_hash": "648a0ab2"
+  },
+  "web.billing.currency_migration.new_plan": {
+    "text": "Nov načrt:",
+    "source_hash": "edb868c4"
+  },
+  "web.billing.currency_migration.current_period_ends": {
+    "text": "Trenutno obdobje se konča:",
+    "source_hash": "2e20e596"
+  },
+  "web.billing.currency_migration.choose_timing": {
+    "text": "Kdaj naj se izvede prehod?",
+    "source_hash": "f4aabb13"
+  },
+  "web.billing.currency_migration.graceful_title": {
+    "text": "Prehod ob koncu obračunskega obdobja",
+    "source_hash": "55cd980b"
+  },
+  "web.billing.currency_migration.graceful_description": {
+    "text": "Vaš trenutni načrt ostane aktiven do {date}. Po tem boste dokončali naročilo novega načrta.",
+    "source_hash": "b8661418"
+  },
+  "web.billing.currency_migration.immediate_title": {
+    "text": "Takojšnji prehod",
+    "source_hash": "e9d0ba59"
+  },
+  "web.billing.currency_migration.immediate_description": {
+    "text": "Vaš trenutni načrt bo preklican zdaj. Prejeli boste vračilo za neizkoriščen čas in dokončali naročilo novega načrta.",
+    "source_hash": "b08de0ca"
+  },
+  "web.billing.currency_migration.confirm": {
+    "text": "Potrdi spremembo valute",
+    "source_hash": "1edc1c78"
+  },
+  "web.billing.currency_migration.error": {
+    "text": "Prehod valute ni uspel. Poskusite znova.",
+    "source_hash": "4a6e1ced"
+  },
+  "web.billing.currency_migration.success": {
+    "text": "Valuta vaše naročnine je bila uspešno posodobljena.",
+    "source_hash": "a8bf437e"
+  },
+  "web.billing.currency_migration.graceful_success": {
+    "text": "Vaš trenutni načrt bo ostal aktiven do konca obračunskega obdobja. Po tem boste pozvani k dokončanju naročila novega načrta.",
+    "source_hash": "15d41483"
+  },
+  "web.billing.currency_migration.warning_credit_balance": {
+    "text": "Imate kreditno stanje v {currency}, ki ga ni mogoče prenesti na novo valuto.",
+    "source_hash": "aa15be91"
+  },
+  "web.billing.currency_migration.warning_pending_items": {
+    "text": "Imate nerešene postavke na računu, ki jih je treba razrešiti pred prehodom.",
+    "source_hash": "7b4c5e10"
+  },
+  "web.billing.currency_migration.warning_coupons": {
+    "text": "Aktivni kuponi na vašem računu morda niso združljivi z novo valuto.",
+    "source_hash": "f572ee81"
+  },
+  "web.billing.currency_migration.pending_title": {
+    "text": "Prehod valute v teku",
+    "context": "Banner heading when graceful migration is scheduled",
+    "source_hash": "018ae653"
+  },
+  "web.billing.currency_migration.pending_description": {
+    "text": "Vaš trenutni načrt se konča {date}. Dokončajte prehod na {plan} ({currency}).",
+    "source_hash": "998ba4ab"
+  },
+  "web.billing.currency_migration.complete_migration": {
+    "text": "Dokončaj prehod",
+    "context": "Button to start checkout for the new currency plan",
+    "source_hash": "fa794e0c"
+  },
+  "web.billing.checkout_session_failed": {
+    "text": "Ustvarjanje plačilne seje ni uspelo",
+    "context": "Error when Stripe checkout session creation returns no URL",
+    "source_hash": "a53f6fa3"
+  },
+  "web.billing.checkout_initiate_failed": {
+    "text": "Začetek plačila ni uspel",
+    "context": "Fallback error for checkout failures",
+    "source_hash": "3ff06e41"
+  },
+  "web.billing.plan_switch_success": {
+    "text": "Uspešen prehod na {plan}",
+    "context": "Success message after plan change",
+    "source_hash": "ab7c715c"
+  },
+  "web.billing.plan_unavailable_region_mismatch": {
+    "text": "Na voljo samo v regiji vaše prvotne naročnine",
+    "context": "Hint shown on plan cards when currency does not match active subscription",
+    "source_hash": "10de32e5"
+  },
+  "web.billing.already_subscribed": {
+    "text": "Na ta paket ste že naročeni.",
+    "source_hash": "2b02438b"
+  },
+  "web.billing.cancel.reactivate_button": {
+    "text": "Ponovno aktiviraj naročnino",
+    "source_hash": "aa036442"
+  },
+  "web.billing.cancel.reactivate_success": {
+    "text": "Vaša naročnina je bila ponovno aktivirana. Obračunavanje se bo nadaljevalo kot običajno.",
+    "source_hash": "523bf7bf"
+  },
+  "web.billing.cancel.reactivate_error": {
+    "text": "Ponovna aktivacija naročnine ni uspela. Poskusite znova ali se obrnite na podporo.",
+    "source_hash": "d0c79bd4"
+  },
+  "web.billing.features.manage_orgs": {
+    "text": "Upravljanje organizacij",
+    "source_hash": "780ad17c"
+  },
+  "web.billing.features.flexible_from_domain": {
+    "text": "Prilagodljiva domena pošiljatelja e-pošte",
+    "source_hash": "607572c3"
+  },
+  "web.billing.features.unlimited_admins": {
+    "text": "Neomejeno skrbnikov",
+    "source_hash": "5871a536"
+  },
+  "web.billing.features.manage_sso": {
+    "text": "Enotna prijava (SSO)",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.billing.overview.entitlements.flexible_from_domain": {
+    "text": "Prilagodljiva domena pošiljatelja e-pošte",
+    "source_hash": "607572c3"
+  },
+  "web.billing.overview.entitlements.manage_orgs": {
+    "text": "Upravljanje organizacij",
+    "source_hash": "be0fe4c3"
+  },
+  "web.billing.overview.entitlements.manage_sso": {
+    "text": "Enotna prijava (SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.billing.overview.entitlements.manage_billing": {
+    "text": "Upravljanje obračunavanja",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.entitlements.custom_signup_validation": {
+    "text": "Preverjanje registracije po meri",
+    "source_hash": "0ff55bfa"
+  },
+  "web.billing.plans.reactivate": {
+    "text": "Ponovno aktiviraj",
+    "source_hash": "2dc7478f"
+  },
+  "web.billing.currency_migration.refund_failed_warning": {
+    "text": "Vaš prejšnji načrt je bil preklican, vendar nismo mogli samodejno izdati vračila za vaš neuporabljen čas. Prosimo, obrnite se na podporo za prejem vračila. Še vedno morate dokončati plačilo za aktivacijo novega načrta.",
+    "source_hash": "a390c498"
+  },
+  "web.billing.currency_migration.refund_failed_continue": {
+    "text": "Nadaljuj na plačilo",
+    "source_hash": "eccdb8aa"
+  },
+  "web.billing.plans.per_year": {
+    "text": "/leto",
+    "source_hash": "a2d5f1bc"
+  },
+  "web.billing.plans.billing_interval": {
+    "text": "Obračunsko obdobje",
+    "source_hash": "3ce28209"
+  }
+}

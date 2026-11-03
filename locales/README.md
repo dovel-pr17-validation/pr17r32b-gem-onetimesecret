@@ -1,0 +1,75 @@
+# Translation Service
+
+Locale translations tracked as SQLite tasks, translated by agents, exported back to version-controlled content. All tooling is one CLI: `python3 locales/scripts/i18n <group> <cmd>` (`--help` at any level; groups: `content`, `tasks`, `db`, `validate`).
+
+## Layout
+
+- `content/` — source of truth, all locales, flat keys (`content/en/` is the authoritative source text)
+- `db/` — SQLite task DB (ephemeral working state; hydrated on demand, real only after export)
+- `guides/` — static shared guides (security, UX); per-locale guides are derived into gitignored `generated/i18n/` by `scripts/derive-governance.sh`, never committed here
+- `scripts/` — orchestration tooling
+- `generated/locales/` — build output the app consumes (never edit; `pnpm run locales:sync`)
+
+## The workflow
+
+Run from the repo root. This is the one repeatable path for updating all locales after English changes:
+
+```bash
+# 1. Hash the English source (new/edited en keys have no content_hash yet)
+pnpm run locales:hashes           # dry-run: shows what would change
+pnpm run locales:hashes:apply     # writes hashes + seeds watermarks
+
+# 2. Ensure the task DB exists and is on the current schema
+python3 locales/scripts/i18n db init      # no-op if DB exists
+python3 locales/scripts/i18n db migrate
+
+# 3. Drain all locales with parallel agents (creates tasks — missing + stale only,
+#    translates, verifies; agents report glossary candidates, they don't write them)
+/i18n:translate-parallel-agents        # installed from locales/slash_commands/
+
+# 4. Export every drained AND clean locale, then the shared tables once
+locales/scripts/export-all.sh                              # preview (dry-run, still runs the audit gate)
+locales/scripts/export-all.sh --execute                   # export gated locales + db export
+# Gate: exports a locale only when pending == 0 AND `tasks audit <locale> --strict`
+# is clean (no stranded in_progress row, no key-set/blank/token defect, and at least
+# one completed row actually checked; the en-leak check is advisory and never gates).
+# After each export it re-checks the written content with
+# `validate variables --locale <locale>` plus the register lint (skipped when
+# .translation-rules/ or generated/i18n/.resolved/ is absent). Failing locales are
+# skipped or reported dirty, nothing is reverted, the loop still finishes every
+# locale, and the script exits non-zero. Per-locale, if you need finer control:
+#   python3 locales/scripts/i18n tasks audit <locale> --strict
+#   python3 locales/scripts/i18n tasks export <locale>
+#   python3 locales/scripts/i18n db export
+
+# 5. Commit content + db tables, then split into review branches
+git add locales/content/ locales/db/*.sql
+locales/scripts/branch-per-locale.sh --changed --execute   # one i18n/update-{locale} branch each
+locales/scripts/review-locale-branches.sh validate         # deterministic checks; full agent review: locales/slash_commands/review-locale-branches.md
+```
+
+Two rules that bite:
+
+- **Export before you re-create.** `tasks create --apply` reopens a completed level that still has work, discarding its translations. That is free once the level was exported (the text is in `content/`), and refused outright when it wasn't — exit 3, nothing written, offending levels named. Clear it with `tasks export <locale>` to keep the work or `--reopen` to discard it on purpose. `create-all.sh` reports blocked locales at the end and exits non-zero rather than aborting the batch.
+- **`0 pending` proves nothing — neither current nor clean.** A drained queue can hide stale keys (English changed after translation): trust the `--stats` coverage line (current/stale/missing/skipped), not the queue. It can also hide bad writes (wrong key set, dropped placeholder, English left in place): `python3 locales/scripts/i18n tasks audit <locale> --strict` is the cleanliness signal, and it's the gate `export-all.sh` enforces.
+- **Never hand-author hashes.** New en keys are bare `{"text": "..."}`; `locales:hashes:apply` does the rest.
+
+## Content format
+
+Every locale uses the same flat format in `content/{locale}/*.json`:
+
+```json
+{
+  "web.COMMON.tagline": { "text": "Secure links that only work once" },
+  "web.COMMON.broadcast": { "text": "", "skip": true, "note": "empty source" }
+}
+```
+
+Preserve keys, translate only `text`, keep placeholders (`{count}`, `{email}`) intact.
+
+## Full documentation
+
+- [TRANSLATION_PROTOCOL.md](TRANSLATION_PROTOCOL.md) — session workflow in detail: task model, staleness & watermarks, glossary, export rules, QC protocol, branch review
+- [AGENT_TRANSLATION_PROTOCOL.md](AGENT_TRANSLATION_PROTOCOL.md) — rules the parallel drain agents follow (governance derivation, per-task cycle, glossary boundary, register check)
+- [BATCH_OPERATIONS.md](BATCH_OPERATIONS.md) — rebasing, PR feedback, and merging the per-locale branches
+- `guides/SECURITY-TRANSLATION-GUIDE.md` — required handling for security-sensitive messages

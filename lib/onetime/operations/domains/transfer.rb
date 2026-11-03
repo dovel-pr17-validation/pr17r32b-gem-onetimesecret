@@ -1,0 +1,256 @@
+# lib/onetime/operations/domains/transfer.rb
+#
+# frozen_string_literal: true
+
+# Domain-owned (app-scoped) operation — see decision D3 in
+# lib/onetime/operations/README.md. Lives alongside the incumbent domain ops in
+# lib/onetime/operations, under the Domains:: namespace. Loaded at the call site
+# (colonel logic + CLI), so require the audit model explicitly.
+require 'onetime/models/colonel_audit_event'
+require 'onetime/audited_failure'
+require 'onetime/operations/audit_attempt'
+require 'onetime/operations/domains/adoption_report'
+
+module Onetime
+  module Operations
+    module Domains
+      # Transfer a custom domain between organizations — the SINGLE implementation
+      # of the transfer verb (epic #43 / D3 / CONTRACT 4). This is the
+      # highest-blast-radius toolbox verb: it reassigns domain OWNERSHIP across
+      # organizations. The `bin/ots domains transfer` CLI and the colonel endpoint
+      # (`POST /api/colonel/domains/:extid/transfer`) are thin adapters over it.
+      #
+      # ## Source of truth for "from" (parity with the CLI)
+      #
+      # The domain is ALWAYS removed from its CURRENT owner's collection (resolved
+      # from `domain.org_id`), whether or not an explicit `from_org` was supplied —
+      # this mirrors the CLI, which derives `from_org_id = --from-org || domain.org_id`
+      # and removes from that org. `from_org` is an optional OWNERSHIP ASSERTION:
+      # when supplied and its id does not equal the domain's current owner, the op
+      # returns `:mismatch` and mutates nothing (the CLI's "org_id does not match
+      # --from-org" guard). A domain with a blank `org_id` transfers from "orphaned"
+      # (nothing to remove).
+      #
+      # ## From an orphan
+      #
+      # A transfer from orphaned is an adoption, the same as
+      # `domains create` / `domains repair --org-id` on an orphan: it goes
+      # through CustomDomain.claim_orphaned_domain, which writes org_id, the
+      # destination's domains collection, the owners index and the
+      # ASCII-name entry together, resets the domain's ownership
+      # verification and issues a new TXT value. Result#adoption lists the
+      # per-domain state the record kept. A transfer between two
+      # organizations is not an adoption and keeps the domain's verification.
+      #
+      # ## Dry-run + exactly-once audit (CONTRACT 4)
+      #
+      # `dry_run: true` (the safe default) returns the transfer plan (from/to org
+      # names + ids) and mutates/audits NOTHING. `dry_run: false` performs the
+      # transfer (remove from old collection → update org_id + the
+      # CustomDomain.owners index → add to new collection, rolling both
+      # ownership writes back if the add fails) and records EXACTLY ONE
+      # {Onetime::ColonelAuditEvent}. A blocked run (`:mismatch`) and a transfer
+      # that blows up mid-apply each record one `result: :failure` event: this is
+      # the highest-blast-radius domain verb, and a half-applied transfer that
+      # left no trace was the exact gap {Onetime::AuditedFailure} exists to close.
+      #
+      # ## Behavioural parity note
+      #
+      # The collection add/remove use the domain's `domainid` STRING argument
+      # (`org.add_domain(domain.domainid)` / `org.remove_domain(domain.domainid)`),
+      # exactly matching the pre-refactor CLI (`bin/ots domains transfer`). This is
+      # the single shared impl for BOTH the CLI and the colonel endpoint, so both
+      # adapters pass the identical string argument.
+      class Transfer
+        include Onetime::AuditedFailure
+        include Onetime::Operations::AuditAttempt
+
+        # Audit verb recorded for every applied transfer.
+        AUDIT_VERB = 'domain.transfer'
+
+        # A privileged mutation was asked for and REFUSED. `:planned` is not a
+        # refusal — a dry run attempts nothing.
+        REFUSAL_STATUSES = [:mismatch].freeze
+
+        # The apply path rolls back org_id and re-raises when the destination
+        # collection add fails, and the success record sits after it. Records one
+        # `result: :failure` and re-raises.
+        #
+        # `dry_run` is in the detail because it defaults to TRUE and the success
+        # event is applied-path-only — without it a blown-up preview is
+        # indistinguishable from a blown-up transfer.
+        audit_failures :call,
+          verb: AUDIT_VERB,
+          target: -> { @domain&.extid },
+          detail: -> { { dry_run: @dry_run, to_org_id: @to_org&.org_id.to_s } }
+
+        # @!attribute status [r] Symbol —
+        #   :planned (dry-run), :transferred (applied),
+        #   :mismatch (explicit from_org != current owner — blocked)
+        # @!attribute adoption [r] AdoptionReport, nil — set when a transfer
+        #   from orphaned was applied
+        Result = Data.define(
+          :status,
+          :domain_id,
+          :extid,
+          :display_domain,
+          :from_org_id,
+          :from_org_name,
+          :to_org_id,
+          :to_org_name,
+          :dry_run,
+          :adoption,
+        )
+
+        # @param domain [Onetime::CustomDomain] target domain (caller ensures non-nil).
+        # @param to_org [Onetime::Organization] destination org (caller resolves; required).
+        # @param actor [String, #extid, #email] acting admin's PUBLIC identity.
+        # @param from_org [Onetime::Organization, nil] optional source-org ASSERTION
+        #   for the ownership check; nil = trust the domain's current org_id.
+        # @param dry_run [Boolean] preview only when true (default). Applies when false.
+        def initialize(domain:, to_org:, actor:, from_org: nil, dry_run: true)
+          @domain   = domain
+          @to_org   = to_org
+          @actor    = actor
+          @from_org = from_org
+          @dry_run  = dry_run
+        end
+
+        # @return [Result]
+        def call
+          # Snapshot the CURRENT owner before any mutation — this is the real "from".
+          original_from_id = @domain.org_id
+          current_org      = original_from_id.to_s.empty? ? nil : Onetime::Organization.load(original_from_id)
+          original_from_nm = current_org&.display_name
+
+          # Ownership guard: an explicit from_org must match the current owner.
+          if @from_org && @from_org.org_id.to_s != original_from_id.to_s
+            return build(:mismatch, original_from_id, original_from_nm)
+          end
+
+          # A preview moves nothing, so it writes nothing to the OPERATOR
+          # trail — but it names a customer's domain and the org it would move
+          # to, so it is recorded as an OBSERVATION (#4337).
+          if @dry_run
+            record_preview_event(original_from_id)
+            return build(:planned, original_from_id, original_from_nm)
+          end
+
+          if original_from_id.to_s.empty?
+            adopt_orphan
+          else
+            move_between_organizations(current_org, original_from_id)
+          end
+
+          # Exactly one audit event per successful transfer. Non-secret detail only.
+          detail = { from_org_id: original_from_id.to_s, to_org_id: @to_org.org_id.to_s }
+          if @adoption
+            detail[:adopted_orphan]     = true
+            detail[:verification_reset] = true
+          end
+          Onetime::ColonelAuditEvent.record(
+            actor: @actor,
+            verb: AUDIT_VERB,
+            target: @domain.extid,
+            result: :success,
+            detail: detail,
+          )
+
+          build(:transferred, original_from_id, original_from_nm)
+        end
+
+        private
+
+        # From orphaned: the adoption shared with Create and Repair (see the
+        # class comment). A failed claim writes nothing, so there is nothing
+        # to roll back.
+        def adopt_orphan
+          Onetime::CustomDomain.claim_orphaned_domain(@domain, @to_org.org_id)
+          @adoption = AdoptionReport.for(@domain).tap { |report| report.log('Domains::Transfer') }
+        end
+
+        def move_between_organizations(current_org, original_from_id)
+          # Remove from the old organization's collection, if there is one.
+          current_org&.remove_domain(@domain.domainid)
+
+          # Update the domain's owner — BOTH places it is recorded. The
+          # `owners` class hashkey is a second, independently-maintained index
+          # (domainid => org_id) that Organization#unlisted_owned_domains reads
+          # as the org-deletion drift guard. Leaving it on the source org made
+          # that org permanently undeletable after any transfer, with no
+          # remediation, so it moves with org_id or not at all.
+          @domain.org_id  = @to_org.org_id
+          @domain.updated = OT.now.to_i
+          @domain.save
+          Onetime::CustomDomain.record_owner(@domain, @to_org.org_id)
+
+          # Add to the new organization's collection, rolling back org_id on failure.
+          begin
+            @to_org.add_domain(@domain.domainid)
+          rescue StandardError => ex
+            # Roll back both writes, so `owners` stays consistent with the
+            # org_id actually persisted.
+            @domain.org_id = original_from_id
+            @domain.save
+            Onetime::CustomDomain.record_owner(@domain, @domain.org_id)
+            raise "Failed to add domain to organization collection: #{ex.message}"
+          end
+        end
+
+        # The #4337 envelope's target hook: the domain's public id, same as the
+        # applied event's. `audit_verb` defaults to AUDIT_VERB, `audit_actor`
+        # to @actor.
+        def audit_target = @domain.extid
+
+        # One OBSERVATION per preview (#4337), on the budgeted access trail.
+        # Same verb and target as the applied event so a preview and the
+        # transfer that followed read as one sequence; `result: 'preview'` and
+        # `dry_run: true` tell them apart.
+        def record_preview_event(from_id)
+          record_preview_observation(
+            from_org_id: from_id.to_s,
+            to_org_id: @to_org.org_id.to_s,
+          )
+        end
+
+        # Same verb/target/actor as the success event. Best-effort: never break
+        # the op.
+        def record_refusal(status, from_id)
+          Onetime::ColonelAuditEvent.record(
+            actor: @actor,
+            verb: AUDIT_VERB,
+            target: @domain.extid,
+            result: :failure,
+            detail: {
+              reason: status.to_s,
+              from_org_id: from_id.to_s,
+              to_org_id: @to_org.org_id.to_s,
+              dry_run: @dry_run,
+            },
+          )
+        rescue StandardError => ex
+          OT.le "[Domains::Transfer] refusal audit failed: #{ex.class}: #{ex.message}"
+        end
+
+        # Single exit point for every non-applied status, so the refusal audit
+        # cannot be forgotten at an early return.
+        def build(status, from_id, from_name)
+          record_refusal(status, from_id) if REFUSAL_STATUSES.include?(status)
+
+          Result.new(
+            status: status,
+            domain_id: @domain.domainid,
+            extid: @domain.extid,
+            display_domain: @domain.display_domain,
+            from_org_id: from_id,
+            from_org_name: from_name,
+            to_org_id: @to_org.org_id,
+            to_org_name: @to_org.display_name,
+            dry_run: @dry_run,
+            adoption: @adoption,
+          )
+        end
+      end
+    end
+  end
+end

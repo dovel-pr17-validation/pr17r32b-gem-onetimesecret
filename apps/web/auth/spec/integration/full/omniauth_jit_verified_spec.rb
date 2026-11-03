@@ -1,0 +1,430 @@
+# apps/web/auth/spec/integration/full/omniauth_jit_verified_spec.rb
+#
+# frozen_string_literal: true
+
+# =============================================================================
+# TEST TYPE: Integration (full mode)
+# =============================================================================
+#
+# Issue: #3973 — SSO/OmniAuth JIT-provisioned customers were left unverified.
+#
+# THE BUG
+# -------
+# Auth::Operations::EnsureCustomerForAccount hard-coded `verified: false` with the
+# comment "needs to be updated in after_verify_account". after_verify_account
+# fires only in Rodauth's EMAIL verify_account flow, which a JIT SSO user never
+# traverses — so the Customer stayed unverified forever while its Rodauth
+# accounts row sat at status Verified. That is not cosmetic:
+# Onetime::Application::AuthorizationPolicies#has_system_role? does
+# `return false unless cust.verified?` BEFORE it looks at the role, so an
+# SSO-provisioned colonel/admin could never exercise their role.
+#
+# WHAT THIS FILE LOCKS IN
+# -----------------------
+# The HEADLINE change, driven through the REAL Rodauth omniauth callback rather
+# than by re-implementing the hook's decision:
+#
+#   1. POSITIVE — a brand-new platform SSO sign-in (JIT provisioning) yields a
+#      Customer with verified? == true and verified_by == 'sso', and an
+#      accounts row at STATUS_VERIFIED. If the hook stops passing the new
+#      EnsureCustomerForAccount parameters, this fails.
+#   2. NEGATIVE — a customer NOT provisioned via SSO (the plain EnsureCustomerForAccount
+#      call every password signup makes) is NOT verified. This is the guard
+#      against the rejected first attempt at this fix, which verified almost
+#      anyone by checking status_id on the shared login path.
+#   3. NEGATIVE — an IdP that EXPLICITLY asserts email_verified: false does not
+#      get the verified stamp, even though Rodauth opened its account. JIT
+#      creation itself is still allowed (#4688 refuses trusted linking only).
+#
+# Layer note: apps/web/auth/spec/integration/full/omniauth_account_creation_spec.rb
+# pins the EnsureCustomerForAccount PARAMETER contract in isolation. This file pins the
+# WIRING — that the production hook actually passes them, and on what gate.
+#
+# REQUIREMENTS:
+# - Valkey running on port 2163: pnpm run test:database:start
+# - AUTHENTICATION_MODE=full, AUTH_DATABASE_URL (SQLite in-memory; rake sets it)
+#
+# RUN:
+#   tests/lanes/run full \
+#     --only apps/web/auth/spec/integration/full/omniauth_jit_verified_spec.rb
+# =============================================================================
+
+require_relative '../../spec_helper'
+require 'omniauth-gitlab'
+
+RSpec.describe 'OmniAuth JIT provisioning sets verified (#3973)', type: :integration do
+  include Rack::Test::Methods
+
+  before(:all) do
+    # Same boot as omniauth_trusted_link_spec.rb: force a clean reboot so
+    # provider registration runs against this suite's WebMock stubs + ENV, and
+    # assert the auth app actually mounted (a silent empty registry would turn
+    # every callback into a 404 -> skip).
+    require 'onetime'
+    require 'onetime/application/registry'
+    require 'onetime/auth_config'
+
+    Onetime.auth_config.reload! if Onetime.respond_to?(:auth_config) && Onetime.auth_config.respond_to?(:reload!)
+    Onetime::Application::Registry.reset! if Onetime::Application::Registry.respond_to?(:reset!)
+
+    Onetime.boot!(:test, force: true)
+
+    Onetime::Application::Registry.prepare_application_registry
+
+    mounts = Onetime::Application::Registry.mount_mappings.keys
+    raise "Auth app not mounted post-boot: #{mounts.inspect}" unless mounts.any? { |m| m.include?('/auth') }
+  end
+
+  let(:accounts) { auth_db[:accounts] }
+
+  # Customers created by the callback are found by email afterwards; track them
+  # so the shared in-memory DB / Valkey do not accumulate across examples.
+  let(:created_customers) { [] }
+
+  after do
+    created_customers.each do |customer|
+      customer.destroy! if customer&.exists?
+    rescue StandardError
+      nil # non-fatal cleanup
+    end
+  end
+
+  def jit_email(prefix)
+    "#{prefix}-#{SecureRandom.hex(6)}@jit-verified-test.example.com"
+  end
+
+  # The Customer the callback JIT-provisioned, or nil.
+  def customer_for(email)
+    normalized = OT::Utils.normalize_email(email)
+    return nil unless Onetime::Customer.email_exists?(normalized)
+
+    customer = Onetime::Customer.find_by_email(normalized)
+    created_customers << customer
+    customer
+  end
+
+  # ==========================================================================
+  # 1. POSITIVE — JIT SSO sign-in produces a VERIFIED customer
+  # ==========================================================================
+
+  describe 'a new platform SSO sign-in' do
+    before { enable_platform_fallback }
+
+    it 'provisions a verified customer stamped verified_by=sso' do
+      email = jit_email('jit-verified')
+      uid   = "sub-#{SecureRandom.hex(8)}"
+
+      setup_mock_auth(email: email, uid: uid)
+      begin
+        post '/auth/sso/oidc/callback'
+
+        if last_response.status == 404
+          skip 'OmniAuth route not registered (OIDC discovery not available at boot)'
+        end
+        expect(last_response.status).to eq(302),
+          "Expected a post-login redirect, got #{last_response.status}: #{last_response.body}"
+
+        # Rodauth JIT-created the account, and (rodauth-omniauth 0.6.2
+        # _omniauth_new_account) opened it at Verified. This is the fact the
+        # hook mirrors — assert it so a failure below is unambiguous about
+        # which side moved.
+        account = accounts.where(email: OT::Utils.normalize_email(email)).first
+        expect(account).not_to be_nil, 'Expected the callback to JIT-create an accounts row'
+        expect(account[:status_id]).to eq(AuthTestConstants::STATUS_VERIFIED)
+
+        customer = customer_for(email)
+        expect(customer).not_to be_nil, 'Expected the callback to JIT-create a Customer'
+        expect(customer.provisioning_origin.to_s).to eq('sso_jit')
+
+        # THE HEADLINE ASSERTION.
+        expect(customer.verified?).to be(true),
+          'SSO JIT-provisioned customer must be verified — has_system_role? gates on it'
+        expect(customer.verified_by.to_s).to eq('sso')
+        expect(customer.verification_held?).to be(false),
+          'Nothing was withheld, so no verification_hold may be recorded'
+        expect(customer.verification_hold.to_s).to eq('')
+      ensure
+        teardown_mock_auth
+      end
+    end
+
+    # The GitLab confirmed_at check keys on the strategy class, so the hook
+    # must pass the callback's strategy through.
+    it 'passes the callback strategy to the hold check' do
+      setup_mock_auth(email: jit_email('jit-strategy'), uid: "sub-#{SecureRandom.hex(8)}")
+      allow(Auth::Config::Hooks::OmniAuth).to receive(:email_verification_hold).and_call_original
+      begin
+        post '/auth/sso/oidc/callback'
+        skip 'OmniAuth route not registered (OIDC discovery not available at boot)' if last_response.status == 404
+
+        expect(Auth::Config::Hooks::OmniAuth).to have_received(:email_verification_hold)
+          .with(hash_including(strategy: kind_of(OmniAuth::Strategy)))
+      ensure
+        teardown_mock_auth
+      end
+    end
+  end
+
+  # ==========================================================================
+  # 2. NEGATIVE — a non-SSO customer is NOT verified
+  # ==========================================================================
+  #
+  # The rejected first attempt at this fix reconciled on the LOGIN path guarded
+  # only on status_id == Verified. With verify_account disabled that is true for
+  # ordinary password accounts too, so it verified almost everyone. The fix is
+  # scoped to the SSO JIT provisioning hook, which means the ordinary
+  # EnsureCustomerForAccount call — the one every password signup makes — must still
+  # produce an unverified customer even when its accounts row is Verified.
+
+  describe 'a customer not provisioned via SSO' do
+    it 'is not verified, even with a Verified accounts row' do
+      email      = jit_email('non-sso')
+      normalized = OT::Utils.normalize_email(email)
+      account_id = accounts.insert(
+        email: normalized,
+        status_id: AuthTestConstants::STATUS_VERIFIED,
+      )
+
+      begin
+        customer = Auth::Operations::EnsureCustomerForAccount.new(
+          account_id: account_id,
+          account: { id: account_id, email: normalized },
+          provisioning_origin: 'canonical_signup',
+        ).call
+        created_customers << customer
+
+        expect(customer.provisioning_origin.to_s).to eq('canonical_signup')
+        expect(customer.verified?).to be(false),
+          'A non-SSO signup must not inherit verification from its accounts row'
+        expect(customer.verified_by.to_s).to eq('')
+      ensure
+        accounts.where(id: account_id).delete
+      end
+    end
+  end
+
+  # ==========================================================================
+  # 3. NEGATIVE — an explicit email_verified: false vetoes the stamp
+  # ==========================================================================
+  #
+  # Absence of the claim is NOT a veto (most enterprise IdPs never emit it), but
+  # an IdP that actively says the address is unverified is taken at its word.
+  #
+  # The reason is also PERSISTED as Customer#verification_hold: the customers
+  # doctor has no auth hash, and without it its :sso_customer_unverified repair
+  # would later mirror the (always-Verified) accounts row onto this record —
+  # undoing the veto. With it, the doctor reports the record for manual
+  # verification instead.
+
+  describe 'an IdP asserting email_verified: false' do
+    before { enable_platform_fallback }
+
+    it 'provisions the customer unverified with verification_hold=idp_unverified' do
+      email = jit_email('jit-unverified-claim')
+      uid   = "sub-#{SecureRandom.hex(8)}"
+
+      OmniAuth.config.test_mode = true
+      OmniAuth.config.allowed_request_methods = %i[get post]
+      OmniAuth.config.mock_auth[:oidc] = OmniAuth::AuthHash.new({
+        provider: 'oidc',
+        uid: uid,
+        info: { email: email, name: 'Unverified Claim', email_verified: false },
+        extra: { raw_info: { sub: uid, email: email, email_verified: false } },
+      })
+
+      begin
+        post '/auth/sso/oidc/callback'
+
+        if last_response.status == 404
+          skip 'OmniAuth route not registered (OIDC discovery not available at boot)'
+        end
+
+        # JIT creation stays allowed on an explicit false (#4688): only trusted
+        # email linking is refused. The account is created; the Customer below
+        # carries the hold.
+        account = accounts.where(email: OT::Utils.normalize_email(email)).first
+        expect(account).not_to be_nil,
+          'An explicit email_verified: false must not refuse JIT creation'
+
+        customer = customer_for(email)
+        skip 'Callback did not JIT-provision a customer' if customer.nil?
+
+        expect(customer.verified?).to be(false),
+          'An explicit email_verified: false assertion must veto the verified stamp'
+        expect(customer.verified_by.to_s).to eq('')
+        expect(customer.verification_hold).to eq('idp_unverified'),
+          'The reason must be persisted so `customers doctor --repair` does not undo the veto'
+        expect(customer.verification_held?).to be(true)
+      ensure
+        teardown_mock_auth
+      end
+    end
+  end
+
+  # ==========================================================================
+  # The claim reader, at its own boundary
+  # ==========================================================================
+  #
+  # Cheap and exhaustive on the shapes the callback specs cannot vary quickly:
+  # string vs symbol keys, info vs extra.raw_info, stringified booleans, the
+  # absence that must NOT read as a hold, and the read error that MUST.
+
+  # Named rather than passed as a constant: the auth app (and therefore
+  # Auth::Config) is only loaded by the before(:all) boot above, well after
+  # RSpec evaluates this file's describe arguments.
+  describe 'Auth::Config::Hooks::OmniAuth.email_verification_hold' do
+    subject(:hold) { Auth::Config::Hooks::OmniAuth.method(:email_verification_hold) }
+
+    it 'holds as idp_unverified on an explicit false in info' do
+      expect(hold.call(info: { 'email_verified' => false }, extra: nil)).to eq('idp_unverified')
+      expect(hold.call(info: { email_verified: false }, extra: nil)).to eq('idp_unverified')
+      expect(hold.call(info: { 'email_verified' => 'false' }, extra: nil)).to eq('idp_unverified')
+    end
+
+    it 'holds as idp_unverified on an explicit false in extra.raw_info' do
+      expect(hold.call(info: {}, extra: { 'raw_info' => { 'email_verified' => false } })).to eq('idp_unverified')
+      expect(hold.call(info: nil, extra: { raw_info: { email_verified: false } })).to eq('idp_unverified')
+    end
+
+    # No auth hash at all is the ordinary "claim absent" case, not an error:
+    # both sources are simply unindexable, and absence is never a hold.
+    it 'does not hold when the claim is absent, nil, or true' do
+      expect(hold.call(info: nil, extra: nil)).to be_nil
+      expect(hold.call(info: {}, extra: {})).to be_nil
+      expect(hold.call(info: { 'name' => 'No Claim' }, extra: { 'raw_info' => { 'sub' => 'x' } })).to be_nil
+      expect(hold.call(info: { 'email_verified' => true }, extra: nil)).to be_nil
+      expect(hold.call(info: { 'email_verified' => 'true' }, extra: nil)).to be_nil
+    end
+
+    it 'prefers info over extra.raw_info' do
+      expect(
+        hold.call(info: { 'email_verified' => true }, extra: { 'raw_info' => { 'email_verified' => false } }),
+      ).to be_nil
+    end
+
+    # SAML (#4450). RequestBoundSAML#extra is string-keyed scalars plus
+    # raw_info as a plain Hash of attribute name => Array<String> (the
+    # strategy spec pins that shape against a real signed response). The
+    # auth hash wraps it in a Mash, as OmniAuth does.
+    describe 'with a SAML extra' do
+      def saml_extra(attributes)
+        OmniAuth::AuthHash.new(
+          extra: {
+            'idp_entity_id' => 'https://idp.example.com/saml/metadata',
+            'name_id_format' => 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent',
+            'session_index' => '_abc',
+            'raw_info' => attributes,
+          },
+        ).extra
+      end
+
+      let(:saml_info) { OmniAuth::AuthHash::InfoHash.new(email: 'alice@example.com', name: 'Alice') }
+
+      # SAML has no email_verified claim. If reading the SAML extra raised,
+      # the fail-closed rescue would hold EVERY SAML JIT account as
+      # 'claim_unreadable'.
+      it "does not hold a SAML JIT account, and never as 'claim_unreadable'" do
+        allow(Auth::Logging).to receive(:log_auth_event)
+
+        extra = saml_extra('email' => ['alice@example.com'], 'groups' => %w[eng ops])
+
+        expect(hold.call(info: saml_info, extra: extra)).to be_nil
+        expect(hold.call(info: saml_info, extra: saml_extra({}))).to be_nil
+        expect(Auth::Logging).not_to have_received(:log_auth_event)
+      end
+
+      it 'honours an IdP attribute named email_verified despite the Array wrapping' do
+        expect(hold.call(info: saml_info, extra: saml_extra('email_verified' => ['false']))).to eq('idp_unverified')
+        expect(hold.call(info: saml_info, extra: saml_extra('email_verified' => ['FALSE ']))).to eq('idp_unverified')
+        expect(hold.call(info: saml_info, extra: saml_extra('email_verified' => %w[true false]))).to eq('idp_unverified')
+      end
+
+      it 'does not hold on a true, empty, or nil-valued SAML attribute' do
+        expect(hold.call(info: saml_info, extra: saml_extra('email_verified' => ['true']))).to be_nil
+        expect(hold.call(info: saml_info, extra: saml_extra('email_verified' => []))).to be_nil
+        expect(hold.call(info: saml_info, extra: saml_extra('email_verified' => [nil]))).to be_nil
+      end
+    end
+
+    # GitLab has no email_verified claim. GET /api/v4/user carries
+    # confirmed_at, null until the account's email is confirmed, and for the
+    # GitLab strategy a null or missing one holds.
+    describe 'with the GitLab strategy' do
+      let(:gitlab) { OmniAuth::Strategies::GitLab.new(nil, 'gl-client-id', 'gl-client-secret') }
+      let(:gitlab_info) { OmniAuth::AuthHash::InfoHash.new(email: 'glab@example.com', name: 'Git Lab') }
+
+      def gitlab_extra(raw_info)
+        OmniAuth::AuthHash.new(extra: { 'raw_info' => raw_info }).extra
+      end
+
+      it 'does not hold when confirmed_at is set' do
+        extra = gitlab_extra('id' => 42, 'confirmed_at' => '2015-09-03T07:24:01.670Z')
+
+        expect(hold.call(info: gitlab_info, extra: extra, strategy: gitlab)).to be_nil
+      end
+
+      it 'holds as idp_unverified when confirmed_at is null or missing' do
+        expect(hold.call(info: gitlab_info, extra: gitlab_extra('id' => 42, 'confirmed_at' => nil), strategy: gitlab))
+          .to eq('idp_unverified')
+        expect(hold.call(info: gitlab_info, extra: gitlab_extra('id' => 42, 'confirmed_at' => ''), strategy: gitlab))
+          .to eq('idp_unverified')
+        expect(hold.call(info: gitlab_info, extra: gitlab_extra('id' => 42), strategy: gitlab)).to eq('idp_unverified')
+        expect(hold.call(info: gitlab_info, extra: nil, strategy: gitlab)).to eq('idp_unverified')
+      end
+
+      it 'holds as claim_unreadable when reading extra raises' do
+        raising_extra = Object.new
+        def raising_extra.[](*)
+          raise 'boom'
+        end
+
+        allow(Auth::Logging).to receive(:log_auth_event)
+
+        expect(hold.call(info: gitlab_info, extra: raising_extra, strategy: gitlab)).to eq('claim_unreadable')
+      end
+
+      it 'leaves other strategies on the email_verified claim' do
+        other = OmniAuth::Strategies::OAuth2.new(nil, 'client-id', 'client-secret')
+
+        expect(hold.call(info: gitlab_info, extra: gitlab_extra('id' => 42), strategy: other)).to be_nil
+        expect(hold.call(info: gitlab_info, extra: gitlab_extra('id' => 42), strategy: nil)).to be_nil
+      end
+    end
+
+    it 'only ever returns a registered hold reason' do
+      expect(Onetime::Customer::VERIFICATION_HOLDS).to include('idp_unverified', 'claim_unreadable')
+    end
+
+    # FAIL CLOSED. A source whose `[]` raises may be hiding an explicit
+    # email_verified: false; the old blanket rescue in fetch_claim turned
+    # that into "no claim" and minted a verified Customer. The read error is
+    # logged at WARN and reported as its own hold reason, distinct from an
+    # explicit IdP veto, so the operator knows to look at the provider
+    # response rather than the IdP's opinion of the address.
+    it 'holds as claim_unreadable (and warns) when reading info raises' do
+      raising_info = Object.new
+      def raising_info.[](*)
+        raise ArgumentError, 'misbehaving auth hash'
+      end
+
+      allow(Auth::Logging).to receive(:log_auth_event)
+
+      expect(hold.call(info: raising_info, extra: nil)).to eq('claim_unreadable')
+      expect(Auth::Logging).to have_received(:log_auth_event).with(
+        :omniauth_email_verified_claim_unreadable,
+        hash_including(level: :warn, error_class: 'ArgumentError', error_message: 'misbehaving auth hash'),
+      )
+    end
+
+    it 'holds as claim_unreadable when reading extra.raw_info raises even though info is silent' do
+      raising_extra = Object.new
+      def raising_extra.[](*)
+        raise 'boom'
+      end
+
+      allow(Auth::Logging).to receive(:log_auth_event)
+
+      expect(hold.call(info: { 'name' => 'No Claim' }, extra: raising_extra)).to eq('claim_unreadable')
+    end
+  end
+end

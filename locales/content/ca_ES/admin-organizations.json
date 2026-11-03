@@ -1,0 +1,758 @@
+{
+  "web.admin.organizations.retry": {
+    "text": "Torna-ho a provar",
+    "source_hash": "942087cc"
+  },
+  "web.admin.organizations.detail.backToList": {
+    "text": "Torna a les organitzacions",
+    "source_hash": "2257dc4a"
+  },
+  "web.admin.organizations.detail.notFound": {
+    "text": "No s'ha trobat l'organització",
+    "source_hash": "00c50f7a"
+  },
+  "web.admin.organizations.detail.notFoundDescription": {
+    "text": "Pot ser que aquesta organització s'hagi eliminat, o que l'id sigui incorrecte.",
+    "source_hash": "e5459ef5"
+  },
+  "web.admin.organizations.detail.loadError": {
+    "text": "No s'ha pogut carregar aquesta organització.",
+    "source_hash": "9df8ad50"
+  },
+  "web.admin.organizations.detail.none": {
+    "text": "—",
+    "source_hash": "bda05058"
+  },
+  "web.admin.organizations.detail.badges.default": {
+    "text": "Espai de treball per defecte",
+    "source_hash": "6d67c6eb"
+  },
+  "web.admin.organizations.detail.badges.archived": {
+    "text": "Arxivat",
+    "source_hash": "bdb86505"
+  },
+  "web.admin.organizations.detail.domains.domain": {
+    "text": "Domini",
+    "source_hash": "79fa3361"
+  },
+  "web.admin.organizations.detail.domains.state": {
+    "text": "Estat",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.organizations.detail.domains.created": {
+    "text": "Creat",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.organizations.detail.domains.ready": {
+    "text": "A punt",
+    "source_hash": "5fa7aac5"
+  },
+  "web.admin.organizations.detail.domains.resolving": {
+    "text": "S'està resolent",
+    "source_hash": "3287a034"
+  },
+  "web.admin.organizations.detail.domains.empty": {
+    "text": "Cap domini.",
+    "source_hash": "1b840c7e"
+  },
+  "web.admin.organizations.detail.entitlements.description": {
+    "text": "Els drets efectius es resolen com a (pla ∪ concessions) − revocacions. Revisa el desglossament abans de fer una substitució.",
+    "source_hash": "23080475"
+  },
+  "web.admin.organizations.detail.entitlements.inSync": {
+    "text": "Sincronitzat",
+    "source_hash": "5701958c"
+  },
+  "web.admin.organizations.detail.entitlements.driftBadge": {
+    "text": "Desviació",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.organizations.detail.entitlements.staleBadge": {
+    "text": "Pla obsolet",
+    "source_hash": "ffe63800"
+  },
+  "web.admin.organizations.detail.entitlements.driftWarning": {
+    "text": "Els drets materialitzats no coincideixen amb el conjunt esperat. Reconcilia per tornar-los a materialitzar.",
+    "source_hash": "4859983a"
+  },
+  "web.admin.organizations.detail.entitlements.driftExtra": {
+    "text": "Addicionals (materialitzats, no esperats)",
+    "source_hash": "08d60730"
+  },
+  "web.admin.organizations.detail.entitlements.driftMissing": {
+    "text": "Absents (esperats, no materialitzats)",
+    "source_hash": "fe12c83a"
+  },
+  "web.admin.organizations.detail.entitlements.plan": {
+    "text": "Del pla",
+    "source_hash": "1d346b26"
+  },
+  "web.admin.organizations.detail.entitlements.materialized": {
+    "text": "Materialitzats (efectius)",
+    "source_hash": "72ca5f45"
+  },
+  "web.admin.organizations.detail.members.email": {
+    "text": "Membre",
+    "source_hash": "7c968fb7"
+  },
+  "web.admin.organizations.detail.members.role": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.organizations.detail.members.status": {
+    "text": "Estat",
+    "source_hash": "920e413c"
+  },
+  "web.admin.organizations.detail.members.joined": {
+    "text": "S'hi va unir",
+    "source_hash": "69318b0c"
+  },
+  "web.admin.organizations.detail.members.owner": {
+    "text": "Propietari",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.empty": {
+    "text": "Cap membre.",
+    "source_hash": "b99c59dc"
+  },
+  "web.admin.organizations.detail.reconcile.button": {
+    "text": "Reconcilia",
+    "source_hash": "b59be565"
+  },
+  "web.admin.organizations.detail.reconcile.confirmTitle": {
+    "text": "Vols reconciliar la facturació de l'organització?",
+    "source_hash": "fc1a2762"
+  },
+  "web.admin.organizations.detail.reconcile.confirmDescription": {
+    "text": "Això torna a obtenir dades de Stripe i reescriu l'estat de facturació i els drets de {org}. Torna a escriure l'id de l'organització per confirmar.",
+    "source_hash": "b4ef0850"
+  },
+  "web.admin.organizations.detail.reconcile.success": {
+    "text": "S'ha reconciliat l'organització.",
+    "source_hash": "caf87844"
+  },
+  "web.admin.organizations.detail.reconcile.resultTitle": {
+    "text": "Resultat de la reconciliació",
+    "source_hash": "11f4c6b8"
+  },
+  "web.admin.organizations.detail.reconcile.before": {
+    "text": "Abans",
+    "source_hash": "9bb72500"
+  },
+  "web.admin.organizations.detail.reconcile.after": {
+    "text": "Després",
+    "source_hash": "7b68fe55"
+  },
+  "web.admin.organizations.detail.reconcile.materializedCount": {
+    "text": "Nombre de drets",
+    "source_hash": "59cede5c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.stripe_sync": {
+    "text": "Sincronització amb Stripe",
+    "source_hash": "02f9546c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.entitlements_only": {
+    "text": "Només els drets",
+    "source_hash": "8cf49a5d"
+  },
+  "web.admin.organizations.detail.sections.billing": {
+    "text": "Facturació",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.organizations.detail.sections.members": {
+    "text": "Membres",
+    "source_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.sections.domains": {
+    "text": "Dominis",
+    "source_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.sections.investigate": {
+    "text": "Investiga i reconcilia",
+    "source_hash": "b05aa349"
+  },
+  "web.admin.organizations.entitlements.section": {
+    "text": "Substitucions de drets",
+    "source_hash": "48812068"
+  },
+  "web.admin.organizations.entitlements.description": {
+    "text": "Concedeix o revoca drets independentment del pla. Efectius = drets del pla + concessions - revocacions.",
+    "source_hash": "4c38425b"
+  },
+  "web.admin.organizations.entitlements.inputLabel": {
+    "text": "Dret",
+    "source_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.placeholder": {
+    "text": "p. ex. custom_domains",
+    "source_hash": "05346c68"
+  },
+  "web.admin.organizations.entitlements.grant": {
+    "text": "Concedeix",
+    "source_hash": "78b7d037"
+  },
+  "web.admin.organizations.entitlements.revoke": {
+    "text": "Revoca",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.organizations.entitlements.clear": {
+    "text": "Esborra totes les substitucions",
+    "source_hash": "f0e485c3"
+  },
+  "web.admin.organizations.entitlements.effective": {
+    "text": "Drets efectius",
+    "source_hash": "b840f8c8"
+  },
+  "web.admin.organizations.entitlements.grants": {
+    "text": "Concessions",
+    "source_hash": "b3e1c95a"
+  },
+  "web.admin.organizations.entitlements.revokes": {
+    "text": "Revocacions",
+    "source_hash": "f0e69b17"
+  },
+  "web.admin.organizations.entitlements.noOverrides": {
+    "text": "Fes una acció per veure l'estat de substitució actual d'aquesta organització.",
+    "source_hash": "98d2e30d"
+  },
+  "web.admin.organizations.entitlements.confirm.grantTitle": {
+    "text": "Vols concedir el dret?",
+    "source_hash": "a4b2c57b"
+  },
+  "web.admin.organizations.entitlements.confirm.grantDescription": {
+    "text": "Concedeix «{entitlement}» a {org}. Això canvia els drets de facturació de l'organització.",
+    "source_hash": "542ce26a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeTitle": {
+    "text": "Vols revocar el dret?",
+    "source_hash": "c93d520a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeDescription": {
+    "text": "Revoca «{entitlement}» de {org}. Això canvia els drets de facturació de l'organització.",
+    "source_hash": "a5d2a8a6"
+  },
+  "web.admin.organizations.entitlements.confirm.clearTitle": {
+    "text": "Vols esborrar totes les substitucions de drets?",
+    "source_hash": "e36eb218"
+  },
+  "web.admin.organizations.entitlements.confirm.clearDescription": {
+    "text": "Elimina totes les substitucions de concessió i revocació de {org} i restableix-la als drets del seu pla.",
+    "source_hash": "96bad079"
+  },
+  "web.admin.organizations.entitlements.success.granted": {
+    "text": "S'ha concedit el dret «{entitlement}».",
+    "source_hash": "cf52fb0e"
+  },
+  "web.admin.organizations.entitlements.success.revoked": {
+    "text": "S'ha revocat el dret «{entitlement}».",
+    "source_hash": "279d425d"
+  },
+  "web.admin.organizations.entitlements.success.cleared": {
+    "text": "S'han esborrat totes les substitucions de drets.",
+    "source_hash": "a482743b"
+  },
+  "web.admin.organizations.fields.contactEmail": {
+    "text": "Correu electrònic de contacte",
+    "source_hash": "6d7fce11"
+  },
+  "web.admin.organizations.fields.owner": {
+    "text": "Propietari",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.fields.plan": {
+    "text": "Pla",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.fields.subscription": {
+    "text": "Estat de la subscripció",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.organizations.fields.periodEnd": {
+    "text": "Final del període",
+    "source_hash": "eeae9fdd"
+  },
+  "web.admin.organizations.fields.billingEmail": {
+    "text": "Correu electrònic de facturació",
+    "source_hash": "8805b928"
+  },
+  "web.admin.organizations.fields.stripeCustomer": {
+    "text": "Client de Stripe",
+    "source_hash": "8f169be1"
+  },
+  "web.admin.organizations.fields.stripeSubscription": {
+    "text": "Subscripció de Stripe",
+    "source_hash": "53f71e08"
+  },
+  "web.admin.organizations.fields.orgId": {
+    "text": "ID de l'organització",
+    "source_hash": "1f466322"
+  },
+  "web.admin.organizations.fields.created": {
+    "text": "Creat",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.organizations.fields.updated": {
+    "text": "Actualitzat",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.organizations.investigate.description": {
+    "text": "Compara l'estat de facturació local amb la subscripció de Stripe en directe.",
+    "source_hash": "d7bbe9ed"
+  },
+  "web.admin.organizations.investigate.rawPayload": {
+    "text": "Càrrega útil d'investigació en brut",
+    "source_hash": "29ca7df2"
+  },
+  "web.admin.organizations.investigate.parseError": {
+    "text": "La resposta de la investigació no coincideix amb el format esperat.",
+    "source_hash": "db59cab1"
+  },
+  "web.admin.organizations.list.loadError": {
+    "text": "No s'han pogut carregar les organitzacions.",
+    "source_hash": "130d5e70"
+  },
+  "web.admin.organizations.addMember.button": {
+    "text": "Afegeix un compte existent",
+    "source_hash": "45a3b757"
+  },
+  "web.admin.organizations.addMember.title": {
+    "text": "Afegeix un compte existent",
+    "source_hash": "2f676a94"
+  },
+  "web.admin.organizations.addMember.description": {
+    "text": "Afegeix algú que ja té un compte a {org}. Utilitza això quan una persona s'ha registrat pel seu compte i no pot ser convidada perquè el compte ja existeix.",
+    "source_hash": "bb41faa6"
+  },
+  "web.admin.organizations.addMember.searchLabel": {
+    "text": "Adreça de correu electrònic o identificador de compte",
+    "source_hash": "82b3040b"
+  },
+  "web.admin.organizations.addMember.searchPlaceholder": {
+    "text": "Cerca per adreça de correu electrònic",
+    "source_hash": "b75cc66c"
+  },
+  "web.admin.organizations.addMember.searchHint": {
+    "text": "Coincideix amb part d'una adreça de correu electrònic o amb un identificador de compte exacte.",
+    "source_hash": "84547a60"
+  },
+  "web.admin.organizations.addMember.searchError": {
+    "text": "No s'han pogut cercar comptes. Comprova la connexió i torna-ho a intentar.",
+    "source_hash": "4b6caa41"
+  },
+  "web.admin.organizations.addMember.searchParseError": {
+    "text": "La cerca de comptes ha retornat una resposta inesperada. Els resultats poden estar incomplets.",
+    "source_hash": "0c814231"
+  },
+  "web.admin.organizations.addMember.idle": {
+    "text": "Introdueix una adreça de correu electrònic per trobar el compte.",
+    "source_hash": "f6340d35"
+  },
+  "web.admin.organizations.addMember.noResults": {
+    "text": "Cap compte coincideix amb «{term}».",
+    "source_hash": "199b662a"
+  },
+  "web.admin.organizations.addMember.noResultsHint": {
+    "text": "Només es poden afegir comptes existents aquí. Si la persona mai no s'ha registrat, convida-la en lloc d'això.",
+    "source_hash": "ee90aeeb"
+  },
+  "web.admin.organizations.addMember.select": {
+    "text": "Selecciona",
+    "source_hash": "2a78025d"
+  },
+  "web.admin.organizations.addMember.selectedEyebrow": {
+    "text": "Compte seleccionat",
+    "source_hash": "8b63d947"
+  },
+  "web.admin.organizations.addMember.change": {
+    "text": "Tria un compte diferent",
+    "source_hash": "d4fe39ab"
+  },
+  "web.admin.organizations.addMember.createdOn": {
+    "text": "Registrat el {date}",
+    "source_hash": "cfc0e19f"
+  },
+  "web.admin.organizations.addMember.organizationsUnavailable": {
+    "text": "No s'han pogut carregar les organitzacions actuals d'aquest compte.",
+    "source_hash": "a35b6bfc"
+  },
+  "web.admin.organizations.addMember.defaultOrg": {
+    "text": "per defecte",
+    "source_hash": "37a8eec1"
+  },
+  "web.admin.organizations.addMember.roleLabel": {
+    "text": "Rol en aquesta organització",
+    "source_hash": "817475fa"
+  },
+  "web.admin.organizations.addMember.submit": {
+    "text": "Afegeix a l'organització",
+    "source_hash": "0e0cb636"
+  },
+  "web.admin.organizations.addMember.success": {
+    "text": "S'ha afegit {account} com a {role}.",
+    "source_hash": "533be0dc"
+  },
+  "web.admin.organizations.addMember.badges.verified": {
+    "text": "Verificat",
+    "source_hash": "4f783840"
+  },
+  "web.admin.organizations.addMember.badges.unverified": {
+    "text": "No verificat",
+    "source_hash": "15133907"
+  },
+  "web.admin.organizations.addMember.badges.suspended": {
+    "text": "Suspès",
+    "source_hash": "e392a389"
+  },
+  "web.admin.organizations.addMember.badges.alreadyMember": {
+    "text": "Ja és membre",
+    "source_hash": "1739ed7c"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMember": {
+    "text": "Aquest compte ja és membre d'aquesta organització, amb el rol {role}. Afegir no canvia un rol existent — utilitza l'acció de canviar rol per a això.",
+    "source_hash": "cb6a4774"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMemberUnknownRole": {
+    "text": "Aquest compte ja és membre d'aquesta organització. Afegir no canvia un rol existent.",
+    "source_hash": "035641ec"
+  },
+  "web.admin.organizations.addMember.errors.notFound": {
+    "text": "Aquest compte o organització ja no existeix. Cerca de nou per confirmar el compte.",
+    "source_hash": "bd88db18"
+  },
+  "web.admin.organizations.addMember.errors.invalidRole": {
+    "text": "Aquest rol ha estat rebutjat. Tria un dels rols llistats i torna-ho a intentar.",
+    "source_hash": "eb696a8f"
+  },
+  "web.admin.organizations.addMember.errors.noSelection": {
+    "text": "Cap compte seleccionat.",
+    "source_hash": "dd15bb5b"
+  },
+  "web.admin.organizations.addMember.fields.created": {
+    "text": "Registrat",
+    "source_hash": "486b3fe0"
+  },
+  "web.admin.organizations.addMember.fields.verified": {
+    "text": "Verificació",
+    "source_hash": "7140f4f1"
+  },
+  "web.admin.organizations.addMember.fields.lastLogin": {
+    "text": "Darrer inici de sessió",
+    "source_hash": "0b70af7a"
+  },
+  "web.admin.organizations.addMember.fields.organizations": {
+    "text": "Organitzacions actuals",
+    "source_hash": "cbb5b92f"
+  },
+  "web.admin.organizations.addMember.roleHints.member": {
+    "text": "Accés diari als secrets i dominis de l'organització.",
+    "source_hash": "d0c7439e"
+  },
+  "web.admin.organizations.addMember.roleHints.admin": {
+    "text": "Pot gestionar membres, dominis i configuració de l'organització.",
+    "source_hash": "beaa50d7"
+  },
+  "web.admin.organizations.addMember.roleHints.owner": {
+    "text": "Control total, incloent facturació. Atorga això només quan se't demani.",
+    "source_hash": "614ace63"
+  },
+  "web.admin.organizations.addMember.roles.member": {
+    "text": "Membre",
+    "source_hash": "7c968fb7"
+  },
+  "web.admin.organizations.addMember.roles.admin": {
+    "text": "Administrador",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.organizations.addMember.roles.owner": {
+    "text": "Propietari",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.openCustomer": {
+    "text": "Obre el registre del client",
+    "source_hash": "c057ca13"
+  },
+  "web.admin.organizations.detail.reconcile.memberships": {
+    "text": "Membres rematerialitzats:",
+    "source_hash": "fe7db10c"
+  },
+  "web.admin.organizations.detail.reconcile.membershipsFailed": {
+    "text": "fallits, els drets obsolets romanen:",
+    "source_hash": "cc4dae37"
+  },
+  "web.admin.organizations.entitlements.catalogWarning": {
+    "text": "«{entitlement}» no és al catàleg de facturació — comprova si hi ha un error tipogràfic. Es procedeix igualment: atorgar un dret que s'envia en un catàleg posterior és compatible i no es bloqueja deliberadament.",
+    "source_hash": "cbde548a"
+  },
+  "web.admin.organizations.entitlements.matrix.caption": {
+    "text": "Matriu de resolució de drets: pla, atorgaments i revocacions de substitució, el conjunt resolt i el que està materialitzat.",
+    "source_hash": "9eac8999"
+  },
+  "web.admin.organizations.entitlements.matrix.yes": {
+    "text": "Sí",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.matrix.no": {
+    "text": "No",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.matrix.empty": {
+    "text": "Aquesta organització no té drets del seu pla ni substitucions.",
+    "source_hash": "f6cf2169"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.entitlement": {
+    "text": "Dret",
+    "source_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.inPlan": {
+    "text": "Al pla",
+    "source_hash": "e2222361"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.granted": {
+    "text": "Atorgat",
+    "source_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.revoked": {
+    "text": "Revocat",
+    "source_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.expected": {
+    "text": "Esperat",
+    "source_hash": "ca99b7f1"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.materialized": {
+    "text": "Materialitzat",
+    "source_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.state": {
+    "text": "Estat",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.formula": {
+    "text": "Resolució: esperat = (pla ∪ atorgaments) − revocacions. Materialitzat és el que realment s'emmagatzema a l'organització.",
+    "source_hash": "bc4bff2d"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.orphaned": {
+    "text": "Orfe — materialitzat però no esperat, normalment deixat enrere per una revocació que mai no es va rematerialitzar. Reconciliar l'elimina.",
+    "source_hash": "3a27a9af"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.missing": {
+    "text": "Absent — esperat però no materialitzat. Aquest és el permís que els membres realment no tenen ara mateix.",
+    "source_hash": "485e44ad"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.revoked": {
+    "text": "Les files ratllades estan revocades per una substitució d'administrador, que les elimina del conjunt esperat.",
+    "source_hash": "89a2e9b6"
+  },
+  "web.admin.organizations.entitlements.matrix.state.plan": {
+    "text": "Del pla",
+    "source_hash": "1d346b26"
+  },
+  "web.admin.organizations.entitlements.matrix.state.granted": {
+    "text": "Atorgat",
+    "source_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.state.revoked": {
+    "text": "Revocat",
+    "source_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.state.orphaned": {
+    "text": "Orfe",
+    "source_hash": "8d827807"
+  },
+  "web.admin.organizations.entitlements.matrix.state.missing": {
+    "text": "Absent",
+    "source_hash": "6be36ca4"
+  },
+  "web.admin.organizations.entitlements.picker.selectPlaceholder": {
+    "text": "Selecciona un dret…",
+    "source_hash": "53af3be8"
+  },
+  "web.admin.organizations.entitlements.picker.other": {
+    "text": "Altre — no al catàleg…",
+    "source_hash": "f08bc3a3"
+  },
+  "web.admin.organizations.entitlements.picker.customLabel": {
+    "text": "Nom del dret (no al catàleg)",
+    "source_hash": "52783229"
+  },
+  "web.admin.organizations.entitlements.picker.backToCatalog": {
+    "text": "Torna al catàleg",
+    "source_hash": "9b727f40"
+  },
+  "web.admin.organizations.entitlements.picker.uncategorized": {
+    "text": "Sense categoria",
+    "source_hash": "8d40d123"
+  },
+  "web.admin.organizations.entitlements.picker.catalogUnavailable": {
+    "text": "No s'ha pogut llegir el catàleg de facturació, així que els noms dels drets no es comproven aquí.",
+    "source_hash": "724869ec"
+  },
+  "web.admin.organizations.entitlements.picker.tags.inPlan": {
+    "text": "al pla",
+    "source_hash": "5f2251bb"
+  },
+  "web.admin.organizations.entitlements.picker.tags.granted": {
+    "text": "atorgat",
+    "source_hash": "dd515d19"
+  },
+  "web.admin.organizations.entitlements.picker.tags.revoked": {
+    "text": "revocat",
+    "source_hash": "4bb47f18"
+  },
+  "web.admin.organizations.entitlements.summary.sync": {
+    "text": "Sincronitza",
+    "source_hash": "8d261a37"
+  },
+  "web.admin.organizations.entitlements.summary.materialized": {
+    "text": "Materialitzat",
+    "source_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.summary.materializedAt": {
+    "text": "Darrera materialització",
+    "source_hash": "9325dce9"
+  },
+  "web.admin.organizations.entitlements.summary.planDefinition": {
+    "text": "Definició del pla",
+    "source_hash": "6b531454"
+  },
+  "web.admin.organizations.entitlements.summary.yes": {
+    "text": "Sí",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.summary.no": {
+    "text": "No",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.summary.never": {
+    "text": "Mai",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.organizations.entitlements.summary.planStale": {
+    "text": "Canviat des de la materialització",
+    "source_hash": "e682d8a4"
+  },
+  "web.admin.organizations.entitlements.summary.planCurrent": {
+    "text": "Actual",
+    "source_hash": "e0d1b682"
+  },
+  "web.admin.organizations.entitlements.summary.planUnknown": {
+    "text": "Desconegut — no s'ha pogut comparar",
+    "source_hash": "b607e540"
+  },
+  "web.admin.organizations.actions.plan.label": {
+    "text": "Pla",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.actions.plan.apply": {
+    "text": "Aplica",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.organizations.actions.plan.confirmTitle": {
+    "text": "Vols canviar el pla?",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.organizations.actions.plan.confirmDescription": {
+    "text": "Canvia {org} al pla {plan}.",
+    "source_hash": "aecf8277"
+  },
+  "web.admin.organizations.actions.plan.success": {
+    "text": "S'ha actualitzat el pla.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.organizations.actions.plan.problem": {
+    "text": "S'ha desat el pla, però els drets no s'han actualitzat. Executa la reconciliació en aquesta organització.",
+    "source_hash": "2addb095"
+  },
+  "web.admin.organizations.actions.plan.localConfigWarning": {
+    "text": "Plans carregats de la configuració local — Stripe no està configurat o no és accessible.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.organizations.detail.delete.button": {
+    "text": "Elimina l'organització",
+    "source_hash": "a70d189a"
+  },
+  "web.admin.organizations.detail.delete.previewing": {
+    "text": "S'està carregant el pla d'eliminació…",
+    "source_hash": "c9773eb9"
+  },
+  "web.admin.organizations.detail.delete.warning": {
+    "text": "Elimina permanentment l'organització, les seves pertinences i les invitacions pendents, i envia un correu electrònic als antics membres. Això no es pot desfer.",
+    "source_hash": "fd314131"
+  },
+  "web.admin.organizations.detail.delete.confirmTitle": {
+    "text": "Vols eliminar aquesta organització?",
+    "source_hash": "6a3bba0f"
+  },
+  "web.admin.organizations.detail.delete.confirmDescription": {
+    "text": "Això elimina permanentment {org}. Torna a escriure l'id de l'organització per confirmar.",
+    "source_hash": "c63a0221"
+  },
+  "web.admin.organizations.detail.delete.membersLabel": {
+    "text": "Membres",
+    "source_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.delete.invitationsLabel": {
+    "text": "Invitacions pendents",
+    "source_hash": "76198e63"
+  },
+  "web.admin.organizations.detail.delete.domainsLabel": {
+    "text": "Dominis",
+    "source_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.delete.defaultOrgLabel": {
+    "text": "Esborra l'espai de treball per defecte de",
+    "source_hash": "d535ac2a"
+  },
+  "web.admin.organizations.detail.delete.forceDefault": {
+    "text": "Aquest és l'espai de treball per defecte (personal) del propietari. Elimina'l igualment.",
+    "source_hash": "1a8b0f7d"
+  },
+  "web.admin.organizations.detail.delete.forceSubscription": {
+    "text": "La subscripció està activa. Elimina l'organització igualment — això no cancel·la la facturació de Stripe.",
+    "source_hash": "51cb3456"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsLabel": {
+    "text": "Dominis desviats",
+    "source_hash": "fef96f49"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsRepair": {
+    "text": "Repara amb: bin/ots domains doctor --all --repair",
+    "source_hash": "14c9c59f"
+  },
+  "web.admin.organizations.detail.delete.success": {
+    "text": "S'ha eliminat {org}.",
+    "source_hash": "9cdda5d0"
+  },
+  "web.admin.organizations.detail.delete.blocked.hasDomains": {
+    "text": "Bloquejat: primer elimina els dominis personalitzats ({domains}).",
+    "source_hash": "dc3248b2"
+  },
+  "web.admin.organizations.detail.delete.blocked.driftedDomains": {
+    "text": "Bloquejat: aquests registres de domini encara fan referència a aquesta organització, però no figuren a la seva llista de dominis ({domains}). Primer executa bin/ots domains doctor --all --repair — no hi ha cap substitució possible.",
+    "source_hash": "3136496c"
+  },
+  "web.admin.organizations.detail.delete.blocked.isDefault": {
+    "text": "Bloquejat: aquest és l'espai de treball per defecte del propietari. Marca la substitució de sota per eliminar-lo igualment.",
+    "source_hash": "09d5baa4"
+  },
+  "web.admin.organizations.detail.delete.blocked.activeSubscription": {
+    "text": "Bloquejat: l'organització té una subscripció activa. Primer cancel·la-la a Stripe o marca la substitució de sota.",
+    "source_hash": "68663641"
+  },
+  "web.admin.organizations.detail.delete.blocked.lastOrg": {
+    "text": "Bloquejat: aquesta és l'única organització a la qual pertany {owner}, i eliminar-la el deixaria sense cap espai de treball. No hi ha cap substitució possible — primer crea una organització de reemplaçament.",
+    "source_hash": "f09b4f9a"
+  },
+  "web.admin.organizations.detail.delete.errors.planUnreadable": {
+    "text": "No s'ha pogut llegir el pla d'eliminació del servidor. No s'ha eliminat res.",
+    "source_hash": "91406cbb"
+  },
+  "web.admin.organizations.detail.delete.errors.unverified": {
+    "text": "No s'ha pogut verificar la resposta del servidor. Torna a carregar la llista d'organitzacions per comprovar si l'eliminació s'ha completat.",
+    "source_hash": "7a261fb0"
+  },
+  "web.admin.organizations.detail.delete.errors.notApplied": {
+    "text": "El servidor ha retornat una previsualització, no una eliminació. No s'ha eliminat res.",
+    "source_hash": "9d84971d"
+  }
+}

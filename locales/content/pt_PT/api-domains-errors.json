@@ -1,0 +1,62 @@
+{
+  "api.domains.errors.domain_id_required": {
+    "text": "ID do domínio obrigatório",
+    "source_hash": "6837426b"
+  },
+  "api.domains.errors.domain_not_found": {
+    "text": "Domínio não encontrado: %{extid}",
+    "source_hash": "a0fd1025"
+  },
+  "api.domains.errors.organization_not_found": {
+    "text": "Organização não encontrada para o domínio: %{domain}",
+    "source_hash": "632afc93"
+  },
+  "api.domains.errors.incoming_secrets_disabled": {
+    "text": "As mensagens confidenciais recebidas não estão ativadas nesta instância",
+    "source_hash": "45c0b5c4"
+  },
+  "api.domains.errors.incoming_secrets_entitlement_required": {
+    "text": "A gestão de mensagens confidenciais recebidas requer o direito incoming_secrets. Faz upgrade do teu plano.",
+    "source_hash": "1af54ec2"
+  },
+  "api.domains.errors.incoming_config_not_found": {
+    "text": "Configuração de receção não encontrada para o domínio: %{extid}",
+    "source_hash": "491644a8"
+  },
+  "api.domains.errors.recipients_max_exceeded": {
+    "text": "Máximo de %{max} destinatários permitidos",
+    "source_hash": "159842ad"
+  },
+  "api.domains.errors.recipients_invalid_email": {
+    "text": "E-mail inválido: %{email}",
+    "source_hash": "e9c729c7"
+  },
+  "api.domains.errors.recipients_duplicate": {
+    "text": "Não são permitidos e-mails de destinatário duplicados",
+    "source_hash": "6de22182"
+  },
+  "api.domains.errors.homepage_secrets_mode_invalid": {
+    "text": "secrets_mode inválido: %{secrets_mode}",
+    "source_hash": "cf093a04"
+  },
+  "api.domains.errors.homepage_incoming_entitlement_required": {
+    "text": "O modo de mensagens confidenciais recebidas requer o direito incoming_secrets. Faz upgrade do teu plano.",
+    "source_hash": "d68b13d8"
+  },
+  "api.domains.errors.homepage_incoming_not_ready": {
+    "text": "As mensagens confidenciais recebidas têm de estar ativadas com pelo menos um destinatário antes de poderem ser usadas como página inicial.",
+    "source_hash": "556da6e2"
+  },
+  "api.domains.errors.related_origins_invalid": {
+    "text": "Não é uma origem válida: %{origins}. Introduz o esquema e o host, por exemplo https://vault.example.com",
+    "source_hash": "5acb92ca"
+  },
+  "api.domains.errors.related_origins_foreign_organization": {
+    "text": "Estas origens pertencem a outra organização e não podem ser adicionadas: %{origins}",
+    "source_hash": "ac21c1e7"
+  },
+  "api.domains.errors.allowed_signup_domains_invalid": {
+    "text": "Não é um domínio válido: %{domains}. Introduz um nome de domínio registável, por exemplo example.com",
+    "source_hash": "2d93472c"
+  }
+}

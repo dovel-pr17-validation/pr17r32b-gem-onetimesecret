@@ -1,0 +1,842 @@
+{
+  "web.admin.customers.title": {
+    "text": "Zákazníci",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.customers.description": {
+    "text": "Najdi zákazníka a vyřeš problémy s podporou.",
+    "source_hash": "00961ea3"
+  },
+  "web.admin.customers.actions.plan.label": {
+    "text": "Plán",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.plan.apply": {
+    "text": "Použít",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.plan.confirmTitle": {
+    "text": "Změnit plán?",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.customers.actions.plan.confirmDescription": {
+    "text": "Změnit {email} na plán {plan}.",
+    "source_hash": "83fb4158"
+  },
+  "web.admin.customers.actions.plan.success": {
+    "text": "Plán aktualizován.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.customers.actions.plan.localConfigWarning": {
+    "text": "Plány načteny z místní konfigurace — Stripe není nakonfigurován nebo je nedostupný.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.customers.actions.purge.button": {
+    "text": "Vymazat zákazníka",
+    "source_hash": "ff658f69"
+  },
+  "web.admin.customers.actions.purge.confirmTitle": {
+    "text": "Vymazat zákazníka?",
+    "source_hash": "9feed9f1"
+  },
+  "web.admin.customers.actions.purge.confirmDescription": {
+    "text": "Tímto požádáš o trvalé smazání {email}. Před odstraněním účtu proběhne předběžná kontrola, která vymazání odmítne, pokud má pracovní prostor domény, stav fakturace, další členy, uchovávaná data nebo nekonzistentní odkazy. Před dalším pokusem zkontroluj a vyřeš všechny překážky. Jakmile odstraňování začne, nelze ho vrátit zpět.",
+    "source_hash": "7b4e5e37"
+  },
+  "web.admin.customers.actions.purge.success": {
+    "text": "Zákazník vymazán.",
+    "source_hash": "6145e5c8"
+  },
+  "web.admin.customers.actions.role.label": {
+    "text": "Role",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.actions.role.apply": {
+    "text": "Použít",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.role.confirmTitle": {
+    "text": "Změnit roli?",
+    "source_hash": "227f57d7"
+  },
+  "web.admin.customers.actions.role.confirmDescription": {
+    "text": "Změní {email} na roli {role}. Role Colonel uděluje plný administrátorský přístup ke všem účtům, tajemstvím a organizacím v této instalaci. Pro potvrzení zadej níže e-mailovou adresu účtu.",
+    "source_hash": "0ed85b97"
+  },
+  "web.admin.customers.actions.role.success": {
+    "text": "Role aktualizována.",
+    "source_hash": "0c33aa24"
+  },
+  "web.admin.customers.actions.suspend.button": {
+    "text": "Pozastavit účet",
+    "source_hash": "95a04f27"
+  },
+  "web.admin.customers.actions.suspend.reasonLabel": {
+    "text": "Důvod (volitelné)",
+    "source_hash": "0f7d4664"
+  },
+  "web.admin.customers.actions.suspend.reasonPlaceholder": {
+    "text": "Proč je tento účet pozastaven?",
+    "source_hash": "8eca975e"
+  },
+  "web.admin.customers.actions.suspend.confirmTitle": {
+    "text": "Pozastavit účet?",
+    "source_hash": "cbfa275b"
+  },
+  "web.admin.customers.actions.suspend.confirmDescription": {
+    "text": "Zablokuje {email} přihlášení a zruší jeho aktivní relace. Žádná data nebudou smazána — tuto akci lze vrátit zpět.",
+    "source_hash": "e5d046bc"
+  },
+  "web.admin.customers.actions.suspend.success": {
+    "text": "Účet pozastaven.",
+    "source_hash": "04c5f996"
+  },
+  "web.admin.customers.actions.unsuspend.button": {
+    "text": "Zrušit pozastavení účtu",
+    "source_hash": "35a10fb5"
+  },
+  "web.admin.customers.actions.unsuspend.confirmTitle": {
+    "text": "Zrušit pozastavení účtu?",
+    "source_hash": "6fd78a72"
+  },
+  "web.admin.customers.actions.unsuspend.confirmDescription": {
+    "text": "Obnoví přihlášení pro {email}.",
+    "source_hash": "cb2bb4e0"
+  },
+  "web.admin.customers.actions.unsuspend.success": {
+    "text": "Pozastavení účtu zrušeno.",
+    "source_hash": "c5b4377f"
+  },
+  "web.admin.customers.actions.unverify.button": {
+    "text": "Zrušit ověření",
+    "source_hash": "b0dee41f"
+  },
+  "web.admin.customers.actions.unverify.confirmTitle": {
+    "text": "Zrušit ověření zákazníka?",
+    "source_hash": "62ed2854"
+  },
+  "web.admin.customers.actions.unverify.confirmDescription": {
+    "text": "Označí {email} jako neověřený. Neověřený účet nemůže mít roli Colonel, Správce ani Personál, takže mu tímto odebereš i případnou zvýšenou roli. Pro potvrzení zadej níže e-mailovou adresu účtu.",
+    "source_hash": "601f7382"
+  },
+  "web.admin.customers.actions.unverify.success": {
+    "text": "Ověření zákazníka zrušeno.",
+    "source_hash": "a9b7bbac"
+  },
+  "web.admin.customers.actions.verify.button": {
+    "text": "Ověřit",
+    "source_hash": "eea2745e"
+  },
+  "web.admin.customers.actions.verify.confirmTitle": {
+    "text": "Ověřit zákazníka?",
+    "source_hash": "43037ce1"
+  },
+  "web.admin.customers.actions.verify.confirmDescription": {
+    "text": "Označit {email} jako ověřený.",
+    "source_hash": "7052d79d"
+  },
+  "web.admin.customers.actions.verify.success": {
+    "text": "Zákazník ověřen.",
+    "source_hash": "19e382dc"
+  },
+  "web.admin.customers.columns.email": {
+    "text": "E-mail",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.columns.role": {
+    "text": "Role",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.columns.verified": {
+    "text": "Ověřeno",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.columns.plan": {
+    "text": "Plán",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.columns.secrets": {
+    "text": "Tajemství",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.columns.created": {
+    "text": "Vytvořeno",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.columns.lastLogin": {
+    "text": "Poslední přihlášení",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.backToList": {
+    "text": "Zpět na zákazníky",
+    "source_hash": "077807fb"
+  },
+  "web.admin.customers.detail.openFullPage": {
+    "text": "Otevřít celou stránku",
+    "source_hash": "a467911c"
+  },
+  "web.admin.customers.detail.notFound": {
+    "text": "Zákazník nenalezen",
+    "source_hash": "5e3f5824"
+  },
+  "web.admin.customers.detail.notFoundDescription": {
+    "text": "Tomuto identifikátoru neodpovídá žádný zákazník. Mohl být vymazán.",
+    "source_hash": "82b04725"
+  },
+  "web.admin.customers.detail.loadError": {
+    "text": "Nepodařilo se načíst tohoto zákazníka.",
+    "source_hash": "cfd1bcca"
+  },
+  "web.admin.customers.detail.retry": {
+    "text": "Zkusit znovu",
+    "source_hash": "942087cc"
+  },
+  "web.admin.customers.detail.yes": {
+    "text": "Ano",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.customers.detail.no": {
+    "text": "Ne",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.customers.detail.none": {
+    "text": "Žádné",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.never": {
+    "text": "Nikdy",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.customers.detail.billing.plan": {
+    "text": "Plán",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.billing.organization": {
+    "text": "Fakturační organizace",
+    "source_hash": "90c94ee1"
+  },
+  "web.admin.customers.detail.billing.subscriptionStatus": {
+    "text": "Stav předplatného",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.customers.detail.billing.periodEnd": {
+    "text": "Aktuální období končí",
+    "source_hash": "742b8229"
+  },
+  "web.admin.customers.detail.billing.latestInvoice": {
+    "text": "Nejnovější faktura",
+    "source_hash": "7a6133cc"
+  },
+  "web.admin.customers.detail.billing.noInvoices": {
+    "text": "Žádné faktury",
+    "source_hash": "e6b30f93"
+  },
+  "web.admin.customers.detail.billing.openStripe": {
+    "text": "Otevřít v přehledu Stripe",
+    "source_hash": "dfa7c41d"
+  },
+  "web.admin.customers.detail.billing.unavailable": {
+    "text": "Data ze Stripe nedostupná: {reason}",
+    "source_hash": "9fe08e49"
+  },
+  "web.admin.customers.detail.billing.notConfigured": {
+    "text": "Fakturace není v této instalaci nakonfigurována.",
+    "source_hash": "6e90375e"
+  },
+  "web.admin.customers.detail.fields.email": {
+    "text": "E-mail",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.detail.fields.publicId": {
+    "text": "Veřejné ID",
+    "source_hash": "3705b64f"
+  },
+  "web.admin.customers.detail.fields.role": {
+    "text": "Role",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.detail.fields.verified": {
+    "text": "Ověřeno",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.detail.fields.plan": {
+    "text": "Plán",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.fields.locale": {
+    "text": "Jazyk",
+    "source_hash": "ca3dc612"
+  },
+  "web.admin.customers.detail.fields.created": {
+    "text": "Vytvořeno",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.fields.updated": {
+    "text": "Aktualizováno",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.customers.detail.fields.lastLogin": {
+    "text": "Poslední přihlášení",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.fields.suspendedAt": {
+    "text": "Pozastaveno dne",
+    "source_hash": "7227f219"
+  },
+  "web.admin.customers.detail.fields.suspendedBy": {
+    "text": "Pozastavil",
+    "source_hash": "e0830524"
+  },
+  "web.admin.customers.detail.fields.suspendedReason": {
+    "text": "Důvod pozastavení",
+    "source_hash": "d6b08d8e"
+  },
+  "web.admin.customers.detail.organizations.empty": {
+    "text": "Žádné organizace",
+    "source_hash": "c256efdc"
+  },
+  "web.admin.customers.detail.organizations.default": {
+    "text": "Výchozí",
+    "source_hash": "21b111cb"
+  },
+  "web.admin.customers.detail.receiptColumns.shortId": {
+    "text": "Krátké ID",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.receiptColumns.state": {
+    "text": "Stav",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.receiptColumns.created": {
+    "text": "Vytvořeno",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.receipts.empty": {
+    "text": "Žádná potvrzení",
+    "source_hash": "fb425a68"
+  },
+  "web.admin.customers.detail.secretColumns.shortId": {
+    "text": "Krátké ID",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.secretColumns.state": {
+    "text": "Stav",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.secretColumns.created": {
+    "text": "Vytvořeno",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.secretColumns.expiration": {
+    "text": "Vypršení",
+    "source_hash": "f38d6e0e"
+  },
+  "web.admin.customers.detail.secrets.empty": {
+    "text": "Žádná tajemství",
+    "source_hash": "c37ab3f7"
+  },
+  "web.admin.customers.detail.sections.profile": {
+    "text": "Profil",
+    "source_hash": "d696a35b"
+  },
+  "web.admin.customers.detail.sections.secrets": {
+    "text": "Tajemství",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.detail.sections.receipts": {
+    "text": "Potvrzení",
+    "source_hash": "60a627df"
+  },
+  "web.admin.customers.detail.sections.organizations": {
+    "text": "Organizace",
+    "source_hash": "2730183d"
+  },
+  "web.admin.customers.detail.sections.actions": {
+    "text": "Akce",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sections.billing": {
+    "text": "Fakturace",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.customers.detail.sessions.title": {
+    "text": "Aktivní relace",
+    "source_hash": "b58fa4e0"
+  },
+  "web.admin.customers.detail.sessions.empty": {
+    "text": "Žádné aktivní relace.",
+    "source_hash": "6f064eb9"
+  },
+  "web.admin.customers.detail.sessions.loadError": {
+    "text": "Nelze načíst relace.",
+    "source_hash": "d2884313"
+  },
+  "web.admin.customers.detail.sessions.unknown": {
+    "text": "Neznámé",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.sessions.columns.lastActivity": {
+    "text": "Poslední aktivita",
+    "source_hash": "06475633"
+  },
+  "web.admin.customers.detail.sessions.columns.ipAddress": {
+    "text": "IP adresa",
+    "source_hash": "0302a467"
+  },
+  "web.admin.customers.detail.sessions.columns.device": {
+    "text": "Zařízení",
+    "source_hash": "6ba0bdec"
+  },
+  "web.admin.customers.detail.sessions.columns.authMethod": {
+    "text": "Metoda ověření",
+    "source_hash": "bc4ea262"
+  },
+  "web.admin.customers.detail.sessions.columns.actions": {
+    "text": "Akce",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sessions.revoke.button": {
+    "text": "Zrušit",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmTitle": {
+    "text": "Zrušit relaci?",
+    "source_hash": "7735d1ef"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmDescription": {
+    "text": "Tímto okamžitě odhlásíš uživatele z této relace. Bude se muset znovu přihlásit.",
+    "source_hash": "b4291af0"
+  },
+  "web.admin.customers.detail.sessions.revoke.success": {
+    "text": "Relace zrušena.",
+    "source_hash": "5e4762e5"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.button": {
+    "text": "Zrušit vše",
+    "source_hash": "c6847a4b"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmTitle": {
+    "text": "Zrušit všechny relace?",
+    "source_hash": "a4fa4c65"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmDescription": {
+    "text": "Tímto odhlásíš uživatele ze všech zařízení a prohlížečů — včetně relací nezobrazených v tomto seznamu — a okamžitě zablokuješ jeho ověřené cesty. Použij při offboardingu nebo podezření na převzetí účtu. Pro potvrzení napiš ID uživatele.",
+    "source_hash": "483cdd88"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.success": {
+    "text": "Zrušeny všechny relace (zrušeno: {count}).",
+    "source_hash": "4e1cce55"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.capped": {
+    "text": "Zrušeno relací: {count}, ale prohledávání nesledovaných relací bylo zkráceno — starší relace může přetrvávat. Pro jistotu spusť znovu.",
+    "source_hash": "e3d295a6"
+  },
+  "web.admin.customers.detail.stats.secretsCreated": {
+    "text": "Vytvořená tajemství",
+    "source_hash": "7d17719e"
+  },
+  "web.admin.customers.detail.stats.secretsShared": {
+    "text": "Sdílená tajemství",
+    "source_hash": "ba85b265"
+  },
+  "web.admin.customers.detail.stats.emailsSent": {
+    "text": "Odeslané e-maily",
+    "source_hash": "be604792"
+  },
+  "web.admin.customers.list.roleFilter": {
+    "text": "Role",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.list.empty": {
+    "text": "Nebyli nalezeni žádní zákazníci",
+    "source_hash": "dc754ec0"
+  },
+  "web.admin.customers.list.loadError": {
+    "text": "Nepodařilo se načíst zákazníky.",
+    "source_hash": "81783303"
+  },
+  "web.admin.customers.list.searchPlaceholder": {
+    "text": "Hledej podle e-mailu, extid nebo objid",
+    "source_hash": "c06d5a3b"
+  },
+  "web.admin.customers.list.emptySearch": {
+    "text": "Tomuto hledání neodpovídají žádní zákazníci",
+    "source_hash": "ea7e7012"
+  },
+  "web.admin.customers.roles.colonel": {
+    "text": "Colonel",
+    "source_hash": "02577777"
+  },
+  "web.admin.customers.roles.admin": {
+    "text": "Správce",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.customers.roles.staff": {
+    "text": "Personál",
+    "source_hash": "681927e3"
+  },
+  "web.admin.customers.roles.customer": {
+    "text": "Zákazník",
+    "source_hash": "bf376338"
+  },
+  "web.admin.customers.suspended.badge": {
+    "text": "Pozastaveno",
+    "source_hash": "e392a389"
+  },
+  "web.admin.customers.actions.checkoutLink.button": {
+    "text": "Vytvořit odkaz k platbě",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.modalTitle": {
+    "text": "Vytvořit odkaz k platbě",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.planLabel": {
+    "text": "Plán",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.checkoutLink.planPlaceholder": {
+    "text": "ID rodiny plánu (např. identity_plus_v1)",
+    "source_hash": "12eba027"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleLabel": {
+    "text": "Fakturační cyklus",
+    "source_hash": "d69f731e"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleMonthly": {
+    "text": "Měsíčně",
+    "source_hash": "9b11f6b7"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleYearly": {
+    "text": "Ročně",
+    "source_hash": "6e69b59e"
+  },
+  "web.admin.customers.actions.checkoutLink.allowPromo": {
+    "text": "Povolit promo kódy",
+    "source_hash": "ebe7bc8b"
+  },
+  "web.admin.customers.actions.checkoutLink.submit": {
+    "text": "Vytvořit odkaz",
+    "source_hash": "e6b850cf"
+  },
+  "web.admin.customers.actions.checkoutLink.resultLead": {
+    "text": "Odkaz k platbě byl vytvořen. Sdílej ho se zákazníkem — lze ho použít pouze jednou a má omezenou platnost.",
+    "source_hash": "6ff1fb0e"
+  },
+  "web.admin.customers.actions.checkoutLink.copy": {
+    "text": "Kopírovat odkaz k platbě",
+    "source_hash": "f1e51ca7"
+  },
+  "web.admin.customers.actions.checkoutLink.expiry": {
+    "text": "Vyprší za ~{hours} h ({date}).",
+    "source_hash": "4c878a15"
+  },
+  "web.admin.customers.actions.checkoutLink.regionLabel": {
+    "text": "Region",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.customers.actions.checkoutLink.parseError": {
+    "text": "Server přijal požadavek, ale vrátil nečitelnou odpověď, takže odkaz nelze zobrazit. Zkontroluj Stripe před dalším pokusem.",
+    "source_hash": "e7e08290"
+  },
+  "web.admin.customers.actions.checkoutLink.done": {
+    "text": "Hotovo",
+    "source_hash": "11a6767d"
+  },
+  "web.admin.customers.actions.purge.typePrompt": {
+    "text": "Pro potvrzení zadej níže e-mailovou adresu účtu {token}",
+    "source_hash": "8b2a1819"
+  },
+  "web.admin.customers.actions.purge.unavailable": {
+    "text": "Smazání není dostupné: tento účet nemá e-mailovou adresu k zadání jako potvrzení.",
+    "source_hash": "5f20f7e5"
+  },
+  "web.admin.customers.columns.actions": {
+    "text": "Akce",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.diagnostics.title": {
+    "text": "Diagnostika účtu",
+    "source_hash": "5574ece8"
+  },
+  "web.admin.customers.detail.diagnostics.loading": {
+    "text": "Probíhá diagnostika…",
+    "source_hash": "062c83d5"
+  },
+  "web.admin.customers.detail.diagnostics.loadError": {
+    "text": "Nepodařilo se načíst diagnostiku.",
+    "source_hash": "69e69f49"
+  },
+  "web.admin.customers.detail.diagnostics.healthy": {
+    "text": "Nebyla nalezena žádná blokující podmínka. Stav autentizace i kontext organizace vypadají v pořádku — podezření na problémy na straně klienta (cookies, konfigurace přihlášení vlastní domény) nebo nesprávný region.",
+    "source_hash": "e0e8450e"
+  },
+  "web.admin.customers.detail.diagnostics.authUnavailable": {
+    "text": "Autentizační databáze není dostupná (jednoduchý režim autentizace) — kontroly na straně SQL byly přeskočeny.",
+    "source_hash": "d668907c"
+  },
+  "web.admin.customers.detail.diagnostics.authFailed": {
+    "text": "Autentizační databáze neodpověděla, takže kontroly na straně SQL nemohly proběhnout: {reason}",
+    "source_hash": "46d047c0"
+  },
+  "web.admin.customers.detail.diagnostics.unknown": {
+    "text": "Neznámý",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.title": {
+    "text": "Protokol autentizace",
+    "source_hash": "48ad8ba8"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.empty": {
+    "text": "Nebyly zaznamenány žádné události autentizace.",
+    "source_hash": "d2332558"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.unavailable": {
+    "text": "Protokol autentizace nelze přečíst: {reason}",
+    "source_hash": "ab18af57"
+  },
+  "web.admin.customers.detail.diagnostics.facts.authStatus": {
+    "text": "Stav autentizace",
+    "source_hash": "34def169"
+  },
+  "web.admin.customers.detail.diagnostics.facts.noAccount": {
+    "text": "Žádný autentizační účet",
+    "source_hash": "a9968e9e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.password": {
+    "text": "Heslo",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordSet": {
+    "text": "Nastaveno",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordNone": {
+    "text": "Žádné",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfa": {
+    "text": "MFA",
+    "source_hash": "d39ce053"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfaNone": {
+    "text": "Žádné",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.loginFailures": {
+    "text": "Neúspěšné pokusy",
+    "source_hash": "63e7f0a8"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lockedBadge": {
+    "text": "Zablokováno",
+    "source_hash": "ace29f74"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiter": {
+    "text": "Omezovač požadavků",
+    "source_hash": "32892404"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterEngaged": {
+    "text": "Aktivní",
+    "source_hash": "1b0d851e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterClear": {
+    "text": "Čistý",
+    "source_hash": "83b12c22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verification": {
+    "text": "Ověřovací e-mail",
+    "source_hash": "23fac8fb"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationPending": {
+    "text": "Čeká — naposledy odesláno {date}",
+    "source_hash": "9ab8d1b6"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationNone": {
+    "text": "Žádný čekající",
+    "source_hash": "a4d4cc22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.sessions": {
+    "text": "Aktivní relace",
+    "source_hash": "61ad9909"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lastLogin": {
+    "text": "Poslední přihlášení (auth)",
+    "source_hash": "373e7fb1"
+  },
+  "web.admin.customers.detail.receipts.partial": {
+    "text": "Částečný seznam — zobrazuje se {count} nejnovějších. Tento zákazník má více příjemek, než je zde zobrazeno.",
+    "source_hash": "127fd4db"
+  },
+  "web.admin.customers.detail.secrets.partial": {
+    "text": "Částečný seznam — zobrazuje se {count} nejnovějších. Tento zákazník vlastní více tajemství, než je zde zobrazeno.",
+    "source_hash": "a537c8f3"
+  },
+  "web.admin.customers.detail.sessions.columns.country": {
+    "text": "Země",
+    "source_hash": "701d021d"
+  },
+  "web.admin.customers.detail.sessions.current.badge": {
+    "text": "Tato relace",
+    "source_hash": "6da6530a"
+  },
+  "web.admin.customers.detail.sessions.current.tooltip": {
+    "text": "Tvoje aktuální administrátorská relace. Její zrušení zde nemá žádný efekt — je znovu vytvořena pro zbytek tohoto požadavku.",
+    "source_hash": "ef097ab1"
+  },
+  "web.admin.customers.verification.verified": {
+    "text": "Ověřeno",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.verification.unverified": {
+    "text": "Neověřeno",
+    "source_hash": "15133907"
+  },
+  "web.admin.customers.actions.impersonate.button": {
+    "text": "Zosobnit zákazníka",
+    "source_hash": "38a7cfbe"
+  },
+  "web.admin.customers.actions.impersonate.confirmTitle": {
+    "text": "Zahájit zosobnění?",
+    "source_hash": "c6e4fa74"
+  },
+  "web.admin.customers.actions.impersonate.confirmDescription": {
+    "text": "Otevře časově omezenou relaci pouze pro čtení jako {email}. Dokud ji neukončíš, zobrazuje se na každé stránce banner, změny jsou zablokované a relace se zaznamená do protokolu auditu i s tvým důvodem.",
+    "source_hash": "713c01b4"
+  },
+  "web.admin.customers.actions.impersonate.reasonLabel": {
+    "text": "Důvod (povinné)",
+    "source_hash": "d976f5d9"
+  },
+  "web.admin.customers.actions.impersonate.reasonPlaceholder": {
+    "text": "Proč je tato relace potřeba? Uveď odkaz na tiket.",
+    "source_hash": "89a4835d"
+  },
+  "web.admin.customers.actions.impersonate.success": {
+    "text": "Zosobnění zahájeno.",
+    "source_hash": "b4662bcc"
+  },
+  "web.admin.customers.actions.impersonate.unavailable": {
+    "text": "Zosobnění není dostupné pro účty Colonel, anonymní a pozastavené účty.",
+    "source_hash": "fb6578b2"
+  },
+  "web.admin.customers.actions.purge.refused": {
+    "text": "Vymazání odmítnuto. Zákazník byl zachován; před dalším pokusem vyřeš překážky.",
+    "source_hash": "8e8a2ae1"
+  },
+  "web.admin.customers.actions.purge.partial": {
+    "text": "Vymazání se zastavilo po dokončení části čištění. Nehlas úspěch a nezkoušej to naslepo znovu; zkontroluj dokončené fáze a překážky.",
+    "source_hash": "a88fd15b"
+  },
+  "web.admin.customers.actions.purge.incomplete": {
+    "text": "Vymazání nebylo dokončeno (stav: {status}). Před dalším pokusem zkontroluj podrobnosti životního cyklu.",
+    "source_hash": "c0c3d287"
+  },
+  "web.admin.customers.actions.purge.unreadableResult": {
+    "text": "Server vrátil nečitelný výsledek vymazání. Úspěch nebyl nahlášen; před dalším pokusem ověř stav zákazníka a pracovního prostoru.",
+    "source_hash": "cc837a77"
+  },
+  "web.admin.customers.actions.purge.resultStage": {
+    "text": "Zastaveno ve fázi: {stage}.",
+    "source_hash": "d0e313bf"
+  },
+  "web.admin.customers.actions.purge.resultBlockers": {
+    "text": "Překážky: {blockers}.",
+    "source_hash": "00c1e196"
+  },
+  "web.admin.customers.actions.purge.resultPlannedActions": {
+    "text": "Plánované čištění: {actions}.",
+    "source_hash": "6915205d"
+  },
+  "web.admin.customers.actions.purge.resultActions": {
+    "text": "Dokončené čištění: {actions}.",
+    "source_hash": "d34121b3"
+  },
+  "web.admin.customers.actions.purge.resultCompletedStages": {
+    "text": "Dokončené fáze: {stages}.",
+    "source_hash": "67f68860"
+  },
+  "web.admin.customers.actions.role.button": {
+    "text": "Změnit roli",
+    "source_hash": "a43a8d8c"
+  },
+  "web.admin.customers.actions.role.selfDemote": {
+    "text": "Svůj vlastní účet Colonel nemůžeš degradovat. Požádej o to jiný účet Colonel, nebo spusť `bin/ots customers role demote`.",
+    "source_hash": "3e75d01b"
+  },
+  "web.admin.customers.actions.role.lastColonel": {
+    "text": "Poslední zbývající účet Colonel nelze degradovat — instalace by neměla žádného administrátora. Nejprve povýš a ověř jiný účet.",
+    "source_hash": "9c59c731"
+  },
+  "web.admin.customers.actions.unverify.selfUnverify": {
+    "text": "Ověření vlastního účtu nemůžeš zrušit: role Colonel vyžaduje ověřený e-mail.",
+    "source_hash": "8ab024fe"
+  },
+  "web.admin.customers.actions.unverify.lastColonel": {
+    "text": "Ověření posledního zbývajícího účtu Colonel nelze zrušit — neověřený účet nemůže mít roli Colonel. Nejprve povýš a ověř jiný účet.",
+    "source_hash": "fc404616"
+  },
+  "web.admin.customers.detail.diagnostics.organizationContextBlocked": {
+    "text": "Kontext organizace je zablokovaný nebo neúplný. Než budeš tento účet považovat za funkční, zkontroluj indexovaný pracovní prostor a oprav nesoulad v indexu vlastnictví, členství nebo kontaktního e-mailu.",
+    "source_hash": "5c5c89be"
+  },
+  "web.admin.customers.detail.diagnostics.organization": {
+    "text": "Pracovní prostor: {id}",
+    "source_hash": "6ee50fe9"
+  },
+  "web.admin.customers.detail.diagnostics.remediation": {
+    "text": "Náprava: {action}",
+    "source_hash": "83ddc7d7"
+  },
+  "web.admin.customers.detail.fields.internalId": {
+    "text": "Interní ID",
+    "source_hash": "e468bb47"
+  },
+  "web.admin.customers.detail.organizations.open": {
+    "text": "Otevřít",
+    "source_hash": "ed077f3d"
+  },
+  "web.admin.customers.detail.rodauthAdmin.open": {
+    "text": "Otevřít v Rodauth Admin",
+    "source_hash": "467173c8"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.selfDescription": {
+    "text": "Tímto se odhlásíš ze všech ostatních zařízení a prohlížečů, včetně relací, které v tomto seznamu nejsou zobrazeny. Relace, ve které právě pracuješ, zůstane zachována.",
+    "source_hash": "ae350040"
+  },
+  "web.admin.customers.list.capped": {
+    "text": "Výsledky jsou omezené: zobrazený počet je spodní hranice, ne celkový počet. Pro zobrazení všeho upřesni hledání nebo filtr.",
+    "source_hash": "27537844"
+  },
+  "web.admin.customers.list.orphanedAccounts.title": {
+    "text": "Účet v autentizační databázi bez záznamu zákazníka",
+    "source_hash": "82cf7a27"
+  },
+  "web.admin.customers.list.orphanedAccounts.hint": {
+    "text": "Autentizační databáze obsahuje účet pro tuto adresu, ale neodpovídá mu žádný záznam zákazníka. Daná osoba se stále může přihlásit; index zákazníků pro ni nic neobsahuje. Pro diagnostiku otevři tuto adresu.",
+    "source_hash": "0f903f23"
+  },
+  "web.admin.customers.list.orphanedAccounts.diagnose": {
+    "text": "Otevřít diagnostiku účtu",
+    "source_hash": "55b3e826"
+  },
+  "web.admin.customers.list.orphanedAccounts.accountId": {
+    "text": "Účet č. {id}",
+    "source_hash": "485dee3c"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unverified": {
+    "text": "Neověřený",
+    "source_hash": "33c8e8de"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.verified": {
+    "text": "Ověřený",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.closed": {
+    "text": "Uzavřený",
+    "source_hash": "c21ead06"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unknown": {
+    "text": "Neznámý",
+    "source_hash": "b764cdc0"
+  }
+}

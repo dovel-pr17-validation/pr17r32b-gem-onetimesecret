@@ -1,0 +1,350 @@
+{
+  "web.admin.system.title": {
+    "text": "النظام",
+    "source_hash": "6725e7bb"
+  },
+  "web.admin.system.description": {
+    "text": "حالة قاعدة البيانات وقائمة الانتظار والبنية التحتية.",
+    "source_hash": "0115f495"
+  },
+  "web.admin.system.retry": {
+    "text": "إعادة المحاولة",
+    "source_hash": "942087cc"
+  },
+  "web.admin.system.database.title": {
+    "text": "قاعدة البيانات الرئيسية ({engine})",
+    "source_hash": "1391230b"
+  },
+  "web.admin.system.database.loadError": {
+    "text": "تعذّر تحميل مقاييس قاعدة البيانات.",
+    "source_hash": "905055c6"
+  },
+  "web.admin.system.database.server": {
+    "text": "الخادم",
+    "source_hash": "aef7de28"
+  },
+  "web.admin.system.database.memory": {
+    "text": "الذاكرة",
+    "source_hash": "c3963aed"
+  },
+  "web.admin.system.database.databases": {
+    "text": "قواعد البيانات",
+    "source_hash": "61d2afe2"
+  },
+  "web.admin.system.database.dbSummary": {
+    "text": "{keys} مفتاح، {expires} بـ TTL",
+    "source_hash": "26b9e17c"
+  },
+  "web.admin.system.database.fields.version": {
+    "text": "الإصدار",
+    "source_hash": "dd167905"
+  },
+  "web.admin.system.database.fields.mode": {
+    "text": "الوضع",
+    "source_hash": "5e23ec6a"
+  },
+  "web.admin.system.database.fields.uptimeDays": {
+    "text": "مدة التشغيل (أيام)",
+    "source_hash": "7ab314f8"
+  },
+  "web.admin.system.database.fields.connectedClients": {
+    "text": "العملاء المتصلون",
+    "source_hash": "434adc3a"
+  },
+  "web.admin.system.database.fields.opsPerSec": {
+    "text": "العمليات/ثانية",
+    "source_hash": "6634251d"
+  },
+  "web.admin.system.database.fields.totalCommands": {
+    "text": "إجمالي الأوامر",
+    "source_hash": "c5ce5aaf"
+  },
+  "web.admin.system.database.fields.usedMemory": {
+    "text": "الذاكرة المستخدمة",
+    "source_hash": "bac68a65"
+  },
+  "web.admin.system.database.fields.rssMemory": {
+    "text": "ذاكرة RSS",
+    "source_hash": "7fe77d15"
+  },
+  "web.admin.system.database.fields.peakMemory": {
+    "text": "ذروة الذاكرة",
+    "source_hash": "9d44afa6"
+  },
+  "web.admin.system.database.fields.fragmentation": {
+    "text": "نسبة التجزئة",
+    "source_hash": "721494dd"
+  },
+  "web.admin.system.database.stats.customers": {
+    "text": "العملاء",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.system.database.stats.secrets": {
+    "text": "الأسرار",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.system.database.stats.receipts": {
+    "text": "الإيصالات",
+    "source_hash": "60a627df"
+  },
+  "web.admin.system.database.stats.totalKeys": {
+    "text": "إجمالي المفاتيح",
+    "source_hash": "4e0d27f5"
+  },
+  "web.admin.system.queue.title": {
+    "text": "قائمة الانتظار",
+    "source_hash": "3b2fe03e"
+  },
+  "web.admin.system.queue.loadError": {
+    "text": "تعذّر تحميل مقاييس قائمة الانتظار.",
+    "source_hash": "715bdc88"
+  },
+  "web.admin.system.queue.empty": {
+    "text": "لم يتم العثور على قوائم انتظار",
+    "source_hash": "3cd4eb88"
+  },
+  "web.admin.system.queue.connected": {
+    "text": "متصل",
+    "source_hash": "22965568"
+  },
+  "web.admin.system.queue.disconnected": {
+    "text": "غير متصل",
+    "source_hash": "04dfac36"
+  },
+  "web.admin.system.queue.activeWorkers": {
+    "text": "{count} عامل نشط",
+    "source_hash": "49e6369c"
+  },
+  "web.admin.system.queue.columns.name": {
+    "text": "قائمة الانتظار",
+    "source_hash": "3b2fe03e"
+  },
+  "web.admin.system.queue.columns.pending": {
+    "text": "معلّق",
+    "source_hash": "331551b0"
+  },
+  "web.admin.system.queue.columns.consumers": {
+    "text": "المستهلكون",
+    "source_hash": "212b350d"
+  },
+  "web.admin.system.queue.health.healthy": {
+    "text": "سليم",
+    "source_hash": "7f1e323b"
+  },
+  "web.admin.system.queue.health.degraded": {
+    "text": "متدهور",
+    "source_hash": "a8494c12"
+  },
+  "web.admin.system.queue.health.unhealthy": {
+    "text": "غير سليم",
+    "source_hash": "317b1fbc"
+  },
+  "web.admin.system.queue.health.unknown": {
+    "text": "غير معروف",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.system.redis.title": {
+    "text": "Redis INFO",
+    "source_hash": "e762bd3c"
+  },
+  "web.admin.system.redis.loadError": {
+    "text": "تعذّر تحميل مقاييس Redis.",
+    "source_hash": "ca5945d6"
+  },
+  "web.admin.system.redis.captured": {
+    "text": "تم الالتقاط {at}",
+    "source_hash": "57b40c0f"
+  },
+  "web.admin.system.brand.title": {
+    "text": "تشخيصات العلامة التجارية",
+    "source_hash": "1cf9abd5"
+  },
+  "web.admin.system.brand.description": {
+    "text": "حزمة العلامة التجارية التي حلها المثيل الجاري على القرص — يوضح لماذا قد تخدم منطقة علامة تجارية محايدة.",
+    "source_hash": "be29e282"
+  },
+  "web.admin.system.brand.loadError": {
+    "text": "تعذر تحميل تشخيصات العلامة التجارية.",
+    "source_hash": "80607303"
+  },
+  "web.admin.system.brand.none": {
+    "text": "(لا يوجد)",
+    "source_hash": "552e4230"
+  },
+  "web.admin.system.brand.resolution": {
+    "text": "الحل",
+    "source_hash": "d4055faf"
+  },
+  "web.admin.system.brand.envVsConfig": {
+    "text": "البيئة مقابل الإعدادات",
+    "source_hash": "bee3debb"
+  },
+  "web.admin.system.brand.absorbed": {
+    "text": "المفاتيح الممتصة",
+    "source_hash": "9784e110"
+  },
+  "web.admin.system.brand.operatorKeys": {
+    "text": "مفاتيح المشغل",
+    "source_hash": "434e8248"
+  },
+  "web.admin.system.brand.overlayAssets": {
+    "text": "أصول التراكب",
+    "source_hash": "c87de1f9"
+  },
+  "web.admin.system.brand.exists.yes": {
+    "text": "موجود",
+    "source_hash": "43f9b89c"
+  },
+  "web.admin.system.brand.exists.no": {
+    "text": "مفقود",
+    "source_hash": "6be36ca4"
+  },
+  "web.admin.system.brand.fields.resolvedDir": {
+    "text": "الدليل المحلول",
+    "source_hash": "0623b983"
+  },
+  "web.admin.system.brand.fields.home": {
+    "text": "الرئيسية",
+    "source_hash": "3a786953"
+  },
+  "web.admin.system.brand.fields.envPack": {
+    "text": "حزمة علامة ENV التجارية",
+    "source_hash": "940aeb5c"
+  },
+  "web.admin.system.brand.fields.configPack": {
+    "text": "حزمة علامة Config التجارية",
+    "source_hash": "761b9550"
+  },
+  "web.admin.system.brand.fields.envAssetsDir": {
+    "text": "دليل أصول علامة ENV التجارية",
+    "source_hash": "05854f1f"
+  },
+  "web.admin.system.brand.fields.configAssetsDir": {
+    "text": "دليل أصول علامة Config التجارية",
+    "source_hash": "e91e5c46"
+  },
+  "web.admin.system.brand.flags.fellBack.danger": {
+    "text": "رجع إلى الحزمة الافتراضية",
+    "source_hash": "7bf7ba2f"
+  },
+  "web.admin.system.brand.flags.fellBack.ok": {
+    "text": "تم حل حزمة العلامة التجارية",
+    "source_hash": "1ab3162f"
+  },
+  "web.admin.system.brand.flags.mismatch.danger": {
+    "text": "عدم تطابق البدء / المباشر",
+    "source_hash": "0a022192"
+  },
+  "web.admin.system.brand.flags.mismatch.ok": {
+    "text": "البدء يطابق المباشر",
+    "source_hash": "d4792c09"
+  },
+  "web.admin.system.brand.manifest.title": {
+    "text": "البيان",
+    "source_hash": "3c99f1f3"
+  },
+  "web.admin.system.brand.manifest.path": {
+    "text": "المسار",
+    "source_hash": "62fa5a5b"
+  },
+  "web.admin.system.brand.manifest.exists": {
+    "text": "موجود",
+    "source_hash": "fefd8ba5"
+  },
+  "web.admin.system.brand.manifest.keysOnDisk": {
+    "text": "المفاتيح على القرص",
+    "source_hash": "52439c03"
+  },
+  "web.admin.system.brand.roots.title": {
+    "text": "جذور البحث",
+    "source_hash": "d8696f2b"
+  },
+  "web.admin.system.brand.roots.empty": {
+    "text": "لا توجد جذور بحث",
+    "source_hash": "867a471c"
+  },
+  "web.admin.system.brand.roots.columns.path": {
+    "text": "المسار",
+    "source_hash": "62fa5a5b"
+  },
+  "web.admin.system.brand.roots.columns.exists": {
+    "text": "موجود",
+    "source_hash": "fefd8ba5"
+  },
+  "web.admin.system.brand.stats.brandPack": {
+    "text": "حزمة العلامة التجارية",
+    "source_hash": "884437d0"
+  },
+  "web.admin.system.brand.stats.overlayAssets": {
+    "text": "أصول التراكب",
+    "source_hash": "c87de1f9"
+  },
+  "web.admin.system.brand.stats.manifestKeys": {
+    "text": "مفاتيح البيان",
+    "source_hash": "c4267198"
+  },
+  "web.admin.system.backups.title": {
+    "text": "حالة النسخ الاحتياطي",
+    "source_hash": "6100b034"
+  },
+  "web.admin.system.backups.description": {
+    "text": "أحدث أحداث النسخ الاحتياطي وآخر تشغيل ناجح من هذا المضيف.",
+    "source_hash": "19070c41"
+  },
+  "web.admin.system.backups.loadError": {
+    "text": "تعذّر تحميل حالة النسخ الاحتياطي.",
+    "source_hash": "9b83029b"
+  },
+  "web.admin.system.backups.notConfigured": {
+    "text": "غير مُعدّ هنا",
+    "source_hash": "d287939f"
+  },
+  "web.admin.system.backups.latest": {
+    "text": "أحدث حدث",
+    "source_hash": "cd7ad68a"
+  },
+  "web.admin.system.backups.lastOk": {
+    "text": "آخر تشغيل ناجح",
+    "source_hash": "81120703"
+  },
+  "web.admin.system.backups.artifact": {
+    "text": "الملف الناتج",
+    "source_hash": "e06171a1"
+  },
+  "web.admin.system.backups.unknownUnit": {
+    "text": "وحدة غير معروفة",
+    "source_hash": "d120e025"
+  },
+  "web.admin.system.backups.unknownError": {
+    "text": "لا توجد تفاصيل للخطأ",
+    "source_hash": "b2c696e7"
+  },
+  "web.admin.system.backups.destination": {
+    "text": "الوجهة",
+    "source_hash": "293d404a"
+  },
+  "web.admin.system.backups.shippedOf": {
+    "text": "تم إرسال {shipped} من أصل {candidates}",
+    "source_hash": "406119a9"
+  },
+  "web.admin.system.backups.freshness.notConfigured": {
+    "text": "غير مُعدّ",
+    "source_hash": "dd1841d2"
+  },
+  "web.admin.system.backups.freshness.notMonitored": {
+    "text": "غير مراقَب",
+    "source_hash": "0f0d1855"
+  },
+  "web.admin.system.backups.freshness.fresh": {
+    "text": "حديث",
+    "source_hash": "f810b668"
+  },
+  "web.admin.system.backups.freshness.stale": {
+    "text": "قديم — إنذار",
+    "source_hash": "c7a9733a"
+  },
+  "web.admin.system.backups.freshness.alarm": {
+    "text": "إنذار",
+    "source_hash": "f3b67957"
+  }
+}

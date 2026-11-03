@@ -1,0 +1,460 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://api.stripe.com/v1/products?active=false&limit=100
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - Stripe/v1 RubyBindings/18.4.2
+      Authorization:
+      - "<STRIPE_API_KEY>"
+      X-Stripe-Client-Telemetry:
+      - '{"last_request_metrics":{"request_id":"req_TcCsetqetpr70c","request_duration_ms":96}}'
+      Stripe-Version:
+      - "<STRIPE_VERSION>"
+      X-Stripe-Client-User-Agent:
+      - '{"bindings_version":"18.4.2","lang":"ruby","lang_version":"3.4.9 p82 (2026-03-11)","platform":"arm64-darwin25","engine":"ruby","publisher":"stripe","uname":"Darwin
+        Tundra.local 25.4.0 Darwin Kernel Version 25.4.0: Thu Mar 19 19:31:17 PDT
+        2026; root:xnu-12377.101.15~1/RELEASE_ARM64_T6020 arm64","hostname":"Tundra.local"}'
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 20 May 2026 02:02:19 GMT
+      Content-Type:
+      - application/json
+      Content-Length:
+      - '11249'
+      Connection:
+      - keep-alive
+      Access-Control-Allow-Credentials:
+      - 'true'
+      Access-Control-Allow-Methods:
+      - GET, HEAD, PUT, PATCH, POST, DELETE
+      Access-Control-Allow-Origin:
+      - "*"
+      Access-Control-Expose-Headers:
+      - Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required,
+        X-Stripe-Privileged-Session-Required
+      Access-Control-Max-Age:
+      - '300'
+      Cache-Control:
+      - no-cache, no-store
+      Content-Security-Policy:
+      - base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none';
+        img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src
+        'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=OFoImerPbRULheisLwPu24g1_bFdI8Mp-byqzw6aVhLLKezSsE1uhiFewgv6y4jYHODy3cRPcfgrzCUG;
+        report-to csp
+      Report-To:
+      - '{"group":"csp","max_age":8640,"endpoints":[{"url":"https://q.stripe.com/csp-report-v2?q=OFoImerPbRULheisLwPu24g1_bFdI8Mp-byqzw6aVhLLKezSsE1uhiFewgv6y4jYHODy3cRPcfgrzCUG&t=1"}],"include_subdomains":true}'
+      Reporting-Endpoints:
+      - csp="https://q.stripe.com/csp-report-v2?q=OFoImerPbRULheisLwPu24g1_bFdI8Mp-byqzw6aVhLLKezSsE1uhiFewgv6y4jYHODy3cRPcfgrzCUG&t=1"
+      Stripe-Version:
+      - "<STRIPE_VERSION>"
+      Vary:
+      - Origin
+      X-Stripe-Priority-Routing-Enabled:
+      - 'true'
+      X-Stripe-Routing-Context-Priority-Tier:
+      - api-testmode
+      X-Wc:
+      - 3c3
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains; preload
+    body:
+      encoding: UTF-8
+      string: |-
+        {
+          "object": "list",
+          "data": [
+            {
+              "id": "prod_USKdDjpldLRiXZ",
+              "object": "product",
+              "active": false,
+              "attributes": [],
+              "created": 1777914487,
+              "default_price": null,
+              "description": null,
+              "images": [],
+              "livemode": false,
+              "marketing_features": [
+                {
+                  "name": "web.billing.features.custom_domains"
+                },
+                {
+                  "name": "web.billing.features.custom_branding"
+                },
+                {
+                  "name": "web.billing.features.extended_retention"
+                },
+                {
+                  "name": "web.billing.features.homepage_secrets"
+                },
+                {
+                  "name": "web.billing.features.api_access"
+                },
+                {
+                  "name": "web.billing.features.manage_sso"
+                }
+              ],
+              "metadata": {
+                "app": "exampleapplication",
+                "created": "2026-05-04T17:08:06Z",
+                "currency": "cad",
+                "display_order": "10",
+                "entitlements": "create_secrets,view_receipt,api_access,custom_domains,custom_privacy_defaults,custom_branding,homepage_secrets,incoming_secrets,custom_mail_sender,flexible_from_domain,manage_sso",
+                "limit_custom_domains": "-1",
+                "limit_total_members_per_org": "1",
+                "limit_secret_lifetime": "1209600",
+                "limit_secrets_per_day": "-1",
+                "ots_is_popular": "false",
+                "plan_id": "identity_plus_v1",
+                "region": "CA",
+                "show_on_plans_page": "true",
+                "tenancy": "multi",
+                "tier": "single_account"
+              },
+              "name": "Identity Plus",
+              "package_dimensions": null,
+              "shippable": null,
+              "statement_descriptor": null,
+              "tax_code": null,
+              "tax_details": null,
+              "type": "service",
+              "unit_label": null,
+              "updated": 1777920304,
+              "url": null
+            },
+            {
+              "id": "prod_UEPUZLX3DGe7Oy",
+              "object": "product",
+              "active": false,
+              "attributes": [],
+              "created": 1774703542,
+              "default_price": null,
+              "description": null,
+              "images": [],
+              "livemode": false,
+              "marketing_features": [
+                {
+                  "name": "web.billing.features.custom_domains"
+                },
+                {
+                  "name": "web.billing.features.custom_branding"
+                },
+                {
+                  "name": "web.billing.features.extended_retention"
+                },
+                {
+                  "name": "web.billing.features.homepage_secrets"
+                },
+                {
+                  "name": "web.billing.features.api_access"
+                }
+              ],
+              "metadata": {
+                "app": "onetimesecret",
+                "created": "2026-03-28T13:12:22Z",
+                "currency": "cad",
+                "display_order": "10",
+                "entitlements": "create_secrets,view_receipt,api_access,custom_domains,manage_sso,custom_branding",
+                "limit_custom_domains": "-1",
+                "limit_total_members_per_org": "1",
+                "limit_secret_lifetime": "1209600",
+                "limit_secrets_per_day": "-1",
+                "plan_id": "identity_plus_v1",
+                "show_on_plans_page": "true",
+                "tenancy": "multi",
+                "tier": "single_account"
+              },
+              "name": "Identity Plus",
+              "package_dimensions": null,
+              "shippable": null,
+              "statement_descriptor": null,
+              "tax_code": null,
+              "tax_details": null,
+              "type": "service",
+              "unit_label": null,
+              "updated": 1777920369,
+              "url": null
+            },
+            {
+              "id": "prod_U3ivLC9Is63LKu",
+              "object": "product",
+              "active": false,
+              "attributes": [],
+              "created": 1772238806,
+              "default_price": null,
+              "description": null,
+              "images": [],
+              "livemode": false,
+              "marketing_features": [],
+              "metadata": {},
+              "name": "Default Currency Test",
+              "package_dimensions": null,
+              "shippable": null,
+              "statement_descriptor": null,
+              "tax_code": null,
+              "tax_details": null,
+              "type": "service",
+              "unit_label": null,
+              "updated": 1777920474,
+              "url": null
+            },
+            {
+              "id": "prod_Tnk7iUptVFnc5M",
+              "object": "product",
+              "active": false,
+              "attributes": [],
+              "created": 1768553033,
+              "default_price": null,
+              "description": null,
+              "images": [],
+              "livemode": false,
+              "marketing_features": [
+                {
+                  "name": "web.billing.features.team_members_25"
+                },
+                {
+                  "name": "web.billing.features.workspace_branding"
+                },
+                {
+                  "name": "web.billing.features.audit_logs"
+                },
+                {
+                  "name": "web.billing.features.sso"
+                }
+              ],
+              "metadata": {
+                "app": "onetimesecret",
+                "created": "2026-01-16T08:43:53Z",
+                "display_order": "50",
+                "entitlements": "create_secrets,view_receipt,api_access,custom_domains,custom_branding,homepage_secrets,incoming_secrets,manage_teams,notifications,ip_access_rules,workspace_branding,audit_logs,sso",
+                "limit_custom_domains": "-1",
+                "limit_total_members_per_org": "25",
+                "limit_secret_lifetime": "2592000",
+                "limit_secrets_per_day": "-1",
+                "ots_includes_plan": "team_plus_v1",
+                "ots_is_popular": "false",
+                "plan_id": "org_v1",
+                "region": "global",
+                "show_on_plans_page": "false",
+                "tenancy": "multi",
+                "tier": "multi_team"
+              },
+              "name": "Organization",
+              "package_dimensions": null,
+              "shippable": null,
+              "statement_descriptor": null,
+              "tax_code": null,
+              "tax_details": null,
+              "type": "service",
+              "unit_label": null,
+              "updated": 1777920555,
+              "url": null
+            },
+            {
+              "id": "prod_Tnk7vbXnxdWaJr",
+              "object": "product",
+              "active": false,
+              "attributes": [],
+              "created": 1768553033,
+              "default_price": null,
+              "description": null,
+              "images": [],
+              "livemode": false,
+              "marketing_features": [
+                {
+                  "name": "web.billing.features.custom_domains"
+                },
+                {
+                  "name": "web.billing.features.custom_branding"
+                },
+                {
+                  "name": "web.billing.features.extended_retention"
+                },
+                {
+                  "name": "web.billing.features.homepage_secrets"
+                },
+                {
+                  "name": "web.billing.features.api_access"
+                }
+              ],
+              "metadata": {
+                "app": "onetimesecret",
+                "created": "2026-01-16T08:43:53Z",
+                "display_order": "10",
+                "entitlements": "create_secrets,view_receipt,api_access,custom_domains,custom_branding",
+                "limit_custom_domains": "-1",
+                "limit_total_members_per_org": "1",
+                "limit_secret_lifetime": "1209600",
+                "limit_secrets_per_day": "-1",
+                "ots_is_popular": "false",
+                "plan_id": "identity_v1",
+                "region": "global",
+                "show_on_plans_page": "false",
+                "tenancy": "multi",
+                "tier": "single_account"
+              },
+              "name": "Identity",
+              "package_dimensions": null,
+              "shippable": null,
+              "statement_descriptor": null,
+              "tax_code": null,
+              "tax_details": null,
+              "type": "service",
+              "unit_label": null,
+              "updated": 1777920568,
+              "url": null
+            },
+            {
+              "id": "prod_ThaQMhSqt4pryx",
+              "object": "product",
+              "active": false,
+              "attributes": [],
+              "created": 1767133125,
+              "default_price": null,
+              "description": null,
+              "images": [],
+              "livemode": false,
+              "marketing_features": [
+                {
+                  "name": "web.billing.features.unlimited_members"
+                },
+                {
+                  "name": "web.billing.features.dedicated_infrastructure"
+                }
+              ],
+              "metadata": {
+                "app": "onetimesecret",
+                "created": "2025-12-30T22:18:44Z",
+                "display_order": "70",
+                "entitlements": "create_secrets,view_receipt,api_access,custom_domains,custom_branding,homepage_secrets,incoming_secrets,manage_teams,notifications,ip_access_rules,workspace_branding,audit_logs,sso",
+                "limit_custom_domains": "-1",
+                "limit_total_members_per_org": "-1",
+                "limit_secret_lifetime": "-1",
+                "limit_secrets_per_day": "-1",
+                "ots_includes_plan": "org_plus_v1",
+                "ots_is_popular": "false",
+                "plan_id": "org_max_v1",
+                "region": "global",
+                "show_on_plans_page": "false",
+                "tenancy": "dedicated",
+                "tier": "multi_team"
+              },
+              "name": "Organization Max",
+              "package_dimensions": null,
+              "shippable": null,
+              "statement_descriptor": null,
+              "tax_code": null,
+              "tax_details": null,
+              "type": "service",
+              "unit_label": null,
+              "updated": 1777920579,
+              "url": null
+            },
+            {
+              "id": "prod_ThaQksKB6PKPTw",
+              "object": "product",
+              "active": false,
+              "attributes": [],
+              "created": 1767133124,
+              "default_price": null,
+              "description": null,
+              "images": [],
+              "livemode": false,
+              "marketing_features": [
+                {
+                  "name": "web.billing.features.team_members_50"
+                }
+              ],
+              "metadata": {
+                "app": "onetimesecret",
+                "created": "2025-12-30T22:18:44Z",
+                "display_order": "55",
+                "entitlements": "create_secrets,view_receipt,api_access,custom_domains,custom_branding,homepage_secrets,incoming_secrets,manage_teams,notifications,ip_access_rules,workspace_branding,audit_logs,sso",
+                "limit_custom_domains": "-1",
+                "limit_total_members_per_org": "50",
+                "limit_secret_lifetime": "2592000",
+                "limit_secrets_per_day": "-1",
+                "ots_includes_plan": "org_v1",
+                "ots_is_popular": "false",
+                "plan_id": "org_plus_v1",
+                "region": "global",
+                "show_on_plans_page": "false",
+                "tenancy": "multi",
+                "tier": "multi_team"
+              },
+              "name": "Organization Plus",
+              "package_dimensions": null,
+              "shippable": null,
+              "statement_descriptor": null,
+              "tax_code": null,
+              "tax_details": null,
+              "type": "service",
+              "unit_label": null,
+              "updated": 1777920587,
+              "url": null
+            },
+            {
+              "id": "prod_ThaQwC2SwkQBtd",
+              "object": "product",
+              "active": false,
+              "attributes": [],
+              "created": 1767133124,
+              "default_price": null,
+              "description": null,
+              "images": [],
+              "livemode": false,
+              "marketing_features": [
+                {
+                  "name": "web.billing.features.custom_branding"
+                },
+                {
+                  "name": "web.billing.features.homepage_secrets"
+                },
+                {
+                  "name": "web.billing.features.api_access"
+                }
+              ],
+              "metadata": {
+                "app": "onetimesecret",
+                "created": "2025-12-30T22:18:44Z",
+                "entitlements": "create_secrets,view_receipt,custom_domains,custom_branding,homepage_secrets,api_access",
+                "limit_custom_domains": "-1",
+                "limit_total_members_per_org": "5",
+                "limit_secret_lifetime": "2592000",
+                "ots_is_popular": "false",
+                "plan_id": "identity",
+                "show_on_plans_page": "false",
+                "tenancy": "multi",
+                "tier": "single_team"
+              },
+              "name": "Identity Plus (Legacy)",
+              "package_dimensions": null,
+              "shippable": null,
+              "statement_descriptor": null,
+              "tax_code": null,
+              "tax_details": null,
+              "type": "service",
+              "unit_label": null,
+              "updated": 1777920618,
+              "url": null
+            }
+          ],
+          "has_more": false,
+          "url": "/v1/products"
+        }
+  recorded_at: Wed, 20 May 2026 02:02:19 GMT
+recorded_with: VCR 6.4.0

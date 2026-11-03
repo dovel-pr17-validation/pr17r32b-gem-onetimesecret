@@ -1,0 +1,842 @@
+{
+  "web.admin.customers.title": {
+    "text": "Klanten",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.customers.description": {
+    "text": "Zoek een klant en los supportproblemen op.",
+    "source_hash": "00961ea3"
+  },
+  "web.admin.customers.actions.plan.label": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.plan.apply": {
+    "text": "Toepassen",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.plan.confirmTitle": {
+    "text": "Plan wijzigen?",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.customers.actions.plan.confirmDescription": {
+    "text": "Zet {email} over naar het plan {plan}.",
+    "source_hash": "83fb4158"
+  },
+  "web.admin.customers.actions.plan.success": {
+    "text": "Plan bijgewerkt.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.customers.actions.plan.localConfigWarning": {
+    "text": "Plannen geladen uit lokale configuratie — Stripe is niet geconfigureerd of onbereikbaar.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.customers.actions.purge.button": {
+    "text": "Klant wissen",
+    "source_hash": "ff658f69"
+  },
+  "web.admin.customers.actions.purge.confirmTitle": {
+    "text": "Klant wissen?",
+    "source_hash": "9feed9f1"
+  },
+  "web.admin.customers.actions.purge.confirmDescription": {
+    "text": "Hiermee vraag je de permanente verwijdering van {email} aan. Vóór de afbraak van het account wordt een voorafgaande controle uitgevoerd die het wissen weigert wanneer een werkruimte domeinen, facturatiestatus, andere leden, bewaarde gegevens of inconsistente verwijzingen heeft. Bekijk eventuele blokkades en los ze op voordat je het opnieuw probeert. Zodra de afbraak begint, kan dit niet meer ongedaan worden gemaakt.",
+    "source_hash": "7b4e5e37"
+  },
+  "web.admin.customers.actions.purge.success": {
+    "text": "Klant gewist.",
+    "source_hash": "6145e5c8"
+  },
+  "web.admin.customers.actions.role.label": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.actions.role.apply": {
+    "text": "Toepassen",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.role.confirmTitle": {
+    "text": "Rol wijzigen?",
+    "source_hash": "227f57d7"
+  },
+  "web.admin.customers.actions.role.confirmDescription": {
+    "text": "Wijzigt {email} naar de rol {role}. De colonel-rol geeft volledige beheerderstoegang tot elk account, elk bericht en elke organisatie op deze installatie. Typ hieronder het e-mailadres van het account ter bevestiging.",
+    "source_hash": "0ed85b97"
+  },
+  "web.admin.customers.actions.role.success": {
+    "text": "Rol bijgewerkt.",
+    "source_hash": "0c33aa24"
+  },
+  "web.admin.customers.actions.suspend.button": {
+    "text": "Account opschorten",
+    "source_hash": "95a04f27"
+  },
+  "web.admin.customers.actions.suspend.reasonLabel": {
+    "text": "Reden (optioneel)",
+    "source_hash": "0f7d4664"
+  },
+  "web.admin.customers.actions.suspend.reasonPlaceholder": {
+    "text": "Waarom wordt dit account opgeschort?",
+    "source_hash": "8eca975e"
+  },
+  "web.admin.customers.actions.suspend.confirmTitle": {
+    "text": "Account opschorten?",
+    "source_hash": "cbfa275b"
+  },
+  "web.admin.customers.actions.suspend.confirmDescription": {
+    "text": "Blokkeert inloggen voor {email} en trekt hun actieve sessies in. Er worden geen gegevens verwijderd — dit is omkeerbaar.",
+    "source_hash": "e5d046bc"
+  },
+  "web.admin.customers.actions.suspend.success": {
+    "text": "Account opgeschort.",
+    "source_hash": "04c5f996"
+  },
+  "web.admin.customers.actions.unsuspend.button": {
+    "text": "Opschorting opheffen",
+    "source_hash": "35a10fb5"
+  },
+  "web.admin.customers.actions.unsuspend.confirmTitle": {
+    "text": "Opschorting opheffen?",
+    "source_hash": "6fd78a72"
+  },
+  "web.admin.customers.actions.unsuspend.confirmDescription": {
+    "text": "Herstelt inloggen voor {email}.",
+    "source_hash": "cb2bb4e0"
+  },
+  "web.admin.customers.actions.unsuspend.success": {
+    "text": "Opschorting opgeheven.",
+    "source_hash": "c5b4377f"
+  },
+  "web.admin.customers.actions.unverify.button": {
+    "text": "Verificatie intrekken",
+    "source_hash": "b0dee41f"
+  },
+  "web.admin.customers.actions.unverify.confirmTitle": {
+    "text": "Verificatie van klant intrekken?",
+    "source_hash": "62ed2854"
+  },
+  "web.admin.customers.actions.unverify.confirmDescription": {
+    "text": "Markeert {email} als niet geverifieerd. Een niet-geverifieerd account kan niet de colonel-, beheerders- of medewerkersrol hebben, dus hiermee wordt ook elke verhoogde rol van het account ingetrokken. Typ hieronder het e-mailadres van het account ter bevestiging.",
+    "source_hash": "601f7382"
+  },
+  "web.admin.customers.actions.unverify.success": {
+    "text": "Verificatie van klant ingetrokken.",
+    "source_hash": "a9b7bbac"
+  },
+  "web.admin.customers.actions.verify.button": {
+    "text": "Verifiëren",
+    "source_hash": "eea2745e"
+  },
+  "web.admin.customers.actions.verify.confirmTitle": {
+    "text": "Klant verifiëren?",
+    "source_hash": "43037ce1"
+  },
+  "web.admin.customers.actions.verify.confirmDescription": {
+    "text": "Markeer {email} als geverifieerd.",
+    "source_hash": "7052d79d"
+  },
+  "web.admin.customers.actions.verify.success": {
+    "text": "Klant geverifieerd.",
+    "source_hash": "19e382dc"
+  },
+  "web.admin.customers.columns.email": {
+    "text": "E-mail",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.columns.role": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.columns.verified": {
+    "text": "Geverifieerd",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.columns.plan": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.columns.secrets": {
+    "text": "Berichten",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.columns.created": {
+    "text": "Aangemaakt",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.columns.lastLogin": {
+    "text": "Laatste keer ingelogd",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.backToList": {
+    "text": "Terug naar klanten",
+    "source_hash": "077807fb"
+  },
+  "web.admin.customers.detail.openFullPage": {
+    "text": "Volledige pagina openen",
+    "source_hash": "a467911c"
+  },
+  "web.admin.customers.detail.notFound": {
+    "text": "Klant niet gevonden",
+    "source_hash": "5e3f5824"
+  },
+  "web.admin.customers.detail.notFoundDescription": {
+    "text": "Geen klant komt overeen met deze identificatie. Mogelijk is deze gewist.",
+    "source_hash": "82b04725"
+  },
+  "web.admin.customers.detail.loadError": {
+    "text": "Deze klant kon niet worden geladen.",
+    "source_hash": "cfd1bcca"
+  },
+  "web.admin.customers.detail.retry": {
+    "text": "Opnieuw proberen",
+    "source_hash": "942087cc"
+  },
+  "web.admin.customers.detail.yes": {
+    "text": "Ja",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.customers.detail.no": {
+    "text": "Nee",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.customers.detail.none": {
+    "text": "Geen",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.never": {
+    "text": "Nooit",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.customers.detail.billing.plan": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.billing.organization": {
+    "text": "Facturatieorganisatie",
+    "source_hash": "90c94ee1"
+  },
+  "web.admin.customers.detail.billing.subscriptionStatus": {
+    "text": "Abonnementsstatus",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.customers.detail.billing.periodEnd": {
+    "text": "Huidige periode eindigt",
+    "source_hash": "742b8229"
+  },
+  "web.admin.customers.detail.billing.latestInvoice": {
+    "text": "Laatste factuur",
+    "source_hash": "7a6133cc"
+  },
+  "web.admin.customers.detail.billing.noInvoices": {
+    "text": "Geen facturen",
+    "source_hash": "e6b30f93"
+  },
+  "web.admin.customers.detail.billing.openStripe": {
+    "text": "Openen in Stripe-dashboard",
+    "source_hash": "dfa7c41d"
+  },
+  "web.admin.customers.detail.billing.unavailable": {
+    "text": "Stripe-gegevens niet beschikbaar: {reason}",
+    "source_hash": "9fe08e49"
+  },
+  "web.admin.customers.detail.billing.notConfigured": {
+    "text": "Facturatie is niet geconfigureerd op deze installatie.",
+    "source_hash": "6e90375e"
+  },
+  "web.admin.customers.detail.fields.email": {
+    "text": "E-mail",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.detail.fields.publicId": {
+    "text": "Openbare ID",
+    "source_hash": "3705b64f"
+  },
+  "web.admin.customers.detail.fields.role": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.detail.fields.verified": {
+    "text": "Geverifieerd",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.detail.fields.plan": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.fields.locale": {
+    "text": "Taalinstelling",
+    "source_hash": "ca3dc612"
+  },
+  "web.admin.customers.detail.fields.created": {
+    "text": "Aangemaakt",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.fields.updated": {
+    "text": "Bijgewerkt",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.customers.detail.fields.lastLogin": {
+    "text": "Laatste keer ingelogd",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.fields.suspendedAt": {
+    "text": "Opgeschort op",
+    "source_hash": "7227f219"
+  },
+  "web.admin.customers.detail.fields.suspendedBy": {
+    "text": "Opgeschort door",
+    "source_hash": "e0830524"
+  },
+  "web.admin.customers.detail.fields.suspendedReason": {
+    "text": "Reden voor opschorting",
+    "source_hash": "d6b08d8e"
+  },
+  "web.admin.customers.detail.organizations.empty": {
+    "text": "Geen organisaties",
+    "source_hash": "c256efdc"
+  },
+  "web.admin.customers.detail.organizations.default": {
+    "text": "Standaard",
+    "source_hash": "21b111cb"
+  },
+  "web.admin.customers.detail.receiptColumns.shortId": {
+    "text": "Korte ID",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.receiptColumns.state": {
+    "text": "Status",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.receiptColumns.created": {
+    "text": "Aangemaakt",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.receipts.empty": {
+    "text": "Geen ontvangstbewijzen",
+    "source_hash": "fb425a68"
+  },
+  "web.admin.customers.detail.secretColumns.shortId": {
+    "text": "Korte ID",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.secretColumns.state": {
+    "text": "Status",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.secretColumns.created": {
+    "text": "Aangemaakt",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.secretColumns.expiration": {
+    "text": "Verval",
+    "source_hash": "f38d6e0e"
+  },
+  "web.admin.customers.detail.secrets.empty": {
+    "text": "Geen berichten",
+    "source_hash": "c37ab3f7"
+  },
+  "web.admin.customers.detail.sections.profile": {
+    "text": "Profiel",
+    "source_hash": "d696a35b"
+  },
+  "web.admin.customers.detail.sections.secrets": {
+    "text": "Berichten",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.detail.sections.receipts": {
+    "text": "Ontvangstbewijzen",
+    "source_hash": "60a627df"
+  },
+  "web.admin.customers.detail.sections.organizations": {
+    "text": "Organisaties",
+    "source_hash": "2730183d"
+  },
+  "web.admin.customers.detail.sections.actions": {
+    "text": "Acties",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sections.billing": {
+    "text": "Facturatie",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.customers.detail.sessions.title": {
+    "text": "Actieve sessies",
+    "source_hash": "b58fa4e0"
+  },
+  "web.admin.customers.detail.sessions.empty": {
+    "text": "Geen actieve sessies.",
+    "source_hash": "6f064eb9"
+  },
+  "web.admin.customers.detail.sessions.loadError": {
+    "text": "Sessies kunnen niet worden geladen.",
+    "source_hash": "d2884313"
+  },
+  "web.admin.customers.detail.sessions.unknown": {
+    "text": "Onbekend",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.sessions.columns.lastActivity": {
+    "text": "Laatste activiteit",
+    "source_hash": "06475633"
+  },
+  "web.admin.customers.detail.sessions.columns.ipAddress": {
+    "text": "IP-adres",
+    "source_hash": "0302a467"
+  },
+  "web.admin.customers.detail.sessions.columns.device": {
+    "text": "Apparaat",
+    "source_hash": "6ba0bdec"
+  },
+  "web.admin.customers.detail.sessions.columns.authMethod": {
+    "text": "Auth-methode",
+    "source_hash": "bc4ea262"
+  },
+  "web.admin.customers.detail.sessions.columns.actions": {
+    "text": "Acties",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sessions.revoke.button": {
+    "text": "Intrekken",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmTitle": {
+    "text": "Sessie intrekken?",
+    "source_hash": "7735d1ef"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmDescription": {
+    "text": "Hiermee wordt de gebruiker direct uitgelogd uit deze sessie. Diegene moet opnieuw inloggen.",
+    "source_hash": "b4291af0"
+  },
+  "web.admin.customers.detail.sessions.revoke.success": {
+    "text": "Sessie ingetrokken.",
+    "source_hash": "5e4762e5"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.button": {
+    "text": "Alle intrekken",
+    "source_hash": "c6847a4b"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmTitle": {
+    "text": "Alle sessies intrekken?",
+    "source_hash": "a4fa4c65"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmDescription": {
+    "text": "Hiermee wordt de gebruiker op elk apparaat en in elke browser uitgelogd — ook sessies die niet in deze lijst staan — en worden hun geverifieerde routes direct geblokkeerd. Gebruik dit bij offboarding of een vermoedelijke accountovername. Typ de ID van de gebruiker om te bevestigen.",
+    "source_hash": "483cdd88"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.success": {
+    "text": "Alle sessies ingetrokken ({count} beëindigd).",
+    "source_hash": "4e1cce55"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.capped": {
+    "text": "{count} sessies beëindigd, maar het opschonen van niet-bijgehouden sessies is afgekapt — er kan nog een oudere sessie bestaan. Voer dit nogmaals uit om zeker te zijn.",
+    "source_hash": "e3d295a6"
+  },
+  "web.admin.customers.detail.stats.secretsCreated": {
+    "text": "Aangemaakte berichten",
+    "source_hash": "7d17719e"
+  },
+  "web.admin.customers.detail.stats.secretsShared": {
+    "text": "Gedeelde berichten",
+    "source_hash": "ba85b265"
+  },
+  "web.admin.customers.detail.stats.emailsSent": {
+    "text": "Verzonden e-mails",
+    "source_hash": "be604792"
+  },
+  "web.admin.customers.list.roleFilter": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.list.empty": {
+    "text": "Geen klanten gevonden",
+    "source_hash": "dc754ec0"
+  },
+  "web.admin.customers.list.loadError": {
+    "text": "Klanten konden niet worden geladen.",
+    "source_hash": "81783303"
+  },
+  "web.admin.customers.list.searchPlaceholder": {
+    "text": "Zoeken op e-mail, extid of objid",
+    "source_hash": "c06d5a3b"
+  },
+  "web.admin.customers.list.emptySearch": {
+    "text": "Geen klanten komen overeen met deze zoekopdracht",
+    "source_hash": "ea7e7012"
+  },
+  "web.admin.customers.roles.colonel": {
+    "text": "Colonel",
+    "source_hash": "02577777"
+  },
+  "web.admin.customers.roles.admin": {
+    "text": "Beheerder",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.customers.roles.staff": {
+    "text": "Medewerker",
+    "source_hash": "681927e3"
+  },
+  "web.admin.customers.roles.customer": {
+    "text": "Klant",
+    "source_hash": "bf376338"
+  },
+  "web.admin.customers.suspended.badge": {
+    "text": "Opgeschort",
+    "source_hash": "e392a389"
+  },
+  "web.admin.customers.actions.checkoutLink.button": {
+    "text": "Afrekenlink aanmaken",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.modalTitle": {
+    "text": "Afrekenlink aanmaken",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.planLabel": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.checkoutLink.planPlaceholder": {
+    "text": "Plan-family-id (bijv. identity_plus_v1)",
+    "source_hash": "12eba027"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleLabel": {
+    "text": "Facturatiecyclus",
+    "source_hash": "d69f731e"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleMonthly": {
+    "text": "Maandelijks",
+    "source_hash": "9b11f6b7"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleYearly": {
+    "text": "Jaarlijks",
+    "source_hash": "6e69b59e"
+  },
+  "web.admin.customers.actions.checkoutLink.allowPromo": {
+    "text": "Promotiecodes toestaan",
+    "source_hash": "ebe7bc8b"
+  },
+  "web.admin.customers.actions.checkoutLink.submit": {
+    "text": "Link aanmaken",
+    "source_hash": "e6b850cf"
+  },
+  "web.admin.customers.actions.checkoutLink.resultLead": {
+    "text": "Afrekenlink aangemaakt. Deel deze met de klant — hij kan één keer worden gebruikt en verloopt daarna.",
+    "source_hash": "6ff1fb0e"
+  },
+  "web.admin.customers.actions.checkoutLink.copy": {
+    "text": "Afrekenlink kopiëren",
+    "source_hash": "f1e51ca7"
+  },
+  "web.admin.customers.actions.checkoutLink.expiry": {
+    "text": "Verloopt over ~{hours} uur ({date}).",
+    "source_hash": "4c878a15"
+  },
+  "web.admin.customers.actions.checkoutLink.regionLabel": {
+    "text": "Regio",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.customers.actions.checkoutLink.parseError": {
+    "text": "De server heeft het verzoek geaccepteerd maar gaf een onleesbaar antwoord terug, dus er kan geen link worden getoond. Controleer Stripe voordat je het opnieuw probeert.",
+    "source_hash": "e7e08290"
+  },
+  "web.admin.customers.actions.checkoutLink.done": {
+    "text": "Klaar",
+    "source_hash": "11a6767d"
+  },
+  "web.admin.customers.actions.purge.typePrompt": {
+    "text": "Typ ter bevestiging het e-mailadres van het account {token} hieronder",
+    "source_hash": "8b2a1819"
+  },
+  "web.admin.customers.actions.purge.unavailable": {
+    "text": "Wissen is niet beschikbaar: dit account heeft geen e-mailadres om ter bevestiging over te typen.",
+    "source_hash": "5f20f7e5"
+  },
+  "web.admin.customers.columns.actions": {
+    "text": "Acties",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.diagnostics.title": {
+    "text": "Accountdiagnose",
+    "source_hash": "5574ece8"
+  },
+  "web.admin.customers.detail.diagnostics.loading": {
+    "text": "Diagnose wordt uitgevoerd…",
+    "source_hash": "062c83d5"
+  },
+  "web.admin.customers.detail.diagnostics.loadError": {
+    "text": "Diagnose kan niet worden geladen.",
+    "source_hash": "69e69f49"
+  },
+  "web.admin.customers.detail.diagnostics.healthy": {
+    "text": "Geen blokkerende toestand gevonden. De gegevens over auth en organisatiecontext zien er gezond uit — denk aan problemen aan clientzijde (cookies, inlogconfiguratie voor aangepaste domeinen) of de verkeerde regio.",
+    "source_hash": "e0e8450e"
+  },
+  "web.admin.customers.detail.diagnostics.authUnavailable": {
+    "text": "Auth-database niet beschikbaar (eenvoudige auth-modus) — controles aan SQL-zijde zijn overgeslagen.",
+    "source_hash": "d668907c"
+  },
+  "web.admin.customers.detail.diagnostics.authFailed": {
+    "text": "De auth-database gaf geen antwoord, dus controles aan SQL-zijde konden niet worden uitgevoerd: {reason}",
+    "source_hash": "46d047c0"
+  },
+  "web.admin.customers.detail.diagnostics.unknown": {
+    "text": "Onbekend",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.title": {
+    "text": "Authenticatielogboek",
+    "source_hash": "48ad8ba8"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.empty": {
+    "text": "Geen authenticatiegebeurtenissen vastgelegd.",
+    "source_hash": "d2332558"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.unavailable": {
+    "text": "Het authenticatielogboek kon niet worden gelezen: {reason}",
+    "source_hash": "ab18af57"
+  },
+  "web.admin.customers.detail.diagnostics.facts.authStatus": {
+    "text": "Auth-status",
+    "source_hash": "34def169"
+  },
+  "web.admin.customers.detail.diagnostics.facts.noAccount": {
+    "text": "Geen auth-account",
+    "source_hash": "a9968e9e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.password": {
+    "text": "Wachtwoord",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordSet": {
+    "text": "Ingesteld",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordNone": {
+    "text": "Geen",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfa": {
+    "text": "MFA",
+    "source_hash": "d39ce053"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfaNone": {
+    "text": "Geen",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.loginFailures": {
+    "text": "Mislukte pogingen",
+    "source_hash": "63e7f0a8"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lockedBadge": {
+    "text": "Vergrendeld",
+    "source_hash": "ace29f74"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiter": {
+    "text": "Rate limiter",
+    "source_hash": "32892404"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterEngaged": {
+    "text": "Actief",
+    "source_hash": "1b0d851e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterClear": {
+    "text": "Vrij",
+    "source_hash": "83b12c22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verification": {
+    "text": "Verificatie-e-mail",
+    "source_hash": "23fac8fb"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationPending": {
+    "text": "In behandeling — laatst verzonden {date}",
+    "source_hash": "9ab8d1b6"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationNone": {
+    "text": "Niets in behandeling",
+    "source_hash": "a4d4cc22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.sessions": {
+    "text": "Actieve sessies",
+    "source_hash": "61ad9909"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lastLogin": {
+    "text": "Laatste keer ingelogd (auth)",
+    "source_hash": "373e7fb1"
+  },
+  "web.admin.customers.detail.receipts.partial": {
+    "text": "Gedeeltelijke lijst — de {count} meest recente worden getoond. Deze klant heeft meer ontvangstbewijzen dan hier zichtbaar.",
+    "source_hash": "127fd4db"
+  },
+  "web.admin.customers.detail.secrets.partial": {
+    "text": "Gedeeltelijke lijst — de {count} meest recente worden getoond. Deze klant heeft meer berichten dan hier zichtbaar.",
+    "source_hash": "a537c8f3"
+  },
+  "web.admin.customers.detail.sessions.columns.country": {
+    "text": "Land",
+    "source_hash": "701d021d"
+  },
+  "web.admin.customers.detail.sessions.current.badge": {
+    "text": "Deze sessie",
+    "source_hash": "6da6530a"
+  },
+  "web.admin.customers.detail.sessions.current.tooltip": {
+    "text": "Je huidige beheerderssessie. Deze hier intrekken heeft geen effect — hij wordt voor de rest van dit verzoek opnieuw aangemaakt.",
+    "source_hash": "ef097ab1"
+  },
+  "web.admin.customers.verification.verified": {
+    "text": "Geverifieerd",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.verification.unverified": {
+    "text": "Niet geverifieerd",
+    "source_hash": "15133907"
+  },
+  "web.admin.customers.actions.impersonate.button": {
+    "text": "Klant imiteren",
+    "source_hash": "38a7cfbe"
+  },
+  "web.admin.customers.actions.impersonate.confirmTitle": {
+    "text": "Imitatie starten?",
+    "source_hash": "c6e4fa74"
+  },
+  "web.admin.customers.actions.impersonate.confirmDescription": {
+    "text": "Opent een tijdgebonden alleen-lezen sessie als {email}. Elke pagina toont een banner totdat je stopt, wijzigingen zijn geblokkeerd en de sessie wordt samen met je reden vastgelegd in het auditlogboek.",
+    "source_hash": "713c01b4"
+  },
+  "web.admin.customers.actions.impersonate.reasonLabel": {
+    "text": "Reden (verplicht)",
+    "source_hash": "d976f5d9"
+  },
+  "web.admin.customers.actions.impersonate.reasonPlaceholder": {
+    "text": "Waarom is deze sessie nodig? Vermeld de ticketreferentie.",
+    "source_hash": "89a4835d"
+  },
+  "web.admin.customers.actions.impersonate.success": {
+    "text": "Imitatie gestart.",
+    "source_hash": "b4662bcc"
+  },
+  "web.admin.customers.actions.impersonate.unavailable": {
+    "text": "Imitatie is niet beschikbaar voor colonel-, anonieme en opgeschorte accounts.",
+    "source_hash": "fb6578b2"
+  },
+  "web.admin.customers.actions.purge.refused": {
+    "text": "Wissen geweigerd. De klant is behouden; los de blokkades op voordat je het opnieuw probeert.",
+    "source_hash": "8e8a2ae1"
+  },
+  "web.admin.customers.actions.purge.partial": {
+    "text": "Wissen gestopt nadat een deel van de opschoning was voltooid. Meld geen succes en probeer het niet blindelings opnieuw; bekijk de voltooide fasen en blokkades.",
+    "source_hash": "a88fd15b"
+  },
+  "web.admin.customers.actions.purge.incomplete": {
+    "text": "Wissen is niet voltooid (status: {status}). Bekijk de levenscyclusdetails voordat je het opnieuw probeert.",
+    "source_hash": "c0c3d287"
+  },
+  "web.admin.customers.actions.purge.unreadableResult": {
+    "text": "De server gaf een onleesbaar resultaat voor het wissen terug. Er is geen succes gemeld; controleer de status van de klant en de werkruimte voordat je het opnieuw probeert.",
+    "source_hash": "cc837a77"
+  },
+  "web.admin.customers.actions.purge.resultStage": {
+    "text": "Gestopt bij fase: {stage}.",
+    "source_hash": "d0e313bf"
+  },
+  "web.admin.customers.actions.purge.resultBlockers": {
+    "text": "Blokkades: {blockers}.",
+    "source_hash": "00c1e196"
+  },
+  "web.admin.customers.actions.purge.resultPlannedActions": {
+    "text": "Geplande opschoning: {actions}.",
+    "source_hash": "6915205d"
+  },
+  "web.admin.customers.actions.purge.resultActions": {
+    "text": "Voltooide opschoning: {actions}.",
+    "source_hash": "d34121b3"
+  },
+  "web.admin.customers.actions.purge.resultCompletedStages": {
+    "text": "Voltooide fasen: {stages}.",
+    "source_hash": "67f68860"
+  },
+  "web.admin.customers.actions.role.button": {
+    "text": "Rol wijzigen",
+    "source_hash": "a43a8d8c"
+  },
+  "web.admin.customers.actions.role.selfDemote": {
+    "text": "Je kunt je eigen colonel-account niet degraderen. Vraag een andere colonel om dit te doen, of voer `bin/ots customers role demote` uit.",
+    "source_hash": "3e75d01b"
+  },
+  "web.admin.customers.actions.role.lastColonel": {
+    "text": "Je kunt de laatst overgebleven colonel niet degraderen — de installatie zou dan geen beheerder meer hebben. Promoveer en verifieer eerst een ander account.",
+    "source_hash": "9c59c731"
+  },
+  "web.admin.customers.actions.unverify.selfUnverify": {
+    "text": "Je kunt de verificatie van je eigen account niet intrekken: een geverifieerd e-mailadres is vereist voor de colonel-rol.",
+    "source_hash": "8ab024fe"
+  },
+  "web.admin.customers.actions.unverify.lastColonel": {
+    "text": "Je kunt de verificatie van de laatst overgebleven colonel niet intrekken — een niet-geverifieerd account kan de colonel-rol niet hebben. Promoveer en verifieer eerst een ander account.",
+    "source_hash": "fc404616"
+  },
+  "web.admin.customers.detail.diagnostics.organizationContextBlocked": {
+    "text": "De organisatiecontext is geblokkeerd of onvolledig. Inspecteer de geïndexeerde werkruimte en herstel afwijkingen in de index voor eigendom, lidmaatschap of contact-e-mail voordat je dit account als gezond beschouwt.",
+    "source_hash": "5c5c89be"
+  },
+  "web.admin.customers.detail.diagnostics.organization": {
+    "text": "Werkruimte: {id}",
+    "source_hash": "6ee50fe9"
+  },
+  "web.admin.customers.detail.diagnostics.remediation": {
+    "text": "Herstelactie: {action}",
+    "source_hash": "83ddc7d7"
+  },
+  "web.admin.customers.detail.fields.internalId": {
+    "text": "Interne ID",
+    "source_hash": "e468bb47"
+  },
+  "web.admin.customers.detail.organizations.open": {
+    "text": "Openen",
+    "source_hash": "ed077f3d"
+  },
+  "web.admin.customers.detail.rodauthAdmin.open": {
+    "text": "Openen in Rodauth Admin",
+    "source_hash": "467173c8"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.selfDescription": {
+    "text": "Hiermee word je op elk ander apparaat en in elke andere browser uitgelogd, ook bij sessies die niet in deze lijst staan. De sessie waarin je nu werkt, blijft behouden.",
+    "source_hash": "ae350040"
+  },
+  "web.admin.customers.list.capped": {
+    "text": "Resultaten zijn begrensd: het getoonde aantal is een ondergrens, niet het totaal. Verfijn de zoekopdracht of het filter om alles te zien.",
+    "source_hash": "27537844"
+  },
+  "web.admin.customers.list.orphanedAccounts.title": {
+    "text": "Account in auth-database zonder klantrecord",
+    "source_hash": "82cf7a27"
+  },
+  "web.admin.customers.list.orphanedAccounts.hint": {
+    "text": "De auth-database bevat een account voor dit adres, maar er is geen klantrecord aan gekoppeld. De persoon kan nog steeds inloggen; de klantindex heeft niets voor diegene. Open het adres voor diagnose.",
+    "source_hash": "0f903f23"
+  },
+  "web.admin.customers.list.orphanedAccounts.diagnose": {
+    "text": "Accountdiagnose openen",
+    "source_hash": "55b3e826"
+  },
+  "web.admin.customers.list.orphanedAccounts.accountId": {
+    "text": "Account #{id}",
+    "source_hash": "485dee3c"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unverified": {
+    "text": "Niet geverifieerd",
+    "source_hash": "33c8e8de"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.verified": {
+    "text": "Geverifieerd",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.closed": {
+    "text": "Gesloten",
+    "source_hash": "c21ead06"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unknown": {
+    "text": "Onbekend",
+    "source_hash": "b764cdc0"
+  }
+}

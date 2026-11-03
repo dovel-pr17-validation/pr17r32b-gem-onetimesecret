@@ -1,0 +1,189 @@
+<!-- src/apps/session/components/AuthView.vue -->
+
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+  import OIcon from '@/shared/components/icons/OIcon.vue';
+  import {
+    useJurisdictionStore,
+    useJurisdictionDisplayNames,
+  } from '@/shared/stores/jurisdictionStore';
+  import { computed } from 'vue';
+
+  interface IconConfig {
+    collection: string;
+    name: string;
+  }
+
+  interface Props {
+    heading: string;
+    headingId: string;
+    title?: string | null;
+    titleLogo?: string | null;
+    featureIcon?: IconConfig;
+    withHeading?: boolean;
+    withSubheading?: boolean;
+    hideIcon?: boolean;
+    /**
+     * Omit the title icon/logo block entirely (v-if), reclaiming its space.
+     * Differs from `hideIcon`, which only makes the icon `invisible` to
+     * preserve vertical alignment. Used by focused status pages that want the
+     * heading at the top with no brand mark competing for attention.
+     */
+    omitIcon?: boolean;
+    hideBackgroundIcon?: boolean;
+    showReturnHome?: boolean;
+  }
+
+  // Define props with defaults
+  const props = withDefaults(defineProps<Props>(), {
+    title: null,
+    titleLogo: null,
+    withHeading: true,
+    withSubheading: false,
+    hideIcon: false,
+    omitIcon: false,
+    hideBackgroundIcon: false,
+    showReturnHome: true,
+    featureIcon: () => ({
+      collection: 'material-symbols',
+      name: 'shield-locked-outline',
+    }),
+  });
+
+  const { t } = useI18n();
+
+  // Initialize jurisdiction store
+  const jurisdictionStore = useJurisdictionStore();
+  const { currentJurisdictionWithDisplayName } = useJurisdictionDisplayNames();
+
+  // Compute the current jurisdiction or default to unknown
+  // Uses resolved display_name from i18n
+  const currentJurisdiction = computed(() =>
+    currentJurisdictionWithDisplayName.value || {
+      identifier: t('web.regions.unknown_jurisdiction'),
+      display_name_i18n_key: 'web.regions.unknown_jurisdiction',
+      display_name: t('web.regions.unknown_jurisdiction'),
+      domain: '',
+      icon: {
+        collection: 'mdi',
+        name: 'help-circle',
+      },
+      enabled: false,
+    }
+  );
+
+  // Compute the background icon based on jurisdiction status.
+  // Uses the resolved icon (jurisdiction.icon ?? identifier mapping ?? globe),
+  // not the raw config icon which is undefined when JURISDICTIONS omits it.
+  const backgroundIcon = computed((): IconConfig => {
+    if (jurisdictionStore.enabled) {
+      return currentJurisdiction.value.icon;
+    }
+    return props.featureIcon;
+  });
+
+  // Compute the icon to show based on jurisdiction status
+  const iconToShow = computed((): IconConfig => {
+    if (jurisdictionStore.enabled) {
+      return currentJurisdiction.value.icon;
+    }
+    return props.featureIcon;
+  });
+</script>
+
+<template>
+  <div
+    class="relative flex min-h-screen items-start justify-center overflow-hidden bg-gray-50 px-4 pt-12 dark:bg-gray-900 sm:px-6 sm:pt-16 lg:px-8">
+    <!-- Background Icon -->
+    <div v-if="!hideBackgroundIcon" class="pointer-events-none fixed inset-0 overflow-hidden opacity-5 dark:opacity-5 blur-md">
+      <OIcon
+        v-if="backgroundIcon && backgroundIcon.collection && backgroundIcon.name"
+        :collection="backgroundIcon.collection"
+        :name="backgroundIcon.name"
+        class="absolute left-1/2 top-0 h-auto w-full -translate-x-1/2 translate-y-[120%] scale-[9] transform-cpu object-cover object-center backdrop-invert"
+        aria-hidden="true" />
+    </div>
+
+    <!-- Page Title -->
+    <div class="relative z-10 w-full min-w-[320px] max-w-md space-y-12">
+      <!-- Title Icon / Logo -->
+      <div
+        v-if="!omitIcon"
+        class="flex flex-col items-center"
+        :class="{ 'invisible': hideIcon }">
+        <RouterLink
+          to="/"
+          class="group"
+          :aria-label="t('web.layout.return_to_home_page')">
+          <div class="relative">
+            <!-- Custom logo (for branded/custom domain pages) -->
+            <template v-if="titleLogo">
+              <img
+                :src="titleLogo"
+                :alt="title ?? ''"
+                class="relative h-16 max-w-[200px] object-contain transition-transform duration-300 group-hover:scale-105" />
+            </template>
+            <!-- Default icon -->
+            <template v-else>
+              <!-- Subtle glow effect -->
+              <div class="absolute inset-0 rounded-full bg-brand-500/10 blur-xl transition-all duration-300 group-hover:bg-brand-500/20 dark:bg-brand-400/10 dark:group-hover:bg-brand-400/20"></div>
+              <!-- Icon -->
+              <OIcon
+                v-if="iconToShow && iconToShow.collection && iconToShow.name"
+                :collection="iconToShow.collection"
+                :name="iconToShow.name"
+                size="32"
+                class="relative size-24 transition-transform duration-300 group-hover:scale-105 text-brand-600 dark:text-brand-400"
+                aria-hidden="true" />
+            </template>
+          </div>
+        </RouterLink>
+      </div>
+
+      <!-- Title Text -->
+      <div class="space-y-3 text-center">
+        <h1
+          :id="headingId"
+          v-if="withHeading"
+          class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+          {{ heading }}
+        </h1>
+        <p
+          v-if="withSubheading"
+          class="flex items-center justify-center text-sm text-gray-600 dark:text-gray-400">
+          <span
+            v-if="jurisdictionStore.enabled"
+            class="mr-1">
+            {{ t('web.regions.serving_you_from_the') }}:
+            <span class="font-medium text-gray-700 dark:text-gray-300">{{ currentJurisdiction.display_name }}</span>
+          </span>
+        </p>
+      </div>
+
+      <!-- Form Card -->
+      <div
+        role="region"
+        :aria-labelledby="headingId"
+        class="rounded-lg border border-gray-200 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800">
+        <slot name="form"></slot>
+      </div>
+
+      <!-- Footer -->
+      <div class="space-y-6 text-center">
+        <div class="text-sm">
+          <slot name="footer"></slot>
+        </div>
+
+        <!-- Subtle home link for escape route -->
+        <div v-if="showReturnHome" class="border-t border-gray-200 pt-6 dark:border-gray-700">
+          <RouterLink
+            to="/"
+            class="inline-flex items-center text-sm text-gray-500 transition-colors duration-200 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            :aria-label="t('web.layout.return_to_home_page')">
+            <span>{{ t('web.layout.return_home') }}</span>
+          </RouterLink>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

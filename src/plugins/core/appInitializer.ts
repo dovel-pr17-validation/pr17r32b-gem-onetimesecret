@@ -1,0 +1,141 @@
+// src/plugins/core/appInitializer.ts
+
+import { createApi } from '@/api';
+import i18n, { globalComposer } from '@/i18n';
+import { setupRouterGuards } from '@/router/guards.routes';
+import { consumeBootstrapData, getBootstrapValue } from '@/services/bootstrap.service';
+import { loggingService, type ConsoleWarning } from '@/services/logging.service';
+import { setAllowedCheckoutHost } from '@/utils/redirect';
+import { AxiosInstance } from 'axios';
+import { createPinia } from 'pinia';
+import { App, Plugin } from 'vue';
+import type { Router } from 'vue-router';
+
+import { createDiagnostics } from './enableDiagnostics';
+import { createErrorBoundary } from './globalErrorBoundary';
+import { autoInitPlugin } from '../pinia/autoInitPlugin';
+
+export interface AppInitializerOptions {
+  /**
+   * The router to install. Injected by the caller (main.ts / admin.ts) so this
+   * initializer does NOT import `@/router` itself — that keeps the customer
+   * route graph out of the admin bundle's chunks (and vice versa). Each entry
+   * supplies its own router.
+   */
+  router: Router;
+  api?: AxiosInstance;
+  debug?: boolean;
+}
+
+/** Makes initializeApp available as a proper Vue plugin */
+export const AppInitializer: Plugin<AppInitializerOptions> = {
+  install(app: App, options: AppInitializerOptions) {
+    initializeApp(app, options);
+  },
+};
+
+/**
+ * Initializes core application services in required order:
+ * 1. State management (Pinia with plugins)
+ *    - API client
+ *    - Error handling
+ *    - Auth/logout
+ *    - Store initialization
+ * 2. Global error boundary
+ * 3. Internationalization
+ * 4. Routing. Installing the router starts the initial navigation, whose
+ *    guards activate the visitor's locale. Nothing here waits for it: the
+ *    entry awaits router.isReady() before mounting (see startApp.ts), and
+ *    work that needs translations, such as the console warning, runs after.
+ *
+ * We separate this from the main plugin to interface for testing purposes.
+ */
+/*eslint max-statements: ["error", 24]*/
+function initializeApp(app: App, options: AppInitializerOptions) {
+  // Consume bootstrap data early, before Pinia is installed.
+  // This populates the snapshot for getBootstrapValue() calls.
+  consumeBootstrapData();
+
+  const diagnostics = getBootstrapValue('diagnostics');
+  const d9sEnabled = getBootstrapValue('d9s_enabled');
+  const displayDomain = getBootstrapValue('display_domain');
+  const siteHost = getBootstrapValue('site_host');
+
+  // Seed the checkout-URL host allowlist with this deployment's Stripe
+  // custom-domain host (bare host, empty when unconfigured). Must run before
+  // any billing/checkout response is parsed; checkout only happens on user
+  // action, well after init.
+  setAllowedCheckoutHost(getBootstrapValue('checkout_host'));
+
+  const router = options.router;
+  const pinia = createPinia();
+  const api = options.api ?? createApi();
+
+  if (d9sEnabled && diagnostics) {
+    // Fail loudly if diagnostics is enabled but host is missing
+    const host = displayDomain ?? siteHost;
+    if (!host) {
+      throw new Error(
+        '[AppInitializer] Diagnostics enabled but no host available. ' +
+          'Expected display_domain or site_host in bootstrap data.'
+      );
+    }
+
+    const diagnosticsPlugin = createDiagnostics({
+      host,
+      config: diagnostics!, // checked above: `if (d9sEnabled && diagnostics)`
+      router,
+    });
+
+    // Must be before GlobalErrorBoundary. The earlier the better.
+    app.use(diagnosticsPlugin);
+  }
+
+  const errorBoundary = createErrorBoundary({
+    debug: options.debug,
+    // notify: notifications.add,
+  });
+
+  // Register auto-init plugin before creating stores. It passes the browser
+  // locale to each store's init(); the api client reaches stores through
+  // inject('api'), provided below.
+  pinia.use(
+    autoInitPlugin({
+      deviceLocale: navigator.language,
+    })
+  );
+
+  // Make API client available to Vue app (and pinia stores)
+  // NOTE: In our unit tests we need to explicitly provide an API client
+  // for stores to use. See plugins/README.md.
+  app.provide('api', api);
+
+  app.use(pinia);
+  app.use(errorBoundary);
+  app.use(i18n);
+
+  // Set up router guards AFTER Pinia is installed.
+  // Guards use stores (usePageTitle, useAuthStore, etc.) which require Pinia.
+  setupRouterGuards(router);
+
+  app.use(router);
+}
+
+/**
+ * Prints the self-XSS warning to the console in the visitor's language. Call
+ * it after the initial navigation has activated the locale; startApp does,
+ * right after mount.
+ */
+export function showConsoleWarning(): void {
+  loggingService.banner(consoleWarning());
+}
+
+/** The self-XSS warning, in the active locale. */
+function consoleWarning(): ConsoleWarning {
+  const { t } = globalComposer;
+  return {
+    heading: t('web.layout.console_warning_heading'),
+    body: t('web.layout.console_warning_body'),
+    closing: t('web.layout.console_warning_closing'),
+  };
+}

@@ -1,0 +1,132 @@
+<!-- src/apps/workspace/layouts/SettingsLayout.vue -->
+
+<!--
+  Settings Layout for workspace account settings pages.
+  Provides horizontal tab navigation + content area.
+  NOTE: This component does NOT include header/footer - those come from
+  the route's meta.layout (WorkspaceLayout) via App.vue.
+-->
+
+<script setup lang="ts">
+import { getSettingsNavigationSections } from '@/apps/workspace/config/settings-navigation';
+import OIcon from '@/shared/components/icons/OIcon.vue';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import { debugLog } from '@/utils/debug';
+import {
+  hasPasswordOf,
+  isActiveSessionsEnabledOf,
+  isFullAuthModeOf,
+  isOwnerOrAdminOf,
+  isSsoEnabledOf,
+  isSsoOnlyModeOf,
+  isWebAuthnEnabledOf,
+} from '@/utils/features';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
+
+const { t } = useI18n();
+const route = useRoute();
+const bootstrapStore = useBootstrapStore();
+
+// Flatten navigation sections into tab items.
+//
+// Reactivity: deriving feature flags from `bootstrapStore` inside the computed
+// registers each accessed field as a dependency. When an accepted refresh or
+// changePassword updates the store (e.g. has_password flips after first
+// password set), this recomputes and tabs appear without a page reload.
+const tabItems = computed(() => {
+  const features = {
+    hasPassword: hasPasswordOf(bootstrapStore),
+    isFullAuthMode: isFullAuthModeOf(bootstrapStore),
+    isSsoOnlyMode: isSsoOnlyModeOf(bootstrapStore),
+    isOwnerOrAdmin: isOwnerOrAdminOf(bootstrapStore),
+    isWebAuthnEnabled: isWebAuthnEnabledOf(bootstrapStore),
+    isSsoEnabled: isSsoEnabledOf(bootstrapStore),
+    isActiveSessionsEnabled: isActiveSessionsEnabledOf(bootstrapStore),
+  };
+  const sections = getSettingsNavigationSections(t, features);
+  const allItems = sections.flatMap((section) => section.items);
+  const visibleItems = allItems.filter((item) => (item.visible ? item.visible() : true));
+  debugLog.features('SettingsLayout.tabItems', {
+    features,
+    allItems: allItems.map(i => i.id),
+    visibleItems: visibleItems.map(i => i.id),
+  });
+  return visibleItems;
+});
+
+// Check if route matches item or any of its children
+const isActiveRoute = (item: (typeof tabItems.value)[0]): boolean => {
+  if (route.path === item.to || route.path.startsWith(item.to + '/')) return true;
+  if (item.children) {
+    return item.children.some(
+      (child) => route.path === child.to || route.path.startsWith(child.to + '/')
+    );
+  }
+  return false;
+};
+</script>
+
+<template>
+  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Back to Dashboard -->
+    <!-- prettier-ignore-attribute class -->
+    <router-link
+      to="/"
+      class="
+        group mb-6 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors
+        hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+      <OIcon
+        collection="heroicons"
+        name="arrow-left"
+        class="size-4 transition-transform group-hover:-translate-x-0.5"
+        aria-hidden="true" />
+      {{ t('web.settings.back_to_dashboard') }}
+    </router-link>
+
+    <!-- Page Header -->
+    <div class="mb-6">
+      <h1 class="text-xl font-medium text-gray-900 dark:text-white">
+        {{ t('web.TITLES.account') }}
+      </h1>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        {{ t('web.settings.manage_your_account_settings_and_preferences') }}
+      </p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <!-- aria-current follows isActiveRoute, not RouterLink's exact-active
+         default: the Profile tab links to a redirect (/profile ->
+         /profile/preferences) and Security's pages are children of its
+         tab, so the exact-active match would leave the current tab
+         unmarked. -->
+    <nav
+      class="-mb-px flex space-x-1 overflow-x-auto border-b border-gray-200 dark:border-gray-700"
+      aria-label="Settings navigation">
+      <router-link
+        v-for="item in tabItems"
+        :key="item.id"
+        :to="item.to"
+        :aria-current="isActiveRoute(item) ? 'page' : undefined"
+        :class="[
+          'flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors',
+          isActiveRoute(item)
+            ? 'border-brand-500 text-brand-600 dark:border-brand-400 dark:text-brand-400'
+            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300',
+        ]">
+        <OIcon
+          :collection="item.icon.collection"
+          :name="item.icon.name"
+          class="size-4"
+          aria-hidden="true" />
+        {{ item.label }}
+      </router-link>
+    </nav>
+
+    <!-- Content Area -->
+    <div class="pt-6">
+      <slot></slot>
+    </div>
+  </div>
+</template>

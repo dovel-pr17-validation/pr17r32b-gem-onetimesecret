@@ -1,0 +1,217 @@
+// src/schemas/api/internal/responses/colonel-domains.ts
+
+/**
+ * Colonel (Admin) domains — NEW verify-endpoint schemas (ticket #31).
+ *
+ * The domains LIST read side already has frozen schemas
+ * (`colonelCustomDomainSchema` / `colonelCustomDomainsResponseSchema` in
+ * `./colonel` + `../../internal/responses/colonel`); the domains screen REUSES
+ * those (CONTRACT 3 — reuse over duplication). This file adds ONLY the schemas
+ * for the NEW `POST /api/colonel/domains/:extid/verify` endpoint, kept in a
+ * per-resource file so the domains screen never edits another screen's contract
+ * (CONTRACT 2 / the Zod tripwire — new schemas only).
+ *
+ * These describe the SHAPE the new colonel logic class
+ * (`ColonelAPI::Logic::Colonel::VerifyCustomDomain`) returns: the refreshed
+ * domain `record` plus the honest verification outcome in `details`. The verify
+ * op reports real DNS/SSL state, so `current_state` is authoritative and the
+ * screen surfaces it verbatim (verified / resolving / pending / unverified) —
+ * it never fakes success.
+ */
+
+import { createApiResponseSchema } from '@/schemas/api/base';
+import { transforms } from '@/schemas/transforms';
+import { z } from 'zod';
+
+/**
+ * Refreshed domain record after a verify. A minimal slice — just what the card
+ * needs to re-render its badge/flags without a full list re-fetch. Fields mirror
+ * their counterparts on {@link colonelCustomDomainSchema}. `updated` arrives as a
+ * Unix-epoch number and is coerced to Date (nullable).
+ */
+export const colonelDomainVerifyRecordSchema = z.object({
+  domain_id: z.string(),
+  extid: z.string(),
+  display_domain: z.string(),
+  verification_state: z.string(),
+  verified: z.boolean(),
+  verified_by_override: z.boolean().optional(),
+  resolving: z.boolean(),
+  ready: z.boolean(),
+  updated: transforms.fromNumber.toDateNullable,
+});
+
+/**
+ * The verify outcome. `current_state` is the post-verification state and drives
+ * the operator-facing notification. `error` is the op's captured DNS/SSL error
+ * message (or null on a clean run) — surfaced honestly rather than swallowed.
+ */
+export const colonelDomainVerifyDetailsSchema = z.object({
+  previous_state: z.string(),
+  current_state: z.string(),
+  changed: z.boolean(),
+  dns_validated: z.boolean(),
+  dns_indeterminate: z.boolean().optional(),
+  dns_message: z.string().nullable().optional(),
+  dns_outcome: z
+    .enum(['validated', 'confirmation_expired', 'indeterminate', 'override_held', 'failed'])
+    .optional(),
+  ssl_ready: z.boolean().nullable(),
+  is_resolving: z.boolean().nullable(),
+  error: z.string().nullable(),
+  message: z.string(),
+});
+
+export type ColonelDomainVerifyRecord = z.infer<typeof colonelDomainVerifyRecordSchema>;
+export type ColonelDomainVerifyDetails = z.infer<typeof colonelDomainVerifyDetailsSchema>;
+
+// Wrapped response schema for the NEW colonel domain-verify endpoint (ticket
+// #31). Internal-only; consumed by the Vue admin bundle. Per-resource file so
+// the domains screen typechecks independently of the shared registry (CONTRACT
+// 3) and never touches another screen's contract. The Integrate step adds the
+// matching `colonelDomainVerify` key to `registry.ts`.
+//
+// The domains LIST read schema (`colonelCustomDomainsResponseSchema`) is REUSED
+// from `./colonel`, not redefined here.
+
+/** `POST /api/colonel/domains/:extid/verify` → `{ record, details }` ack. */
+export const colonelDomainVerifyResponseSchema = createApiResponseSchema(
+  colonelDomainVerifyRecordSchema,
+  colonelDomainVerifyDetailsSchema
+);
+
+export type ColonelDomainVerifyResponse = z.infer<typeof colonelDomainVerifyResponseSchema>;
+
+// ============================================================================
+// Colonel create-for-org + per-domain detail (admin "attach domain to org").
+//
+// `POST /api/colonel/domains` and `GET /api/colonel/domains/:extid` both return
+// the full domain `safe_dump` as `record` (a superset of the list projection —
+// it carries the DNS-validation fields the operator DNS panel renders) plus the
+// deployment's proxy `cluster` in `details`. New per-resource schemas so the
+// create/detail flow typechecks independently of the list contract.
+//
+// DNS-validation fields are declared nullable/optional: the panel degrades to
+// "—" for any the dump omits rather than failing the parse (it reads through
+// gracefulParse), and unverified/self-hosted domains legitimately lack some.
+// ============================================================================
+
+/** Full domain record returned by the colonel create + detail endpoints. */
+export const colonelDomainDetailRecordSchema = z.object({
+  domain_id: z.string(),
+  extid: z.string(),
+  display_domain: z.string(),
+  // display_domain in A-label form (the name the address record is created
+  // under); null when it has no A-label form.
+  display_domain_ascii: z.string().nullable().optional(),
+  base_domain: z.string().nullable().optional(),
+  subdomain: z.string().nullable().optional(),
+  trd: z.string().nullable().optional(),
+  tld: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  verification_state: z.string(),
+  verified: z.boolean(),
+  verified_by_override: z.boolean().optional(),
+  resolving: z.boolean(),
+  ready: z.boolean(),
+  is_apex: z.boolean().nullable().optional(),
+  // DNS ownership-validation record the operator must publish.
+  txt_validation_host: z.string().nullable().optional(),
+  txt_validation_value: z.string().nullable().optional(),
+  // Full TXT record name in A-label form (what the server queries), and the
+  // same name spelled like display_domain. Null before a challenge exists.
+  txt_validation_record: z.string().nullable().optional(),
+  txt_validation_record_display: z.string().nullable().optional(),
+  // Owning organization identity (present on the colonel dump). The console
+  // links by org_extid; org_id is the internal id and never goes in a URL.
+  org_id: z.string().nullable().optional(),
+  org_extid: z.string().nullable().optional(),
+  org_name: z.string().nullable().optional(),
+  created: transforms.fromNumber.toDateNullable.optional(),
+  updated: transforms.fromNumber.toDateNullable.optional(),
+});
+
+/**
+ * The deployment proxy target the DNS records point at. Shape mirrors
+ * `Onetime::DomainValidation::Features.safe_dump`; kept permissive
+ * (`passthrough`) so an added proxy field never trips the parse.
+ */
+export const colonelDomainClusterSchema = z
+  .object({
+    proxy_ip: z.string().nullable().optional(),
+    proxy_host: z.string().nullable().optional(),
+    // Canonical strategy name. Decides whether the proxy fields above are
+    // where a domain points at all (see useDomainDnsRecord); they stay
+    // configured after a move off `approximated`.
+    validation_strategy: z.string().nullable().optional(),
+  })
+  .passthrough()
+  .nullable();
+
+export const colonelDomainDetailsSchema = z.object({
+  cluster: colonelDomainClusterSchema,
+});
+
+/**
+ * `POST /api/colonel/domains` and `GET /api/colonel/domains/:extid` →
+ * `{ record: <full safe_dump>, details: { cluster } }`.
+ */
+export const colonelDomainDetailResponseSchema = createApiResponseSchema(
+  colonelDomainDetailRecordSchema,
+  colonelDomainDetailsSchema
+);
+
+export type ColonelDomainDetailRecord = z.infer<typeof colonelDomainDetailRecordSchema>;
+export type ColonelDomainCluster = z.infer<typeof colonelDomainClusterSchema>;
+export type ColonelDomainDetailResponse = z.infer<typeof colonelDomainDetailResponseSchema>;
+
+// ============================================================================
+// Colonel domain verification override (manual status flag set).
+//
+// `POST /api/colonel/domains/:extid/override` allows a colonel to manually set
+// the `verified` and `resolving` flags, bypassing the normal DNS/SSL checks.
+// Used for edge cases where automatic verification fails but the domain is
+// known to be correctly configured.
+// ============================================================================
+
+/** Override request payload — both flags optional, only provided ones are set. */
+export const colonelDomainOverrideRequestSchema = z.object({
+  verified: z.boolean().optional(),
+  resolving: z.boolean().optional(),
+});
+
+/** Refreshed domain record after an override. Same slice as verify. */
+export const colonelDomainOverrideRecordSchema = z.object({
+  domain_id: z.string(),
+  extid: z.string(),
+  display_domain: z.string(),
+  verification_state: z.string(),
+  verified: z.boolean(),
+  verified_by_override: z.boolean().optional(),
+  resolving: z.boolean(),
+  ready: z.boolean(),
+  updated: transforms.fromNumber.toDateNullable,
+});
+
+/** The override outcome. Reports what was changed. */
+export const colonelDomainOverrideDetailsSchema = z.object({
+  previous_verified: z.boolean(),
+  previous_resolving: z.boolean(),
+  current_verified: z.boolean(),
+  current_resolving: z.boolean(),
+  verified_changed: z.boolean(),
+  resolving_changed: z.boolean(),
+  message: z.string(),
+});
+
+export type ColonelDomainOverrideRequest = z.infer<typeof colonelDomainOverrideRequestSchema>;
+export type ColonelDomainOverrideRecord = z.infer<typeof colonelDomainOverrideRecordSchema>;
+export type ColonelDomainOverrideDetails = z.infer<typeof colonelDomainOverrideDetailsSchema>;
+
+/** `POST /api/colonel/domains/:extid/override` -> `{ record, details }` ack. */
+export const colonelDomainOverrideResponseSchema = createApiResponseSchema(
+  colonelDomainOverrideRecordSchema,
+  colonelDomainOverrideDetailsSchema
+);
+
+export type ColonelDomainOverrideResponse = z.infer<typeof colonelDomainOverrideResponseSchema>;

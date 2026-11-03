@@ -1,0 +1,202 @@
+# lib/onetime/jobs/workers/dns_record_check_worker.rb
+#
+# frozen_string_literal: true
+
+require_relative 'base_worker'
+require_relative 'job_lifecycle'
+require_relative '../queues/config'
+require_relative '../queues/declarator'
+require_relative '../../mail/sender_strategies'
+require_relative '../../models/custom_domain/mailer_config'
+
+#
+# Performs DNS record checks for custom domain sender configurations.
+#
+# This worker is a pure fact-finder: it looks up what DNS records actually
+# exist for a domain and persists the results. No pass/fail judgement is
+# made here — that's the caller's responsibility.
+#
+# Message payload schema:
+# {
+#   domain_id: 'abc123',                      # CustomDomain identifier (MailerConfig key)
+#   requested_at: '2024-01-01T00:00:00Z',     # When the check was requested
+# }
+#
+# ## Why background?
+#
+# DNS lookups can block for up to 5 seconds per record under degraded
+# conditions. Moving this to a worker keeps the user-facing response instant.
+#
+# ## Data Flow
+#
+# This worker calls Mail::SenderStrategies::BaseSenderStrategy#check_dns_records
+# -- NOT the DomainValidation::SenderStrategies used by DomainValidationWorker.
+#
+# Input (from mailer_config.dns_records.value, provisioned from Lettermint API):
+#   [
+#     { 'type' => 'TXT', 'name' => 'lettermint._domainkey.example.com',
+#       'value' => 'v=DKIM1;k=rsa;p=...' },
+#     { 'type' => 'CNAME', 'name' => 'lm-bounces.example.com',
+#       'value' => 'bounces.lmta.net' },
+#     { 'type' => 'TXT', 'name' => '_dmarc.example.com',
+#       'value' => 'v=DMARC1;p=none' },
+#   ]
+#
+# Output (check_dns_records result, stored to mailer_config.dns_check_results):
+#   {
+#     records: [
+#       {
+#         'type' => 'TXT',
+#         'name' => 'lettermint._domainkey.example.com',
+#         'value' => 'v=DKIM1;k=rsa;p=...',   # expected value
+#         'dns_exists' => true,                # record exists in DNS
+#         'value_matches' => true,             # expected == actual
+#         'error' => nil,                      # DNS lookup error (if any)
+#         'expected_digest' => 'sha256...',
+#         'actual_digest' => 'sha256...',
+#       },
+#       # ...
+#     ],
+#     checked_at: Time.now,
+#   }
+#
+# Persists: mailer_config.dns_check_results.value (Array of record check results)
+#           mailer_config.dns_check_completed_at (timestamp)
+#
+# NOTE: This worker does NOT set verification_status -- that's DomainValidationWorker.
+# The 'dns_exists' and 'value_matches' booleans are fact-finding, not verification.
+#
+
+module Onetime
+  module Jobs
+    module Workers
+      class DnsRecordCheckWorker
+        include Sneakers::Worker
+        include BaseWorker
+
+        QUEUE_NAME = 'domain.dns.check'
+
+        from_queue QUEUE_NAME,
+          **QueueDeclarator.sneakers_options_for(QUEUE_NAME),
+          threads: ENV.fetch('DNS_CHECK_WORKER_THREADS', 2).to_i,
+          prefetch: ENV.fetch('DNS_CHECK_WORKER_PREFETCH', 5).to_i
+
+        # Process DNS record check message
+        # @param msg [String] JSON-encoded message
+        # @param delivery_info [Bunny::DeliveryInfo] AMQP delivery info
+        # @param metadata [Bunny::MessageProperties] AMQP message properties
+        def work_with_params(msg, delivery_info, metadata)
+          envelope = Envelope.new(delivery_info, metadata)
+
+          data          = nil
+          mailer_config = nil
+          with_trace_context(envelope) do
+            data = decode_message(msg, envelope)
+            return reject! unless data # not a JSON object or unknown schema (logged): send to DLQ
+
+            # Handle ping test messages (from: bin/ots queue ping)
+            if data[:domain_id] == 'ping.test'
+              log_info 'Received ping test', domain_id: data[:domain_id]
+              return ack!
+            end
+
+            # Atomic idempotency claim: only one worker can claim a message
+            unless claim_for_processing(envelope.message_id)
+              log_info "Skipping duplicate message: #{envelope.message_id}"
+              return ack!
+            end
+
+            domain_id = data[:domain_id]
+            log_debug "Checking DNS records: #{domain_id} (metadata: #{envelope.summary})"
+
+            # Load the mailer config for this domain
+            mailer_config = Onetime::CustomDomain::MailerConfig.find_by_domain_id(domain_id)
+            unless mailer_config
+              log_error "MailerConfig not found for domain_id: #{domain_id}", message_id: envelope.message_id, metadata: envelope.summary
+              return ack! # Don't retry -- config won't appear on its own
+            end
+
+            # Every write goes through record_job_result!: it lands on the
+            # record as stored now, and is skipped once the record is gone
+            # or sends from another address than the one this job checks.
+            from_address = mailer_config.from_address
+
+            # Mark job as processing
+            marked = Onetime::CustomDomain::MailerConfig.record_job_result!(domain_id, from_address) do |stored|
+              stored.dns_check_status = JobLifecycle::PROCESSING
+            end
+            unless marked
+              log_info "DNS record check skipped: #{domain_id} was deleted or its sender address changed"
+              return ack!
+            end
+
+            # Load the sender strategy for DNS lookups (no credentials needed)
+            provider = mailer_config.effective_provider
+            strategy = Onetime::Mail::SenderStrategies.for_provider(provider)
+
+            # Perform DNS lookups with retry (DNS can be transiently flaky)
+            result = nil
+            with_retry(max_retries: 1, base_delay: 2.0) do
+              result = strategy.check_dns_records(mailer_config, credentials: {})
+            end
+
+            # Compute dns_verified outcome: true only when there is at least one
+            # checked record AND every one matched. An empty record set (domain
+            # not provisioned, or every record optional) is absence of evidence,
+            # not verification — [].all? would report true.
+            records      = result[:records] || []
+            all_matched  = records.all? { |r| r['value_matches'] == true || r[:value_matches] == true }
+            dns_verified = records.any? && all_matched
+
+            # Mark job as completed, and derive verification_status in the
+            # same write when the validation worker has already finished: the
+            # job that completes second sees the other's outcome.
+            stored, final_status = Onetime::CustomDomain::MailerConfig.record_job_result!(domain_id, from_address) do |config|
+              config.dns_verified           = dns_verified
+              config.dns_check_status       = JobLifecycle::COMPLETED
+              config.dns_check_completed_at = Familia.now.to_i
+              config.updated                = Familia.now.to_i
+              config.derive_verification_status
+            end
+            unless stored
+              log_info "DNS record check result dropped: #{domain_id} was deleted or its sender address changed"
+              return ack!
+            end
+
+            # The raw fact-finding results. dns_check_results is a jsonkey
+            # (its own Redis key) and writes on assignment, so it follows the
+            # guarded write rather than joining it.
+            stored.dns_check_results.value = result[:records]
+
+            if final_status
+              log_info "DNS record check complete (final): #{domain_id}",
+                record_count: records.size,
+                dns_verified: dns_verified,
+                verification_status: final_status
+            else
+              log_info "DNS record check complete: #{domain_id}",
+                record_count: records.size,
+                dns_verified: dns_verified,
+                provider_check_status: stored.provider_check_status
+            end
+
+            ack!
+          end
+        rescue StandardError => ex
+          # Mark job as failed before sending to DLQ
+          if mailer_config
+            Onetime::CustomDomain::MailerConfig.record_job_result!(mailer_config.domain_id, mailer_config.from_address) do |stored|
+              stored.dns_check_status       = JobLifecycle::FAILED
+              stored.dns_check_completed_at = Familia.now.to_i
+              stored.last_error             = ex.message
+              stored.updated                = Familia.now.to_i
+            end
+          end
+
+          log_error 'Unexpected error checking DNS records', ex
+          reject! # Send to DLQ
+        end
+      end
+    end
+  end
+end

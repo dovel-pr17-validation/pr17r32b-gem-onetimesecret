@@ -1,0 +1,220 @@
+# apps/web/core/controllers/authentication.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/session/impersonation'
+require 'onetime/session/surface'
+require 'onetime/session/remember_me'
+require 'onetime/session/rotation'
+
+require_relative 'base'
+
+module Core
+  module Controllers
+    class Authentication
+      include Controllers::Base
+      include Onetime::LoggerMethods
+
+      def authenticate # rubocop:disable Metrics/AbcSize
+        unless signin_enabled?
+          raise OT::Redirect.new('/')
+        end
+
+        # RESTRICT_TO ENFORCEMENT
+        # (ADR-034#restrict-to-is-an-access-control-not-a-display-preference
+        # / #reject-as-not-found-not-forbidden, #4139). This is the
+        # simple-mode half of the gate: POST /auth/login is served here rather
+        # than by Rodauth, so without this the same crafted POST that 404s in
+        # full mode would still authenticate in simple mode.
+        #
+        # 404, not the 302 above: ADR-034#reject-as-not-found-not-forbidden
+        # settled the reject shape as not-found — a restricted-away method
+        # presents no reachable surface. The 302 stays
+        # for signin_enabled?, which is a different question (sign-in is off
+        # here) with an answer the SPA already handles.
+        unless restrict_to_allows?('password')
+          raise Onetime::RecordNotFound, 'Not Found'
+        end
+
+        # Prevent browser refresh re-submission
+        res.do_not_cache!
+
+        if authenticated?
+          handle_already_authenticated
+        elsif req.post?
+          perform_authentication
+        end
+      end
+
+      def logout
+        res.do_not_cache!
+
+        # Capture session info for logging before clearing. The handle, never
+        # the id: a logged session id can be replayed as the cookie (#4461).
+        customer_id    = session['external_id']
+        session_handle = begin
+                           Onetime::SessionMetadata.handle_for(session.id&.public_id)
+        rescue StandardError
+                           nil
+        end
+
+        auth_logger.debug 'Session destruction initiated',
+          {
+            customer_id: customer_id,
+            session_handle: session_handle,
+            ip: req.ip,
+          }
+
+        # Close any impersonation FIRST, so it is stopped and AUDITED rather
+        # than silently discarded with the session. GET /logout is a safe
+        # method and therefore reachable while impersonating; without this the
+        # trail would hold a start with no end.
+        Onetime::SessionImpersonation.stop!(
+          session,
+          ended_by: Onetime::SessionImpersonation::ENDED_BY_LOGOUT,
+        )
+
+        # The active-session row before the blob: an in-flight request can
+        # write the blob back after this one clears it, and only the missing
+        # row makes that copy refusable (Onetime::ActiveSessionGate.end_session).
+        Onetime::ActiveSessionGate.end_session(session, env: req.env)
+
+        # Clear all session data
+        session.clear
+
+        # Regenerate session ID to prevent session fixation attacks
+        # This invalidates the old session ID entirely
+        if req.env['rack.session.options']
+          req.env['rack.session.options'][:renew] = true
+        end
+
+        auth_logger.info 'Session destroyed',
+          {
+            customer_id: customer_id,
+            session_handle: session_handle,
+            ip: req.ip,
+          }
+
+        if json_requested?
+          json_success('You have been logged out')
+        else
+          session['success_message'] = 'You have been logged out'
+          res.redirect req.app_path('/')
+        end
+      end
+
+      private
+
+      def handle_already_authenticated
+        if json_requested?
+          json_success('You are already logged in')
+        else
+          session['info_message'] = 'You are already logged in.'
+          res.redirect req.app_path('/')
+        end
+      end
+
+      def perform_authentication
+        logic = Core::Logic::Authentication::AuthenticateSession.new(strategy_result, req.params, locale)
+
+        # The stable `code` on the JSON 401 (#4469), by the error_type
+        # AuthenticateSession raises with. `invalid` is the single
+        # non-enumerating rejection (unknown email and wrong password alike);
+        # `suspended` is only ever raised past a verified password. A pending
+        # account is not refused: the logic answers it with success data.
+        #
+        # On both of its success paths the logic has already emptied the
+        # session and moved it to a new id (#4466,
+        # AuthenticateSession#start_new_session!) before the block below
+        # runs, so the block writes the identity into a fresh session.
+        execute_with_error_handling(
+          logic,
+          success_message: 'You have been logged in',
+          success_redirect: '/',
+          error_redirect: '/signin',
+          error_status: 401,
+          failure_codes: { 'invalid' => :invalid_credentials, 'suspended' => :suspended_credentials },
+        ) do
+          cust_after = logic.cust
+
+          # The identity keys for both success paths. The logic's `sess` is
+          # this same Rack session; the greenlit path has already written
+          # most of these, the pending path none of them.
+          session['external_id']      = cust_after.extid
+          session['email']            = cust_after.email
+          session['role']             = cust_after.role
+          # This is the `sessionauth` marker required by session-only Account
+          # API routes, including /api/account/destroy. It is the authenticated
+          # session contract for Core's simple-auth login flow.
+          session['authenticated']    = true
+          session['authenticated_at'] = Familia.now.to_i
+          Onetime::SessionSurface.record(session, req.env)
+          forget_customer_session_verdict
+
+          # #4327: an identity change must always land UNELEVATED. The logic
+          # cleared the session before this block runs, so a colonel step-up
+          # window minted by the previous occupant of this browser is already
+          # gone. The delete stays so this block does not depend on that:
+          # it writes the identity, and it is the last thing to touch the
+          # session before the commit. Elevation is also identity-bound on
+          # read (ColonelAPI::Logic::Colonel::Elevation#elevation_record).
+          session.delete('elevated_until')
+
+          # "Remember me" (Onetime::RememberMe): a fixed 14-day session
+          # instead of the rolling default, carried by the session store
+          # alone; simple mode has no active-session row. Only this login's
+          # choice counts. The cleared session no longer holds the previous
+          # occupant's deadline; the delete is kept for the same reason as
+          # the elevated_until one above.
+          session.delete(Onetime::RememberMe::SESSION_KEY)
+          if Onetime::RememberMe.enabled? && Onetime::RememberMe.requested?(req.params[Onetime::RememberMe::PARAM])
+            Onetime::RememberMe.stamp(session)
+          end
+
+          auth_logger.info 'Session synchronized after authentication',
+            {
+              user_id: cust_after.custid,
+              email: cust_after.obscure_email,
+              external_id: cust_after.extid,
+              role: cust_after.role,
+              session_handle: Onetime::SessionMetadata.handle_for(session.id&.public_id),
+              ip: req.ip,
+            }
+
+          # Override redirect for colonel role
+          if !json_requested? && cust_after.role?(:colonel)
+            auth_logger.debug 'Redirecting colonel to admin panel',
+              {
+                user_id: cust_after.custid,
+                role: cust_after.role,
+              }
+
+            res.redirect req.app_path('/colonel/')
+          end
+        end
+      rescue Onetime::SessionRotation::Incomplete
+        # The credentials were accepted, but the session id this request
+        # arrived with could not be ended, so the logic refused to sign in on
+        # it and left the session empty (it has logged the details). Answered
+        # in the same shape as the fallback below; 503 rather than 401, since
+        # the credentials were not the problem. Signing in again is the
+        # recovery.
+        message = 'We could not sign you in. Please try again.'
+        if json_requested?
+          json_error(message, status: 503)
+        else
+          session['error_message'] = message
+          res.redirect req.app_path('/signin')
+        end
+      rescue OT::Unauthorized => ex
+        # Fallback for other unauthorized errors
+        if json_requested?
+          json_error(ex.message, field_error: %w[email invalid], status: 401)
+        else
+          session['error_message'] = ex.message
+          res.redirect req.app_path('/signin')
+        end
+      end
+    end
+  end
+end

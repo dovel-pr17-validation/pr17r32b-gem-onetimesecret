@@ -1,0 +1,33 @@
+# Authentication
+
+How Onetime Secret authenticates users, across both auth modes and the
+single-sign-on integrations.
+
+Background on the two modes and how strategies resolve lives in
+[architecture/authentication-strategies.md](../architecture/authentication-strategies.md).
+
+## Contents
+
+- [switching-to-full-mode.md](./switching-to-full-mode.md) — Moving an install
+  from simple (Redis session) mode to full (Rodauth + SQL) mode, and what full
+  mode unlocks.
+- [per-install-sso.md](./per-install-sso.md) — Configuring SSO for an entire
+  install (no organization to join).
+- [adding-sso-providers.md](./adding-sso-providers.md) — Adding a provider to
+  the shared SSO provider registry.
+- [per-domain-sso.md](./per-domain-sso.md) — Configuring SSO scoped to a custom
+  domain, including the organization-join flow.
+- [saml-policy.md](./saml-policy.md) — NameID policies, tenant callback-origin
+  exceptions, and certificate compatibility and recovery.
+- [webauthn-credential-types.md](./webauthn-credential-types.md) — Supported
+  WebAuthn credential types and their handling.
+- [customer-session-failure-matrix.md](./customer-session-failure-matrix.md) —
+  What every surface answers for each customer-session state, where they
+  diverge, and the `auth_status` / failure-code / snapshot-ordering wire
+  contract. Prose twin of the executable matrix specs.
+- [session-consistency-rollout.md](./session-consistency-rollout.md) —
+  Deployment notes for the v0.26.13 session-consistency package: deploying the
+  backend and frontend together, the unversioned-payload rule, operator-visible
+  changes, and the staging review signals.
+- [omniauth-testing.md](./omniauth-testing.md) — Testing patterns for the
+  OmniAuth SSO flows.

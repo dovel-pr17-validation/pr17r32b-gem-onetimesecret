@@ -1,0 +1,505 @@
+# lib/onetime/utils/strings.rb
+#
+# frozen_string_literal: true
+
+require 'digest'
+require 'mail'
+require 'public_suffix'
+
+# strict_bool! raises Onetime::ConfigError. This file loads early in
+# lib/onetime.rb, hundreds of lines before the main errors require, so pull
+# it in here rather than relying on load order (errors.rb is dependency-free).
+require_relative '../errors'
+require_relative 'uri_redaction'
+
+module Onetime
+  module Utils
+    module Strings
+      unless defined?(VALID_CHARS)
+        # Symbols used in character sets for random string generation.
+        # Includes common special characters that are generally safe for use
+        # in generated identifiers and passwords.
+        SYMBOLS         = %w[* $ ! ? ( ) @ # % ^].freeze
+        AMBIGUOUS_CHARS = %w[i l o 1 I O 0].freeze
+
+        # Complete character set for random string generation.
+        # Includes lowercase letters (a-z), uppercase letters (A-Z),
+        # digits (0-9), and symbols for maximum effect in generated strings.
+        VALID_CHARS = [
+          ('a'..'z').to_a,
+          ('A'..'Z').to_a,
+          ('0'..'9').to_a,
+          *SYMBOLS,
+        ].flatten.freeze
+
+        # Unambiguous character set that excludes visually similar characters.
+        # Removes potentially confusing characters (i, l, o, 1, I, O, 0) to
+        # improve readability and reduce user errors when manually entering
+        # generated strings.
+        VALID_CHARS_SAFE = VALID_CHARS.reject { |char| AMBIGUOUS_CHARS.include?(char) }.freeze
+      end
+
+      # Definitive list of strings that can represent a boolean value. These
+      # are used by explicit_yes? and explicit_no? to avoid any confusion
+      # around guesses like, "it doesn't meet our definition for a clear
+      # positive signal so we'll assume the negative case" which is
+      # not the same as an explicit false.
+      #
+      # Guarded on their own name, not VALID_CHARS: Onetime::Utils defines its
+      # own VALID_CHARS, so a load path that evaluates this body after utils.rb
+      # would otherwise skip these definitions entirely.
+      unless defined?(TRUTHY_VALUES)
+        TRUTHY_VALUES = %w[1 true yes on y t].freeze
+        FALSEY_VALUES = %w[0 false no off n f].freeze
+
+        # Hex characters of SHA-256 that strict_bool!'s error message carries
+        # as a correlation tag for the rejected value. Long enough that two
+        # different typos do not collide in practice, short enough to stay a
+        # tag rather than a fingerprint of the value itself.
+        BOOL_DIGEST_LENGTH = 8
+      end
+
+      # Generates a random string of specified length using predefined
+      # character sets. Offers both unambiguous and standard character sets for
+      # different use cases.
+      #
+      # @param len [Integer] Length of the generated string (default: 12)
+      # @param unambiguous [Boolean] Whether to use the unambiguous character set
+      #   (default: true)
+      # @return [String] A randomly generated string of the specified length
+      #
+      # @example Generate a unambiguous 12-character string
+      #   Utils.strand         # => "kF8mN2qR9xPw"
+      #   Utils.strand(8)      # => "kF8mN2qR"
+      #
+      # @example Generate using full character set
+      #   Utils.strand(8, false) # => "il0O1o$!"
+      #
+      # @see VALID_CHARS for details on the complete character set
+      # @see VALID_CHARS_SAFE for details on the unambiguous character set
+      # @security Cryptographically secure - uses SecureRandom.random_number which
+      #   provides cryptographically secure random number generation. Suitable for
+      #   generating secure tokens, passwords, and other security-critical identifiers.
+      def strand(len = 12, unambiguous = true)
+        raise ArgumentError, 'Length must be positive' unless len.positive?
+
+        chars        = unambiguous ? VALID_CHARS_SAFE : VALID_CHARS
+        charset_size = chars.length
+
+        Array.new(len) { chars[SecureRandom.random_number(charset_size)] }.join
+      end
+
+      # Configuration constants for email masking
+      EMAIL_MASK_MIN_LOCAL = 2    # chars to keep at start of local part
+      EMAIL_MASK_CHAR      = '*'  # masking character
+      EMAIL_MASK_LENGTH    = 3    # number of mask characters
+
+      # U+FFFD REPLACEMENT CHARACTER. Shared so the producers that mark invalid
+      # bytes with it (Diagnose#utf8_safe_deep, `customers diagnose --full`) and
+      # the consumer that has to strip it before matching (#obscure_email) can
+      # never drift onto different markers — a marker #obscure_email does not
+      # know about is a marker that defeats EMAIL_PATTERN, which prints the
+      # address in the clear.
+      UNICODE_REPLACEMENT_CHAR = "\u{FFFD}"
+
+      # RFC 5321/5322-compliant email pattern for matching
+      # Supports: local-part@domain where local-part allows dots, plus, etc.
+      # This pattern is intentionally permissive to catch edge cases while
+      # Mail::Address handles validation during parsing.
+      # Uses atomic group (?>) on local part to prevent ReDoS attacks.
+      #
+      # Letter/number classes are Unicode (\p{L}\p{N}), not [A-Z0-9]: Truemail
+      # accepts a unicode local part, so `josé@example.com` is storable, and an
+      # ASCII-only class would leave it printed in the clear by every caller of
+      # #obscure_email. The domain side is widened for the same reason (IDNs).
+      # \b is encoding-aware in Onigmo, so it still anchors correctly around
+      # non-ASCII letters.
+      #
+      # The domain uses \p{Pd} (all dash punctuation), not a bare ASCII `-`,
+      # and that is NOT cosmetic. Truemail's host class is
+      # `[\p{L}\p{N}\p{Pd}]`, so once an ASCII separator has appeared it
+      # accepts any unicode dash inside a label: `user@ex-\u{2010}ample.com`
+      # and the U+2013 variant both measure storable. With a bare `-` this
+      # pattern did not match them, and #obscure_email printed the WHOLE
+      # address — local part and domain — in the clear. Same class of defect
+      # as the josé@example.com leak, on the other side of the `@`.
+      # \p{Pd} subsumes ASCII `-`, so this is a strict widening.
+      #
+      # This class must stay a superset of Truemail's; the twin redactor in
+      # lib/onetime/initializers/setup_diagnostics.rb already uses \p{Pd},
+      # and tests/fixtures/email_redaction_corpus.json pins both.
+      EMAIL_PATTERN = /
+        \b
+        (?>[\p{L}\p{N}._%+'-]+)  # local part: atomic group prevents backtracking
+        @
+        [\p{L}\p{N}.\p{Pd}]+     # domain: alphanumeric, dots, any unicode dash
+        \.
+        \p{L}{2,}                # TLD: at least 2 letters
+        \b
+      /ix
+
+      # A URI embedded in free text: a scheme through the next whitespace.
+      # Wider than RFC 3986 on purpose, so an unescaped ")" or "," in a
+      # password stays inside the span that redact_uri_userinfo masks.
+      EMBEDDED_URI_PATTERN = %r{[a-z][a-z0-9+.-]*://\S+}i
+
+      # Obscures email addresses by replacing most characters with asterisks
+      # while preserving a minimal prefix for partial readability. Uses the
+      # mail gem's Address parser for robust email handling.
+      #
+      # @param text [String] Text containing email addresses to obscure
+      # @return [String] Text with email addresses masked
+      #
+      # @example Basic usage
+      #   obscure_email("Contact tom@myspace.com please")
+      #   # => "Contact to***@m***.com please"
+      #
+      # @example Short local part
+      #   obscure_email("a@example.org")
+      #   # => "a@e***.org"
+      #
+      # @example Subdomain handling
+      #   obscure_email("user@mail.example.co.uk")
+      #   # => "us***@m***.co.uk"
+      #
+      # Normalize an email address for consistent storage and comparison.
+      #
+      # NFC matters because e-acute can be encoded two ways:
+      #   NFC (composed):   U+00E9        -> single codepoint
+      #   NFD (decomposed): U+0065 U+0301 -> e + combining accent
+      # Without normalization, identical-looking emails hash differently.
+      #
+      # @param email [String] Raw email address
+      # @return [String] Normalized email (NFC, case-folded, stripped)
+      #
+      # @see Onetime::Utils::EmailHash.normalize_email (private, parallel copy
+      #   kept to avoid load-order dependency — EmailHash loads early in boot
+      #   before the full Utils module is available)
+      def normalize_email(email)
+        email.to_s.strip.unicode_normalize(:nfc).downcase(:fold)
+      end
+
+      # Canonical form of an address as asserted by a third party (an SSO
+      # claim, a legacy accounts row): trimmed of Unicode whitespace and then
+      # of String#strip's set (which adds NUL), NFC, lowercased by case
+      # MAPPING. For a fold-stable address this equals normalize_email, which
+      # normalize_login and Customer.create! use (#2843, #4726).
+      #
+      # @param value [String]
+      # @return [String]
+      def canonical_email(value)
+        value.to_s.gsub(/\A[[:space:]]+|[[:space:]]+\z/, '').strip.unicode_normalize(:nfc).downcase
+      end
+
+      # normalize_email case-FOLDS, which rewrites a few non-ASCII addresses
+      # into different ones (ß -> ss). A canonical_email value that folding
+      # would rewrite cannot be judged, matched or indexed under its folded
+      # form without becoming an address nobody asserted; callers refuse it.
+      #
+      # @param email [String, Object] a canonical_email value; a non-String is
+      #   stable (structural guards refuse it on their own)
+      # @return [Boolean]
+      def fold_stable_email?(email)
+        return true unless email.is_a?(String)
+
+        email.downcase(:fold) == email
+      end
+
+      # Build a Redis glob (SCAN/HSCAN/SSCAN MATCH) that matches `term` as a
+      # literal substring regardless of ASCII letter case.
+      #
+      # MATCH is case-sensitive and has no flag to change that, so the only
+      # way to search an index whose keys were written with mixed case (the
+      # customer email_index carries pre-normalization and migrated entries
+      # as they were entered; the organization contact_email_index stores
+      # addresses verbatim) is to widen every ASCII letter to a `[aA]` class.
+      # Glob metacharacters are escaped FIRST so a user-supplied term can
+      # never inject pattern syntax; the class brackets this method adds are
+      # the only unescaped ones in the result.
+      #
+      # Only ASCII letters are widened. Non-ASCII letters pass through as-is,
+      # so a term with an accented character still matches case-sensitively
+      # on that character; the index writers that normalize (Customer.create!)
+      # also case-fold, so the exact-lookup arms cover those keys.
+      #
+      # @param term [String] Raw search term
+      # @return [String] Escaped, case-insensitive glob fragment (no leading or
+      #   trailing `*`; the caller decides whether it is a substring match)
+      #
+      # @example
+      #   glob_case_insensitive('Gam[m]a')  # => '[gG][aA][mM]\\[[mM]\\][aA]'
+      def glob_case_insensitive(term)
+        term.to_s.each_char.map do |char|
+          if char.match?(/[*?\[\]\\]/)
+            "\\#{char}"
+          elsif char.match?(/[a-zA-Z]/)
+            "[#{char.downcase}#{char.upcase}]"
+          else
+            char
+          end
+        end.join
+      end
+
+      # Removes every byte run that is not valid UTF-8 so text of unknown
+      # provenance — a datastore field, a request parameter — can be matched,
+      # printed and JSON-encoded without raising.
+      #
+      # The replacement is a PRESENTATION choice, not a safety one — read that
+      # carefully, because it USED to be a safety one and the comments here said
+      # so. U+FFFD is not in EMAIL_PATTERN's character class, so a marker landing
+      # inside an address (`us\u{FFFD}er@example.com`) stopped the match and
+      # printed the address in full; dropping was the fail-closed default for
+      # that reason. #obscure_email now strips markers as part of its own
+      # normalization, so no caller's redaction depends on this default any
+      # more, and marking is safe to hand to a redactor.
+      #
+      # Choose by what the reader needs to see:
+      #   '' (default) — the text will be read as prose and the corruption is
+      #     noise.
+      #   UNICODE_REPLACEMENT_CHAR — the corruption IS the evidence. This is
+      #     what the diagnose op's Result uses: colonel renders those sections
+      #     verbatim, and a `locale: "en\xFF"` that reads back as a clean "en"
+      #     is a diagnostic tool lying about the state it exists to report.
+      #
+      # A binary-tagged string is `valid_encoding?` whatever bytes it holds, and
+      # matching one against a UTF-8 pattern raises Encoding::CompatibilityError,
+      # so re-tag before consulting the flag.
+      #
+      # @param text [String] Text of unknown encoding
+      # @param replacement [String] Stand-in for each invalid byte run
+      # @return [String] Valid UTF-8 text
+      def utf8_safe(text, replacement: '')
+        text = text.dup.force_encoding(Encoding::UTF_8) unless text.encoding == Encoding::UTF_8
+        text.valid_encoding? ? text : text.scrub(replacement)
+      end
+
+      # @note Uses Mail::Address for parsing, avoiding hand-rolled parsing
+      #   edge cases while keeping the code short and auditable.
+      def obscure_email(text)
+        return text if text.nil? || text.empty?
+
+        # This is a redaction helper on logging and CLI-output paths, and its
+        # input is whatever the datastore or the request held — gsub raises
+        # ArgumentError on invalid UTF-8, which would turn unreadable data into
+        # an outage (see LoginRateLimiter, which obscures a request-supplied
+        # address). Scrub first, then mask what remains.
+        #
+        # Two separate ways a marker can defeat the mask, so both are handled
+        # here rather than assumed away upstream:
+        #
+        #   1. invalid bytes we scrub ourselves — dropped, not marked, so
+        #      `us\xFFer@example.com` collapses to `user@example.com` and still
+        #      matches EMAIL_PATTERN;
+        #   2. a U+FFFD the INPUT already carries — someone upstream scrubbed in
+        #      marker mode (Diagnose#utf8_safe_deep does exactly that, and its
+        #      Result is this method's input on the CLI path). Deleting it is
+        #      the same collapse, one layer later.
+        #
+        # Either way the character is not in EMAIL_PATTERN's class, and an
+        # unmatched address is an address printed in full. This normalization is
+        # the reason #utf8_safe's replacement is now a free choice for callers.
+        #
+        # The cost is deliberate: the masked path silently loses the corruption
+        # marker (`verified\u{FFFD}` prints as `verified`). Operators who need
+        # to see the corruption use `--full` or the colonel panel, both of which
+        # keep the marker and skip this method entirely. A redactor's job is to
+        # never leak; showing damage is someone else's.
+        utf8_safe(text).delete(UNICODE_REPLACEMENT_CHAR).gsub(EMAIL_PATTERN) do |raw|
+          mask_email_address(raw)
+        end
+      end
+
+      # A connection URI with its userinfo and query string replaced by "***",
+      # for log lines and exception messages. Redis/Valkey URIs carry their
+      # password in the userinfo, but also in the query: setup_connection_pool
+      # builds the client options from `parsed_uri.conf`, and uri-valkey's
+      # `conf` merges every query param into Redis.new, so `?password=s3cret`
+      # is a working credential. A URI interpolated into a message is out of
+      # reach of any by-param-name scrubbing downstream. There is no allowlist
+      # of benign params; the whole query goes.
+      #
+      #   redact_uri_userinfo('redis://user:s3cret@db:6379/0')      #=> "redis://***@db:6379/0"
+      #   redact_uri_userinfo('redis://db:6379/0?password=s3cret')  #=> "redis://db:6379/0?***"
+      #   redact_uri_userinfo('redis://db:6379/0?password=p@ss')    #=> "redis://***"
+      #   redact_uri_userinfo('redis://db:6379/0')                  #=> "redis://db:6379/0"
+      #
+      # String-based rather than URI.parse, because the URIs most likely to be
+      # printed are the ones that failed to parse or connect. Everything up to
+      # the LAST "@" counts as userinfo, so an unescaped "@" in a password
+      # redacts too much rather than printing the rest of the password. A "?"
+      # before that "@" is either in the password or starts a query with an
+      # "@" in it (`?password=p@ss`); neither split is safe, so everything
+      # after the scheme is redacted. A SQLite URL is the exception: it has
+      # no userinfo, so its path is kept whole (a ":" or "@" there is part of
+      # the file name) and only its query is masked. The dependency-free
+      # implementation is shared with Auth::DatabaseConnection and the boot
+      # banner.
+      #
+      #   redact_uri_userinfo('sqlite:///tmp/a:b@c.db?key=s3cret')  #=> "sqlite:///tmp/a:b@c.db?***"
+      #
+      # @param uri [String, URI::Generic, nil]
+      # @return [String]
+      def redact_uri_userinfo(uri, keep_username: false, require_scheme: false, mask: '***')
+        ::OnetimeUriRedaction.redact(uri, keep_username: keep_username, require_scheme: require_scheme, mask: mask)
+      end
+
+      # Free text with every embedded URI passed through redact_uri_userinfo,
+      # for exception messages that quote a connection URI. redis-client
+      # appends its server URL to every ConnectionError, and a client that
+      # printed the userinfo there would put the password in the log line.
+      # The prose around the URI is kept: which host refused, which field
+      # was invalid.
+      #
+      #   redact_uris_in_text('refused (redis://u:s3cret@db:6379/0)')
+      #   #=> "refused (redis://***@db:6379/0)"
+      #
+      # A URI runs from its scheme to the next whitespace, so a password
+      # holding ")" or "," is still inside the masked span; the same
+      # punctuation after a query is masked with it, since a "?" hides
+      # everything through the end of the span. A password holding
+      # whitespace ends the span early; nothing can tell its remainder
+      # from prose.
+      #
+      # @param text [String, nil]
+      # @return [String]
+      def redact_uris_in_text(text, mask: '***')
+        utf8_safe(text.to_s).gsub(EMBEDDED_URI_PATTERN) { |uri| redact_uri_userinfo(uri, mask: mask) }
+      end
+
+      # Checks whether a value is an explicitly recognized truthy token.
+      #
+      # This is a recognizer, not a partition: a false return means "not a
+      # truthy token", NOT "falsey". Unrecognized input (typos, blanks) is
+      # neither yes nor no. Use strict_bool! when unrecognized input must
+      # not silently resolve to a default.
+      #
+      # @param value [Object] Value to check
+      # @return [Boolean] true if value is one of TRUTHY_VALUES (case-insensitive, whitespace-tolerant)
+      def explicit_yes?(value)
+        TRUTHY_VALUES.include?(value.to_s.strip.downcase)
+      end
+      alias yes? explicit_yes?
+
+      # Checks whether a value is an explicitly recognized falsey token.
+      # Complement of explicit_yes?, not its negation: both return false for
+      # unrecognized input.
+      #
+      # @param value [Object] Value to check
+      # @return [Boolean] true if value is one of FALSEY_VALUES (case-insensitive, whitespace-tolerant)
+      def explicit_no?(value)
+        FALSEY_VALUES.include?(value.to_s.strip.downcase)
+      end
+
+      # Resolves an operator-supplied boolean, failing loudly on anything
+      # unrecognized (ADR-033). Blank/nil means unset and takes the caller's
+      # documented default; a typo raises instead of silently landing on
+      # false, which would disable a default-ON control.
+      #
+      # The rejected value is never reproduced in the message. This method is
+      # public, so a future caller can hand it anything an operator put in an
+      # env var — including a value misrouted from a credential — and the
+      # message lands in logs, a boot trace, and Sentry's issue title, where
+      # by-param-name scrubbing cannot reach a string that was interpolated
+      # into the exception itself. Suppression therefore has to happen here,
+      # at the raise. Echoing a truncated head is not a fix: secrets are
+      # usually shorter than any sane cap, so truncation bounds volume, not
+      # sensitivity.
+      #
+      # What the message carries instead: the flag name (the actionable part —
+      # the operator knows where they set it), the character count, and a
+      # truncated SHA-256 of the normalized value. The digest is not
+      # reversible for a high-entropy value, is deterministic so two hosts
+      # with the same typo produce the same tag, and can be recomputed locally
+      # to confirm which value a log line refers to. Honest caveat: 8 hex
+      # characters of a low-entropy value like "ture" is brute-forceable —
+      # which is fine, because low-entropy values are exactly the case that
+      # was never sensitive.
+      #
+      # @param name [String] Flag name, for the error message (e.g. 'RABBITMQ_VERIFY_PEER')
+      # @param raw [Object] Raw value as supplied
+      # @param default [Boolean] Value to use when raw is unset/blank
+      # @return [Boolean]
+      # @raise [Onetime::ConfigError] if raw is present but not a recognized token
+      def strict_bool!(name, raw, default:)
+        # Normalize exactly once so the blank guard and the token tables can
+        # never disagree about what normalization means.
+        value = raw.to_s.strip.downcase
+        return default if value.empty?
+        return true    if TRUTHY_VALUES.include?(value)
+        return false   if FALSEY_VALUES.include?(value)
+
+        raise Onetime::ConfigError,
+          "#{name} is set to an unrecognized boolean " \
+          "(#{value.length} chars, sha256:#{::Digest::SHA256.hexdigest(value)[0, BOOL_DIGEST_LENGTH]}). " \
+          "Use one of #{TRUTHY_VALUES.join('/')} or #{FALSEY_VALUES.join('/')}, or leave unset."
+      end
+      module_function :strict_bool!
+
+      private
+
+      # Masks a single email address string
+      # @param raw [String] Raw email address to mask
+      # @return [String] Masked email address
+      def mask_email_address(raw)
+        addr = ::Mail::Address.new(raw)
+        return mask_unparsed_address(raw) unless addr.local && addr.domain
+
+        local  = mask_string_head(addr.local, EMAIL_MASK_MIN_LOCAL)
+        domain = mask_domain(addr.domain)
+        "#{local}@#{domain}"
+      rescue StandardError
+        # Mail gem can raise various exceptions (ParseError, ArgumentError,
+        # Encoding::CompatibilityError).
+        mask_unparsed_address(raw)
+      end
+
+      # Last-resort mask for an address the mail gem could not parse. Returning
+      # `raw` here would print in the clear the very address EMAIL_PATTERN just
+      # identified, so mask without parsing: keep the local-part head and the
+      # final label, which is all an operator needs to tell two addresses apart.
+      # @param raw [String] Address that failed to parse
+      # @return [String] Masked address
+      def mask_unparsed_address(raw)
+        local, _, domain = raw.include?('@') ? raw.rpartition('@') : [raw, '', '']
+        mask             = EMAIL_MASK_CHAR * EMAIL_MASK_LENGTH
+        tld              = domain.split('.').last
+        masked_domain    = tld.to_s.empty? ? mask : "#{mask}.#{tld}"
+        "#{mask_string_head(local, EMAIL_MASK_MIN_LOCAL)}@#{masked_domain}"
+      end
+
+      # Splits domain and masks the host portion, preserving TLD
+      # Uses PublicSuffix for reliable TLD detection (handles .co.uk, .com.au, etc.)
+      # @param domain [String] Full domain (e.g., "mail.example.co.uk")
+      # @return [String] Masked domain (e.g., "m***.co.uk")
+      def mask_domain(domain)
+        parsed = PublicSuffix.parse(domain, ignore_private: true)
+
+        # Build host from subdomain (trd) and second-level domain (sld)
+        host = parsed.trd ? "#{parsed.trd}.#{parsed.sld}" : parsed.sld
+        tld  = parsed.tld
+
+        return tld if host.nil? || host.empty?
+
+        masked_host = mask_string_head(host, 1)
+        "#{masked_host}.#{tld}"
+      rescue PublicSuffix::DomainNotAllowed, PublicSuffix::DomainInvalid
+        # Fallback for invalid/unlisted domains: mask first part, keep rest
+        parts = domain.split('.')
+        return domain if parts.size < 2
+
+        "#{mask_string_head(parts.first, 1)}.#{parts[1..].join('.')}"
+      end
+
+      # Masks a string keeping only the first N characters visible
+      # @param str [String] String to mask
+      # @param keep_head [Integer] Number of leading characters to preserve
+      # @return [String] Masked string
+      def mask_string_head(str, keep_head)
+        return str if str.nil? || str.length <= keep_head
+
+        visible = str[0, keep_head]
+        "#{visible}#{EMAIL_MASK_CHAR * EMAIL_MASK_LENGTH}"
+      end
+    end
+  end
+end

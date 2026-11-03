@@ -1,0 +1,150 @@
+{
+  "web.admin.audit.title": {
+    "text": "Registre d'auditoria",
+    "source_hash": "47751f88"
+  },
+  "web.admin.audit.description": {
+    "text": "Cada acció d'administració que modifica dades, la més recent primer — qui ha fet què a qui, i com ha anat.",
+    "source_hash": "2326a1a0"
+  },
+  "web.admin.audit.categories.customer": {
+    "text": "Clients",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.audit.categories.session": {
+    "text": "Sessions",
+    "source_hash": "6fa3cbf4"
+  },
+  "web.admin.audit.categories.domain": {
+    "text": "Dominis",
+    "source_hash": "ced67718"
+  },
+  "web.admin.audit.categories.organization": {
+    "text": "Organitzacions",
+    "source_hash": "2730183d"
+  },
+  "web.admin.audit.categories.banner": {
+    "text": "Bàner",
+    "source_hash": "b7f4d98f"
+  },
+  "web.admin.audit.categories.queue": {
+    "text": "Cues",
+    "source_hash": "be77db11"
+  },
+  "web.admin.audit.categories.email": {
+    "text": "Correu electrònic",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.audit.categories.ratelimit": {
+    "text": "Límits de freqüència",
+    "source_hash": "6ed021f7"
+  },
+  "web.admin.audit.categories.ip": {
+    "text": "Bloquejos d'IP",
+    "source_hash": "48cdea49"
+  },
+  "web.admin.audit.columns.timestamp": {
+    "text": "Marca de temps",
+    "source_hash": "115a2cc9"
+  },
+  "web.admin.audit.columns.actor": {
+    "text": "Actor",
+    "source_hash": "449995c4"
+  },
+  "web.admin.audit.columns.action": {
+    "text": "Acció",
+    "source_hash": "64cff131"
+  },
+  "web.admin.audit.columns.target": {
+    "text": "Objectiu",
+    "source_hash": "978354db"
+  },
+  "web.admin.audit.columns.result": {
+    "text": "Resultat",
+    "source_hash": "6e7d50e8"
+  },
+  "web.admin.audit.columns.detail": {
+    "text": "Detall",
+    "source_hash": "fb5f27d5"
+  },
+  "web.admin.audit.filters.actorPlaceholder": {
+    "text": "Filtra per actor (extid o correu electrònic)",
+    "source_hash": "966aa580"
+  },
+  "web.admin.audit.filters.actionLabel": {
+    "text": "Acció",
+    "source_hash": "64cff131"
+  },
+  "web.admin.audit.filters.allActions": {
+    "text": "Totes les accions",
+    "source_hash": "83140cf1"
+  },
+  "web.admin.audit.list.loadError": {
+    "text": "No s'ha pogut carregar el registre d'auditoria.",
+    "source_hash": "acf244f4"
+  },
+  "web.admin.audit.list.retry": {
+    "text": "Torna-ho a provar",
+    "source_hash": "942087cc"
+  },
+  "web.admin.audit.list.empty": {
+    "text": "Encara no s'ha registrat cap esdeveniment d'auditoria",
+    "source_hash": "8fe0cac3"
+  },
+  "web.admin.audit.result.success": {
+    "text": "Èxit",
+    "source_hash": "c88a0b90"
+  },
+  "web.admin.audit.result.failure": {
+    "text": "Error",
+    "source_hash": "7031edbc"
+  },
+  "web.admin.audit.categories.secret": {
+    "text": "Secrets",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.audit.categories.membership": {
+    "text": "Membres",
+    "source_hash": "b50f1a42"
+  },
+  "web.admin.audit.categories.entitlement_preview": {
+    "text": "Previsualitzacions de drets",
+    "source_hash": "255c5797"
+  },
+  "web.admin.audit.categories.colonel": {
+    "text": "Inicis de sessió de Colonel",
+    "source_hash": "01eeeb38"
+  },
+  "web.admin.audit.filters.actorLabel": {
+    "text": "Actor",
+    "source_hash": "449995c4"
+  },
+  "web.admin.audit.filters.searchButton": {
+    "text": "Cerca",
+    "source_hash": "49c266ba"
+  },
+  "web.admin.audit.filters.searchHint": {
+    "text": "Escriu un actor, després prem Retorn o tria Cerca per executar-lo. La llista no s'actualitza mentre escrius.",
+    "source_hash": "45eceb12"
+  },
+  "web.admin.audit.filters.pendingSearch": {
+    "text": "Encara no s'ha cercat — prem Retorn o tria Cerca per aplicar aquest actor.",
+    "source_hash": "f76095c2"
+  },
+  "web.admin.audit.list.contractError": {
+    "text": "El servidor ha respost, però les dades d'auditoria no coincideixen amb el format esperat. No es poden mostrar esdeveniments — és un error de report, no un registre buit.",
+    "source_hash": "7f48137e"
+  },
+  "web.admin.audit.export.csv": {
+    "text": "Exporta CSV",
+    "source_hash": "91f71c14"
+  },
+  "web.admin.audit.export.ndjson": {
+    "text": "Exporta NDJSON",
+    "source_hash": "3ee2c07c"
+  },
+  "web.admin.audit.export.hint": {
+    "text": "Les exportacions cobreixen tot l'historial conservat amb els filtres actuals, no només aquesta pàgina. La retenció és limitada — l'historial més antic es troba al destí del registre d'auditoria.",
+    "source_hash": "163e8ad0"
+  }
+}

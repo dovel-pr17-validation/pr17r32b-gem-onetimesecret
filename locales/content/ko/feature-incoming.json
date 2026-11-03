@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "비밀 메시지 보내기",
+    "source_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "지원팀과 민감한 정보를 안전하게 공유하세요",
+    "source_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "로딩 중...",
+    "source_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "설정 로드 실패",
+    "source_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "기능 사용 불가",
+    "source_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "이 기능은 현재 비활성화되어 있습니다. 도움이 필요하시면 고객 지원에 문의해 주세요.",
+    "source_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "메모",
+    "source_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "간단한 설명 (예: 비밀번호 재설정 요청)",
+    "source_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "메시지를 적절한 담당자에게 전달하는 데 도움이 됩니다",
+    "source_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "수신자",
+    "source_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "수신자 선택",
+    "source_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "이 비밀 메시지의 수신자를 선택하세요",
+    "source_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "이 보안 메시지를 받을 사람을 선택하세요",
+    "source_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "사용 가능한 수신자가 없습니다",
+    "source_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "비밀 정보",
+    "source_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "민감한 정보를 여기에 붙여넣으세요 (비밀번호, 키 등)",
+    "source_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "이 정보는 암호화되며 한 번만 볼 수 있습니다",
+    "source_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "비밀 메시지 보내기",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "비밀 메시지 보내기",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "전송 중...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "전송 중...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "양식 지우기",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "양식 지우기",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "성공적으로 전송됨",
+    "source_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "보안 메시지가 전달되었습니다.",
+    "source_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "참조 ID",
+    "source_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "다음 단계는?",
+    "source_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "수신자는 이 비밀 메시지를 한 번만 볼 수 있습니다. 확인 후 비밀 메시지는 영구적으로 삭제됩니다.",
+    "source_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "다른 비밀 메시지 보내기",
+    "source_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "민감한 정보를 안전하게 공유하세요",
+    "source_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "비밀번호와 개인 데이터를 이메일 및 채팅 기록에서 보호하세요",
+    "source_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "{receipt}을(를) 기록용으로 저장하세요.",
+    "source_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "수신확인",
+    "source_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "업그레이드 필요",
+    "source_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "이 기능을 사용하려면 요금제 업그레이드가 필요합니다. 수신 비밀 메시지를 활성화하려면 계정 소유자에게 문의하세요.",
+    "source_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "메모는 {max}자 이하여야 합니다",
+    "source_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "비밀 메시지 내용을 입력해야 합니다",
+    "source_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "받는 사람을 선택해 주세요",
+    "source_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "수신 비밀 메시지 기능이 활성화되어 있지 않습니다",
+    "source_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "양식에 오류가 없는지 확인해 주세요",
+    "source_hash": "9056e064"
+  }
+}

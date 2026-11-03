@@ -1,0 +1,200 @@
+<!-- src/apps/workspace/components/dashboard/DomainsTableActionsCell.vue -->
+
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+  import OIcon from '@/shared/components/icons/OIcon.vue';
+  import MinimalDropdownMenu from '@/shared/components/ui/MinimalDropdownMenu.vue';
+  import { CustomDomain } from '@/schemas/shapes/v3'
+  import { MenuItem } from '@headlessui/vue';
+  import { useDomainStatus } from '@/shared/composables/useDomainStatus';
+  import { isDomainOwnershipChecked } from '@/utils/features';
+  import { computed, toRef } from 'vue';
+
+const { t } = useI18n();
+
+  interface Props {
+    domain: CustomDomain;
+    orgid: string;
+    /** Current user is owner or admin — can modify domain config */
+    canAdmin?: boolean;
+    canBrand?: boolean;
+    canManageSso?: boolean;
+    canEmailConfig?: boolean;
+    canIncomingSecrets?: boolean;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    canAdmin: true,
+    canBrand: false,
+    canManageSso: false,
+    canEmailConfig: false,
+    canIncomingSecrets: false,
+  });
+
+  const disabledItemClass = 'pointer-events-none opacity-50';
+
+  // Domain verification status
+  const { isActive, isAwaitingCertificate } = useDomainStatus(toRef(() => props.domain));
+
+  // The status only carries meaning when the strategy checks ownership
+  // (approximated, caddy_on_demand). On other installs it never populates, so
+  // it must not gate the Manage button or point the menu at the verification
+  // screen. See isDomainOwnershipChecked().
+  const showVerificationStatus = computed(() => isDomainOwnershipChecked());
+
+  /**
+   * Primary action to surface outside the kebab menu.
+   * On installs that check ownership, only shown when the domain is active or
+   * is verified and waiting for its first certificate (no issues) — when there
+   * ARE issues, the clickable status text in the domain cell already serves as
+   * the action. On other installs there is no status,
+   * so Manage is always surfaced.
+   */
+  const primaryAction = computed(() => {
+    // Don't show button when a checked domain has issues — status text is
+    // already clickable.
+    if (showVerificationStatus.value && !isActive.value && !isAwaitingCertificate.value) return null;
+
+    return {
+      label: t('web.domains.detail.manage'),
+      route: { name: 'DomainDetail', params: { orgid: props.orgid, extid: props.domain.extid } },
+      icon: 'cog-6-tooth',
+      style: 'default',
+    };
+  });
+
+  /**
+   * DNS/verification menu entry. Installs that check ownership route to the
+   * verification screen; other installs route to the simpler CNAME-instructions
+   * screen.
+   */
+  const dnsMenuItem = computed(() =>
+    showVerificationStatus.value
+      ? { route: { name: 'DomainVerify', params: { orgid: props.orgid, extid: props.domain.extid } }, label: t('web.domains.verify_domain') }
+      : { route: { name: 'DomainDns', params: { orgid: props.orgid, extid: props.domain.extid } }, label: t('web.domains.detail.dns_title') }
+  );
+
+  const emit = defineEmits<{
+    (e: 'delete', domain: string): void
+  }>();
+
+  const handleDelete = (domain: string) => {
+    emit('delete', domain);
+  };
+
+</script>
+
+<template>
+  <div class="flex items-center justify-end gap-2">
+    <!-- Primary action button (surfaced for quick access when domain is healthy) -->
+    <router-link
+      v-if="primaryAction"
+      :to="primaryAction.route"
+      class="inline-flex items-center gap-1.5 rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+      <OIcon
+        collection="heroicons"
+        :name="primaryAction.icon"
+        class="size-3.5"
+        aria-hidden="true" />
+      {{ primaryAction.label }}
+    </router-link>
+
+    <!-- Kebab menu for all actions -->
+    <MinimalDropdownMenu>
+    <template #menu-items>
+      <div class="py-1">
+        <MenuItem v-if="canBrand" v-slot="{ active }">
+          <router-link
+            :to="{
+              name: 'DomainBrand',
+              params: { orgid: props.orgid, extid: domain.extid },
+            }"
+            :class="[
+              active
+                ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                : 'text-gray-700 dark:text-gray-200',
+              'block px-4 py-2 text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500',
+            ]">
+            {{ t('web.domains.manage_brand') }}
+          </router-link>
+        </MenuItem>
+        <MenuItem v-slot="{ active }">
+          <router-link
+            :to="dnsMenuItem.route"
+            :class="[
+              active
+                ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                : 'text-gray-700 dark:text-gray-200',
+              'block px-4 py-2 text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500',
+            ]">
+            {{ dnsMenuItem.label }}
+          </router-link>
+        </MenuItem>
+        <MenuItem v-if="canManageSso"
+:disabled="!canAdmin"
+v-slot="{ active }">
+          <router-link
+            :to="canAdmin ? { name: 'DomainSigninSso', params: { orgid: props.orgid, extid: domain.extid } } : ''"
+            :class="[
+              active && canAdmin
+                ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                : 'text-gray-700 dark:text-gray-200',
+              'block px-4 py-2 text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500',
+              !canAdmin ? disabledItemClass : '',
+            ]"
+            @click.prevent="!canAdmin && $event.stopImmediatePropagation()">
+            {{ t('web.domains.sso.configure_sso') }}
+          </router-link>
+        </MenuItem>
+        <MenuItem v-if="canEmailConfig"
+:disabled="!canAdmin"
+v-slot="{ active }">
+          <router-link
+            :to="canAdmin ? { name: 'DomainEmail', params: { orgid: props.orgid, extid: domain.extid } } : ''"
+            :class="[
+              active && canAdmin
+                ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                : 'text-gray-700 dark:text-gray-200',
+              'block px-4 py-2 text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500',
+              !canAdmin ? disabledItemClass : '',
+            ]"
+            @click.prevent="!canAdmin && $event.stopImmediatePropagation()">
+            {{ t('web.domains.email.configure_email') }}
+          </router-link>
+        </MenuItem>
+        <MenuItem v-if="canIncomingSecrets"
+:disabled="!canAdmin"
+v-slot="{ active }">
+          <router-link
+            :to="canAdmin ? { name: 'DomainIncoming', params: { orgid: props.orgid, extid: domain.extid } } : ''"
+            :class="[
+              active && canAdmin
+                ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                : 'text-gray-700 dark:text-gray-200',
+              'block px-4 py-2 text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500',
+              !canAdmin ? disabledItemClass : '',
+            ]"
+            @click.prevent="!canAdmin && $event.stopImmediatePropagation()">
+            {{ t('web.domains.incoming.configure_incoming') }}
+          </router-link>
+        </MenuItem>
+        <MenuItem v-if="canAdmin" v-slot="{ active }">
+          <button
+            @click="handleDelete(domain.extid)"
+            :class="[
+              active ? 'bg-gray-100 dark:bg-gray-800' : '',
+              'flex w-full items-center px-4 py-2 text-sm text-red-600 transition-colors duration-200 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500',
+            ]">
+            <OIcon
+              collection="heroicons"
+              name="trash-20-solid"
+              class="mr-2 size-4"
+              aria-hidden="true" />
+            {{ t('web.COMMON.remove') }}
+          </button>
+        </MenuItem>
+      </div>
+    </template>
+  </MinimalDropdownMenu>
+  </div>
+</template>

@@ -1,0 +1,1414 @@
+{
+  "web.organizations.title": {
+    "text": "Organisationen",
+    "source_hash": "2730183d"
+  },
+  "web.organizations.organization": {
+    "text": "Arbeitsbereich",
+    "source_hash": "87bb59ba"
+  },
+  "web.organizations.organization_plural": {
+    "text": "Organisationen",
+    "source_hash": "2730183d"
+  },
+  "web.organizations.organizations_description": {
+    "text": "Verwalte deine Organisationen",
+    "source_hash": "dbaa4f92"
+  },
+  "web.organizations.my_organizations": {
+    "text": "Arbeitsbereiche",
+    "source_hash": "1377264b"
+  },
+  "web.organizations.manage_organizations": {
+    "text": "Arbeitsbereiche verwalten",
+    "source_hash": "cc2d65f8"
+  },
+  "web.organizations.new_organization": {
+    "text": "Neue Organisation",
+    "source_hash": "4876e647"
+  },
+  "web.organizations.no_organizations": {
+    "text": "Noch keine Arbeitsbereiche",
+    "source_hash": "97d0b117"
+  },
+  "web.organizations.no_organizations_description": {
+    "text": "Arbeitsbereiche bieten einheitliche Abrechnung und Verwaltung. Beginne, indem du deinen ersten Arbeitsbereich erstellst.",
+    "source_hash": "f09d4987"
+  },
+  "web.organizations.no_description": {
+    "text": "Keine Beschreibung angegeben",
+    "source_hash": "41183d01"
+  },
+  "web.organizations.default": {
+    "text": "Standard",
+    "source_hash": "21b111cb"
+  },
+  "web.organizations.create_organization": {
+    "text": "Organisation erstellen",
+    "source_hash": "e27f4540"
+  },
+  "web.organizations.create_first_organization": {
+    "text": "Ersten Arbeitsbereich erstellen",
+    "source_hash": "98a583b4"
+  },
+  "web.organizations.create_organization_description": {
+    "text": "Einen neuen Arbeitsbereich erstellen",
+    "source_hash": "6ac2b5fc"
+  },
+  "web.organizations.create": {
+    "text": "Erstellen",
+    "source_hash": "4759498a"
+  },
+  "web.organizations.create_error": {
+    "text": "Arbeitsbereich konnte nicht erstellt werden",
+    "source_hash": "0a8d4fd6"
+  },
+  "web.organizations.organization_name": {
+    "text": "Name des Arbeitsbereichs",
+    "source_hash": "6fa5a5b1"
+  },
+  "web.organizations.organization_name_placeholder": {
+    "text": "z.B. Acme Corporation",
+    "source_hash": "ac1c804b"
+  },
+  "web.organizations.display_name": {
+    "text": "Organisationsname",
+    "source_hash": "4cbd9073"
+  },
+  "web.organizations.description": {
+    "text": "Beschreibung",
+    "source_hash": "526e0087"
+  },
+  "web.organizations.description_placeholder": {
+    "text": "Wofür ist diese Organisation?",
+    "source_hash": "27d7edae"
+  },
+  "web.organizations.contact_email": {
+    "text": "Rechnungs-E-Mail",
+    "source_hash": "513332d3"
+  },
+  "web.organizations.contact_email_help": {
+    "text": "Hauptkontakt für Abrechnungs- und Administrationsbenachrichtigungen",
+    "source_hash": "ee81c03d"
+  },
+  "web.organizations.select_organization": {
+    "text": "Einen Arbeitsbereich auswählen",
+    "source_hash": "70a8ce66"
+  },
+  "web.organizations.switcher_locked": {
+    "text": "Der Wechsel des Arbeitsbereichs ist auf dieser Seite nicht verfügbar",
+    "source_hash": "c34114ac"
+  },
+  "web.organizations.not_found": {
+    "text": "Organisation nicht gefunden",
+    "source_hash": "00c50f7a"
+  },
+  "web.organizations.load_error": {
+    "text": "Organisation konnte nicht geladen werden",
+    "source_hash": "6b5fa342"
+  },
+  "web.organizations.fetch_organization_error": {
+    "text": "Organisation konnte nicht geladen werden",
+    "source_hash": "6b5fa342"
+  },
+  "web.organizations.fetch_organizations_error": {
+    "text": "Organisationen konnten nicht geladen werden",
+    "source_hash": "03b30208"
+  },
+  "web.organizations.organization_information": {
+    "text": "Organisationsinformationen",
+    "source_hash": "85274cee"
+  },
+  "web.organizations.created": {
+    "text": "Erstellt",
+    "source_hash": "d70b9e24"
+  },
+  "web.organizations.last_updated": {
+    "text": "Zuletzt aktualisiert",
+    "source_hash": "048c7f2e"
+  },
+  "web.organizations.organization_settings": {
+    "text": "Organisationseinstellungen",
+    "source_hash": "cc1d9e61"
+  },
+  "web.organizations.organization_settings_description": {
+    "text": "Aktualisiere deinen Organisationsnamen und deine Beschreibung",
+    "source_hash": "2d8b5b2b"
+  },
+  "web.organizations.general_settings": {
+    "text": "Allgemeine Einstellungen",
+    "source_hash": "de322f87"
+  },
+  "web.organizations.billing_settings": {
+    "text": "Abrechnung & Abonnement",
+    "source_hash": "896913f0"
+  },
+  "web.organizations.save_changes": {
+    "text": "Änderungen speichern",
+    "source_hash": "35322b5b"
+  },
+  "web.organizations.update_success": {
+    "text": "Organisation erfolgreich aktualisiert",
+    "source_hash": "af39d0f3"
+  },
+  "web.organizations.update_error": {
+    "text": "Organisation konnte nicht aktualisiert werden",
+    "source_hash": "bc2b59b8"
+  },
+  "web.organizations.billing_email_updated": {
+    "text": "Rechnungs-E-Mail erfolgreich aktualisiert",
+    "source_hash": "080a7f11"
+  },
+  "web.organizations.billing_email_managed_on_billing": {
+    "text": "Die Rechnungs-E-Mail kann auf der Abrechnungsübersicht-Seite geändert werden",
+    "source_hash": "8a131415"
+  },
+  "web.organizations.billing_coming_soon": {
+    "text": "Abrechnungsintegration bald verfügbar",
+    "source_hash": "d3e0ec75"
+  },
+  "web.organizations.billing_coming_soon_description": {
+    "text": "Vereinheitlichte Abrechnungs- und Abonnementverwaltung wird in einer zukünftigen Version verfügbar sein.",
+    "source_hash": "8836108f"
+  },
+  "web.organizations.about_title": {
+    "text": "Über Organisationen",
+    "source_hash": "2f3e2ad8"
+  },
+  "web.organizations.about_description": {
+    "text": "Organisationen bieten einheitliche Abrechnung und Verwaltung für eine zentralisierte Steuerung.",
+    "source_hash": "910f97a8"
+  },
+  "web.organizations.single_user_info_title": {
+    "text": "Deine Organisation verwalten",
+    "source_hash": "810a6c86"
+  },
+  "web.organizations.single_user_info_description": {
+    "text": "Aktualisiere hier deinen Firmennamen und deine Organisationsdetails. Diese Informationen helfen dabei, dein Konto zu personalisieren und können für zukünftige Branding-Funktionen verwendet werden.",
+    "source_hash": "96b2e4b5"
+  },
+  "web.organizations.getting_started_title": {
+    "text": "Erste Schritte mit Organisationen",
+    "source_hash": "2871e738"
+  },
+  "web.organizations.getting_started_description": {
+    "text": "Erstelle deine erste Organisation, um deine Unternehmensinformationen zu verwalten und dich auf zukünftige Branding-Funktionen vorzubereiten.",
+    "source_hash": "0487f33a"
+  },
+  "web.organizations.page_description": {
+    "text": "Verwalte deine Organisationen und Teammitglieder",
+    "source_hash": "2d026be4"
+  },
+  "web.organizations.tabs.general": {
+    "text": "Einstellungen",
+    "source_hash": "74a883a0"
+  },
+  "web.organizations.tabs.company_branding": {
+    "text": "Firmen-Branding",
+    "source_hash": "7ecc5d35"
+  },
+  "web.organizations.tabs.members": {
+    "text": "Mitglieder",
+    "source_hash": "1044a4c0"
+  },
+  "web.organizations.tabs.billing": {
+    "text": "Abrechnung",
+    "source_hash": "3ac8bbca"
+  },
+  "web.organizations.tabs.subscription": {
+    "text": "Abonnement",
+    "source_hash": "4999c6c6"
+  },
+  "web.organizations.delete_organization": {
+    "text": "Organisation löschen",
+    "source_hash": "54b2edc7"
+  },
+  "web.organizations.delete_organization_warning": {
+    "text": "Dies wird die Organisation dauerhaft löschen. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "source_hash": "ab2d2c05"
+  },
+  "web.organizations.delete": {
+    "text": "Löschen",
+    "source_hash": "e2d0a549"
+  },
+  "web.organizations.delete_organization_confirm_title": {
+    "text": "Organisation löschen",
+    "source_hash": "54b2edc7"
+  },
+  "web.organizations.delete_organization_confirm_message": {
+    "text": "Bist du sicher, dass du {name} löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "source_hash": "db7e1f9d"
+  },
+  "web.organizations.delete_error": {
+    "text": "Organisation konnte nicht gelöscht werden",
+    "source_hash": "a8e5bb28"
+  },
+  "web.organizations.members.title": {
+    "text": "Mitglieder",
+    "source_hash": "1044a4c0"
+  },
+  "web.organizations.members.description": {
+    "text": "Verwalte Organisationsmitglieder und ihre Rollen",
+    "source_hash": "1353774c"
+  },
+  "web.organizations.members.current_members": {
+    "text": "Aktuelle Mitglieder",
+    "source_hash": "cfc156ae"
+  },
+  "web.organizations.members.member": {
+    "text": "Mitglied",
+    "source_hash": "7c968fb7"
+  },
+  "web.organizations.members.member_singular": {
+    "text": "Mitglied",
+    "source_hash": "e31ab643"
+  },
+  "web.organizations.members.member_plural": {
+    "text": "Mitglieder",
+    "source_hash": "17373ca1"
+  },
+  "web.organizations.members.name": {
+    "text": "Name",
+    "source_hash": "dcd1d522"
+  },
+  "web.organizations.members.email": {
+    "text": "E-Mail",
+    "source_hash": "969ccbd3"
+  },
+  "web.organizations.members.role": {
+    "text": "Rolle",
+    "source_hash": "14736a2e"
+  },
+  "web.organizations.members.joined": {
+    "text": "Beigetreten",
+    "source_hash": "69318b0c"
+  },
+  "web.organizations.members.actions": {
+    "text": "Aktionen",
+    "source_hash": "ff8059dc"
+  },
+  "web.organizations.members.no_members": {
+    "text": "Noch keine Mitglieder. Lade Teammitglieder ein, um loszulegen.",
+    "source_hash": "6cbc5271"
+  },
+  "web.organizations.members.no_members_description": {
+    "text": "Diese Organisation hat noch keine Mitglieder.",
+    "source_hash": "61dd2085"
+  },
+  "web.organizations.members.role_updated": {
+    "text": "Mitgliederrolle erfolgreich aktualisiert",
+    "source_hash": "d0d332c6"
+  },
+  "web.organizations.members.role_update_error": {
+    "text": "Mitgliederrolle konnte nicht aktualisiert werden",
+    "source_hash": "17d5ca66"
+  },
+  "web.organizations.members.member_removed": {
+    "text": "Mitglied aus Organisation entfernt",
+    "source_hash": "210a187b"
+  },
+  "web.organizations.members.member_remove_error": {
+    "text": "Mitglied konnte nicht entfernt werden",
+    "source_hash": "1cff79b7"
+  },
+  "web.organizations.members.remove_member_title": {
+    "text": "Mitglied entfernen",
+    "source_hash": "2b98b194"
+  },
+  "web.organizations.members.remove_member_confirm": {
+    "text": "Bist du sicher, dass du {name} aus dieser Organisation entfernen möchtest?",
+    "source_hash": "36695d98"
+  },
+  "web.organizations.members.cannot_change_own_role": {
+    "text": "Du kannst deine eigene Rolle nicht ändern",
+    "source_hash": "0d874f75"
+  },
+  "web.organizations.members.cannot_remove_self": {
+    "text": "Du kannst dich nicht selbst aus der Organisation entfernen",
+    "source_hash": "ab358307"
+  },
+  "web.organizations.members.cannot_remove_owner": {
+    "text": "Du kannst den Organisationsinhaber nicht entfernen",
+    "source_hash": "c92ed0f4"
+  },
+  "web.organizations.members.insufficient_permissions": {
+    "text": "Du hast keine Berechtigung, Mitglieder zu verwalten",
+    "source_hash": "d6239f33"
+  },
+  "web.organizations.members.roles.owner": {
+    "text": "Inhaber",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.organizations.members.roles.admin": {
+    "text": "Admin",
+    "source_hash": "c1c224b0"
+  },
+  "web.organizations.members.roles.member": {
+    "text": "Mitglied",
+    "source_hash": "7c968fb7"
+  },
+  "web.organizations.members.role_descriptions.owner": {
+    "text": "Vollständiger Zugang zu allen Organisationseinstellungen und Mitgliedern",
+    "source_hash": "d49381bf"
+  },
+  "web.organizations.members.role_descriptions.admin": {
+    "text": "Kann Mitglieder und die meisten Organisationseinstellungen verwalten",
+    "source_hash": "3d7ade92"
+  },
+  "web.organizations.members.role_descriptions.member": {
+    "text": "Grundlegender Zugang zu Organisationsressourcen",
+    "source_hash": "0ddca91a"
+  },
+  "web.organizations.invitations.title": {
+    "text": "Organisationseinladungen",
+    "source_hash": "0289d92d"
+  },
+  "web.organizations.invitations.invite_member": {
+    "text": "Mitglied einladen",
+    "source_hash": "8e8a0b88"
+  },
+  "web.organizations.invitations.invite_new_member": {
+    "text": "Neues Mitglied einladen",
+    "source_hash": "0bfb50ed"
+  },
+  "web.organizations.invitations.pending_invitations": {
+    "text": "Ausstehende Einladungen",
+    "source_hash": "b327e8a8"
+  },
+  "web.organizations.invitations.no_pending_invitations": {
+    "text": "Keine ausstehenden Einladungen",
+    "source_hash": "275814da"
+  },
+  "web.organizations.invitations.email_address": {
+    "text": "E-Mail-Adresse",
+    "source_hash": "09bf25ef"
+  },
+  "web.organizations.invitations.email_placeholder": {
+    "text": "mitglied{'@'}example.com",
+    "source_hash": "7fd425f7"
+  },
+  "web.organizations.invitations.role": {
+    "text": "Rolle",
+    "source_hash": "14736a2e"
+  },
+  "web.organizations.invitations.send_invite": {
+    "text": "Einladung senden",
+    "source_hash": "d076aa0f"
+  },
+  "web.organizations.invitations.invite_sent": {
+    "text": "Einladung erfolgreich gesendet",
+    "source_hash": "81facbe6"
+  },
+  "web.organizations.invitations.invite_error": {
+    "text": "Einladung konnte nicht gesendet werden",
+    "source_hash": "cedbf507"
+  },
+  "web.organizations.invitations.resend": {
+    "text": "Erneut senden",
+    "source_hash": "1f948437"
+  },
+  "web.organizations.invitations.revoke": {
+    "text": "Widerrufen",
+    "source_hash": "87e6d00b"
+  },
+  "web.organizations.invitations.resend_success": {
+    "text": "Einladung erfolgreich erneut gesendet",
+    "source_hash": "099eb255"
+  },
+  "web.organizations.invitations.resend_error": {
+    "text": "Einladung konnte nicht erneut gesendet werden",
+    "source_hash": "82750487"
+  },
+  "web.organizations.invitations.revoke_success": {
+    "text": "Einladung erfolgreich widerrufen",
+    "source_hash": "4ce1262c"
+  },
+  "web.organizations.invitations.revoke_error": {
+    "text": "Einladung konnte nicht widerrufen werden",
+    "source_hash": "9dbd2a60"
+  },
+  "web.organizations.invitations.invited_by": {
+    "text": "Eingeladen von",
+    "source_hash": "c7a6f156"
+  },
+  "web.organizations.invitations.invited_at": {
+    "text": "Eingeladen",
+    "source_hash": "63b17bec"
+  },
+  "web.organizations.invitations.expires_at": {
+    "text": "Läuft ab",
+    "source_hash": "f6725f3a"
+  },
+  "web.organizations.invitations.resent_count": {
+    "text": "{count} Mal erneut gesendet",
+    "source_hash": "e71d1c6d"
+  },
+  "web.organizations.invitations.resent_count_plural": {
+    "text": "{count} Mal erneut gesendet",
+    "source_hash": "e58d803d"
+  },
+  "web.organizations.invitations.status.pending": {
+    "text": "Ausstehend",
+    "source_hash": "331551b0"
+  },
+  "web.organizations.invitations.status.accepted": {
+    "text": "Angenommen",
+    "source_hash": "a00fb0c5"
+  },
+  "web.organizations.invitations.status.declined": {
+    "text": "Abgelehnt",
+    "source_hash": "dce083a2"
+  },
+  "web.organizations.invitations.status.expired": {
+    "text": "Abgelaufen",
+    "source_hash": "424a2551"
+  },
+  "web.organizations.invitations.status.revoked": {
+    "text": "Widerrufen",
+    "source_hash": "f6f738d0"
+  },
+  "web.organizations.invitations.roles.member": {
+    "text": "Teammitglied",
+    "source_hash": "d4e55dfa"
+  },
+  "web.organizations.invitations.roles.admin": {
+    "text": "Admin",
+    "source_hash": "c1c224b0"
+  },
+  "web.organizations.invitations.accept_invitation": {
+    "text": "Einladung annehmen",
+    "source_hash": "ce7cfeaf"
+  },
+  "web.organizations.invitations.decline_invitation": {
+    "text": "Einladung ablehnen",
+    "source_hash": "f6e06ada"
+  },
+  "web.organizations.invitations.invitation_details": {
+    "text": "Einladungsdetails",
+    "source_hash": "59936259"
+  },
+  "web.organizations.invitations.you_are_invited": {
+    "text": "Du wurdest eingeladen beizutreten",
+    "source_hash": "60e635c6"
+  },
+  "web.organizations.invitations.invited_as": {
+    "text": "Du wurdest eingeladen als",
+    "source_hash": "f9809eae"
+  },
+  "web.organizations.invitations.accept_success": {
+    "text": "Einladung erfolgreich angenommen",
+    "source_hash": "7eb6b234"
+  },
+  "web.organizations.invitations.accept_error": {
+    "text": "Einladung konnte nicht angenommen werden",
+    "source_hash": "3ecc8b0f"
+  },
+  "web.organizations.invitations.decline_success": {
+    "text": "Einladung abgelehnt",
+    "source_hash": "31bffdcb"
+  },
+  "web.organizations.invitations.decline_error": {
+    "text": "Einladung konnte nicht abgelehnt werden",
+    "source_hash": "2bccbd56"
+  },
+  "web.organizations.invitations.expired_message": {
+    "text": "Diese Einladung ist abgelaufen",
+    "source_hash": "b72770d7"
+  },
+  "web.organizations.invitations.invalid_token": {
+    "text": "Ungültige oder abgelaufene Einladung",
+    "source_hash": "6c0fc3de"
+  },
+  "web.organizations.invitations.must_sign_in": {
+    "text": "Bitte melde dich an, um diese Einladung anzunehmen",
+    "source_hash": "469fc705"
+  },
+  "web.organizations.invitations.loading_invitation": {
+    "text": "Einladungsdetails werden geladen",
+    "source_hash": "58884885"
+  },
+  "web.organizations.invitations.upgrade_to_invite": {
+    "text": "Upgrade deinen Tarif, um Teammitglieder einzuladen",
+    "source_hash": "5e3f8df8"
+  },
+  "web.organizations.invitations.upgrade_prompt": {
+    "text": "Mitgliedereinladungen erfordern einen kostenpflichtigen Tarif. Führe ein Upgrade durch, um Mitarbeiter zu deiner Organisation hinzuzufügen.",
+    "source_hash": "47d0eeab"
+  },
+  "web.organizations.paid_badge": {
+    "text": "Pro",
+    "source_hash": "957b0b87"
+  },
+  "web.organizations.early_supporter_badge": {
+    "text": "Frühzeitiger Unterstützer",
+    "source_hash": "e67d2ef8"
+  },
+  "web.organizations.member_count": {
+    "text": "{count} Mitglied | {count} Mitglieder",
+    "source_hash": "f652af0c"
+  },
+  "web.organizations.domain_count": {
+    "text": "{count} Domain | {count} Domains",
+    "source_hash": "09f52efa"
+  },
+  "web.organizations.tabs.domains": {
+    "text": "Domains",
+    "source_hash": "ced67718"
+  },
+  "web.organizations.invitations.email_mismatch_title": {
+    "text": "Anderes Konto angemeldet",
+    "source_hash": "6516362a"
+  },
+  "web.organizations.invitations.email_mismatch_body": {
+    "text": "Diese Einladung ist für {invitedEmail}. Du bist derzeit als {currentEmail} angemeldet.",
+    "source_hash": "78a6f301"
+  },
+  "web.organizations.invitations.continue_as_invited_email": {
+    "text": "Als {email} fortfahren",
+    "source_hash": "ccf9745d"
+  },
+  "web.organizations.invitations.expires_in_days": {
+    "text": "{days}T verbleibend",
+    "source_hash": "50ff6f2b"
+  },
+  "web.organizations.invitations.expires_in_hours": {
+    "text": "{hours}h verbleibend",
+    "source_hash": "ff56d105"
+  },
+  "web.organizations.invitations.expires_soon": {
+    "text": "Läuft bald ab",
+    "source_hash": "a5dcfef9"
+  },
+  "web.organizations.sso.title": {
+    "text": "Single Sign-On (SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.organizations.sso.description": {
+    "text": "Konfiguriere SSO, damit sich Mitglieder mit dem Identitätsanbieter deiner Organisation anmelden können",
+    "source_hash": "464f0a8b"
+  },
+  "web.organizations.sso.provider_type": {
+    "text": "Anbietertyp",
+    "source_hash": "bdfbb1ec"
+  },
+  "web.organizations.sso.provider_type_description": {
+    "text": "Wähle den Identitätsanbieter deiner Organisation",
+    "source_hash": "e81325a6"
+  },
+  "web.organizations.sso.display_name": {
+    "text": "Anzeigename",
+    "source_hash": "18d67c99"
+  },
+  "web.organizations.sso.display_name_hint": {
+    "text": "Ein benutzerfreundlicher Name, der Benutzern bei der Anmeldung angezeigt wird",
+    "source_hash": "a83f1fba"
+  },
+  "web.organizations.sso.display_name_placeholder": {
+    "text": "z.B. Acme Corp SSO",
+    "source_hash": "43c655c5"
+  },
+  "web.organizations.sso.client_id": {
+    "text": "Client-ID",
+    "source_hash": "8726db01"
+  },
+  "web.organizations.sso.client_id_placeholder": {
+    "text": "Deine OAuth-Client-ID",
+    "source_hash": "830723da"
+  },
+  "web.organizations.sso.client_secret": {
+    "text": "Client-Geheimnis",
+    "source_hash": "ae21cf6d"
+  },
+  "web.organizations.sso.client_secret_placeholder": {
+    "text": "Dein OAuth-Client-Geheimnis",
+    "source_hash": "14e4a8c8"
+  },
+  "web.organizations.sso.client_secret_update_hint": {
+    "text": "Leer lassen, um das bestehende Geheimnis beizubehalten",
+    "source_hash": "98bc3b40"
+  },
+  "web.organizations.sso.tenant_id": {
+    "text": "Mandanten-ID",
+    "source_hash": "de1f5fff"
+  },
+  "web.organizations.sso.tenant_id_hint": {
+    "text": "Deine Azure AD / Entra ID Mandantenkennung",
+    "source_hash": "3c5b707a"
+  },
+  "web.organizations.sso.tenant_id_placeholder": {
+    "text": "z.B. 12345678-1234-1234-1234-123456789abc",
+    "source_hash": "1a166316"
+  },
+  "web.organizations.sso.issuer": {
+    "text": "Aussteller-URL",
+    "source_hash": "4d03ba8a"
+  },
+  "web.organizations.sso.issuer_hint": {
+    "text": "Die OIDC-Discovery-URL für deinen Identitätsanbieter",
+    "source_hash": "6102d81b"
+  },
+  "web.organizations.sso.issuer_placeholder": {
+    "text": "z.B. https://login.beispiel.de",
+    "source_hash": "9a638e9c"
+  },
+  "web.organizations.sso.allowed_domains": {
+    "text": "Erlaubte E-Mail-Domains",
+    "source_hash": "0295ad71"
+  },
+  "web.organizations.sso.allowed_domains_hint": {
+    "text": "Nur Benutzer mit E-Mail-Adressen dieser Domains können sich anmelden. Leer lassen, um alle Domains zu erlauben.",
+    "source_hash": "1775e874"
+  },
+  "web.organizations.sso.domain_placeholder": {
+    "text": "z.B. acme.de",
+    "source_hash": "e4420764"
+  },
+  "web.organizations.sso.invalid_domain": {
+    "text": "Bitte gib eine gültige Domain ein (z.B. beispiel.de)",
+    "source_hash": "16807983"
+  },
+  "web.organizations.sso.domain_exists": {
+    "text": "Diese Domain ist bereits in der Liste",
+    "source_hash": "3fccb721"
+  },
+  "web.organizations.sso.remove_domain": {
+    "text": "{domain} entfernen",
+    "source_hash": "ae708a1d"
+  },
+  "web.organizations.sso.delete_config": {
+    "text": "Konfiguration löschen",
+    "source_hash": "9ac1ac7b"
+  },
+  "web.organizations.sso.delete_confirm": {
+    "text": "Bist du sicher? Dies deaktiviert SSO für deine Organisation.",
+    "source_hash": "5b3f5b9d"
+  },
+  "web.organizations.sso.load_error": {
+    "text": "SSO-Konfiguration konnte nicht geladen werden",
+    "source_hash": "75cb73f6"
+  },
+  "web.organizations.sso.save_error": {
+    "text": "SSO-Konfiguration konnte nicht gespeichert werden",
+    "source_hash": "99ef145b"
+  },
+  "web.organizations.sso.create_success": {
+    "text": "SSO-Konfiguration erfolgreich erstellt",
+    "source_hash": "531c7d92"
+  },
+  "web.organizations.sso.update_success": {
+    "text": "SSO-Konfiguration erfolgreich aktualisiert",
+    "source_hash": "d98d8e83"
+  },
+  "web.organizations.sso.delete_success": {
+    "text": "SSO-Konfiguration erfolgreich gelöscht",
+    "source_hash": "55f5d4f5"
+  },
+  "web.organizations.sso.delete_error": {
+    "text": "SSO-Konfiguration konnte nicht gelöscht werden",
+    "source_hash": "4a960fe4"
+  },
+  "web.organizations.sso.test_connection": {
+    "text": "Verbindung testen",
+    "source_hash": "c02977b0"
+  },
+  "web.organizations.sso.test_connection_hint": {
+    "text": "Prüft, ob der Identitätsanbieter erreichbar ist (validiert keine Anmeldedaten)",
+    "source_hash": "22a23b68"
+  },
+  "web.organizations.sso.test_button": {
+    "text": "Verbindung testen",
+    "source_hash": "c02977b0"
+  },
+  "web.organizations.sso.testing": {
+    "text": "Teste...",
+    "source_hash": "6c02a284"
+  },
+  "web.organizations.sso.test_error": {
+    "text": "Verbindungstest fehlgeschlagen",
+    "source_hash": "c1d1f310"
+  },
+  "web.organizations.sso.auth_endpoint": {
+    "text": "Autorisierungsendpunkt",
+    "source_hash": "b42b956f"
+  },
+  "web.organizations.sso.missing_fields": {
+    "text": "Fehlende Felder",
+    "source_hash": "757df777"
+  },
+  "web.organizations.sso.status_enabled": {
+    "text": "Aktiviert",
+    "source_hash": "92c1cdfd"
+  },
+  "web.organizations.sso.status_configured": {
+    "text": "Konfiguriert",
+    "source_hash": "84aebc69"
+  },
+  "web.organizations.sso.domain_sso_title": {
+    "text": "Domain-SSO",
+    "source_hash": "13161464"
+  },
+  "web.organizations.sso.domain_sso_description": {
+    "text": "SSO für jede verifizierte Domain konfigurieren",
+    "source_hash": "af5b799e"
+  },
+  "web.organizations.sso.provider_type_locked_hint": {
+    "text": "Um den Anbieter zu ändern, lösche zuerst diese Konfiguration",
+    "source_hash": "0a1027ff"
+  },
+  "web.organizations.sso.status_not_configured": {
+    "text": "Nicht konfiguriert",
+    "source_hash": "bbea960e"
+  },
+  "api.organizations.errors.not_found": {
+    "text": "Organisation nicht gefunden: %{extid}",
+    "source_hash": "c8d058eb"
+  },
+  "api.organizations.errors.owner_required": {
+    "text": "Nur der Inhaber der Organisation kann diese Aktion ausführen",
+    "source_hash": "5a729e94"
+  },
+  "api.organizations.errors.admin_required": {
+    "text": "Nur Inhaber und Admins der Organisation können diese Aktion ausführen",
+    "source_hash": "cd9e8c0e"
+  },
+  "api.organizations.errors.member_required": {
+    "text": "Du musst Mitglied der Organisation sein, um diese Aktion auszuführen",
+    "source_hash": "f66f4a60"
+  },
+  "api.organizations.invitations.errors.create_admin_required": {
+    "text": "Nur Inhaber und Admins der Organisation können Einladungen erstellen",
+    "source_hash": "777d150d"
+  },
+  "api.organizations.invitations.errors.resend_admin_required": {
+    "text": "Nur Inhaber und Admins der Organisation können Einladungen erneut senden",
+    "source_hash": "6a857d59"
+  },
+  "api.organizations.invitations.errors.view_admin_required": {
+    "text": "Nur Inhaber und Admins der Organisation können Einladungen anzeigen",
+    "source_hash": "42f5878b"
+  },
+  "api.organizations.invitations.errors.revoke_admin_required": {
+    "text": "Nur Inhaber und Admins der Organisation können Einladungen widerrufen",
+    "source_hash": "52f73c8a"
+  },
+  "api.organizations.invitations.errors.email_required": {
+    "text": "E-Mail ist erforderlich",
+    "source_hash": "aae92911"
+  },
+  "api.organizations.invitations.errors.email_invalid": {
+    "text": "Ungültiges E-Mail-Format",
+    "source_hash": "0bcecf66"
+  },
+  "api.organizations.invitations.errors.role_invalid": {
+    "text": "Die Rolle muss Mitglied oder Admin sein",
+    "source_hash": "650ea5f6"
+  },
+  "api.organizations.invitations.errors.cannot_invite_owner": {
+    "text": "Einladung als Inhaber nicht möglich",
+    "source_hash": "e6581025"
+  },
+  "api.organizations.invitations.errors.already_member": {
+    "text": "Der Benutzer ist bereits Mitglied dieser Organisation",
+    "source_hash": "8eb45780"
+  },
+  "api.organizations.invitations.errors.already_pending": {
+    "text": "Für diese E-Mail steht bereits eine Einladung aus",
+    "source_hash": "7f5e3093"
+  },
+  "api.organizations.invitations.errors.not_found": {
+    "text": "Einladung nicht gefunden",
+    "source_hash": "775ba9eb"
+  },
+  "api.organizations.invitations.errors.cannot_resend_non_pending": {
+    "text": "Es können nur ausstehende Einladungen erneut gesendet werden",
+    "source_hash": "b7578b3e"
+  },
+  "api.organizations.invitations.errors.cannot_revoke_non_pending": {
+    "text": "Es können nur ausstehende Einladungen widerrufen werden",
+    "source_hash": "732b78a6"
+  },
+  "api.organizations.invitations.errors.resend_limit_reached": {
+    "text": "Maximales Limit für erneutes Senden (%{max}) erreicht",
+    "source_hash": "8dc96729"
+  },
+  "api.organizations.invitations.errors.accept_token_required": {
+    "text": "Token ist erforderlich",
+    "source_hash": "6c718161"
+  },
+  "api.organizations.invitations.errors.accept_organization_gone": {
+    "text": "Die Organisation existiert nicht mehr",
+    "source_hash": "a5df7d22"
+  },
+  "api.organizations.invitations.errors.accept_expired": {
+    "text": "Die Einladung ist abgelaufen",
+    "source_hash": "7186297b"
+  },
+  "api.organizations.invitations.errors.accept_email_mismatch": {
+    "text": "Deine E-Mail-Adresse stimmt nicht mit der Einladung überein",
+    "source_hash": "11026f46"
+  },
+  "api.organizations.invitations.errors.accept_already_member": {
+    "text": "Du bist bereits Mitglied dieser Organisation",
+    "source_hash": "f56ad547"
+  },
+  "web.organizations.entitlements_title": {
+    "text": "Organisationsberechtigungen",
+    "source_hash": "36054d4f"
+  },
+  "web.organizations.page_description_short": {
+    "text": "Deine Arbeitsbereiche anzeigen und konfigurieren",
+    "source_hash": "524fcb9a"
+  },
+  "web.organizations.delete_organization_remove_domains_first": {
+    "text": "Entferne alle benutzerdefinierten Domains, bevor du diese Organisation löschst.",
+    "source_hash": "44678715"
+  },
+  "web.organizations.default_org_delete_notice_title": {
+    "text": "Diese Organisation löschen",
+    "source_hash": "9191d915"
+  },
+  "web.organizations.default_org_delete_notice_before": {
+    "text": "Dies ist deine Standardorganisation und kann nicht über das Dashboard entfernt werden. Um sie zu löschen, wende dich bitte über das",
+    "source_hash": "e203607d"
+  },
+  "web.organizations.default_org_delete_notice_link": {
+    "text": "Feedback-Formular",
+    "source_hash": "94645a9e"
+  },
+  "web.organizations.default_org_delete_notice_after": {
+    "text": "an uns.",
+    "source_hash": "cdb4ee2a"
+  },
+  "web.organizations.leave_organization": {
+    "text": "Diese Organisation verlassen",
+    "source_hash": "d534cff9"
+  },
+  "web.organizations.leave_organization_warning": {
+    "text": "Du verlierst den Zugriff auf diese Organisation und ihre Ressourcen.",
+    "source_hash": "e9daab07"
+  },
+  "web.organizations.leave_organization_confirm_title": {
+    "text": "Organisation verlassen",
+    "source_hash": "ec8314da"
+  },
+  "web.organizations.leave_organization_confirm_message": {
+    "text": "Möchtest du {name} wirklich verlassen? Du benötigst eine neue Einladung, um wieder beizutreten.",
+    "source_hash": "e21c5fec"
+  },
+  "web.organizations.leave_organization_success": {
+    "text": "Du hast die Organisation verlassen.",
+    "source_hash": "fc803eb3"
+  },
+  "web.organizations.leave_error": {
+    "text": "Verlassen der Organisation fehlgeschlagen",
+    "source_hash": "6cb6af43"
+  },
+  "web.organizations.organizations": {
+    "text": "Organisationen",
+    "source_hash": "2730183d"
+  },
+  "web.organizations.invitations.invited_by_inline": {
+    "text": "von {email}",
+    "source_hash": "969a7050"
+  },
+  "web.organizations.invitations.invited_as_inline": {
+    "text": "als {role}",
+    "source_hash": "ff9e9b18"
+  },
+  "web.organizations.invitations.back_to_home": {
+    "text": "Zurück zur Startseite",
+    "source_hash": "76c5505f"
+  },
+  "web.organizations.invitations.email_locked_hint": {
+    "text": "Diese Einladung wurde an diese E-Mail-Adresse gesendet",
+    "source_hash": "2cff7075"
+  },
+  "web.organizations.invitations.signup_continue": {
+    "text": "Fortfahren",
+    "source_hash": "31fbef16"
+  },
+  "web.organizations.invitations.signin_continue": {
+    "text": "Anmelden",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.organizations.invitations.confirm_join_below": {
+    "text": "Fast geschafft — bestätige unten, um der Organisation beizutreten.",
+    "source_hash": "2d14f9b0"
+  },
+  "web.organizations.invitations.go_to_organizations": {
+    "text": "Zu den Organisationen",
+    "source_hash": "2afa38a3"
+  },
+  "web.organizations.invitations.already_member": {
+    "text": "Du bist bereits Mitglied dieser Organisation",
+    "source_hash": "f56ad547"
+  },
+  "web.organizations.invitations.join_organization": {
+    "text": "{orgName} beitreten",
+    "source_hash": "1aea9194"
+  },
+  "web.organizations.invitations.sign_in_to_join": {
+    "text": "Melde dich an, um {orgName} beizutreten",
+    "source_hash": "f94ed8b4"
+  },
+  "web.organizations.invitations.decline": {
+    "text": "Ablehnen",
+    "source_hash": "a2d285b3"
+  },
+  "web.organizations.members.pending_suffix": {
+    "text": "({count} ausstehend)",
+    "source_hash": "c13f787f"
+  },
+  "web.organizations.sso.view_discovery_document": {
+    "text": "Discovery-Dokument anzeigen",
+    "source_hash": "513bda60"
+  },
+  "web.organizations.sso.callback_url": {
+    "text": "Callback-URL",
+    "source_hash": "dc297ae9"
+  },
+  "web.organizations.sso.callback_url_hint": {
+    "text": "Füge diese URL zu den erlaubten Weiterleitungs-URIs deines Identitätsanbieters hinzu",
+    "source_hash": "65d55683"
+  },
+  "web.organizations.sso.enforce_sso_only": {
+    "text": "Nur SSO erzwingen",
+    "source_hash": "b3a3f694"
+  },
+  "web.organizations.sso.enforce_sso_only_hint": {
+    "text": "SSO für alle Anmeldungen auf dieser Domain erzwingen. Wenn aktiviert, ist die passwortbasierte Authentifizierung deaktiviert.",
+    "source_hash": "19432210"
+  },
+  "web.organizations.sso.grant_org_scope": {
+    "text": "Organisationsweiten Zugriff gewähren",
+    "source_hash": "2070cef2"
+  },
+  "web.organizations.sso.grant_org_scope_hint": {
+    "text": "Neue Mitglieder, die über das SSO dieser Domain beitreten, erhalten Zugriff auf alle Domains der Organisation. Bestehende Mitglieder sind davon nicht betroffen. Wenn deaktiviert (Standard), können neue Mitglieder nur auf diese Domain zugreifen.",
+    "source_hash": "2ac9f345"
+  },
+  "web.organizations.sso.no_domains": {
+    "text": "Keine verifizierten Domains",
+    "source_hash": "8a7fbb76"
+  },
+  "web.organizations.sso.no_domains_description": {
+    "text": "Füge eine Domain hinzu und verifiziere sie, bevor du SSO dafür konfigurierst.",
+    "source_hash": "e825d13a"
+  },
+  "web.organizations.tabs.team": {
+    "text": "Team",
+    "source_hash": "5985039f"
+  },
+  "web.organizations.tabs.sso": {
+    "text": "SSO",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.organizations.create_workspace": {
+    "text": "Arbeitsbereich erstellen",
+    "source_hash": "c63c14cf"
+  },
+  "web.organizations.organization_id": {
+    "text": "Organisations-ID",
+    "source_hash": "1f466322"
+  },
+  "web.organizations.organization_id_hint": {
+    "text": "Verwende diese ID, wenn du den Support kontaktierst oder API-Anfragen auf diese Organisation eingrenzt. Sie ist keine Anmeldeinformation.",
+    "source_hash": "29549b3a"
+  },
+  "web.organizations.audit.title": {
+    "text": "Nachrichtenaktivität",
+    "source_hash": "6d6d41f3"
+  },
+  "web.organizations.audit.description": {
+    "text": "Audit-Protokoll der Erstellungs- und Zugriffsereignisse von Nachrichten, die für diese Organisation aufgezeichnet wurden.",
+    "source_hash": "553c564b"
+  },
+  "web.organizations.audit.country_unknown": {
+    "text": "Unbekannt",
+    "source_hash": "b764cdc0"
+  },
+  "web.organizations.audit.empty_title": {
+    "text": "Noch keine Aktivität",
+    "source_hash": "0a12b92c"
+  },
+  "web.organizations.audit.empty_description": {
+    "text": "Erstellungs- und Zugriffsereignisse von Nachrichten erscheinen hier, sobald dein Team Nachrichten teilt.",
+    "source_hash": "62fb14c2"
+  },
+  "web.organizations.audit.capped_notice": {
+    "text": "Nur die neuesten {max} Ereignisse werden aufbewahrt; ältere Aktivitäten wurden entfernt.",
+    "source_hash": "da7901e2"
+  },
+  "web.organizations.audit.collection_paused_notice": {
+    "text": "Die Erfassung von Ereignissen ist pausiert; neue Nachrichtenaktivität wird nicht aufgezeichnet.",
+    "source_hash": "cb09d147"
+  },
+  "web.organizations.audit.load_error": {
+    "text": "Die Nachrichtenaktivität kann nicht geladen werden.",
+    "source_hash": "52fde814"
+  },
+  "web.organizations.audit.contract_mismatch": {
+    "text": "Die vom Server zurückgegebenen Aktivitätsdaten konnten nicht gelesen werden. Das Protokoll ist nicht leer – es kann nur derzeit nicht angezeigt werden.",
+    "source_hash": "db0d007a"
+  },
+  "web.organizations.audit.retry": {
+    "text": "Erneut versuchen",
+    "source_hash": "d8b8392e"
+  },
+  "web.organizations.audit.showing_range": {
+    "text": "{from}–{to} von {total} werden angezeigt",
+    "source_hash": "c329279d"
+  },
+  "web.organizations.audit.upgrade_prompt": {
+    "text": "Die Nachrichtenaktivität erfordert einen Tarif mit Audit-Protokollen. Führe ein Upgrade durch, um zu sehen, wer in dieser Organisation Nachrichten erstellt, angesehen und aufgedeckt hat.",
+    "source_hash": "453649ce"
+  },
+  "web.organizations.audit.role_required": {
+    "text": "Die Nachrichtenaktivität steht Inhabern und Admins der Organisation zur Verfügung.",
+    "source_hash": "e066ec63"
+  },
+  "web.organizations.audit.actors.creator": {
+    "text": "Ersteller",
+    "source_hash": "88447b83"
+  },
+  "web.organizations.audit.actors.authenticated_other": {
+    "text": "Anderer angemeldeter Benutzer",
+    "source_hash": "ee45aa5a"
+  },
+  "web.organizations.audit.actors.anonymous": {
+    "text": "Anonym",
+    "source_hash": "e7a8aa2d"
+  },
+  "web.organizations.audit.actors.system": {
+    "text": "System",
+    "source_hash": "6725e7bb"
+  },
+  "web.organizations.audit.actors.unknown": {
+    "text": "Unbekannt",
+    "source_hash": "b764cdc0"
+  },
+  "web.organizations.audit.columns.event": {
+    "text": "Ereignis",
+    "source_hash": "4e1f49a9"
+  },
+  "web.organizations.audit.columns.secret": {
+    "text": "Nachricht",
+    "source_hash": "7e32a729"
+  },
+  "web.organizations.audit.columns.actor": {
+    "text": "Akteur",
+    "source_hash": "449995c4"
+  },
+  "web.organizations.audit.columns.country": {
+    "text": "Land",
+    "source_hash": "701d021d"
+  },
+  "web.organizations.audit.columns.when": {
+    "text": "Wann",
+    "source_hash": "cf9c7aa2"
+  },
+  "web.organizations.audit.kinds.created": {
+    "text": "Nachricht erstellt",
+    "source_hash": "e4a1e1fd"
+  },
+  "web.organizations.audit.kinds.status_get": {
+    "text": "Linkstatus geprüft",
+    "source_hash": "0753f60e"
+  },
+  "web.organizations.audit.kinds.secret_get": {
+    "text": "Nachrichten-Link geöffnet",
+    "source_hash": "e271e060"
+  },
+  "web.organizations.audit.kinds.previewed": {
+    "text": "Vom Ersteller in der Vorschau angesehen",
+    "source_hash": "639fc1e2"
+  },
+  "web.organizations.audit.kinds.creator_status_get": {
+    "text": "Status vom Ersteller geprüft",
+    "source_hash": "7e4b5de5"
+  },
+  "web.organizations.audit.kinds.receipt_viewed": {
+    "text": "Beleg angesehen",
+    "source_hash": "a417ead4"
+  },
+  "web.organizations.audit.kinds.revealed": {
+    "text": "Nachricht aufgedeckt",
+    "source_hash": "aff2c84d"
+  },
+  "web.organizations.audit.kinds.burned": {
+    "text": "Nachricht gelöscht",
+    "source_hash": "5ac68dc6"
+  },
+  "web.organizations.audit.kinds.expired": {
+    "text": "Nachricht abgelaufen",
+    "source_hash": "c127dab6"
+  },
+  "web.organizations.audit.kinds.orphaned": {
+    "text": "Nachricht verwaist",
+    "source_hash": "23fe1a47"
+  },
+  "web.organizations.audit.kinds.reveal_failed_undecryptable": {
+    "text": "Aufdecken fehlgeschlagen (nicht entschlüsselbar)",
+    "source_hash": "d5616abf"
+  },
+  "web.organizations.tabs.activity": {
+    "text": "Aktivität",
+    "source_hash": "38da1505"
+  },
+  "web.organizations.invitations.restricted_host_title": {
+    "text": "Hier ist eine andere Anmeldemethode erforderlich",
+    "source_hash": "d761ad30"
+  },
+  "web.organizations.invitations.restricted_host_body": {
+    "text": "Diese Website erlaubt die Anmeldung nur mit {method}, daher kann hier kein Konto mit einem Passwort erstellt werden. {method} lässt sich auf dieser Seite nicht abschließen.",
+    "source_hash": "6ac146d4"
+  },
+  "web.organizations.invitations.restricted_host_unknown_body": {
+    "text": "Diese Website erlaubt nur eine bestimmte Anmeldemethode, und diese kann auf dieser Seite nicht angeboten werden. Hier kann kein Konto mit einem Passwort erstellt werden.",
+    "source_hash": "e24d59a9"
+  },
+  "web.organizations.invitations.restricted_sso_body": {
+    "text": "Diese Website verwendet Single Sign-On. Melde dich mit dem Anbieter deiner Organisation an, um fortzufahren — dabei wird dein Konto erstellt und du wirst angemeldet.",
+    "source_hash": "e942d04b"
+  },
+  "web.organizations.invitations.restricted_sso_cta": {
+    "text": "Weiter zur Anmeldung",
+    "source_hash": "d398cd0a"
+  },
+  "web.organizations.invitations.restricted_use_email_link": {
+    "text": "Öffne stattdessen den Link in deiner Einladungs-E-Mail, um die Einladung auf der Hauptwebsite anzunehmen.",
+    "source_hash": "73bf298f"
+  },
+  "web.organizations.invitations.invitation_stays_pending": {
+    "text": "Deine Einladung ist weiterhin gültig — es wurde nichts verbraucht, und du kannst sie annehmen, sobald du dich angemeldet hast.",
+    "source_hash": "f4d00be1"
+  },
+  "web.organizations.invitations.signin_unavailable_title": {
+    "text": "Auf dieser Website ist keine Anmeldung möglich",
+    "source_hash": "c56bce2b"
+  },
+  "web.organizations.invitations.signin_unavailable_body": {
+    "text": "Diese Website ist auf {method} beschränkt, was hier nicht funktioniert, daher gibt es derzeit keine Möglichkeit, sich anzumelden.",
+    "source_hash": "62c01601"
+  },
+  "web.organizations.invitations.signin_unavailable_unknown_body": {
+    "text": "Diese Website ist auf eine Anmeldemethode beschränkt, die hier nicht funktioniert, daher gibt es derzeit keine Möglichkeit, sich anzumelden.",
+    "source_hash": "1f61e456"
+  },
+  "web.organizations.invitations.signin_unavailable_conflict_body": {
+    "text": "Die Anmeldeeinstellungen dieser Website stehen im Konflikt mit der websiteweiten Beschränkung ({method}), daher greift keine von beiden und es gibt derzeit keine Möglichkeit, sich anzumelden.",
+    "source_hash": "54cdfd61"
+  },
+  "web.organizations.delete_organization_cancel_subscription_first": {
+    "text": "Kündige das Abonnement dieser Organisation, bevor du sie löschst.",
+    "source_hash": "f0c54eca"
+  },
+  "web.organizations.sso.idp_sso_service_url": {
+    "text": "IdP-SSO-Dienst-URL",
+    "source_hash": "0b33b1ac"
+  },
+  "web.organizations.sso.idp_sso_service_url_hint": {
+    "text": "Der HTTPS-Endpunkt, den dein Identitätsanbieter für SAML-Single-Sign-On veröffentlicht",
+    "source_hash": "bc6fdfd9"
+  },
+  "web.organizations.sso.idp_sso_service_url_placeholder": {
+    "text": "https://idp.example.com/sso/saml",
+    "source_hash": "513d0586"
+  },
+  "web.organizations.sso.idp_entity_id": {
+    "text": "IdP-Entity-ID",
+    "source_hash": "14a4ab8b"
+  },
+  "web.organizations.sso.idp_entity_id_hint": {
+    "text": "Die Aussteller-Kennung aus den Metadaten deines Identitätsanbieters, genau wie veröffentlicht",
+    "source_hash": "c3d8320b"
+  },
+  "web.organizations.sso.idp_entity_id_placeholder": {
+    "text": "https://idp.example.com/metadata",
+    "source_hash": "0c46d14d"
+  },
+  "web.organizations.sso.idp_cert": {
+    "text": "IdP-Signaturzertifikat",
+    "source_hash": "c84000cd"
+  },
+  "web.organizations.sso.idp_cert_hint": {
+    "text": "Das X.509-Zertifikat (PEM), mit dem dein Identitätsanbieter Assertions signiert. Nur ein Zertifikat; Fingerabdrücke werden nicht akzeptiert.",
+    "source_hash": "b5e157f5"
+  },
+  "web.organizations.sso.idp_cert_placeholder": {
+    "text": "-----BEGIN CERTIFICATE-----",
+    "source_hash": "ddddb6cb"
+  },
+  "web.organizations.sso.sp_details": {
+    "text": "Service-Provider-Details",
+    "source_hash": "4b6617d2"
+  },
+  "web.organizations.sso.sp_details_hint": {
+    "text": "Registriere diese Werte bei deinem Identitätsanbieter",
+    "source_hash": "784e9410"
+  },
+  "web.organizations.sso.sp_details_preview_hint": {
+    "text": "Vorschau basierend auf der Standard-Anmelderoute. Speichere diese Konfiguration und bestätige diese Werte dann hier, bevor du sie bei deinem Identitätsanbieter registrierst.",
+    "source_hash": "fd9d3001"
+  },
+  "web.organizations.sso.domain_unverified_notice": {
+    "text": "Single Sign-On ist auf dieser Domain deaktiviert, bis die Domain verifiziert ist. Die Verifizierung ändert die unten stehenden Werte nicht.",
+    "source_hash": "4b56ea4b"
+  },
+  "web.organizations.sso.sp_entity_id": {
+    "text": "SP-Entity-ID (Metadaten-URL)",
+    "source_hash": "59bc544c"
+  },
+  "web.organizations.sso.acs_url": {
+    "text": "Assertion-Consumer-Service-URL",
+    "source_hash": "5dacfb65"
+  },
+  "web.organizations.sso.unreadable_field": {
+    "text": "Der gespeicherte Wert konnte nicht gelesen werden. Gib ihn erneut ein, um fortzufahren.",
+    "source_hash": "ca3b5fcc"
+  },
+  "web.organizations.sso.unreadable_fields_alert": {
+    "text": "Einige gespeicherte Werte konnten nicht gelesen werden und müssen erneut eingegeben werden: {fields}",
+    "source_hash": "e9fa9d16"
+  },
+  "web.organizations.sso.idp_cert_expired_alert": {
+    "text": "Das Zertifikat des Identitätsanbieters ist am {date} abgelaufen. Die Anmeldung über diese Verbindung schlägt fehl, bis ein aktuelles Zertifikat gespeichert wird.",
+    "source_hash": "527fb721"
+  },
+  "web.organizations.sso.idp_cert_expiring_notice": {
+    "text": "Das Zertifikat des Identitätsanbieters läuft am {date} ab. Ersetze es vorher, damit die Anmeldung weiterhin funktioniert.",
+    "source_hash": "ccaf6ca7"
+  },
+  "web.organizations.sso.test_connection_hint_saml": {
+    "text": "Prüft SSO-URL, Entity-ID und Zertifikat lokal; der Identitätsanbieter wird nicht kontaktiert",
+    "source_hash": "1dad3945"
+  },
+  "web.organizations.sso.configured_issuer": {
+    "text": "Konfigurierter Aussteller",
+    "source_hash": "6b307b7f"
+  },
+  "web.organizations.sso.discovery_issuer": {
+    "text": "Ermittelter Aussteller",
+    "source_hash": "9d74f978"
+  },
+  "web.organizations.sso.issuer_mismatch_hint": {
+    "text": "OIDC-Aussteller-Kennungen müssen exakt übereinstimmen, einschließlich eines abschließenden Schrägstrichs. Setze die Aussteller-URL auf den oben angezeigten ermittelten Wert.",
+    "source_hash": "ec144c88"
+  },
+  "web.organizations.sso.certificate_subject": {
+    "text": "Zertifikatsinhaber",
+    "source_hash": "d7816b16"
+  },
+  "web.organizations.sso.certificate_expires": {
+    "text": "Zertifikat läuft ab",
+    "source_hash": "1e73119d"
+  },
+  "web.organizations.sso.certificate_expires_in_days": {
+    "text": "in {n} Tag | in {n} Tagen",
+    "source_hash": "df98ca65"
+  },
+  "web.organizations.sso.certificate_valid_from": {
+    "text": "Zertifikat gültig ab",
+    "source_hash": "b13d3f30"
+  },
+  "web.organizations.sso.client_secret_looks_like_secret_id": {
+    "text": "Das sieht nach der „Secret ID“ aus. Entra benötigt den Wert des Geheimnisses („Value“), der beim Erstellen des Geheimnisses nur einmal angezeigt wird.",
+    "source_hash": "168681cf"
+  },
+  "web.organizations.sso.diagnostics_title": {
+    "text": "Gespeicherte Konfiguration prüfen",
+    "source_hash": "5c68357a"
+  },
+  "web.organizations.sso.diagnostics_hint": {
+    "text": "Prüft, was für diese Domain gespeichert ist — bei Microsoft Entra ID einschließlich des gespeicherten Client-Geheimnisses — und meldet jede Ebene einzeln. Eine vollständige Anmeldung wird dabei nicht getestet.",
+    "source_hash": "42505faa"
+  },
+  "web.organizations.sso.last_sign_in_none": {
+    "text": "Über diese Domain wurde noch keine Anmeldung aufgezeichnet.",
+    "source_hash": "7f9d0f23"
+  },
+  "web.organizations.sso.last_sign_in_succeeded": {
+    "text": "Die letzte Anmeldung über diese Domain wurde am {when} abgeschlossen.",
+    "source_hash": "9a125080"
+  },
+  "web.organizations.sso.last_sign_in_failed": {
+    "text": "Die letzte Anmeldung über diese Domain ist am {when} fehlgeschlagen – {stage} ({code}).",
+    "source_hash": "be81f392"
+  },
+  "web.organizations.sso.last_sign_in_last_success": {
+    "text": "Die letzte abgeschlossene Anmeldung war am {when}.",
+    "source_hash": "34e63e57"
+  },
+  "web.organizations.sso.last_sign_in_stage_setup": {
+    "text": "bevor der Identitätsanbieter kontaktiert wurde",
+    "source_hash": "5a1b6839"
+  },
+  "web.organizations.sso.last_sign_in_stage_provider": {
+    "text": "beim Identitätsanbieter",
+    "source_hash": "40394567"
+  },
+  "web.organizations.sso.last_sign_in_stage_callback": {
+    "text": "bei der Rückleitung vom Identitätsanbieter",
+    "source_hash": "2ab78fc4"
+  },
+  "web.organizations.sso.last_sign_in_stage_account": {
+    "text": "bei der Zuordnung des Benutzers zu einem Konto",
+    "source_hash": "1ebbb776"
+  },
+  "web.organizations.sso.diagnostics_button": {
+    "text": "Gespeicherte Konfiguration prüfen",
+    "source_hash": "5c68357a"
+  },
+  "web.organizations.sso.diagnostics_running": {
+    "text": "Wird geprüft...",
+    "source_hash": "2e5f79bb"
+  },
+  "web.organizations.sso.diagnostics_checked_at": {
+    "text": "Geprüft",
+    "source_hash": "0efd92a3"
+  },
+  "web.organizations.sso.diagnostics_check_stored_configuration": {
+    "text": "Gespeicherte Konfiguration",
+    "source_hash": "a988b06a"
+  },
+  "web.organizations.sso.diagnostics_check_discovery": {
+    "text": "Discovery des Identitätsanbieters",
+    "source_hash": "b5f90082"
+  },
+  "web.organizations.sso.diagnostics_check_certificate": {
+    "text": "Signaturzertifikat",
+    "source_hash": "cc00e050"
+  },
+  "web.organizations.sso.diagnostics_check_credential": {
+    "text": "Client-Geheimnis",
+    "source_hash": "4aded5fa"
+  },
+  "web.organizations.sso.diagnostics_status_passed": {
+    "text": "Bestanden",
+    "source_hash": "436fe71b"
+  },
+  "web.organizations.sso.diagnostics_status_failed": {
+    "text": "Fehlgeschlagen",
+    "source_hash": "031a8f0f"
+  },
+  "web.organizations.sso.diagnostics_status_inconclusive": {
+    "text": "Nicht eindeutig",
+    "source_hash": "9141583b"
+  },
+  "web.organizations.sso.diagnostics_status_unsupported": {
+    "text": "Nicht verfügbar",
+    "source_hash": "67a926f7"
+  },
+  "web.organizations.sso.diagnostics_status_skipped": {
+    "text": "Übersprungen",
+    "source_hash": "12698ce1"
+  },
+  "web.organizations.sso.diagnostics_aadsts_code": {
+    "text": "Microsoft-Fehlercode",
+    "source_hash": "dc8f7060"
+  },
+  "web.organizations.sso.diagnostics_errors": {
+    "text": "Probleme",
+    "source_hash": "a7b182f8"
+  }
+}

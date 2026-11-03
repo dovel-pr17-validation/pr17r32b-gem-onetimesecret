@@ -1,0 +1,74 @@
+{
+  "web.feedback.your_feedback": {
+    "text": "Dein Feedback",
+    "source_hash": "cdb1c0a5"
+  },
+  "web.feedback.all_feedback_welcome": {
+    "text": "Jedes Feedback ist willkommen!",
+    "source_hash": "c57d3006"
+  },
+  "web.feedback.help_us_improve": {
+    "text": "Hilf uns, besser zu werden",
+    "source_hash": "f35439c4"
+  },
+  "web.feedback.close_feedback_modal": {
+    "text": "Feedback-Dialog schließen",
+    "source_hash": "41689bb4"
+  },
+  "web.feedback.share_your_feedback": {
+    "text": "Teile dein Feedback",
+    "source_hash": "6d62dfbd"
+  },
+  "web.feedback.delano_mandelbaum": {
+    "text": "Delano Mandelbaum",
+    "source_hash": "6da0b72b"
+  },
+  "web.feedback.delano": {
+    "text": "Delano",
+    "source_hash": "f58154f7"
+  },
+  "web.feedback.help_content_goes_here": {
+    "text": "Hilfeinhalte werden hier angezeigt.",
+    "source_hash": "796979ea"
+  },
+  "web.feedback.founder_note_line1": {
+    "text": "Ich lese jedes Feedback, das hier eingeht. So finde ich heraus, wofür ich meine Zeit verwenden sollte.",
+    "source_hash": "8b430d93"
+  },
+  "web.feedback.founder_note_line2": {
+    "text": "Wenn etwas nicht stimmt oder du Ideen hast, wie es besser funktionieren könnte, bist du hier genau richtig.",
+    "source_hash": "d4b8f073"
+  },
+  "web.feedback.open_feedback_form": {
+    "text": "Feedback-Formular öffnen",
+    "source_hash": "acd8409b"
+  },
+  "web.feedback.enter_your_feedback": {
+    "text": "Gib dein Feedback ein",
+    "source_hash": "1bb310f4"
+  },
+  "web.feedback.send_feedback": {
+    "text": "Feedback senden",
+    "source_hash": "8235980b"
+  },
+  "web.feedback.sending_ellipses": {
+    "text": "Wird gesendet...",
+    "source_hash": "286a3af7"
+  },
+  "web.feedback.reason_email_change_unauthorized": {
+    "text": "Es sieht so aus, als würdest du eine unautorisierte E-Mail-Änderung an deinem Konto melden. Bitte beschreibe, was passiert ist, und wir werden es sofort untersuchen.",
+    "source_hash": "00e56551"
+  },
+  "web.feedback.anonymous_no_reply": {
+    "text": "Hinweis: Wenn du eine Antwort möchtest, gib bitte deinen Namen oder eine E-Mail-Adresse in der Nachricht an.",
+    "source_hash": "c984f705"
+  },
+  "web.feedback.characters_remaining": {
+    "text": "{count} Zeichen übrig",
+    "source_hash": "8d796f40"
+  },
+  "web.feedback.character_limit_reached": {
+    "text": "Zeichenlimit erreicht",
+    "source_hash": "031e9310"
+  }
+}

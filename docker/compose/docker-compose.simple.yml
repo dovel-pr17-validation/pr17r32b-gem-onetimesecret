@@ -1,0 +1,122 @@
+##
+# DOCKER COMPOSE - ONETIME SECRET (SIMPLE)
+#
+# Minimal two-service deployment: App + Valkey (Redis-compatible).
+# No reverse proxy, no message queue, no workers.
+#
+# Uses pre-built images from Docker Hub, pinned by default to the same
+# release the root README documents. We recommend a specific release over a
+# moving tag, since releases before 1.0 can introduce breaking changes between
+# minor versions; override with the release you want:
+#   OTS_IMAGE_TAG=vX.Y.Z docker compose up
+#
+# To build from source instead, use Docker Bake:
+#   docker buildx bake -f docker/bake.hcl main
+#
+# See docker/README.md for complete setup and usage documentation.
+
+services:
+  app:
+    # Default tag is kept in lockstep with the README quick-start pin.
+    # Bump both together at release time (see docker/README.md).
+    image: onetimesecret/onetimesecret:${OTS_IMAGE_TAG:-v0.26.14}
+    container_name: onetime-app
+    depends_on:
+      maindb:
+        condition: service_healthy
+    env_file:
+      - ../../.env
+    environment:
+      - RACK_ENV=${RACK_ENV:-production}
+      # Password threaded into the URL so the app authenticates against the
+      # Valkey --requirepass set on the maindb service below (H-2).
+      - VALKEY_URL=redis://:${VALKEY_PASSWORD:?VALKEY_PASSWORD must be set — add one with 'echo "VALKEY_PASSWORD=$$(openssl rand -hex 32)" >> .env'}@maindb:6379/0
+      - SECRET=${SECRET:?SECRET must be set in .env — add one with 'echo "SECRET=$$(openssl rand -hex 32)" >> .env' (see README)}
+      - SESSION_SECRET=${SESSION_SECRET:-}
+      - AUTHENTICATION_MODE=${AUTHENTICATION_MODE:-simple}
+      # This stack serves plain HTTP on port 3000 by design (no proxy, no
+      # TLS), so the Secure cookie flag can never be honored here: without
+      # this opt-out the app — which fails closed in production mode — would
+      # refuse to write the session cookie at all and every login would
+      # break. If you put a TLS terminator in front of this stack, set
+      # SSL=true in .env and export SESSION_COOKIE_SECURE=true in the shell
+      # environment (this `environment:` entry takes precedence over .env,
+      # and ${...} interpolation reads the shell, not env_file).
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
+      - ARGON2_SECRET=${ARGON2_SECRET:-}
+      - FEDERATION_SECRET=${FEDERATION_SECRET:-}
+      - IDENTIFIER_SECRET=${IDENTIFIER_SECRET:-}
+    entrypoint: ['./bin/entrypoint.sh']
+    stdin_open: true
+    tty: true
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '60m'
+        max-file: '3'
+    ports:
+      - '3000:3000'
+    restart: unless-stopped
+    # No /app/data mount: in simple mode everything persists in Valkey
+    # (the maindb-data volume below). The full stack mounts a shared
+    # app-data volume for the sqlite auth database.
+    # Explicit readiness contract so `docker compose up --wait` blocks until the
+    # web app is actually serving (not merely "running"). Reuses the image's
+    # role-aware bin/healthcheck.sh (web role -> curl /health/advanced, then
+    # /health); the shorter interval/start_period here just polls faster than
+    # the image's baked-in HEALTHCHECK for quicker readiness in CI and local up.
+    healthcheck:
+      test: ['CMD', 'bin/healthcheck.sh']
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  maindb:
+    image: valkey/valkey:8.1-bookworm@sha256:fea8b3e67b15729d4bb70589eb03367bab9ad1ee89c876f54327fc7c6e618571
+    container_name: onetime-maindb
+    environment:
+      # Lets the healthcheck's `valkey-cli ping` authenticate against
+      # --requirepass without embedding the password in the healthcheck
+      # command (valkey-cli reads REDISCLI_AUTH from the environment).
+      - REDISCLI_AUTH=${VALKEY_PASSWORD:?VALKEY_PASSWORD must be set}
+    command: >
+      valkey-server
+      --appendonly yes
+      --appendfilename onetime.aof
+      --appendfsync everysec
+      --dbfilename onetime.rdb
+      --save 157680000 1
+      --bind 0.0.0.0
+      --port 6379
+      --requirepass ${VALKEY_PASSWORD:?VALKEY_PASSWORD must be set}
+      --databases 1
+      --timeout 30
+      --loglevel notice
+      --rdbcompression yes
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '60m'
+        max-file: '3'
+    # Note: Port 6379 is NOT published to the host — only reachable by other
+    # containers on the compose network (the app talks to maindb by service
+    # name). Combined with --requirepass above, this keeps the datastore off
+    # the host network entirely. For host-side debugging (valkey-cli,
+    # RedisInsight) use `docker compose exec maindb valkey-cli` (REDISCLI_AUTH
+    # is already set in the container).
+    expose:
+      - '6379'
+    restart: unless-stopped
+    volumes:
+      - maindb-data:/data
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  maindb-data:
+    name: onetime_maindb_data

@@ -1,0 +1,332 @@
+# lib/onetime/middleware/identity_resolution.rb
+#
+# frozen_string_literal: true
+
+require 'logger'
+require 'rack/request'
+
+module Onetime
+  module Middleware
+    # Identity Resolution Middleware for OneTimeSecret
+    #
+    # This middleware provides a flexible identity resolution layer that
+    # bridges between the simple (e.g. Redis) and full authentication
+    # services (e.g., Rodauth with PostgreSQL/SQLite).
+    #
+    # ### Usage
+    #
+    # ```ruby
+    # use Onetime::Middleware::IdentityResolution
+    # ```
+    #
+    # The middleware sets the following env variables:
+    # - `env['identity.resolved']` - The resolved identity object (Customer
+    #   instance). Always nil in simple mode, which deliberately skips the
+    #   Customer load; read `env['identity.authenticated']` and
+    #   `env['identity.metadata']` there.
+    # - `env['identity.source']` - Source of identity ('full', 'simple', 'anonymous')
+    # - `env['identity.authenticated']` - Boolean authentication status
+    # - `env['identity.metadata']` - Additional metadata about the identity
+    #
+    # ### NOT the authorization identity, and NOT impersonation-aware
+    #
+    # This is a convenience cache for read paths, not the identity that
+    # authorizes a request. The authoritative resolution — including the
+    # colonel-impersonation overlay (Onetime::SessionImpersonation.resolve) —
+    # happens in the auth strategies, which is what populates
+    # `strategy_result.user` and therefore `Onetime::Logic::Base#cust`.
+    # `env['identity.resolved']` deliberately stays the PRINCIPAL during an
+    # impersonation. Anything that makes an authorization or ownership decision
+    # must read the strategy result, never this.
+    #
+    # ### Session lifetime is not decided here
+    #
+    # This runs after Onetime::Session, which has already ended any session
+    # past its absolute deadline (a remember-me stamp, or the lifetime
+    # deadline after `authenticated_at`) and holds every other session to
+    # the rolling inactivity lifetime through the blob's TTL. A session that
+    # reaches this middleware is therefore live, and it is resolved as such
+    # without a second age check. `metadata[:expires_at]` reports the
+    # session's absolute deadline ({Onetime::Session.absolute_deadline}),
+    # and is nil for a session that has none (a rolling default session).
+    #
+    # ### Performance Optimization
+    #
+    # **IMPORTANT**: To prevent duplicate customer lookups per request, downstream
+    # code should always use `env['identity.resolved']` instead of calling
+    # `Customer.load()` or `Customer.find_by_extid()` directly.
+    #
+    # Good:
+    # ```ruby
+    # customer = env['identity.resolved']
+    # authenticated = env['identity.authenticated']
+    # ```
+    #
+    # Bad (causes duplicate lookup):
+    # ```ruby
+    # customer = Onetime::Customer.find_by_extid(session['external_id'])  # Already loaded by middleware!
+    # ```
+    #
+    class IdentityResolution
+      attr_reader :logger
+
+      def initialize(app, logger: nil)
+        @app    = app
+        @logger = logger || default_logger
+      end
+
+      def call(env)
+        request = Rack::Request.new(env)
+
+        # Resolve identity from available sources
+        identity = resolve_identity(request, env)
+
+        # Store resolved identity in environment for downstream code to use
+        # IMPORTANT: Downstream code should use env['identity.resolved'] instead of
+        # calling Customer.load() directly to avoid duplicate lookups per request
+        env['identity.resolved']      = identity[:user]
+        env['identity.source']        = identity[:source]
+        env['identity.authenticated'] = identity[:authenticated]
+        env['identity.metadata']      = identity[:metadata]
+
+        dmsg = identity.map { |k, v| format('%s=%s', k, v) }.join(' ')
+        logger.debug "[IdentityResolution] Resolved #{dmsg}"
+
+        @app.call(env)
+      end
+
+      private
+
+      def resolve_identity(request, env)
+        # Check authentication mode (simple vs full)
+        auth_mode = detect_auth_mode
+
+        # Gate on `authenticated`, not `user`: the simple-mode resolver never
+        # sets a user (see resolve_simple_identity), so a user check would
+        # drop every signed-in simple-mode session to anonymous.
+        case auth_mode
+        when 'full'
+          # Try full mode (Rodauth) session first
+          full_identity = resolve_full_identity(request, env)
+          return full_identity if full_identity[:authenticated]
+        when 'simple'
+          # Use simple (Valkey/Redis-only) authentication
+          simple_identity = resolve_simple_identity(request, env)
+          return simple_identity if simple_identity[:authenticated]
+        end
+
+        # Default to anonymous user
+        resolve_anonymous_identity(request, env)
+      end
+
+      def resolve_full_identity(_request, env)
+          # Non-authoritative (#3810): no consumer gates on these env flags, and
+          # this resolution deliberately skips the credential watermark — the
+          # authoritative stale-session check lives in BaseSessionAuthStrategy /
+          # Helpers#load_user_from_session.
+          #
+          # Get session from Valkey/Redis session middleware
+          session = env['rack.session']
+
+          return no_identity unless session
+
+          # Check for full mode (Rodauth) authentication markers
+          return no_identity unless full_authenticated?(session)
+
+          # Lookup customer by derived extid
+          customer = Onetime::Customer.find_by_extid(session['account_external_id'])
+          return no_identity unless customer
+
+          {
+            user: build_full_user(customer, session),
+            source: 'full',
+            authenticated: true,
+            metadata: {
+              customer_id: customer.objid,
+              external_id: customer.extid,
+              account_id: session['account_id'],
+              auth_method: 'full',
+              authenticated_at: session['authenticated_at'],
+              expires_at: Onetime::Session.absolute_deadline(session),
+            },
+          }
+      rescue StandardError => ex
+          logger.error "[IdentityResolution] Full mode identity error: #{ex.message}"
+          no_identity
+      end
+
+      def resolve_external_identity(request, _env)
+          # Extract session token from cookie or header
+          token = extract_auth_token(request)
+          return no_identity unless token
+
+          # Validate token with external auth service
+          auth_response = validate_with_external_service(token)
+
+          if auth_response && auth_response[:valid]
+            {
+              user: build_external_user(auth_response[:user_data]),
+              source: 'external',
+              authenticated: true,
+              metadata: {
+                token: token,
+                expires_at: auth_response[:expires_at],
+                features: auth_response[:features] || [],
+              },
+            }
+          else
+            logger.debug '[IdentityResolution] External auth validation failed'
+            no_identity
+          end
+      rescue StandardError => ex
+          logger.error "[IdentityResolution] External auth error: #{ex.message}"
+          no_identity
+      end
+
+      def resolve_simple_identity(request, env)
+        # Non-authoritative (#3810): no consumer gates on these env flags, and
+        # this resolution deliberately skips the credential watermark — the
+        # authoritative stale-session check lives in BaseSessionAuthStrategy /
+        # Helpers#load_user_from_session.
+        #
+        # Use Rack::Session from middleware
+        session = env['rack.session']
+
+        # Don't require external_id - just check authenticated flag
+        return no_identity unless session && session['authenticated'] == true
+
+        # Return identity WITHOUT loading Customer from Redis
+        # Controllers will lazy-load via SessionHelpers#current_customer when needed
+        {
+          user: nil,  # Don't load here - let controllers use SessionHelpers
+          source: 'simple',
+          authenticated: true,
+          metadata: {
+            external_id: session['external_id'],
+            email: session['email'],
+            session_id: session.id&.private_id,
+            expires_at: Onetime::Session.absolute_deadline(session),
+            ip_address: session['ip_address'] || request.ip,
+          },
+        }
+      end
+
+      def resolve_anonymous_identity(request, _env)
+        logger.debug '[IdentityResolution] Resolved anonymous identity',
+          ip: request.ip,
+          path: request.path_info
+
+        {
+          user: build_anonymous_user(request),
+          source: 'anonymous',
+          authenticated: false,
+          metadata: {
+            ip_address: request.ip,
+            user_agent: request.user_agent,
+          },
+        }
+      end
+
+      def extract_auth_token(request)
+        # Try Authorization header first (for API requests)
+        auth_header = request.get_header('HTTP_AUTHORIZATION')
+        if auth_header&.start_with?('Bearer ')
+          return auth_header.sub('Bearer ', '')
+        end
+
+        # Try external auth cookie (for web requests)
+        request.cookies['ots_auth_token']
+      end
+
+      def load_user_from_session(session)
+        # Use existing Customer model to load by external_id
+        return nil unless session['external_id']
+
+        begin
+          # Load Onetime::Customer if not already loaded
+          #
+          # TODO: This should be in lib/onetime if it's going to refer to
+          # a Onetime model.
+          require_relative '../onetime/models' unless defined?(Onetime::Customer)
+
+          Onetime::Customer.find_by_extid(session['external_id'])
+        rescue StandardError => ex
+          logger.error "[IdentityResolution] Could not load customer: #{ex.message}"
+          nil
+        end
+      end
+
+      def validate_with_external_service(_token)
+        # This would make an HTTP request to the Advanced service
+        # For now, return a placeholder structure
+
+        service_url = external_auth_config['service_url']
+        return nil unless service_url
+
+        # TODO: Implement actual HTTP call to auth service
+        # Example:
+        # response = HTTP.post("#{service_url}/validate", json: { token: token })
+        # JSON.parse(response.body)
+
+        nil # Placeholder
+      end
+
+      def build_full_user(customer, _session)
+        # Build user object from full mode (Rodauth) authenticated customer
+        customer
+      end
+
+      def build_simple_user(customer, _session)
+        # Return the customer object directly
+        # Session metadata is already available in identity[:metadata]
+        customer
+      end
+
+      def build_anonymous_user(_request)
+        # Return nil for anonymous users
+        nil
+      end
+
+      # The full-mode sign-in markers. Lifetime is the session store's
+      # decision (see the class comment), not re-derived from the age of
+      # `authenticated_at`.
+      def full_authenticated?(session)
+        return false unless session['authenticated_at']
+
+        !!(session['external_id'] || session['account_id'])
+      end
+
+      def detect_auth_mode
+        Onetime.auth_config.mode
+      end
+
+      def external_auth_enabled?
+        config = external_auth_config
+        config && config['enabled'] == true
+      end
+
+      def external_auth_config
+        return @external_auth_config if defined?(@external_auth_config)
+
+        @external_auth_config = if defined?(OT) && OT.respond_to?(:conf)
+          OT.conf.dig('site', 'authentication', 'external') || {}
+        else
+          {}
+        end
+      end
+
+      def no_identity
+        {
+          user: nil,
+          source: nil,
+          authenticated: false,
+          metadata: {},
+        }
+      end
+
+      def default_logger
+        Onetime.http_logger
+      end
+    end
+  end
+end

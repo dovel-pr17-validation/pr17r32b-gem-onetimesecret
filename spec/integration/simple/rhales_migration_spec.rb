@@ -1,0 +1,581 @@
+# spec/integration/simple/rhales_migration_spec.rb
+#
+# frozen_string_literal: true
+
+require_relative '../integration_spec_helper'
+require 'nokogiri'
+
+RSpec.describe 'Rhales Migration Integration', type: :integration do
+  # Initialize OT configuration for views
+  before(:all) do
+    # Configure I18n to accept :en locale (normally done by OT.boot!)
+    I18n.available_locales = [:en]
+    I18n.default_locale = :en
+
+    # Configure Runtime.internationalization (required by MiddlewareStack.build_available_locales)
+    # This is the proper way to set locale configuration since v0.21+
+    Onetime::Runtime.internationalization = Onetime::Runtime::Internationalization.new(
+      enabled: true,
+      supported_locales: ['en'],
+      default_locale: 'en',
+      fallback_locale: 'en',
+      locales: {
+        'en' => {
+          code: 'en',
+          name: 'English',
+          web: {
+            COMMON: {
+              title: 'Onetime Secret',
+              tagline: 'Keep sensitive info out of your email & chat logs.'
+            }
+          }
+        }
+      },
+      date_format: 'locale',
+      datetime_format: 'locale',
+    )
+
+    # Save original config for restoration in after(:all)
+    @__original_ot_conf_before_all = OT.conf
+
+    # Set minimal OT configuration - must include site.secret for Session middleware
+    mock_config = {
+      'site' => {
+        'host' => 'localhost:7143',
+        'domain' => 'localhost',
+        'ssl' => false,
+        'secret' => 'test-secret-for-rhales-migration-spec',
+        # Masthead layout knobs only — brand identity lives in the brand:
+        # block below (#3612 retired the header.branding nesting).
+        'interface' => {
+          'ui' => {
+            'header' => {
+              'enabled' => true,
+              'logo' => {}
+            }
+          }
+        }
+      },
+      # page_title falls through display_domain -> brand_product_name, which
+      # reads brand.product_name only (the legacy header.branding.site_name
+      # tier was retired in #3612). Without this the rendered <title> would
+      # be empty.
+      # og_image_url mirrors what Config#normalize_brand resolves at boot for a
+      # pack carrying social-preview.png (the tracked default does) — this mock
+      # bypasses normalize_brand, so it has to state the resolved value (#4150).
+      'brand' => { 'product_name' => 'One-Time Secret', 'og_image_url' => '/social-preview.png' },
+      'development' => { 'enabled' => false },
+      'diagnostics' => {},
+      'billing' => { 'enabled' => false }
+    }
+    OT.instance_variable_set(:@conf, mock_config)
+
+    # Configure Rhales template paths (normally done by ConfigureRhales initializer)
+    unless Rhales.configuration.frozen?
+      Rhales.configure do |config|
+        config.nonce_header_name = 'onetime.nonce'
+        config.hydration.injection_strategy = :earliest
+        config.hydration_authority = :schema
+        config.hydration.mount_point_selectors = ['#app']
+        templates_dir = File.join(OT::HOME, 'apps', 'web', 'core', 'templates')
+        config.template_paths = [templates_dir]
+        config.allowed_unescaped_variables = ['vite_assets_html']
+      end
+    end
+  end
+
+  after(:all) do
+    # Restore original config to prevent test pollution
+    OT.instance_variable_set(:@conf, @__original_ot_conf_before_all) if @__original_ot_conf_before_all
+  end
+
+  let(:session) { { 'csrf' => 'test-csrf-token-12345' } }
+  let(:customer) { nil } # Anonymous users have nil customer
+  let(:locale) { 'en' }
+  let(:nonce) { SecureRandom.base64(32) }
+  let(:request_path) { '/' }
+
+  # Mock Otto StrategyResult
+  let(:strategy_result) do
+    double('StrategyResult',
+      session: session,
+      user: customer,
+      authenticated?: false,
+      metadata: {}
+    )
+  end
+
+  let(:request) do
+    env_hash = {
+      'onetime.nonce' => nonce,
+      'otto.locale' => locale,
+      'rack.session' => session,
+      'otto.strategy_result' => strategy_result
+    }
+
+    double('Request',
+      env: env_hash,
+      path: request_path,
+      locale: locale,
+      user: customer,
+      session: session,
+      authenticated?: false,
+      nonce: nonce,
+      strategy_result: strategy_result
+    ).tap do |req|
+      # Allow env to respond to fetch for i18n helpers
+      allow(req.env).to receive(:fetch).and_call_original
+    end
+  end
+
+  describe 'VuePoint rendering with Rhales' do
+    let(:view) { Core::Views::VuePoint.new(request) }
+    let(:rendered_html) { view.render('index') }
+    let(:doc) { Nokogiri::HTML(rendered_html) }
+
+    context 'CSP Nonce Propagation' do
+      it 'applies nonce to dark mode script' do
+        dark_mode_script = doc.css('head script').first
+        expect(dark_mode_script['nonce']).to eq(nonce)
+      end
+
+      it 'applies nonce to all link tags' do
+        doc.css('link[nonce]').each do |link|
+          expect(link['nonce']).to eq(nonce)
+        end
+      end
+
+      it 'applies nonce to Vite asset scripts' do
+        vite_scripts = doc.css('script[src*="/dist/"]')
+        # Skip assertion if Vite manifest not available (CI without frontend build)
+        skip 'Vite manifest not available' if vite_scripts.empty?
+        vite_scripts.each do |script|
+          expect(script['nonce']).to eq(nonce)
+        end
+      end
+
+      it 'includes nonce in hydration script' do
+        hydration_script = doc.css('script[type="application/json"]').first
+        expect(hydration_script['nonce']).to eq(nonce)
+      end
+    end
+
+    context 'Serializer Data Hydration' do
+      let(:state_script) { doc.css('script[type="application/json"]').first }
+      let(:state_data) { JSON.parse(state_script.content) }
+
+      it 'includes serializer outputs from all registered serializers' do
+        # ConfigSerializer outputs
+        expect(state_data).to have_key('secret_options')
+        # AuthenticationSerializer outputs
+        expect(state_data).to have_key('authenticated')
+        expect(state_data).to have_key('cust')
+        # DomainSerializer outputs
+        expect(state_data).to have_key('domain_strategy')
+        # I18nSerializer outputs
+        expect(state_data).to have_key('locale')
+        # MessagesSerializer outputs
+        expect(state_data).to have_key('messages')
+        # SystemSerializer outputs
+        expect(state_data).to have_key('ot_version')
+        expect(state_data).to have_key('shrimp')
+      end
+
+      it 'includes authenticated flag' do
+        expect(state_data).to have_key('authenticated')
+      end
+
+      it 'includes locale' do
+        expect(state_data['locale']).to eq(locale)
+      end
+
+      it 'initializes messages as empty or nil' do
+        # Messages start as nil in view_vars and are only populated when add_message is called
+        expect(state_data['messages']).to satisfy { |m| m.nil? || m == [] }
+      end
+
+      it 'sets window variable name to __BOOTSTRAP_ME__' do
+        # Rhales uses data-window attribute to specify the window variable name
+        # The hydration script reads this and sets window[name] = parsed JSON
+        expect(rendered_html).to include('data-window="__BOOTSTRAP_ME__"')
+      end
+    end
+
+    context 'JSON Sanitization' do
+      # Note: Messages are serialized at view initialization time.
+      # These tests verify that the JSON state data is valid and properly encoded.
+
+      it 'produces valid JSON in hydration script' do
+        state_script = doc.css('script[type="application/json"]').first
+        expect(state_script).not_to be_nil
+        expect { JSON.parse(state_script.content) }.not_to raise_error
+      end
+
+      it 'handles special characters in serialized data' do
+        # The serialized data contains various strings that may have special chars
+        state_script = doc.css('script[type="application/json"]').first
+        state_data = JSON.parse(state_script.content)
+
+        # Verify JSON parsing succeeded - special characters are properly escaped
+        expect(state_data).to be_a(Hash)
+        expect(state_data).to have_key('ot_version')
+      end
+
+      it 'escapes angle brackets in JSON to prevent XSS' do
+        state_script = doc.css('script[type="application/json"]').first
+        # The raw script content should not contain unescaped </script>
+        # If it did, it would prematurely close the JSON script tag
+        expect(state_script.content).not_to include('</script>')
+      end
+    end
+
+    context 'when rendering a secret page (head-secret-share partial)' do
+      let(:request_path) { '/secret/abc123def456' }
+
+      it 'tells search engines not to index or follow' do
+        expect(doc.css('meta[name="robots"]').first['content']).to eq('noindex, nofollow')
+      end
+
+      it 'unfurls with neutral Open Graph text and the page URL', :aggregate_failures do
+        canonical = doc.css('link[rel="canonical"]').first['href']
+
+        expect(canonical).to end_with('/secret/abc123def456')
+        expect(doc.css('meta[property="og:url"]').first['content']).to eq(canonical)
+        expect(doc.css('meta[property="og:title"]').first['content']).to eq('A secret link was shared with you')
+        expect(doc.css('meta[property="og:description"]').first['content']).to include('works one time')
+        expect(doc.css('meta[name="twitter:title"]').first['content']).to eq('A secret link was shared with you')
+      end
+
+      it 'never carries a preview image', :aggregate_failures do
+        expect(doc.css('meta[property="og:image"], meta[name="twitter:image"]')).to be_empty
+        expect(doc.css('meta[name="twitter:card"]').first['content']).to eq('summary')
+      end
+
+      it 'still renders the base head once', :aggregate_failures do
+        expect(doc.css('meta[charset="UTF-8"]').length).to eq(1)
+        expect(doc.css('link[rel="canonical"]').length).to eq(1)
+      end
+    end
+
+    context 'when rendering a receipt page (head-secret-share partial, sender copy)' do
+      let(:request_path) { '/receipt/abc123def456' }
+
+      it 'tells search engines not to index or follow' do
+        expect(doc.css('meta[name="robots"]').first['content']).to eq('noindex, nofollow')
+      end
+
+      it 'unfurls with text that addresses the sender', :aggregate_failures do
+        expect(doc.css('meta[property="og:title"]').first['content']).to eq('Receipt for a secret you sent')
+        expect(doc.css('meta[property="og:description"]').first['content']).to include('a secret you sent')
+        expect(doc.css('meta[name="twitter:title"]').first['content']).to eq('Receipt for a secret you sent')
+        expect(doc.css('meta[property="og:image"], meta[name="twitter:image"]')).to be_empty
+      end
+    end
+
+    context 'Partial Rendering' do
+      it 'renders head partial' do
+        expect(doc.css('meta[charset="UTF-8"]')).not_to be_empty
+      end
+
+      it 'includes all meta tags from head partial' do
+        expect(doc.css('meta[name="viewport"]')).not_to be_empty
+        expect(doc.css('meta[name="referrer"]')).not_to be_empty
+        expect(doc.css('meta[property="og:url"]')).not_to be_empty
+        expect(doc.css('meta[name="twitter:card"]')).not_to be_empty
+      end
+
+      it 'gives og:url and twitter:url the canonical page URL' do
+        canonical = doc.css('link[rel="canonical"]').first['href']
+
+        expect(canonical).to match(%r{\Ahttps?://[^/]+/\z})
+        expect(doc.css('meta[property="og:url"]').first['content']).to eq(canonical)
+        expect(doc.css('meta[property="twitter:url"]').first['content']).to eq(canonical)
+      end
+
+      it 'lets search engines index an ordinary page' do
+        expect(doc.css('meta[name="robots"]')).to be_empty
+      end
+
+      it 'renders page title from props' do
+        expect(doc.css('title').text).not_to be_empty
+      end
+
+      it 'includes favicon links' do
+        expect(doc.css('link[rel="icon"]')).not_to be_empty
+      end
+    end
+
+    context 'Favicon and social variety pack' do
+      it 'emits the neutral SVG favicon for canonical installs (no brand override)' do
+        svg_icon = doc.css('link[rel="icon"][type="image/svg+xml"]')
+        expect(svg_icon).not_to be_empty
+        expect(svg_icon.first['href']).to eq('/favicon.svg')
+      end
+
+      it 'still emits the legacy .ico favicon link' do
+        hrefs = doc.css('link[rel="icon"]').map { |l| l['href'] }
+        expect(hrefs).to include('/favicon.ico')
+      end
+
+      it 'emits the apple-touch-icon link' do
+        expect(doc.css('link[rel="apple-touch-icon"]')).not_to be_empty
+      end
+
+      it 'emits the web manifest link' do
+        expect(doc.css('link[rel="manifest"]')).not_to be_empty
+      end
+
+      # A pack carrying social-preview.png emits both tags with an ABSOLUTE URL
+      # (social scrapers will not resolve a relative one) and the large-image
+      # card type. The imageless posture is asserted below (#4150).
+      it 'emits og:image and twitter:image' do
+        expect(doc.css('meta[property="og:image"]')).not_to be_empty
+        expect(doc.css('meta[name="twitter:image"]')).not_to be_empty
+      end
+
+      it 'emits an absolute og:image URL' do
+        expect(doc.css('meta[property="og:image"]').first['content']).to match(%r{\Ahttps?://})
+      end
+
+      it 'emits twitter:card as summary_large_image when a card is present' do
+        expect(doc.css('meta[name="twitter:card"]').first&.[]('content')).to eq('summary_large_image')
+      end
+
+      # The opt-out posture (BRAND_OG_IMAGE_URL=none, or a pack carrying no card)
+      # reaches the view as a nil brand.og_image_url. Proven at the RENDER layer:
+      # the tags must be absent entirely, not emitted empty or pointing at a URL
+      # that 404s, and the card type must degrade so the preview still renders.
+      context 'with no social card' do
+        before do
+          @saved_brand   = OT.conf['brand']
+          OT.conf['brand'] = @saved_brand.merge('og_image_url' => nil)
+        end
+
+        after { OT.conf['brand'] = @saved_brand }
+
+        it 'omits og:image and twitter:image entirely' do
+          expect(doc.css('meta[property="og:image"]')).to be_empty
+          expect(doc.css('meta[name="twitter:image"]')).to be_empty
+        end
+
+        it 'degrades twitter:card to summary' do
+          expect(doc.css('meta[name="twitter:card"]').first&.[]('content')).to eq('summary')
+        end
+      end
+
+      it 'emits mobile web app metadata' do
+        expect(doc.css('meta[name="apple-mobile-web-app-title"]')).not_to be_empty
+        expect(doc.css('meta[name="application-name"]')).not_to be_empty
+      end
+    end
+
+    context 'Vite Asset Loading' do
+      # Note: These tests verify that vite_assets_html is included in the template.
+      # The actual asset paths depend on whether a manifest exists and development mode.
+      # More detailed Vite behavior is tested in unit tests.
+
+      it 'includes script tags for Vite assets' do
+        # The template should include script tags for the main entry point
+        # In test mode without manifest, it may use fallback or dev mode paths
+        vite_scripts = doc.css('script[type="module"]')
+        # Skip if Vite manifest not available (CI without frontend build)
+        skip 'Vite manifest not available' if vite_scripts.empty?
+      end
+
+      it 'applies nonces to Vite script tags' do
+        module_scripts = doc.css('script[type="module"][nonce]')
+        module_scripts.each do |script|
+          expect(script['nonce']).to eq(nonce)
+        end
+      end
+    end
+
+    context 'CSRF Token' do
+      it 'delivers CSRF via shrimp in serialized state (not meta tag)' do
+        # CSRF is delivered via window.__BOOTSTRAP_ME__.shrimp and X-CSRF-Token header
+        # No meta tag - frontend reads from window state, updates from response headers
+        state_script = doc.css('script[type="application/json"]').first
+        state_data = JSON.parse(state_script.content)
+        expect(state_data).to have_key('shrimp')
+      end
+    end
+
+    context 'Dark Mode Script' do
+      it 'includes dark mode initialization script' do
+        expect(rendered_html).to include('prefers-color-scheme: dark')
+        expect(rendered_html).to include('adjustVisualEnvironment')
+      end
+
+      it 'positions dark mode script as first child of head' do
+        first_script = doc.css('head script').first
+        expect(first_script.content).to include('prefers-color-scheme: dark')
+      end
+
+      it 'applies nonce to dark mode script' do
+        first_script = doc.css('head script').first
+        expect(first_script['nonce']).to eq(nonce)
+      end
+
+      it 'sets up dark/light mode classes' do
+        expect(rendered_html).to include('addClass: \'dark\'')
+        expect(rendered_html).to include('addClass: \'light\'')
+      end
+    end
+
+    context 'Vue.js SPA Structure' do
+      it 'includes #app mount point' do
+        app_div = doc.css('#app').first
+        expect(app_div).not_to be_nil
+      end
+
+      it 'includes fallback content inside #app' do
+        # Vue replaces this fallback when mounted; server-rendered HTML has loading state
+        fallback_div = doc.css('#app .app-fallback').first
+        expect(fallback_div).not_to be_nil
+      end
+
+      # Stalled-load notice (#4596): shown by a CSS timer when the bundle never
+      # runs. It must be server-rendered inside the element the mount empties,
+      # hidden by default, revealed without script, and carry the request id so
+      # a recipient can quote it to support.
+      describe 'stalled-load notice' do
+        let(:inline_style) { doc.css('body > style').map(&:text).join }
+
+        it 'is server-rendered inside the fallback that mount() empties' do
+          notice = doc.css('#app .app-fallback .loader-stalled').first
+          expect(notice).not_to be_nil
+          expect(notice.text).to include('This page is taking longer than expected to load')
+        end
+
+        it 'announces from a live region that exists before the reveal' do
+          # A region that appears together with its content registers as new,
+          # not changed, so the role sits on an always-present wrapper and the
+          # animated element inside it carries no role of its own.
+          region = doc.css('#app .app-fallback .loader-stalled-region').first
+          expect(region).not_to be_nil
+          expect(region['role']).to eq('status')
+          notice = region.css('> .loader-stalled').first
+          expect(notice).not_to be_nil
+          expect(notice['role']).to be_nil
+          expect(inline_style).not_to match(/\.loader-stalled-region\s*\{[^}]*(visibility|display|opacity)/m)
+        end
+
+        it 'flags a failed entry-script fetch from the head script' do
+          # Registered in <head> before the Vite tags so a 404 on the entry
+          # module (stale chunk hash in cached HTML) flips the shell to the
+          # failure state at once instead of after the CSS timer.
+          listener = doc.css('head script[nonce]').map(&:text).find { |t| t.include?("addEventListener('error'") }
+          expect(listener).not_to be_nil
+          expect(listener).to include("target.type === 'module'")
+          expect(listener).to include("dataset.appFailed = 'true'")
+          expect(rendered_html.index("addEventListener('error'")).to be < rendered_html.index('<meta')
+        end
+
+        it 'offers a scriptless reload of the current URL' do
+          # An empty href resolves to the document URL; the shell sets no <base>.
+          link = doc.css('#app .loader-stalled a.loader-stalled-action').first
+          expect(link).not_to be_nil
+          expect(link['href']).to eq('')
+          expect(link.text).to eq('Reload page')
+        end
+
+        it 'carries a detected-failure state the entry script can switch on' do
+          # src/main.ts sets html[data-app-failed] when startup throws; the
+          # shell then stops the orb, swaps the heading and drops the delay.
+          failed = doc.css('#app .loader-stalled .loader-stalled-title-failed').first
+          expect(failed).not_to be_nil
+          expect(failed.text).to include("We couldn't load this page")
+          expect(inline_style).to match(/\.loader-stalled-title-failed\s*\{[^}]*display:\s*none/m)
+          expect(inline_style).to match(/html\[data-app-failed\]\s+\.app-fallback\s*\{[^}]*--stalled-delay:\s*0s/m)
+          expect(inline_style).to match(/html\[data-app-failed\]\s+\.loader-orb\s*\{[^}]*animation:\s*none/m)
+        end
+
+        it 'is hidden until a CSS delay reveals it' do
+          expect(inline_style).to match(/\.loader-stalled\s*\{[^}]*visibility:\s*hidden/m)
+          expect(inline_style).to match(/--stalled-delay:\s*\d+s/)
+          expect(inline_style).to include('@keyframes stalled-reveal')
+        end
+
+        it 'keeps the timer under prefers-reduced-motion' do
+          expect(inline_style).to match(
+            /prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\.loader-stalled\s*\{[^}]*stalled-reveal[^}]*var\(--stalled-delay\)/m,
+          )
+        end
+
+        it 'omits the support reference when the request carries no id' do
+          expect(doc.css('.loader-stalled-ref')).to be_empty
+          expect(doc.css('meta[name="request-id"]')).to be_empty
+        end
+
+        it 'is present in the admin shell too' do
+          admin_doc = Nokogiri::HTML(Core::Views::AdminPoint.new(request).render)
+          expect(admin_doc.css('#app .app-fallback .loader-stalled-region[role="status"] .loader-stalled')).not_to be_empty
+          expect(admin_doc.css('head script[nonce]').map(&:text).join).to include("dataset.appFailed = 'true'")
+        end
+
+        context 'with a request id' do
+          before { request.env['HTTP_X_REQUEST_ID'] = 'trace-4596-abc' }
+
+          it 'renders the id as the support reference' do
+            ref = doc.css('#app .loader-stalled .loader-stalled-ref').first
+            expect(ref).not_to be_nil
+            expect(ref.text).to eq('trace-4596-abc')
+          end
+
+          it 'keeps the id out of window.__BOOTSTRAP_ME__' do
+            expect(view.serialized_data.to_json).not_to include('trace-4596-abc')
+          end
+
+          it 'exposes the document request id outside the Vue mount point on both shells' do
+            [doc, Nokogiri::HTML(Core::Views::AdminPoint.new(request).render)].each do |shell|
+              expect(shell.css('head meta[name="request-id"]').map { |meta| meta['content'] })
+                .to eq(['trace-4596-abc'])
+              expect(shell.css('#app meta[name="request-id"]')).to be_empty
+            end
+          end
+        end
+
+        it 'escapes a client-supplied request id' do
+          # Rack::RequestId accepts any visible-ASCII header value, so the
+          # reflected id must be escaped on the way into the shell.
+          request.env['HTTP_X_REQUEST_ID'] = '<img src=x onerror=alert(1)>'
+          expect(rendered_html).not_to include('<img src=x')
+          expect(doc.css('.loader-stalled-ref').first.text).to eq('<img src=x onerror=alert(1)>')
+        end
+
+        it 'escapes attribute delimiters in the request-id meta tag on both shells' do
+          request.env['HTTP_X_REQUEST_ID'] = 'request" content="injected" onload="alert(1)'
+          [doc, Nokogiri::HTML(Core::Views::AdminPoint.new(request).render)].each do |shell|
+            meta = shell.css('head meta[name="request-id"]').first
+            expect(meta['content']).to eq(request.env['HTTP_X_REQUEST_ID'])
+            expect(meta.attribute_nodes.map(&:name)).to contain_exactly('name', 'content')
+          end
+        end
+      end
+
+      it 'sets html lang attribute from locale' do
+        expect(doc.css('html').first['lang']).to eq(locale)
+      end
+
+      it 'applies initial light mode class to html' do
+        expect(doc.css('html').first['class']).to include('light')
+      end
+    end
+
+    context 'Backward Compatibility' do
+      it 'maintains same HTML structure' do
+        # Verify essential structure elements
+        expect(doc.css('html').length).to eq(1)
+        expect(doc.css('head').length).to eq(1)
+        expect(doc.css('body').length).to eq(1)
+        expect(doc.css('#app').length).to eq(1)
+      end
+
+      it 'preserves all meta tags from original template' do
+        # Count meta tags (should match original count)
+        meta_tags = doc.css('meta')
+        expect(meta_tags.length).to be >= 15  # Original has 15+ meta tags
+      end
+    end
+  end
+end

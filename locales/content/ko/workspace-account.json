@@ -1,0 +1,726 @@
+{
+  "web.account.settings": {
+    "text": "설정",
+    "source_hash": "74a883a0"
+  },
+  "web.account.change_password": {
+    "text": "비밀번호 변경",
+    "source_hash": "a949f462"
+  },
+  "web.account.close_account": {
+    "text": "계정 폐쇄",
+    "source_hash": "e1513814"
+  },
+  "web.account.verify_account": {
+    "text": "계정 인증",
+    "source_hash": "2f3ea760"
+  },
+  "web.account.subscription_title": {
+    "text": "구독",
+    "source_hash": "4999c6c6"
+  },
+  "web.account.manage_subscription": {
+    "text": "구독 관리",
+    "source_hash": "cbc4ef92"
+  },
+  "web.account.customer_information": {
+    "text": "고객 정보",
+    "source_hash": "8258db6d"
+  },
+  "web.account.customer_since": {
+    "text": "가입일:",
+    "source_hash": "0b37cff3"
+  },
+  "web.account.email": {
+    "text": "이메일:",
+    "source_hash": "17507dcf"
+  },
+  "web.account.region": {
+    "text": "지역",
+    "source_hash": "d3a008ef"
+  },
+  "web.account.account_balance": {
+    "text": "잔액:",
+    "source_hash": "e0351221"
+  },
+  "web.account.default_payment_method": {
+    "text": "기본 결제 방법",
+    "source_hash": "c60f014b"
+  },
+  "web.account.card_ending": {
+    "text": "끝자리",
+    "source_hash": "0195bccf"
+  },
+  "web.account.subscriptions_title": {
+    "text": "구독",
+    "source_hash": "a151f2e9"
+  },
+  "web.account.quantity": {
+    "text": "수량:",
+    "source_hash": "d4b2cb96"
+  },
+  "web.account.next_billing_date": {
+    "text": "다음 결제일:",
+    "source_hash": "8e6f9cfe"
+  },
+  "web.account.changePassword.username": {
+    "text": "사용자 이름",
+    "source_hash": "e3b89e9d"
+  },
+  "web.account.changePassword.currentPassword": {
+    "text": "현재 비밀번호",
+    "source_hash": "8ac76099"
+  },
+  "web.account.changePassword.newPassword": {
+    "text": "새 비밀번호",
+    "source_hash": "7c451e0f"
+  },
+  "web.account.changePassword.confirmPassword": {
+    "text": "확인",
+    "source_hash": "eebdd24a"
+  },
+  "web.account.changePassword.updatePassword": {
+    "text": "비밀번호 업데이트",
+    "source_hash": "557be0da"
+  },
+  "web.account.changePassword.updating": {
+    "text": "업데이트 중...",
+    "source_hash": "0a4e0b71"
+  },
+  "web.account.timezone": {
+    "text": "시간대",
+    "source_hash": "4ceca1d5"
+  },
+  "web.account.customer_id": {
+    "text": "고객 ID",
+    "source_hash": "62566c64"
+  },
+  "web.account.account_id_customerid": {
+    "text": "계정 ID",
+    "source_hash": "919bb4cb"
+  },
+  "web.account.created_windowprops_cust_secrets_created_secrets": {
+    "text": "{1} 이후 {0}개의 비밀 메시지를 생성했습니다.",
+    "source_hash": "8cb99810"
+  },
+  "web.account.delete_account": {
+    "text": "계정 삭제",
+    "source_hash": "c031bf99"
+  },
+  "web.account.api_key": {
+    "text": "API 키",
+    "source_hash": "23189d55"
+  },
+  "web.account.account_type_windowprops_plan_options_name": {
+    "text": "계정 유형: {0}",
+    "source_hash": "617bfe67"
+  },
+  "web.account.your_account": {
+    "text": "내 계정",
+    "source_hash": "89e60bfb"
+  },
+  "web.account.support_details": {
+    "text": "지원 세부정보",
+    "source_hash": "cbad8751"
+  },
+  "web.account.back_to_details": {
+    "text": "세부정보로 돌아가기",
+    "source_hash": "f6f841b9"
+  },
+  "web.account.customer_id_cust_custid": {
+    "text": "고객 ID: {0}",
+    "source_hash": "7e2d4201"
+  },
+  "web.account.token_generated": {
+    "text": "토큰이 생성되었습니다.",
+    "source_hash": "05986d95"
+  },
+  "web.account.keep_this_token_secure_it_provides_full_access_t": {
+    "text": "이 토큰을 안전하게 보관하세요. API를 통해 비밀 메시지를 생성하고 관리하는 데 사용할 수 있습니다.",
+    "source_hash": "a63cc8ec"
+  },
+  "web.account.confirm_with_your_password": {
+    "text": "비밀번호로 확인",
+    "source_hash": "ff2147fd"
+  },
+  "web.account.are_you_sure_you_want_to_permanently_delete_your": {
+    "text": "계정을 영구적으로 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+    "source_hash": "4fa3e4b8"
+  },
+  "web.account.confirm_account_deletion": {
+    "text": "계정 삭제 확인",
+    "source_hash": "bb3fc7e5"
+  },
+  "web.account.deleting_cust_custid": {
+    "text": "{0} 삭제 중",
+    "source_hash": "81d21828"
+  },
+  "web.account.deleting_ellipsis": {
+    "text": "삭제 중...",
+    "source_hash": "685ecb98"
+  },
+  "web.account.permanently_delete_account": {
+    "text": "계정 영구 삭제",
+    "source_hash": "f894e42c"
+  },
+  "web.account.permanent_and_non_reversible": {
+    "text": "영구적이며 되돌릴 수 없습니다.",
+    "source_hash": "6121225e"
+  },
+  "web.account.deleting_your_account_is": {
+    "text": "계정 삭제는",
+    "source_hash": "ec31577b"
+  },
+  "web.account.burn_them_before_continuing": {
+    "text": "계속하기 전에 소각하세요",
+    "source_hash": "f89a5794"
+  },
+  "web.account.any_secrets_you_wish_to_remove": {
+    "text": "제거하고 싶은 비밀 메시지가 있다면,",
+    "source_hash": "b45e2dd5"
+  },
+  "web.account.secrets_will_remain_active_until_they_expire": {
+    "text": "비밀 메시지는 만료될 때까지 활성 상태로 유지됩니다.",
+    "source_hash": "ddb4e2b5"
+  },
+  "web.account.please_be_advised": {
+    "text": "주의사항:",
+    "source_hash": "086020fd"
+  },
+  "web.account.account_deleted_successfully": {
+    "text": "계정이 성공적으로 삭제되었습니다.",
+    "source_hash": "afcfdd58"
+  },
+  "web.account.deactivate": {
+    "text": "비활성화",
+    "source_hash": "fb1e6fa5"
+  },
+  "web.account.are_you_sure_you_want_to_deactivate_your_account": {
+    "text": "계정을 비활성화하시겠습니까? 모든 데이터가 서버에서 영구적으로 제거됩니다. 이 작업은 취소할 수 없습니다.",
+    "source_hash": "4940e20a"
+  },
+  "web.account.deactivate_account": {
+    "text": "계정 비활성화",
+    "source_hash": "5e31b73d"
+  },
+  "web.settings.title": {
+    "text": "설정",
+    "source_hash": "74a883a0"
+  },
+  "web.settings.description": {
+    "text": "계정 설정 및 환경설정 관리",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.manage_your_account_settings_and_preferences": {
+    "text": "계정 설정 및 환경설정을 관리합니다",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.back_to_dashboard": {
+    "text": "대시보드로 돌아가기",
+    "source_hash": "97ba1d39"
+  },
+  "web.settings.sections.account": {
+    "text": "계정",
+    "source_hash": "7e1b0d56"
+  },
+  "web.settings.sections.billing": {
+    "text": "결제",
+    "source_hash": "3ac8bbca"
+  },
+  "web.settings.sections.advanced": {
+    "text": "고급",
+    "source_hash": "9f088dbe"
+  },
+  "web.settings.general": {
+    "text": "일반",
+    "source_hash": "c910d474"
+  },
+  "web.settings.preferences": {
+    "text": "환경설정",
+    "source_hash": "66962f72"
+  },
+  "web.settings.appearance": {
+    "text": "화면 설정",
+    "source_hash": "3907fa7f"
+  },
+  "web.settings.theme.title": {
+    "text": "테마",
+    "source_hash": "efb52e71"
+  },
+  "web.settings.theme.description": {
+    "text": "라이트 또는 다크 테마 선택",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.theme.choose_light_or_dark_theme": {
+    "text": "라이트 또는 다크 테마 선택",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.language.title": {
+    "text": "언어",
+    "source_hash": "a4fe6526"
+  },
+  "web.settings.language.description": {
+    "text": "선호하는 언어 선택",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.language.select_your_preferred_language": {
+    "text": "선호하는 언어 선택",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.security_settings_description": {
+    "text": "인증 및 계정 보안 관리",
+    "source_hash": "945109d1"
+  },
+  "web.settings.profile_settings_description": {
+    "text": "계정 정보 관리",
+    "source_hash": "4a23a29f"
+  },
+  "web.settings.profile.title": {
+    "text": "프로필",
+    "source_hash": "d696a35b"
+  },
+  "web.settings.profile.change_email": {
+    "text": "이메일 변경",
+    "source_hash": "18c3f2d5"
+  },
+  "web.settings.profile.current_email": {
+    "text": "현재 이메일",
+    "source_hash": "5f1cab64"
+  },
+  "web.settings.profile.current_password": {
+    "text": "현재 비밀번호",
+    "source_hash": "8ac76099"
+  },
+  "web.settings.profile.new_email": {
+    "text": "새 이메일",
+    "source_hash": "5bafb4be"
+  },
+  "web.settings.profile.enter_password_to_confirm": {
+    "text": "현재 비밀번호를 입력하세요",
+    "source_hash": "27814c03"
+  },
+  "web.settings.profile.password_required_for_security": {
+    "text": "보안상의 이유로 비밀번호가 필요합니다",
+    "source_hash": "d18f62f2"
+  },
+  "web.settings.profile.verification_email_notice": {
+    "text": "새 주소로 인증 이메일이 발송됩니다",
+    "source_hash": "575082a1"
+  },
+  "web.settings.profile.update_email": {
+    "text": "이메일 업데이트",
+    "source_hash": "6ec61b2e"
+  },
+  "web.settings.profile.change_email_description": {
+    "text": "계정에 연결된 이메일 주소 업데이트",
+    "source_hash": "636abb16"
+  },
+  "web.settings.profile.all_fields_required": {
+    "text": "모든 필드는 필수입니다",
+    "source_hash": "04814271"
+  },
+  "web.settings.profile.invalid_email": {
+    "text": "유효한 이메일 주소를 입력해 주세요",
+    "source_hash": "b00f7e3a"
+  },
+  "web.settings.profile.email_same_as_current": {
+    "text": "새 이메일은 현재 이메일과 달라야 합니다",
+    "source_hash": "f7cfed6e"
+  },
+  "web.settings.profile.email_change_success": {
+    "text": "인증 이메일이 발송되었습니다. 새 받은 편지함을 확인하고 확인 링크를 클릭하여 변경을 완료하세요.",
+    "source_hash": "45f0a4b5"
+  },
+  "web.settings.profile.email_change_error": {
+    "text": "이메일 업데이트 실패. 다시 시도해 주세요.",
+    "source_hash": "aeba6591"
+  },
+  "web.settings.sessions.title": {
+    "text": "활성 세션",
+    "source_hash": "b58fa4e0"
+  },
+  "web.settings.sessions.description": {
+    "text": "활성 세션 관리",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.sessions.manage_active_sessions": {
+    "text": "활성 세션 관리",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.password.title": {
+    "text": "비밀번호",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.settings.password.description": {
+    "text": "계정 비밀번호 업데이트",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.password.update_account_password": {
+    "text": "계정 비밀번호 업데이트",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.delete_account.title": {
+    "text": "계정 삭제",
+    "source_hash": "c031bf99"
+  },
+  "web.settings.delete_account.description": {
+    "text": "계정과 모든 데이터를 영구적으로 삭제",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.delete_account.permanently_delete_your_account": {
+    "text": "계정과 모든 데이터를 영구적으로 삭제",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.security.security_score": {
+    "text": "보안 점수",
+    "source_hash": "02d2f374"
+  },
+  "web.settings.security.score_description": {
+    "text": "전체 계정 보안 상태",
+    "source_hash": "cf20935e"
+  },
+  "web.settings.security.excellent": {
+    "text": "우수",
+    "source_hash": "0dc8ee55"
+  },
+  "web.settings.security.good": {
+    "text": "좋음",
+    "source_hash": "c939327c"
+  },
+  "web.settings.security.fair": {
+    "text": "보통",
+    "source_hash": "f7b19afc"
+  },
+  "web.settings.security.weak": {
+    "text": "약함",
+    "source_hash": "8d6cea25"
+  },
+  "web.settings.security.improve_security": {
+    "text": "보안 향상",
+    "source_hash": "c38bcbf5"
+  },
+  "web.settings.security.enable_mfa_recommendation": {
+    "text": "더 강력한 보호를 위해 2단계 인증 활성화",
+    "source_hash": "6beda528"
+  },
+  "web.settings.security.generate_recovery_codes_recommendation": {
+    "text": "백업으로 복구 코드를 생성하세요",
+    "source_hash": "eb5f3ebd"
+  },
+  "web.settings.security.configured": {
+    "text": "설정됨",
+    "source_hash": "84aebc69"
+  },
+  "web.settings.security.change": {
+    "text": "변경",
+    "source_hash": "c0bf75bd"
+  },
+  "web.settings.security.manage": {
+    "text": "관리",
+    "source_hash": "5a234448"
+  },
+  "web.settings.security.enable": {
+    "text": "활성화",
+    "source_hash": "5342e09f"
+  },
+  "web.settings.security.codes_available": {
+    "text": "{0}개 코드 사용 가능",
+    "source_hash": "76d6236d"
+  },
+  "web.settings.security.no_codes": {
+    "text": "생성된 코드 없음",
+    "source_hash": "3b2eae20"
+  },
+  "web.settings.security.active_sessions": {
+    "text": "{0}개 활성 세션 | {0}개 활성 세션",
+    "source_hash": "30737484"
+  },
+  "web.settings.security.best_practices": {
+    "text": "보안 모범 사례",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.security.use_strong_unique_password": {
+    "text": "계정에 강력하고 고유한 비밀번호 사용",
+    "source_hash": "5fc8cbf4"
+  },
+  "web.settings.security.enable_mfa_for_protection": {
+    "text": "추가 보호를 위해 2단계 인증 활성화",
+    "source_hash": "107e4898"
+  },
+  "web.settings.security.save_recovery_codes_safely": {
+    "text": "복구 코드를 안전한 곳에 저장",
+    "source_hash": "605513fc"
+  },
+  "web.settings.security.review_sessions_regularly": {
+    "text": "정기적으로 세션을 검토하고 사용하지 않는 세션 해제",
+    "source_hash": "efe59445"
+  },
+  "web.settings.security.view_details": {
+    "text": "세부정보 보기",
+    "source_hash": "d1bf045b"
+  },
+  "web.settings.api.title": {
+    "text": "API 및 통합",
+    "source_hash": "21fc84f3"
+  },
+  "web.settings.api.description": {
+    "text": "API 키 및 통합 관리",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.manage_api_keys": {
+    "text": "API 키 및 통합 관리",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.documentation": {
+    "text": "API 문서",
+    "source_hash": "1cc77e60"
+  },
+  "web.settings.api.documentation_description": {
+    "text": "{product_name}을(를) 애플리케이션에 통합하는 방법을 알아보세요",
+    "source_hash": "9bba1ae8"
+  },
+  "web.settings.api.rest_api_reference": {
+    "text": "REST API 참조",
+    "source_hash": "26a5af61"
+  },
+  "web.settings.api.complete_api_documentation": {
+    "text": "전체 API 문서 및 엔드포인트",
+    "source_hash": "c1c87ad8"
+  },
+  "web.settings.api.code_examples": {
+    "text": "코드 예제",
+    "source_hash": "216d28e4"
+  },
+  "web.settings.api.example_code_and_libraries": {
+    "text": "예제 코드 및 클라이언트 라이브러리",
+    "source_hash": "61c5956f"
+  },
+  "web.settings.api.security_best_practices": {
+    "text": "보안 모범 사례",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.api.never_commit_api_keys": {
+    "text": "API 키를 버전 관리에 커밋하지 마세요",
+    "source_hash": "cc8c327e"
+  },
+  "web.settings.api.use_environment_variables": {
+    "text": "환경 변수를 사용하여 API 키를 저장하세요",
+    "source_hash": "c05e8802"
+  },
+  "web.settings.api.rotate_keys_regularly": {
+    "text": "보안을 위해 정기적으로 API 키를 교체하세요",
+    "source_hash": "eda6a5db"
+  },
+  "web.settings.api.use_https_only": {
+    "text": "API 요청 시 항상 HTTPS를 사용하세요",
+    "source_hash": "b3f405ef"
+  },
+  "web.settings.api.monitor_api_usage": {
+    "text": "API 사용량을 모니터링하고 알림을 설정하세요",
+    "source_hash": "abb08beb"
+  },
+  "web.settings.api.important_notice": {
+    "text": "중요 공지",
+    "source_hash": "03d3ba93"
+  },
+  "web.settings.api.regenerating_key_warning": {
+    "text": "API 키를 재생성하면 현재 키가 무효화됩니다. 이전 키를 사용하는 모든 애플리케이션을 업데이트하세요.",
+    "source_hash": "ab168f83"
+  },
+  "web.settings.privacy.title": {
+    "text": "개인정보 보호 설정",
+    "source_hash": "eefad6ba"
+  },
+  "web.settings.privacy.manage_privacy_settings": {
+    "text": "개인정보 보호 설정 관리",
+    "source_hash": "add087da"
+  },
+  "web.settings.privacy.your_privacy": {
+    "text": "귀하의 개인정보",
+    "source_hash": "cad972db"
+  },
+  "web.settings.privacy.non_negotiable": {
+    "text": "타협 불가",
+    "source_hash": "ad090a29"
+  },
+  "web.settings.privacy.not_a_setting": {
+    "text": "설정 아님",
+    "source_hash": "41278ece"
+  },
+  "web.settings.privacy.no_analytics_statement": {
+    "text": "분석 없음. 추적 없음. 끝.",
+    "source_hash": "3e154b1c"
+  },
+  "web.settings.privacy.explanation": {
+    "text": "켜거나 끌 것이 없기 때문에 이것은 설정이 아닙니다. 귀하의 개인정보 보호는 우리가 운영하는 방식에 내장되어 있습니다.",
+    "source_hash": "ed943792"
+  },
+  "web.settings.notifications.title": {
+    "text": "알림 설정",
+    "source_hash": "07a063ca"
+  },
+  "web.settings.notifications.description": {
+    "text": "알림 수신 방법 관리",
+    "source_hash": "148c5ff6"
+  },
+  "web.settings.notifications.error_updating": {
+    "text": "알림 설정 업데이트 실패. 다시 시도해 주세요.",
+    "source_hash": "c08abc04"
+  },
+  "web.settings.notifications.reveal_notifications.title": {
+    "text": "비밀 메시지 공개 알림",
+    "source_hash": "c0fb2e25"
+  },
+  "web.settings.notifications.reveal_notifications.description": {
+    "text": "누군가 비밀 메시지를 조회할 때 이메일 수신",
+    "source_hash": "a3a67095"
+  },
+  "web.settings.notifications.reveal_notifications.help": {
+    "text": "수신자가 비밀 메시지 중 하나를 공개할 때마다 알림을 받습니다",
+    "source_hash": "ba93106d"
+  },
+  "web.settings.notifications.privacy_note": {
+    "text": "알림 이메일에는 타임스탬프와 비밀 메시지 ID만 포함됩니다. 조회자 정보는 포함되지 않습니다.",
+    "source_hash": "7aac282f"
+  },
+  "web.settings.caution.title": {
+    "text": "신중한 고려 구역",
+    "source_hash": "fe27a3a8"
+  },
+  "web.settings.caution.description": {
+    "text": "고급 설정 및 데이터 관리",
+    "source_hash": "223ee55d"
+  },
+  "web.settings.caution.data_export": {
+    "text": "데이터 내보내기",
+    "source_hash": "bdcea052"
+  },
+  "web.settings.caution.export_your_data": {
+    "text": "계정 데이터 내보내기",
+    "source_hash": "dc5ffcb0"
+  },
+  "web.settings.caution.export_description": {
+    "text": "기계 판독 가능한 형식으로 계정 데이터의 전체 사본 요청",
+    "source_hash": "369c3391"
+  },
+  "web.settings.caution.request_data_export": {
+    "text": "데이터 내보내기 요청",
+    "source_hash": "902394be"
+  },
+  "web.settings.caution.export_info": {
+    "text": "내보내기 처리 시간",
+    "source_hash": "2ebb2d44"
+  },
+  "web.settings.caution.export_info_description": {
+    "text": "내보내기는 24시간 이내에 처리되어 이메일 주소로 발송됩니다",
+    "source_hash": "a2f81e3b"
+  },
+  "web.settings.caution.deletion_warning_title": {
+    "text": "계정을 삭제하면:",
+    "source_hash": "17a8a676"
+  },
+  "web.settings.caution.deletion_warning_secrets": {
+    "text": "모든 비밀 메시지 영구 삭제",
+    "source_hash": "974ccdb9"
+  },
+  "web.settings.caution.deletion_warning_metadata": {
+    "text": "모든 비밀 메시지 메타데이터 및 기록 제거",
+    "source_hash": "ec4ee372"
+  },
+  "web.settings.caution.deletion_warning_api_keys": {
+    "text": "모든 API 키 무효화",
+    "source_hash": "7581333b"
+  },
+  "web.settings.caution.deletion_warning_irreversible": {
+    "text": "이 작업은 취소할 수 없습니다",
+    "source_hash": "02ccc074"
+  },
+  "web.settings.profile.confirm_email_change_title": {
+    "text": "이메일 주소가 업데이트됨",
+    "source_hash": "cf02eb0c"
+  },
+  "web.settings.profile.email_confirmed_success": {
+    "text": "이메일이 성공적으로 업데이트되었습니다. 새 이메일 주소로 로그인해 주세요.",
+    "source_hash": "a84efcea"
+  },
+  "web.settings.profile.email_confirm_verifying": {
+    "text": "새 이메일 주소 확인 중...",
+    "source_hash": "a6a4745f"
+  },
+  "web.settings.profile.email_confirm_error_title": {
+    "text": "이메일 변경 실패",
+    "source_hash": "953f3936"
+  },
+  "web.settings.profile.email_confirm_invalid": {
+    "text": "이 확인 링크가 유효하지 않거나 만료되었습니다.",
+    "source_hash": "f54594c2"
+  },
+  "web.settings.profile.email_confirm_back_to_settings": {
+    "text": "계정 설정으로 돌아가기",
+    "source_hash": "fd49b66b"
+  },
+  "web.settings.profile.redirecting_to_signin": {
+    "text": "로그인 페이지로 이동 중...",
+    "source_hash": "c65f7dcc"
+  },
+  "web.settings.profile.resend_confirmation": {
+    "text": "확인 이메일 다시 보내기",
+    "source_hash": "c617fff7"
+  },
+  "web.settings.profile.resend_confirmation_success": {
+    "text": "확인 이메일이 성공적으로 다시 발송되었습니다.",
+    "source_hash": "2287783b"
+  },
+  "web.settings.profile.resend_confirmation_sending": {
+    "text": "전송 중...",
+    "source_hash": "286a3af7"
+  },
+  "web.settings.profile.email_change_pending": {
+    "text": "확인 이메일이 발송되었습니다. 받은 편지함을 확인하고 확인 링크를 클릭하세요.",
+    "source_hash": "5806c93f"
+  },
+  "web.settings.profile.didnt_receive_email": {
+    "text": "이메일을 받지 못하셨나요?",
+    "source_hash": "fe3ac3ad"
+  },
+  "web.settings.api.api_disabled_notice": {
+    "text": "이 인스턴스에서 API가 비활성화되어 있습니다.",
+    "source_hash": "66d12d6b"
+  },
+  "web.settings.security.sso_managed_title": {
+    "text": "SSO로 관리되는 보안",
+    "source_hash": "1f6c9472"
+  },
+  "web.settings.security.sso_managed_description": {
+    "text": "회원님의 계정은 조직의 Single Sign-On 공급자를 통해 인증됩니다. 비밀번호, 다단계 인증, 복구 코드는 ID 공급자가 관리합니다.",
+    "source_hash": "cd0cf39f"
+  },
+  "web.settings.api.api_username": {
+    "text": "API 사용자 이름",
+    "source_hash": "0b3e483e"
+  },
+  "web.settings.api.api_username_description": {
+    "text": "HTTP Basic 인증을 위한 사용자 이름",
+    "source_hash": "f3e65de3"
+  },
+  "web.settings.api.basic_auth_hint": {
+    "text": "HTTP Basic 인증의 경우 계정 이메일 또는 이 ID를 사용자 이름으로, API 토큰을 비밀번호로 사용하세요.",
+    "source_hash": "cfa3806d"
+  },
+  "web.settings.security.set": {
+    "text": "설정됨",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.settings.security.not_set": {
+    "text": "설정되지 않음",
+    "source_hash": "4895f731"
+  },
+  "web.settings.security.set_password_title": {
+    "text": "비밀번호 설정",
+    "source_hash": "4e411687"
+  },
+  "web.settings.security.set_password_description": {
+    "text": "ID 제공자 없이도 로그인할 수 있도록 계정에 비밀번호를 추가하세요",
+    "source_hash": "a6970402"
+  }
+}

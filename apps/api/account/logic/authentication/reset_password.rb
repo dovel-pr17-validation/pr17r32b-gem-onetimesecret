@@ -1,0 +1,129 @@
+# apps/api/account/logic/authentication/reset_password.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/logic/credential_change_session_revocation'
+
+module AccountAPI::Logic
+  module Authentication
+    using Familia::Refinements::TimeLiterals
+
+    class ResetPassword < AccountAPI::Logic::Base
+      include Onetime::LoggerMethods
+      include Onetime::Logic::CredentialChangeSessionRevocation
+
+      attr_reader :secret, :is_confirmed
+
+      # Parameters must match rodauth
+      # key: the secret identifier
+      # password:
+      # password-confirm:
+      def process_params
+        @secret          = Onetime::Secret.find_by_identifier params['key'].to_s
+        @password        = self.class.normalize_password(params['password']) # was newp
+        @passwordconfirm = self.class.normalize_password(params['password-confirm']) # was newp2
+        @is_confirmed    = Rack::Utils.secure_compare(@password, @passwordconfirm)
+      end
+
+      def raise_concerns
+        raise OT::MissingSecret if secret.nil?
+        # Legacy v1 secrets carry custid; new-format secrets (owner_id keyword)
+        # leave it empty, so guard the owner_id form too — a secret owned by no
+        # account can never be a valid reset secret.
+        raise OT::MissingSecret if secret.custid.to_s == 'anon'
+        raise OT::MissingSecret if secret.anonymous?
+
+        raise_form_error 'New passwords do not match', field: 'password-confirm', error_type: 'mismatch' unless is_confirmed
+        raise_form_error 'New password is too short', field: 'password', error_type: 'too_short' unless @password.size >= 6
+      end
+
+      def process
+        # Load the customer information from the premade secret. An orphaned
+        # secret (no resolvable owner) cannot be a valid reset secret; treat it
+        # like a missing one rather than 500ing on nil below.
+        @cust = secret.load_owner
+        raise OT::MissingSecret if @cust.nil?
+
+        unless @cust.valid_reset_secret!(secret)
+          # If the secret is a reset secret, we can proceed to change
+          # the password. Otherwise, we should not be able to change
+          # the password.
+          secret.received!
+
+          auth_logger.warn 'Invalid reset secret attempted',
+            {
+              customer_id: @cust.extid,
+              email: @cust.obscure_email,
+              secret_identifier: secret.shortid, # truncated: the full identifier is the live token
+              ip: @strategy_result&.metadata&.dig(:ip),
+            }
+
+          raise_form_error 'Invalid reset secret'
+        end
+
+        if @cust.pending?
+          # If the customer is pending, we need to verify the account
+          # before we can change the password. We should not be able to
+          # change the password of an account that has not been verified.
+          # This is to prevent unauthorized password changes.
+
+          auth_logger.warn 'Password reset attempted for unverified account',
+            {
+              customer_id: @cust.extid,
+              email: @cust.obscure_email,
+              status: :pending,
+              ip: @strategy_result&.metadata&.dig(:ip),
+            }
+
+          raise_form_error 'Account not verified'
+        end
+
+        # Update the customer's passphrase. The bang variant persists the new
+        # hash (save_fields); bare update_passphrase only mutates in memory and
+        # never wrote the new password to the database.
+        @cust.update_passphrase! @password
+
+        # SECURITY (M-2): a password reset MUST invalidate every existing
+        # session for the account — the whole point of a reset is to lock out
+        # whoever currently holds a live session. In full mode the Rodauth
+        # after_reset_password hook does this; that hook never fires for this
+        # simple-mode path, so enforce it here. The user is UNAUTHENTICATED
+        # (they followed an email link), so there is no current session to
+        # preserve: stamp the watermark and revoke them ALL.
+        revoke_sessions_for_credential_change(@cust)
+
+        # The browser performing the reset may itself hold an authenticated
+        # session cookie for this account (reset requested while signed in).
+        # The revoke above deleted its blob, but the in-memory Rack session
+        # can be written back at commit and resurrect it — and a resurrected
+        # blob only dies on its NEXT request via the watermark. Clear the
+        # in-memory session (rotating the sid when the lever exists, like the
+        # logout controller) so the resetting browser ends signed out now.
+        sess.clear if sess.respond_to?(:clear)
+        rotate_session!(
+          security_warning: 'password reset revoked all authenticated sessions but the current browser session id was not rotated',
+          customer_id: @cust.extid,
+        )
+
+        # Destroy the secret on successful attempt only. Otherwise
+        # the user will need to make a new request if the passwords
+        # don't match.
+        secret.destroy!
+
+        auth_logger.info 'Password successfully changed',
+          {
+            customer_id: @cust.extid,
+            email: @cust.obscure_email,
+            ip: @strategy_result&.metadata&.dig(:ip),
+            session_handle: session_log_handle,
+          }
+
+        success_data
+      end
+
+      def success_data
+        { user_id: @cust.extid }
+      end
+    end
+  end
+end

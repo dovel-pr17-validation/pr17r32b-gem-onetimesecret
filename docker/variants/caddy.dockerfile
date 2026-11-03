@@ -1,0 +1,135 @@
+# Dockerfile-caddy
+#
+# Expects One-Time Secret to be running as onetime-app on port 3000.
+#
+#   # Build (default Caddy 2.11.4 with Cloudflare DNS)
+#   $ docker build -f Dockerfile-caddy -t onetime-caddy:v2.11.4 .
+#
+#   # Build with different Caddy version and DNS module (e.g., Route53)
+#   # See available modules: https://github.com/orgs/caddy-dns/repositories?type=all
+#   $ CADDY_VERSION=v2.11.4; docker build -f Dockerfile-caddy \
+#     --build-arg DNS_MODULE=route53 \
+#     --build-arg CADDY_VERSION=${CADDY_VERSION} \
+#     -t onetime-caddy:${CADDY_VERSION} .
+#
+#   # Prepare
+#   $ docker network create onetime-network
+#
+#   # Run
+#   $ docker run \
+#     --name onetime-proxy \
+#     --network onetime-network \
+#     -p 80:80 \
+#     -p 443:443 \
+#     -v $PWD/etc/examples/Caddyfile-example:/etc/caddy/Caddyfile \
+#     -v onetime_caddy_data:/data \
+#     -e CERTIFICATE_EMAIL=björk@example.com \
+#     -e UPSTREAM_HOST=onetime-app \
+#     -e UPSTREAM_PORT=3000 \
+#     -e DOMAIN=secrets.example.com \
+#     --detach \
+#     onetime-caddy:v2.11.4
+#
+#   # Double-check the persistent storage
+#   $ docker exec onetime-proxy ls -la /data/caddy
+#
+#   # View caddy logs
+#   $ docker logs onetime-proxy
+#
+# The mounted volume handles all persistence automatically. Make sure your
+# Caddyfile uses valid domain names that resolve to your server.
+
+# Notes:
+#   * No systemd: Docker containers don't use systemd, so we run Caddy directly
+#     via CMD, in foreground as PID 1
+#   * Official repo: Uses Cloudsmith APT repository for stable Caddy releases
+#   * Permissions: Sets proper permissions on keyring and sources list
+#   * Cleanup: Removes apt lists to reduce image size
+#
+# What's Stored in /data
+#   * TLS/SSL certificates - Automatically obtained from Let's Encrypt or other ACME providers
+#   * Certificate private keys
+#   * OCSP staples - For certificate validation
+#   * Certificate metadata - Renewal information, timestamps
+#
+# Without persisting /data, Caddy would:
+#   * Re-request certificates on every container restart
+#   * Hit Let's Encrypt rate limits (~5 certificates per domain per week)
+#   * Experience downtime during certificate re-issuance
+
+# Build stage: compile Caddy with plugins using xcaddy
+FROM golang:1.26-bookworm@sha256:a688600ca24f8a4d3ca77f95b0dd40704a9fc787c826660eb7ba0b641b8b175d AS builder
+
+# Build arguments
+ARG CADDY_VERSION=e2eee6a7fce366321294c9c2a79f3146891dcbdf # v2.11.4
+ARG XCADDY_VERSION=328cac711a1fe80041c3b79db2dfbb4e10330a05 # v0.4.5
+# caddy-security was previously unpinned (floated to latest), which silently
+# broke this build when v1.1.64 started requiring caddy/v2@v2.11.4 while
+# CADDY_VERSION above was still pinned to v2.10.2. Pin it like the other
+# build args so a caddy-security release can't drift the required core
+# version out from under this Dockerfile again.
+ARG CADDY_SECURITY_VERSION=a20b782cd19a11659e71b88ffcce3fdd3437a526 # v1.1.64
+ARG PUBLIC_DIR=/var/www/public
+
+# If DNS_MODULE is set to an empty string, it will attempt to install
+# 'github.com/caddy-dns/', which is obviously invalid. Select a valid
+#  repo name from https://github.com/orgs/caddy-dns/repositories
+ARG DNS_MODULE=cloudflare
+
+# Set Go environment and install xcaddy
+ENV PATH="/go/bin:${PATH}"
+RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@${XCADDY_VERSION}
+
+# Build Caddy with plugins
+RUN xcaddy build ${CADDY_VERSION} \
+    --with github.com/mholt/caddy-ratelimit \
+    --with github.com/greenpau/caddy-security@${CADDY_SECURITY_VERSION} \
+    --with github.com/caddyserver/transform-encoder \
+    --with github.com/caddy-dns/${DNS_MODULE}
+
+# Runtime stage: minimal image with custom Caddy binary
+FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
+
+ARG PUBLIC_DIR
+ARG CADDY_VERSION
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    bind9-dnsutils \
+    iputils-ping \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy custom Caddy binary from builder (xcaddy outputs to /go/caddy by default)
+COPY --from=builder /go/caddy /usr/bin/caddy
+
+# Verify installation
+RUN caddy version
+
+# Ensure directories exist and make PUBLIC_DIR available as env var.
+# PUBLIC_DIR ships empty: the app container serves its own built assets
+# (ADR-025), and public/web no longer holds tracked static files (they were
+# retired in favor of brand packs, ADR-029). The Caddyfile only static-serves
+# /dist/* from PUBLIC_DIR (an allowlist, not a file-existence test — brand
+# assets must always reach the app) and proxies everything else, so an empty
+# dir means "proxy everything". Operators can still mount a dist/ tree into
+# ${PUBLIC_DIR} at run time to have Caddy serve it.
+RUN mkdir -p /etc/caddy ${PUBLIC_DIR}
+ENV PUBLIC_DIR=${PUBLIC_DIR}
+
+# Ensure a default configuration (can be overridden at run time)
+# via `-v path/2/Caddyfile:/etc/caddy/Caddyfile:ro`
+COPY ./etc/examples/Caddyfile-example /etc/caddy/Caddyfile
+
+# Exposing ports is safe. For documentation only - Tells users which ports the container listens on
+# Metadata - Used by tools like docker-compose for automatic port mapping
+# No network effect - Ports remain isolated within the container
+EXPOSE 80 443 2019
+
+# Volumes for persistence
+VOLUME /data /config
+
+# Run Caddy directly (not via systemd)
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

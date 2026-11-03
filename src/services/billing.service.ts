@@ -1,0 +1,503 @@
+// src/services/billing.service.ts
+
+/**
+ * Billing Service
+ *
+ * Provides methods for interacting with the billing API endpoints.
+ * Handles organization subscriptions, checkout sessions, and invoices.
+ */
+
+import { createApi } from '@/api';
+import type { AxiosInstance } from 'axios';
+import type { PaymentMethod } from '@/types/billing';
+import {
+  checkoutSessionResponseSchema,
+  portalSessionResponseSchema,
+  type CheckoutSessionResponse,
+  type PortalSessionResponse,
+} from '@/schemas/contracts/billing';
+import type {
+  CurrencyConflictError,
+  InvoiceStatus,
+  MigrateCurrencyRequest,
+  MigrateCurrencyResponse,
+} from '@/schemas/shapes/account/billing';
+
+/**
+ * Lazily-initialized Axios instance for billing API calls.
+ *
+ * Uses createApi() which configures interceptors (CSRF, locale, error handling)
+ * identically to the injected instance. A standalone instance is used here because
+ * BillingService is a plain module (not a composable/store) and cannot call inject().
+ *
+ * If callers want to share the exact injected instance (e.g. for testing or to pick
+ * up per-request config), they can pass it via createBillingService().
+ */
+let _defaultApi: AxiosInstance | null = null;
+function getDefaultApi(): AxiosInstance {
+  if (!_defaultApi) _defaultApi = createApi();
+  return _defaultApi;
+}
+
+/**
+ * Billing overview response from the API
+ */
+/**
+ * Federation notification data for cross-region subscription sync
+ */
+export interface FederationNotification {
+  show: boolean;
+  source_region?: string;
+}
+
+export interface BillingOverviewResponse {
+  organization: {
+    id: string;
+    external_id: string;
+    display_name: string;
+    billing_email: string | null;
+  };
+  subscription: {
+    id: string;
+    status: string;
+    /**
+     * Unix epoch SECONDS as a decimal string, or null.
+     *
+     * The controller pins this to a string (`build_subscription_data`). The
+     * model field holds an Integer for new records and a String for legacy
+     * ones, so without the pin this endpoint would emit two wire types for
+     * one field. A spec in `billing_controller_spec.rb` assigns an Integer
+     * and asserts the string comes back.
+     *
+     * Parse it with `parseDateValue`; do not do arithmetic on it. Null when
+     * the org has a subscription id but no recorded period end.
+     */
+    period_end: string | null;
+    active: boolean;
+    past_due: boolean;
+    canceled: boolean;
+  } | null;
+  plan: {
+    id: string;
+    name: string;
+    tier: string;
+    interval: string;
+    amount: number;
+    currency: string;
+    features: string[];
+    limits: Record<string, number>;
+  } | null;
+  usage: {
+    members: number;
+    domains: number;
+  };
+  /**
+   * True when the organization has a Stripe customer, so the customer portal
+   * (createPortalSession) has something to open. Says nothing about whether
+   * the viewer may open it: the endpoint is owner-only.
+   */
+  portal_available?: boolean;
+  payment_method?: PaymentMethod;
+  /** Federation notification for cross-region subscription sync */
+  federation_notification?: FederationNotification;
+}
+
+/**
+ * Invoice data as returned by the billing API.
+ *
+ * Matches the shape from GET /billing/api/org/:extid/invoices.
+ * Note: This differs from the Zod `Invoice` schema in schemas/models/billing.ts
+ * which defines an idealized shape. This interface matches the actual API response.
+ */
+export interface StripeInvoice {
+  id: string;
+  number: string | null;
+  amount: number;
+  currency: string;
+  status: InvoiceStatus;
+  created: number;
+  due_date: number | null;
+  paid_at: number | null;
+  invoice_pdf: string | null;
+  hosted_invoice_url: string | null;
+}
+
+/**
+ * Invoices list response
+ */
+export interface InvoicesResponse {
+  invoices: StripeInvoice[];
+  has_more: boolean;
+}
+
+/**
+ * Plan data from the API
+ */
+export interface Plan {
+  id: string;
+  /** Stripe price ID for plan switching operations. Null for free/config-only plans. */
+  stripe_price_id: string | null;
+  name: string;
+  tier: string;
+  interval: string;
+  amount: number;
+  currency: string;
+  display_order: number;
+  /** Feature locale keys (e.g., "web.billing.features.custom_domains") */
+  features: string[];
+  limits: Record<string, number>;
+  entitlements: string[];
+  /** For grouping monthly/yearly variants of the same plan */
+  plan_code?: string;
+  /** Whether this plan should display "Most Popular" badge */
+  is_popular?: boolean;
+  /** For yearly plans: the monthly equivalent price for display */
+  monthly_equivalent_amount?: number;
+  /** Display label next to plan name (e.g., "For Teams"). Null/empty = hide label */
+  plan_name_label?: string | null;
+  /** Reference to parent plan ID for "Includes everything in X, plus:" display */
+  includes_plan?: string;
+  /** Human-readable name of included plan (resolved by backend) */
+  includes_plan_name?: string;
+  /** Region identifier from Stripe product metadata */
+  region?: string;
+}
+
+/**
+ * Plans list response
+ */
+export interface PlansResponse {
+  plans: Plan[];
+}
+
+/**
+ * Subscription status response
+ */
+export interface SubscriptionStatusResponse {
+  has_active_subscription: boolean;
+  current_plan: string | null;
+  current_price_id?: string;
+  subscription_item_id?: string;
+  subscription_status?: string;
+  current_period_end?: number;
+  /** Currency of the current subscription (e.g., 'cad', 'eur') */
+  current_currency?: string;
+  /** True if subscription is scheduled for cancellation at period end */
+  cancel_at_period_end?: boolean;
+  /** Unix timestamp when subscription will be cancelled (if scheduled) */
+  cancel_at?: number | null;
+  /** Present when a currency migration is pending (graceful mode) */
+  pending_currency_migration?: {
+    target_price_id: string;
+    target_plan_name: string;
+    target_currency: string;
+    target_plan_id: string;
+    target_interval?: 'month' | 'year';
+    effective_after: number;
+  } | null;
+}
+
+/**
+ * Plan change preview response (proration details)
+ */
+export interface PlanChangePreviewResponse {
+  amount_due: number;
+  subtotal: number;
+  credit_applied: number;
+  next_billing_date: number | null;
+  currency: string;
+  current_plan: {
+    price_id: string;
+    amount: number;
+    interval: string;
+  };
+  new_plan: {
+    price_id: string;
+    amount: number;
+    interval: string;
+  };
+  /** Amount charged today (proration). New field - may not be present in older API responses */
+  immediate_amount?: number;
+  /**
+   * Regular subscription amount for the next billing period. New field -
+   * may not be present in older API responses
+   */
+  next_period_amount?: number;
+  /** Ending balance after invoice. Negative = credit remaining on account */
+  ending_balance?: number;
+  /** Tax amount on this invoice */
+  tax?: number;
+  /** Convenience field: absolute value of ending_balance when negative (credit remaining) */
+  remaining_credit?: number;
+  /** What customer will actually pay at next billing (after credits applied) */
+  actual_next_billing_due?: number;
+}
+
+/**
+ * Plan change result response
+ */
+export interface PlanChangeResponse {
+  success: boolean;
+  new_plan: string;
+  status: string;
+  current_period_end: number;
+}
+
+/**
+ * Cancel subscription result response
+ */
+export interface CancelSubscriptionResponse {
+  success: boolean;
+  /** Unix timestamp when subscription will end */
+  cancel_at: number;
+  /** Current subscription status (typically 'active' until period ends) */
+  status: string;
+}
+
+/**
+ * Reactivate subscription result response
+ */
+export interface ReactivateSubscriptionResponse {
+  success: boolean;
+  /** Subscription status after reactivation (typically 'active') */
+  status: string;
+}
+
+/**
+ * Create a BillingService bound to a specific Axios instance.
+ * Use this in Vue components/composables to share the injected API instance.
+ *
+ * @example
+ * ```ts
+ * const $api = useApi();
+ * const billing = createBillingService($api);
+ * await billing.getOverview(orgId);
+ * ```
+ */
+export function createBillingService(api: AxiosInstance): typeof BillingService {
+  return {
+    getOverview: (orgExtId) => api.get(`/billing/api/org/${orgExtId}`).then(r => r.data),
+    createCheckoutSession: (orgExtId, plan) =>
+      api.post(`/billing/api/org/${orgExtId}/checkout`, { product: plan.id, interval: plan.interval }).then(r => r.data),
+    listInvoices: (orgExtId) => api.get(`/billing/api/org/${orgExtId}/invoices`).then(r => r.data),
+    createPortalSession: (orgExtId) =>
+      api.post(`/billing/api/org/${orgExtId}/portal`).then(r => portalSessionResponseSchema.parse(r.data)),
+    listPlans: () => api.get('/billing/api/plans').then(r => r.data),
+    getSubscriptionStatus: (orgExtId) => api.get(`/billing/api/org/${orgExtId}/subscription`).then(r => r.data),
+    previewPlanChange: (orgExtId, newPriceId) => api.post(`/billing/api/org/${orgExtId}/preview-plan-change`, { new_price_id: newPriceId }).then(r => r.data),
+    changePlan: (orgExtId, newPriceId) => api.post(`/billing/api/org/${orgExtId}/change-plan`, { new_price_id: newPriceId }).then(r => r.data),
+    cancelSubscription: (orgExtId) => api.post(`/billing/api/org/${orgExtId}/cancel-subscription`).then(r => r.data),
+    reactivateSubscription: (orgExtId) => api.post(`/billing/api/org/${orgExtId}/reactivate-subscription`).then(r => r.data),
+    migrateCurrency: (orgExtId, request) => api.post(`/billing/api/org/${orgExtId}/migrate-currency`, request).then(r => r.data),
+  };
+}
+
+export const BillingService = {
+  /**
+   * Get billing overview for an organization
+   *
+   * @param orgExtId - Organization external ID
+   * @returns Billing overview data including subscription, plan, and usage
+   */
+  async getOverview(orgExtId: string): Promise<BillingOverviewResponse> {
+    const response = await getDefaultApi().get(`/billing/api/org/${orgExtId}`);
+    return response.data;
+  },
+
+  /**
+   * Create a checkout session for subscribing to or changing a plan
+   *
+   * @param orgExtId - Organization external ID
+   * @param plan - Plan object with id (family ID like 'identity_plus_v1') and interval
+   * @returns Checkout session URL and ID
+   */
+  async createCheckoutSession(
+    orgExtId: string,
+    plan: { id: string; interval: string }
+  ): Promise<CheckoutSessionResponse> {
+    const response = await getDefaultApi().post(`/billing/api/org/${orgExtId}/checkout`, {
+      product: plan.id,
+      interval: plan.interval,
+    });
+    // Security (M-9): validate the wire shape and host-allowlist checkout_url at
+    // the service boundary before it can reach a window.location assignment.
+    return checkoutSessionResponseSchema.parse(response.data);
+  },
+
+  /**
+   * List invoices for an organization
+   *
+   * @param orgExtId - Organization external ID
+   * @returns List of invoices with pagination info
+   */
+  async listInvoices(orgExtId: string): Promise<InvoicesResponse> {
+    const response = await getDefaultApi().get(`/billing/api/org/${orgExtId}/invoices`);
+    return response.data;
+  },
+
+  /**
+   * Create a Stripe Customer Portal session for an organization (owner only)
+   *
+   * The portal is where the owner views and updates the payment method,
+   * billing details and subscription.
+   *
+   * @param orgExtId - Organization external ID
+   * @returns Portal session URL
+   */
+  async createPortalSession(orgExtId: string): Promise<PortalSessionResponse> {
+    const response = await getDefaultApi().post(`/billing/api/org/${orgExtId}/portal`);
+    // Security (M-9): host-allowlist portal_url before it can reach a
+    // window.location assignment.
+    return portalSessionResponseSchema.parse(response.data);
+  },
+
+  /**
+   * List all available billing plans
+   *
+   * @returns List of available plans with pricing and features
+   */
+  async listPlans(): Promise<PlansResponse> {
+    const response = await getDefaultApi().get('/billing/api/plans');
+    return response.data;
+  },
+
+  /**
+   * Get subscription status for an organization
+   *
+   * Determines whether the organization has an active subscription
+   * and returns current plan details if so.
+   *
+   * @param orgExtId - Organization external ID
+   * @returns Subscription status including current plan and price details
+   */
+  async getSubscriptionStatus(orgExtId: string): Promise<SubscriptionStatusResponse> {
+    const response = await getDefaultApi().get(`/billing/api/org/${orgExtId}/subscription`);
+    return response.data;
+  },
+
+  /**
+   * Preview plan change proration
+   *
+   * Shows what the customer will be charged when switching plans,
+   * including credits and prorated amounts.
+   *
+   * @param orgExtId - Organization external ID
+   * @param newPriceId - Stripe price ID to switch to
+   * @returns Proration preview with amounts and billing details
+   */
+  async previewPlanChange(
+    orgExtId: string,
+    newPriceId: string
+  ): Promise<PlanChangePreviewResponse> {
+    const response = await getDefaultApi().post(`/billing/api/org/${orgExtId}/preview-plan-change`, {
+      new_price_id: newPriceId,
+    });
+    return response.data;
+  },
+
+  /**
+   * Execute plan change
+   *
+   * Changes the organization's subscription to a new plan.
+   * Uses immediate proration (customer charged/credited on next invoice).
+   *
+   * @param orgExtId - Organization external ID
+   * @param newPriceId - Stripe price ID to switch to
+   * @returns Result of plan change with new plan details
+   */
+  async changePlan(orgExtId: string, newPriceId: string): Promise<PlanChangeResponse> {
+    const response = await getDefaultApi().post(`/billing/api/org/${orgExtId}/change-plan`, {
+      new_price_id: newPriceId,
+    });
+    return response.data;
+  },
+
+  /**
+   * Cancel subscription
+   *
+   * Cancels the organization's subscription at the end of the current billing period.
+   * The subscription remains active until the period ends, then downgrades to free tier.
+   *
+   * @param orgExtId - Organization external ID
+   * @returns Result of cancellation with effective date
+   */
+  async cancelSubscription(orgExtId: string): Promise<CancelSubscriptionResponse> {
+    const response = await getDefaultApi().post(`/billing/api/org/${orgExtId}/cancel-subscription`);
+    return response.data;
+  },
+
+  /**
+   * Reactivate a subscription scheduled for cancellation
+   *
+   * Clears the cancel_at_period_end flag, keeping the subscription active
+   * on the same plan beyond the original cancellation date.
+   *
+   * @param orgExtId - Organization external ID
+   * @returns Result of reactivation with subscription status
+   */
+  async reactivateSubscription(orgExtId: string): Promise<ReactivateSubscriptionResponse> {
+    const response = await getDefaultApi().post(`/billing/api/org/${orgExtId}/reactivate-subscription`);
+    return response.data;
+  },
+
+  /**
+   * Migrate subscription to a new currency
+   *
+   * Handles the case where a customer's existing Stripe subscription uses
+   * a different currency than the target plan. Two modes:
+   * - 'graceful': Cancel at period end; user completes new checkout later
+   * - 'immediate': Cancel now with prorated refund; redirect to new checkout
+   *
+   * @param orgExtId - Organization external ID
+   * @param request - Migration parameters (price ID and mode)
+   * @returns Migration result (shape varies by mode)
+   */
+  async migrateCurrency(
+    orgExtId: string,
+    request: MigrateCurrencyRequest
+  ): Promise<MigrateCurrencyResponse> {
+    const response = await getDefaultApi().post(
+      `/billing/api/org/${orgExtId}/migrate-currency`,
+      request
+    );
+    // Security (M-9): the immediate-migration checkout_url is host-allowlisted at
+    // the assignment site (PlanSelector.handleImmediateRedirect via
+    // isAllowedCheckoutUrl), which is the load-bearing guard. Boundary parsing
+    // here via migrateCurrencyResponseSchema is intentionally NOT enabled yet:
+    // billing.service.currency-migration.spec.ts still asserts a stale immediate
+    // shape (checkout_session_url/prorated_credit_*) that diverges from the live
+    // backend (currency_migration_service.rb -> checkout_url/refund_*); enabling
+    // parse must land together with that fixture correction.
+    return response.data;
+  },
+};
+
+/**
+ * Check if an error response indicates a currency conflict.
+ *
+ * Currency conflicts occur when a customer tries to subscribe to a plan
+ * in a different currency than their existing Stripe subscription.
+ * The backend returns HTTP 409 with `code: 'currency_conflict'`.
+ *
+ * @param error - The caught error from an API call
+ * @returns The conflict details if this is a currency conflict, null otherwise
+ */
+export function extractCurrencyConflict(error: unknown): CurrencyConflictError | null {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error
+  ) {
+    const axiosError = error as { response?: { status?: number; data?: Record<string, unknown> } };
+    const data = axiosError.response?.data;
+
+    if (
+      axiosError.response?.status === 409 &&
+      data &&
+      data.code === 'currency_conflict'
+    ) {
+      return data as unknown as CurrencyConflictError;
+    }
+  }
+  return null;
+}

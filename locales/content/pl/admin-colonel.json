@@ -1,0 +1,814 @@
+{
+  "web.colonel.configEditorTitle": {
+    "text": "Ustawienia",
+    "source_hash": "74a883a0"
+  },
+  "web.colonel.configEditorDescription": {
+    "text": "Edytuj ustawienia konfiguracji systemu. Zmiany są stosowane natychmiast po zapisaniu.",
+    "source_hash": "6025d269"
+  },
+  "web.colonel.invalidJson": {
+    "text": "Nieprawidłowy JSON w sekcji {section}",
+    "source_hash": "a75ac7a3"
+  },
+  "web.colonel.validationError": {
+    "text": "Błąd walidacji",
+    "source_hash": "2aa2d0b4"
+  },
+  "web.colonel.errorFetchingConfig": {
+    "text": "Błąd ładowania konfiguracji",
+    "source_hash": "08baf6d2"
+  },
+  "web.colonel.errorSavingConfig": {
+    "text": "Błąd zapisywania konfiguracji",
+    "source_hash": "48df54c7"
+  },
+  "web.colonel.configSaved": {
+    "text": "Konfiguracja zapisana pomyślnie",
+    "source_hash": "93b3d3e4"
+  },
+  "web.colonel.mustBeObject": {
+    "text": "Konfiguracja musi być obiektem JSON",
+    "source_hash": "74e8897e"
+  },
+  "web.colonel.multipleSectionsInvalid": {
+    "text": "Wiele sekcji zawiera błędy walidacji: {sections}",
+    "source_hash": "71fdaea1"
+  },
+  "web.colonel.sectionHasError": {
+    "text": "{section} zawiera błędy walidacji: {error}",
+    "source_hash": "e5e01aa0"
+  },
+  "web.colonel.sectionSaved": {
+    "text": "{section} zapisano pomyślnie",
+    "source_hash": "7be1d5d2"
+  },
+  "web.colonel.saveSection": {
+    "text": "Zapisz {section}",
+    "source_hash": "4a379f10"
+  },
+  "web.colonel.saveAll": {
+    "text": "Zapisz wszystko",
+    "source_hash": "d3c54e39"
+  },
+  "web.colonel.unsavedChanges": {
+    "text": "Niezapisane zmiany",
+    "source_hash": "a710c2b9"
+  },
+  "web.colonel.schemaValidationError": {
+    "text": "Błąd walidacji schematu: {message} ({path})",
+    "source_hash": "5f838cb2"
+  },
+  "web.colonel.unknownValidationError": {
+    "text": "Nieznany błąd walidacji: {error}",
+    "source_hash": "b6cf56ca"
+  },
+  "web.colonel.sectionEffectivelyEmpty": {
+    "text": "Sekcja {section} nie ma skonfigurowanych wartości",
+    "source_hash": "efb63b77"
+  },
+  "web.colonel.dashboard": {
+    "text": "Panel",
+    "source_hash": "67b69646"
+  },
+  "web.colonel.admin": {
+    "text": "Admin",
+    "source_hash": "c1c224b0"
+  },
+  "web.colonel.activity": {
+    "text": "Aktywność",
+    "source_hash": "38da1505"
+  },
+  "web.colonel.accounts": {
+    "text": "Konta",
+    "source_hash": "8a7c8b67"
+  },
+  "web.colonel.users": {
+    "text": "Użytkownicy",
+    "source_hash": "6b0cc904"
+  },
+  "web.colonel.usersDescription": {
+    "text": "Zarządzaj kontami użytkowników i uprawnieniami",
+    "source_hash": "6cfc012c"
+  },
+  "web.colonel.domains": {
+    "text": "Domeny",
+    "source_hash": "ced67718"
+  },
+  "web.colonel.settings": {
+    "text": "Ustawienia",
+    "source_hash": "74a883a0"
+  },
+  "web.colonel.system": {
+    "text": "System",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.welcome": {
+    "text": "Witaj w Colonel",
+    "source_hash": "7881ca9e"
+  },
+  "web.colonel.welcomeDesc": {
+    "text": "Panel administracyjny dla OneTimeSecret",
+    "source_hash": "57c1e752"
+  },
+  "web.colonel.quickActions": {
+    "text": "Szybkie akcje",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.colonel.recentActivity": {
+    "text": "Ostatnia aktywność",
+    "source_hash": "9ef7d438"
+  },
+  "web.colonel.viewAll": {
+    "text": "Zobacz wszystko",
+    "source_hash": "ff5573a6"
+  },
+  "web.colonel.activityPlaceholder": {
+    "text": "Dane aktywności zostaną wyświetlone tutaj",
+    "source_hash": "aaf9e948"
+  },
+  "web.colonel.stats.totalSecrets": {
+    "text": "Łącznie sekretów",
+    "source_hash": "e17a5459"
+  },
+  "web.colonel.stats.activeUsers": {
+    "text": "Aktywni użytkownicy",
+    "source_hash": "5639b9f1"
+  },
+  "web.colonel.stats.secretsToday": {
+    "text": "Sekrety dzisiaj",
+    "source_hash": "aefbd2db"
+  },
+  "web.colonel.stats.secretsCreated": {
+    "text": "Utworzone sekrety",
+    "source_hash": "a97ee479"
+  },
+  "web.colonel.stats.secretsShared": {
+    "text": "Udostępnione sekrety",
+    "source_hash": "5deb082c"
+  },
+  "web.colonel.stats.totalCustomers": {
+    "text": "Łącznie użytkowników",
+    "source_hash": "0ca3aa44"
+  },
+  "web.colonel.stats.emailsSent": {
+    "text": "Wysłane e-maile",
+    "source_hash": "87cfb3ab"
+  },
+  "web.colonel.stats.systemHealth": {
+    "text": "Stan systemu",
+    "source_hash": "c3d66242"
+  },
+  "web.colonel.stats.healthy": {
+    "text": "Sprawny",
+    "source_hash": "7f1e323b"
+  },
+  "web.colonel.actions.viewActivity": {
+    "text": "Zobacz aktywność",
+    "source_hash": "9c28f55c"
+  },
+  "web.colonel.actions.viewActivityDesc": {
+    "text": "Monitoruj aktywność i użycie systemu",
+    "source_hash": "f88e9eda"
+  },
+  "web.colonel.actions.manageAccounts": {
+    "text": "Zarządzaj kontami",
+    "source_hash": "9d114268"
+  },
+  "web.colonel.actions.manageAccountsDesc": {
+    "text": "Administracja kontami użytkowników",
+    "source_hash": "d73af927"
+  },
+  "web.colonel.actions.configureDomains": {
+    "text": "Konfiguruj domeny",
+    "source_hash": "74402af9"
+  },
+  "web.colonel.actions.configureDomainsDesc": {
+    "text": "Ustawienia domen i DNS",
+    "source_hash": "1f712094"
+  },
+  "web.colonel.actions.systemSettings": {
+    "text": "Ustawienia systemu",
+    "source_hash": "1f87f883"
+  },
+  "web.colonel.actions.systemSettingsDesc": {
+    "text": "Konfiguracja aplikacji",
+    "source_hash": "923dc672"
+  },
+  "web.colonel.backgroundJobs": {
+    "text": "Zadania w tle",
+    "source_hash": "48937049"
+  },
+  "web.colonel.queueStatus": {
+    "text": "Status kolejki",
+    "source_hash": "3421ffa8"
+  },
+  "web.colonel.queueName": {
+    "text": "Kolejka",
+    "source_hash": "3b2fe03e"
+  },
+  "web.colonel.pendingMessages": {
+    "text": "Oczekujące",
+    "source_hash": "331551b0"
+  },
+  "web.colonel.consumers": {
+    "text": "Konsumenci",
+    "source_hash": "212b350d"
+  },
+  "web.colonel.processingRate": {
+    "text": "Przetwarzanie/s",
+    "source_hash": "cfde439c"
+  },
+  "web.colonel.connectionStatus": {
+    "text": "Status połączenia",
+    "source_hash": "3693e288"
+  },
+  "web.colonel.workerHealth": {
+    "text": "Stan workerów",
+    "source_hash": "52be3ac1"
+  },
+  "web.colonel.activeWorkers": {
+    "text": "aktywni workerzy",
+    "source_hash": "ea68cfee"
+  },
+  "web.colonel.noQueueData": {
+    "text": "Brak dostępnych danych kolejki",
+    "source_hash": "331ffa6b"
+  },
+  "web.colonel.loadingQueueData": {
+    "text": "Ładowanie danych kolejki...",
+    "source_hash": "a3762a00"
+  },
+  "web.colonel.testPlanMode": {
+    "text": "Tryb testowy planu",
+    "source_hash": "eba59223"
+  },
+  "web.colonel.testingAsPlan": {
+    "text": "Testowanie jako {planName}",
+    "source_hash": "b3032f1a"
+  },
+  "web.colonel.clickToReset": {
+    "text": "Kliknij, aby zresetować",
+    "source_hash": "4b25034d"
+  },
+  "web.colonel.selectTestPlan": {
+    "text": "Wybierz plan do testowania",
+    "source_hash": "9e6e12fe"
+  },
+  "web.colonel.resetToActual": {
+    "text": "Przywróć rzeczywisty plan",
+    "source_hash": "2cea3f92"
+  },
+  "web.colonel.currentActualPlan": {
+    "text": "Bieżący plan",
+    "source_hash": "37ca715f"
+  },
+  "web.colonel.availablePlans": {
+    "text": "Dostępne plany",
+    "source_hash": "20efa44d"
+  },
+  "web.colonel.activateTestMode": {
+    "text": "Aktywuj tryb testowy",
+    "source_hash": "0f469baa"
+  },
+  "web.colonel.testModeActive": {
+    "text": "Tryb testowy aktywny",
+    "source_hash": "ae2c8dd9"
+  },
+  "web.colonel.testModeDescription": {
+    "text": "Testuj aplikację z różnymi uprawnieniami planów. Zmiany są tymczasowe i dotyczą tylko Twojej sesji.",
+    "source_hash": "be03a409"
+  },
+  "web.colonel.warningTestMode": {
+    "text": "Testujesz z uprawnieniami {planName} (tymczasowe nadpisanie sesji).",
+    "source_hash": "1a8aecf1"
+  },
+  "web.colonel.organizations.title": {
+    "text": "Organizacje",
+    "source_hash": "2730183d"
+  },
+  "web.colonel.organizations.description": {
+    "text": "Monitoruj stan synchronizacji płatności organizacji",
+    "source_hash": "d8f4398b"
+  },
+  "web.colonel.organizations.pageTitle": {
+    "text": "Monitor stanu płatności",
+    "source_hash": "9ef57da4"
+  },
+  "web.colonel.organizations.organizationsCount": {
+    "text": "{count} organizacji",
+    "source_hash": "bc2feb56"
+  },
+  "web.colonel.organizations.needAttention": {
+    "text": "{count} wymaga uwagi",
+    "source_hash": "1c8e5840"
+  },
+  "web.colonel.organizations.unknownCount": {
+    "text": "{count} nieznanych",
+    "source_hash": "b7bf2cf1"
+  },
+  "web.colonel.organizations.noOrganizations": {
+    "text": "Nie znaleziono organizacji",
+    "source_hash": "538995db"
+  },
+  "web.colonel.organizations.filters.syncStatus": {
+    "text": "Status synchronizacji",
+    "source_hash": "b3998276"
+  },
+  "web.colonel.organizations.filters.subscription": {
+    "text": "Subskrypcja",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.filters.all": {
+    "text": "Wszystkie",
+    "source_hash": "a52ace42"
+  },
+  "web.colonel.organizations.filters.potentiallyStale": {
+    "text": "Potencjalnie nieaktualne",
+    "source_hash": "40137b37"
+  },
+  "web.colonel.organizations.filters.unknown": {
+    "text": "Nieznane",
+    "source_hash": "b764cdc0"
+  },
+  "web.colonel.organizations.filters.synced": {
+    "text": "Zsynchronizowane",
+    "source_hash": "5da22fe4"
+  },
+  "web.colonel.organizations.filters.active": {
+    "text": "Aktywne",
+    "source_hash": "92340695"
+  },
+  "web.colonel.organizations.filters.trialing": {
+    "text": "W okresie próbnym",
+    "source_hash": "3792573d"
+  },
+  "web.colonel.organizations.filters.pastDue": {
+    "text": "Zaległe",
+    "source_hash": "2bda1c7b"
+  },
+  "web.colonel.organizations.filters.canceled": {
+    "text": "Anulowane",
+    "source_hash": "13ca2ee2"
+  },
+  "web.colonel.organizations.columns.account": {
+    "text": "Konto",
+    "source_hash": "7e1b0d56"
+  },
+  "web.colonel.organizations.columns.billing": {
+    "text": "Płatności",
+    "source_hash": "3ac8bbca"
+  },
+  "web.colonel.organizations.columns.status": {
+    "text": "Status",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.organizations.columns.usage": {
+    "text": "Użycie",
+    "source_hash": "8d59829c"
+  },
+  "web.colonel.organizations.columns.created": {
+    "text": "Utworzono",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.organizations.columns.details": {
+    "text": "Szczegóły",
+    "source_hash": "45989de4"
+  },
+  "web.colonel.organizations.columns.owner": {
+    "text": "Właściciel",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.colonel.organizations.columns.plan": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.colonel.organizations.columns.members": {
+    "text": "Członkowie",
+    "source_hash": "1044a4c0"
+  },
+  "web.colonel.organizations.columns.domains": {
+    "text": "Domeny",
+    "source_hash": "ced67718"
+  },
+  "web.colonel.organizations.columns.subscription": {
+    "text": "Subskrypcja",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.columns.default_workspace": {
+    "text": "Domyślna przestrzeń robocza",
+    "source_hash": "53aa279e"
+  },
+  "web.colonel.organizations.columns.has_billing": {
+    "text": "Ma płatności",
+    "source_hash": "db0628ed"
+  },
+  "web.colonel.organizations.legacy.title": {
+    "text": "Administracja płatności organizacji",
+    "source_hash": "5c7e07e7"
+  },
+  "web.colonel.organizations.legacy.description": {
+    "text": "Zarządzaj organizacjami i monitoruj stan synchronizacji płatności ({total} łącznie)",
+    "source_hash": "996b446d"
+  },
+  "web.colonel.organizations.legacy.empty": {
+    "text": "Nie znaleziono organizacji",
+    "source_hash": "538995db"
+  },
+  "web.colonel.organizations.legacy.potentially_stale": {
+    "text": "potencjalnie nieaktualne",
+    "source_hash": "3ddfec45"
+  },
+  "web.colonel.organizations.status.stale": {
+    "text": "Nieaktualny",
+    "source_hash": "40c9e59c"
+  },
+  "web.colonel.organizations.status.unknown": {
+    "text": "Nieznany",
+    "source_hash": "b764cdc0"
+  },
+  "web.colonel.organizations.status.active": {
+    "text": "aktywny",
+    "source_hash": "96879611"
+  },
+  "web.colonel.organizations.actions.investigate": {
+    "text": "Zbadaj",
+    "source_hash": "e2641093"
+  },
+  "web.colonel.organizations.actions.checking": {
+    "text": "Sprawdzanie...",
+    "source_hash": "2e5f79bb"
+  },
+  "web.colonel.organizations.expanded.customer": {
+    "text": "Klient",
+    "source_hash": "bf376338"
+  },
+  "web.colonel.organizations.expanded.subscription": {
+    "text": "Subskrypcja",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.expanded.orgId": {
+    "text": "ID organizacji",
+    "source_hash": "5e6b9932"
+  },
+  "web.colonel.organizations.investigation.failed": {
+    "text": "Badanie nie powiodło się",
+    "source_hash": "193aa900"
+  },
+  "web.colonel.organizations.investigation.result": {
+    "text": "Wynik badania",
+    "source_hash": "2dbc5cc3"
+  },
+  "web.colonel.organizations.investigation.verifiedSynced": {
+    "text": "Zweryfikowano synchronizację",
+    "source_hash": "d92625c2"
+  },
+  "web.colonel.organizations.investigation.mismatchFound": {
+    "text": "Znaleziono niezgodność",
+    "source_hash": "361d22f3"
+  },
+  "web.colonel.organizations.investigation.unableToCompare": {
+    "text": "Nie można porównać",
+    "source_hash": "64c822ee"
+  },
+  "web.colonel.organizations.investigation.stripeDetails": {
+    "text": "Szczegóły subskrypcji Stripe",
+    "source_hash": "53a7b0ea"
+  },
+  "web.colonel.organizations.investigation.statusLabel": {
+    "text": "Status",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.organizations.investigation.product": {
+    "text": "Produkt",
+    "source_hash": "fb9ef894"
+  },
+  "web.colonel.organizations.investigation.resolvedPlan": {
+    "text": "Rozwiązany plan",
+    "source_hash": "17c5b37a"
+  },
+  "web.colonel.organizations.investigation.priceId": {
+    "text": "ID ceny",
+    "source_hash": "b39a8f3e"
+  },
+  "web.colonel.organizations.investigation.local": {
+    "text": "Lokalny",
+    "source_hash": "8c31e6e7"
+  },
+  "web.colonel.organizations.investigation.stripe": {
+    "text": "Stripe",
+    "source_hash": "961a6062"
+  },
+  "web.colonel.organizations.usage.members": {
+    "text": "{count} członków",
+    "source_hash": "201eb3d9"
+  },
+  "web.colonel.organizations.usage.domains": {
+    "text": "{count} domen",
+    "source_hash": "cf548c8c"
+  },
+  "web.colonel.secrets.title": {
+    "text": "Sekrety",
+    "source_hash": "d8707d41"
+  },
+  "web.colonel.secrets.description": {
+    "text": "Wyświetl i zarządzaj wszystkimi sekretami",
+    "source_hash": "48f8052e"
+  },
+  "web.colonel.usageExport.title": {
+    "text": "Eksport użycia",
+    "source_hash": "10a0cb94"
+  },
+  "web.colonel.usageExport.description": {
+    "text": "Eksportuj dane użycia i statystyki",
+    "source_hash": "2fd0a2e2"
+  },
+  "web.colonel.systemSettings.title": {
+    "text": "System",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.systemSettings.description": {
+    "text": "Ustawienia systemu, bazy danych i konfiguracja",
+    "source_hash": "7690b296"
+  },
+  "web.colonel.customDomains.title": {
+    "text": "Domeny niestandardowe",
+    "source_hash": "6170ab94"
+  },
+  "web.colonel.customDomains.description": {
+    "text": "Zarządzaj domenami niestandardowymi i brandingiem",
+    "source_hash": "808ee2cb"
+  },
+  "web.colonel.feedback.send_feedback": {
+    "text": "Wyślij opinię",
+    "source_hash": "8235980b"
+  },
+  "web.colonel.feedback.sending_ellipses": {
+    "text": "Wysyłanie...",
+    "source_hash": "286a3af7"
+  },
+  "web.colonel.titles.index": {
+    "text": "Administracja",
+    "source_hash": "4b42c669"
+  },
+  "web.colonel.titles.users": {
+    "text": "Zarządzanie użytkownikami",
+    "source_hash": "fe45f3a1"
+  },
+  "web.colonel.titles.domains": {
+    "text": "Domeny niestandardowe",
+    "source_hash": "6170ab94"
+  },
+  "web.colonel.titles.system": {
+    "text": "System",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.titles.maindb": {
+    "text": "Główna baza danych",
+    "source_hash": "c4545e98"
+  },
+  "web.colonel.titles.authdb": {
+    "text": "Baza danych autoryzacji",
+    "source_hash": "c683c9a6"
+  },
+  "web.colonel.titles.usage": {
+    "text": "Eksport użycia",
+    "source_hash": "10a0cb94"
+  },
+  "web.colonel.titles.info": {
+    "text": "Informacje systemowe",
+    "source_hash": "8ad54ec1"
+  },
+  "web.colonel.titles.organizations": {
+    "text": "Organizacje",
+    "source_hash": "2730183d"
+  },
+  "web.colonel.titles.redis": {
+    "text": "Redis",
+    "source_hash": "a7f64157"
+  },
+  "web.colonel.feedback.when_you_submit_feedback_well_see": {
+    "text": "Gdy wyślesz opinię, zobaczymy:",
+    "source_hash": "fe77172e"
+  },
+  "web.colonel.previewPlanMode": {
+    "text": "Tryb podglądu planu",
+    "source_hash": "cf53f19d"
+  },
+  "web.colonel.previewModeDescription": {
+    "text": "Podejrzyj aplikację w takiej postaci, w jakiej widzą ją klienci korzystający z innego planu. Wpływa to wyłącznie na Twój widok i nie zmienia rzeczywistego planu żadnej organizacji.",
+    "source_hash": "6fe23f23"
+  },
+  "web.colonel.previewModeActive": {
+    "text": "Podgląd aktywny",
+    "source_hash": "a558d603"
+  },
+  "web.colonel.customDomains.empty": {
+    "text": "Nie skonfigurowano żadnych domen niestandardowych",
+    "source_hash": "e10b39f7"
+  },
+  "web.colonel.customDomains.noLogo": {
+    "text": "Brak logo",
+    "source_hash": "ee5e36ff"
+  },
+  "web.colonel.customDomains.labels.organization": {
+    "text": "Organizacja",
+    "source_hash": "d764d425"
+  },
+  "web.colonel.customDomains.labels.externalId": {
+    "text": "Identyfikator zewnętrzny",
+    "source_hash": "69da56ba"
+  },
+  "web.colonel.customDomains.labels.created": {
+    "text": "Utworzono",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.customDomains.labels.updated": {
+    "text": "Zaktualizowano",
+    "source_hash": "3a5ecca1"
+  },
+  "web.colonel.customDomains.labels.favicon": {
+    "text": "Favicon",
+    "source_hash": "42955289"
+  },
+  "web.colonel.customDomains.status.verified": {
+    "text": "Zweryfikowano",
+    "source_hash": "4f783840"
+  },
+  "web.colonel.customDomains.status.resolving": {
+    "text": "Rozwiązywanie",
+    "source_hash": "3287a034"
+  },
+  "web.colonel.customDomains.status.ready": {
+    "text": "Gotowe",
+    "source_hash": "5fa7aac5"
+  },
+  "web.colonel.customDomains.status.publicHomepage": {
+    "text": "Publiczna strona główna",
+    "source_hash": "2ae3ccba"
+  },
+  "web.colonel.customDomains.status.publicApi": {
+    "text": "Publiczne API",
+    "source_hash": "ab3aa426"
+  },
+  "web.colonel.customDomains.status.pending": {
+    "text": "Oczekuje",
+    "source_hash": "331551b0"
+  },
+  "web.colonel.pagination.showing": {
+    "text": "Wyświetlanie {start}–{end} z {total}",
+    "source_hash": "64af6de2"
+  },
+  "web.colonel.pagination.itemsPerPage": {
+    "text": "Elementów na stronę",
+    "source_hash": "766a02e0"
+  },
+  "web.colonel.pagination.perPage": {
+    "text": "{count} na stronę",
+    "source_hash": "34671d42"
+  },
+  "web.colonel.pagination.pageOf": {
+    "text": "Strona {current} z {total}",
+    "source_hash": "f0df6412"
+  },
+  "web.colonel.secrets.empty": {
+    "text": "Nie znaleziono żadnych sekretów",
+    "source_hash": "28647b3b"
+  },
+  "web.colonel.secrets.never": {
+    "text": "Nigdy",
+    "source_hash": "6300ef80"
+  },
+  "web.colonel.secrets.columns.shortId": {
+    "text": "Krótki identyfikator",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.colonel.secrets.columns.state": {
+    "text": "Stan",
+    "source_hash": "a3b50c47"
+  },
+  "web.colonel.secrets.columns.created": {
+    "text": "Utworzono",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.secrets.columns.expiration": {
+    "text": "Wygaśnięcie",
+    "source_hash": "f38d6e0e"
+  },
+  "web.colonel.secrets.columns.age": {
+    "text": "Wiek (dni)",
+    "source_hash": "52ae64c6"
+  },
+  "web.colonel.secrets.state.new": {
+    "text": "Nowy",
+    "source_hash": "18fdd549"
+  },
+  "web.colonel.secrets.state.received": {
+    "text": "Otrzymany",
+    "source_hash": "49f19bee"
+  },
+  "web.colonel.secrets.state.viewed": {
+    "text": "Wyświetlony",
+    "source_hash": "1b28d178"
+  },
+  "web.colonel.backToSite": {
+    "text": "Powrót do witryny",
+    "source_hash": "4ee0f819"
+  },
+  "web.colonel.customDomains.labels.domain": {
+    "text": "Domena",
+    "source_hash": "79fa3361"
+  },
+  "web.colonel.customDomains.labels.status": {
+    "text": "Status",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.customDomains.labels.actions": {
+    "text": "Działania",
+    "source_hash": "ff8059dc"
+  },
+  "web.colonel.nav.consoleTag": {
+    "text": "Konsola",
+    "source_hash": "29a40861"
+  },
+  "web.colonel.nav.groups.identity": {
+    "text": "Tożsamość",
+    "source_hash": "999f23fc"
+  },
+  "web.colonel.nav.groups.security": {
+    "text": "Dostęp i bezpieczeństwo",
+    "source_hash": "abb29a3f"
+  },
+  "web.colonel.nav.groups.platform": {
+    "text": "Platforma",
+    "source_hash": "c78ffe19"
+  },
+  "web.colonel.nav.groups.billing": {
+    "text": "Płatności",
+    "source_hash": "3ac8bbca"
+  },
+  "web.colonel.nav.groups.communications": {
+    "text": "Komunikacja",
+    "source_hash": "919a9253"
+  },
+  "web.colonel.organizations.sameAsContact": {
+    "text": "Taki sam jak kontaktowy",
+    "source_hash": "ed18ff43"
+  },
+  "web.colonel.organizations.refresh": {
+    "text": "Odśwież",
+    "source_hash": "0e916101"
+  },
+  "web.colonel.organizations.columns.name": {
+    "text": "Nazwa",
+    "source_hash": "dcd1d522"
+  },
+  "web.colonel.organizations.columns.contactEmail": {
+    "text": "E-mail kontaktowy",
+    "source_hash": "6d7fce11"
+  },
+  "web.colonel.organizations.columns.billingEmail": {
+    "text": "E-mail do płatności",
+    "source_hash": "8805b928"
+  },
+  "web.colonel.organizations.columns.planSubscription": {
+    "text": "Plan i subskrypcja",
+    "source_hash": "b396caac"
+  },
+  "web.colonel.organizations.filters.searchPlaceholder": {
+    "text": "Szukaj według identyfikatora, nazwy lub adresu e-mail",
+    "source_hash": "6fe16473"
+  },
+  "web.colonel.organizations.capped": {
+    "text": "Wyniki są ograniczone: wyświetlana liczba to dolna granica, a nie suma. Filtry obejmują każdą organizację powiązaną z subskrypcją oraz ostatnio zaktualizowane organizacje; aby dotrzeć do pozostałych, wyszukaj według dokładnego identyfikatora lub adresu e-mail.",
+    "source_hash": "0743238d"
+  },
+  "web.impersonation.banner.label": {
+    "text": "Personifikacja aktywna",
+    "source_hash": "d96f0e8d"
+  },
+  "web.impersonation.banner.viewingAs": {
+    "text": "Widok jako {email}",
+    "source_hash": "cf2dd9c6"
+  },
+  "web.impersonation.banner.readOnly": {
+    "text": "Tylko do odczytu: zmiany są zablokowane podczas personifikacji.",
+    "source_hash": "46ed3b68"
+  },
+  "web.impersonation.banner.expiresIn": {
+    "text": "Kończy się za {time}",
+    "source_hash": "b4999fd8"
+  },
+  "web.impersonation.banner.stop": {
+    "text": "Zakończ personifikację",
+    "source_hash": "5cf74e38"
+  },
+  "web.impersonation.banner.stopping": {
+    "text": "Kończenie…",
+    "source_hash": "bbe85741"
+  },
+  "web.impersonation.banner.stopFailed": {
+    "text": "Nie można zakończyć personifikacji. Spróbuj ponownie.",
+    "source_hash": "5aa72353"
+  }
+}

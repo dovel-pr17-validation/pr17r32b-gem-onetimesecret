@@ -1,0 +1,62 @@
+{
+  "api.domains.errors.domain_id_required": {
+    "text": "ID de domaine requis",
+    "source_hash": "6837426b"
+  },
+  "api.domains.errors.domain_not_found": {
+    "text": "Domaine introuvable : %{extid}",
+    "source_hash": "a0fd1025"
+  },
+  "api.domains.errors.organization_not_found": {
+    "text": "Organisation introuvable pour le domaine : %{domain}",
+    "source_hash": "632afc93"
+  },
+  "api.domains.errors.incoming_secrets_disabled": {
+    "text": "Les secrets entrants ne sont pas activés sur cette instance",
+    "source_hash": "45c0b5c4"
+  },
+  "api.domains.errors.incoming_secrets_entitlement_required": {
+    "text": "La gestion des secrets entrants nécessite le droit incoming_secrets. Veuillez mettre à niveau votre forfait.",
+    "source_hash": "1af54ec2"
+  },
+  "api.domains.errors.incoming_config_not_found": {
+    "text": "Configuration des secrets entrants introuvable pour le domaine : %{extid}",
+    "source_hash": "491644a8"
+  },
+  "api.domains.errors.recipients_max_exceeded": {
+    "text": "Maximum de %{max} destinataires autorisés",
+    "source_hash": "159842ad"
+  },
+  "api.domains.errors.recipients_invalid_email": {
+    "text": "E-mail non valide : %{email}",
+    "source_hash": "e9c729c7"
+  },
+  "api.domains.errors.recipients_duplicate": {
+    "text": "Les adresses e-mail de destinataires en double ne sont pas autorisées",
+    "source_hash": "6de22182"
+  },
+  "api.domains.errors.homepage_secrets_mode_invalid": {
+    "text": "secrets_mode non valide : %{secrets_mode}",
+    "source_hash": "cf093a04"
+  },
+  "api.domains.errors.homepage_incoming_entitlement_required": {
+    "text": "Le mode secrets entrants nécessite le droit incoming_secrets. Veuillez mettre à niveau votre forfait.",
+    "source_hash": "d68b13d8"
+  },
+  "api.domains.errors.homepage_incoming_not_ready": {
+    "text": "Les secrets entrants doivent être activés avec au moins un destinataire avant de pouvoir servir de page d'accueil.",
+    "source_hash": "556da6e2"
+  },
+  "api.domains.errors.related_origins_invalid": {
+    "text": "Origine non valide : %{origins}. Saisissez le schéma et l'hôte, par exemple https://vault.example.com",
+    "source_hash": "5acb92ca"
+  },
+  "api.domains.errors.related_origins_foreign_organization": {
+    "text": "Ces origines appartiennent à une autre organisation et ne peuvent pas être ajoutées : %{origins}",
+    "source_hash": "ac21c1e7"
+  },
+  "api.domains.errors.allowed_signup_domains_invalid": {
+    "text": "Domaine non valide : %{domains}. Saisissez un nom de domaine enregistrable, par exemple example.com",
+    "source_hash": "2d93472c"
+  }
+}

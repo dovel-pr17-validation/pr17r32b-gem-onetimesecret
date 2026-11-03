@@ -1,0 +1,758 @@
+{
+  "web.admin.organizations.retry": {
+    "text": "Spróbuj ponownie",
+    "source_hash": "942087cc"
+  },
+  "web.admin.organizations.detail.backToList": {
+    "text": "Powrót do organizacji",
+    "source_hash": "2257dc4a"
+  },
+  "web.admin.organizations.detail.notFound": {
+    "text": "Nie znaleziono organizacji",
+    "source_hash": "00c50f7a"
+  },
+  "web.admin.organizations.detail.notFoundDescription": {
+    "text": "Ta organizacja mogła zostać usunięta lub identyfikator jest nieprawidłowy.",
+    "source_hash": "e5459ef5"
+  },
+  "web.admin.organizations.detail.loadError": {
+    "text": "Nie można załadować tej organizacji.",
+    "source_hash": "9df8ad50"
+  },
+  "web.admin.organizations.detail.none": {
+    "text": "—",
+    "source_hash": "bda05058"
+  },
+  "web.admin.organizations.detail.badges.default": {
+    "text": "Domyślny obszar roboczy",
+    "source_hash": "6d67c6eb"
+  },
+  "web.admin.organizations.detail.badges.archived": {
+    "text": "Zarchiwizowano",
+    "source_hash": "bdb86505"
+  },
+  "web.admin.organizations.detail.domains.domain": {
+    "text": "Domena",
+    "source_hash": "79fa3361"
+  },
+  "web.admin.organizations.detail.domains.state": {
+    "text": "Stan",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.organizations.detail.domains.created": {
+    "text": "Utworzono",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.organizations.detail.domains.ready": {
+    "text": "Gotowe",
+    "source_hash": "5fa7aac5"
+  },
+  "web.admin.organizations.detail.domains.resolving": {
+    "text": "Rozwiązywanie",
+    "source_hash": "3287a034"
+  },
+  "web.admin.organizations.detail.domains.empty": {
+    "text": "Brak domen.",
+    "source_hash": "1b840c7e"
+  },
+  "web.admin.organizations.detail.entitlements.description": {
+    "text": "Efektywne uprawnienia są wyznaczane jako (plan ∪ przyznania) − odebrania. Przejrzyj szczegóły przed dokonaniem nadpisania.",
+    "source_hash": "23080475"
+  },
+  "web.admin.organizations.detail.entitlements.inSync": {
+    "text": "Zsynchronizowano",
+    "source_hash": "5701958c"
+  },
+  "web.admin.organizations.detail.entitlements.driftBadge": {
+    "text": "Rozbieżność",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.organizations.detail.entitlements.staleBadge": {
+    "text": "Nieaktualny plan",
+    "source_hash": "ffe63800"
+  },
+  "web.admin.organizations.detail.entitlements.driftWarning": {
+    "text": "Zmaterializowane uprawnienia nie odpowiadają oczekiwanemu zestawowi. Uzgodnij, aby ponownie zmaterializować.",
+    "source_hash": "4859983a"
+  },
+  "web.admin.organizations.detail.entitlements.driftExtra": {
+    "text": "Nadmiarowe (zmaterializowane, nieoczekiwane)",
+    "source_hash": "08d60730"
+  },
+  "web.admin.organizations.detail.entitlements.driftMissing": {
+    "text": "Brakujące (oczekiwane, niezmaterializowane)",
+    "source_hash": "fe12c83a"
+  },
+  "web.admin.organizations.detail.entitlements.plan": {
+    "text": "Z planu",
+    "source_hash": "1d346b26"
+  },
+  "web.admin.organizations.detail.entitlements.materialized": {
+    "text": "Zmaterializowane (efektywne)",
+    "source_hash": "72ca5f45"
+  },
+  "web.admin.organizations.detail.members.email": {
+    "text": "Członek",
+    "source_hash": "7c968fb7"
+  },
+  "web.admin.organizations.detail.members.role": {
+    "text": "Rola",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.organizations.detail.members.status": {
+    "text": "Status",
+    "source_hash": "920e413c"
+  },
+  "web.admin.organizations.detail.members.joined": {
+    "text": "Dołączył",
+    "source_hash": "69318b0c"
+  },
+  "web.admin.organizations.detail.members.owner": {
+    "text": "Właściciel",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.empty": {
+    "text": "Brak członków.",
+    "source_hash": "b99c59dc"
+  },
+  "web.admin.organizations.detail.reconcile.button": {
+    "text": "Uzgodnij",
+    "source_hash": "b59be565"
+  },
+  "web.admin.organizations.detail.reconcile.confirmTitle": {
+    "text": "Uzgodnić płatności organizacji?",
+    "source_hash": "fc1a2762"
+  },
+  "web.admin.organizations.detail.reconcile.confirmDescription": {
+    "text": "Spowoduje to ponowne pobranie danych ze Stripe oraz nadpisanie stanu płatności i uprawnień dla {org}. Wpisz ponownie identyfikator organizacji, aby potwierdzić.",
+    "source_hash": "b4ef0850"
+  },
+  "web.admin.organizations.detail.reconcile.success": {
+    "text": "Organizacja została uzgodniona.",
+    "source_hash": "caf87844"
+  },
+  "web.admin.organizations.detail.reconcile.resultTitle": {
+    "text": "Wynik uzgodnienia",
+    "source_hash": "11f4c6b8"
+  },
+  "web.admin.organizations.detail.reconcile.before": {
+    "text": "Przed",
+    "source_hash": "9bb72500"
+  },
+  "web.admin.organizations.detail.reconcile.after": {
+    "text": "Po",
+    "source_hash": "7b68fe55"
+  },
+  "web.admin.organizations.detail.reconcile.materializedCount": {
+    "text": "Liczba uprawnień",
+    "source_hash": "59cede5c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.stripe_sync": {
+    "text": "Synchronizacja ze Stripe",
+    "source_hash": "02f9546c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.entitlements_only": {
+    "text": "Tylko uprawnienia",
+    "source_hash": "8cf49a5d"
+  },
+  "web.admin.organizations.detail.sections.billing": {
+    "text": "Płatności",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.organizations.detail.sections.members": {
+    "text": "Członkowie",
+    "source_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.sections.domains": {
+    "text": "Domeny",
+    "source_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.sections.investigate": {
+    "text": "Zbadaj i uzgodnij",
+    "source_hash": "b05aa349"
+  },
+  "web.admin.organizations.entitlements.section": {
+    "text": "Nadpisania uprawnień",
+    "source_hash": "48812068"
+  },
+  "web.admin.organizations.entitlements.description": {
+    "text": "Przyznawaj lub odbieraj uprawnienia niezależnie od planu. Efektywne = uprawnienia planu + przyznania - odebrania.",
+    "source_hash": "4c38425b"
+  },
+  "web.admin.organizations.entitlements.inputLabel": {
+    "text": "Uprawnienie",
+    "source_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.placeholder": {
+    "text": "np. custom_domains",
+    "source_hash": "05346c68"
+  },
+  "web.admin.organizations.entitlements.grant": {
+    "text": "Przyznaj",
+    "source_hash": "78b7d037"
+  },
+  "web.admin.organizations.entitlements.revoke": {
+    "text": "Odbierz",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.organizations.entitlements.clear": {
+    "text": "Wyczyść wszystkie nadpisania",
+    "source_hash": "f0e485c3"
+  },
+  "web.admin.organizations.entitlements.effective": {
+    "text": "Efektywne uprawnienia",
+    "source_hash": "b840f8c8"
+  },
+  "web.admin.organizations.entitlements.grants": {
+    "text": "Przyznania",
+    "source_hash": "b3e1c95a"
+  },
+  "web.admin.organizations.entitlements.revokes": {
+    "text": "Odebrania",
+    "source_hash": "f0e69b17"
+  },
+  "web.admin.organizations.entitlements.noOverrides": {
+    "text": "Wykonaj działanie, aby wyświetlić bieżący stan nadpisań tej organizacji.",
+    "source_hash": "98d2e30d"
+  },
+  "web.admin.organizations.entitlements.confirm.grantTitle": {
+    "text": "Przyznać uprawnienie?",
+    "source_hash": "a4b2c57b"
+  },
+  "web.admin.organizations.entitlements.confirm.grantDescription": {
+    "text": "Przyznaj „{entitlement}” dla {org}. Zmienia to uprawnienia rozliczeniowe organizacji.",
+    "source_hash": "542ce26a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeTitle": {
+    "text": "Odebrać uprawnienie?",
+    "source_hash": "c93d520a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeDescription": {
+    "text": "Odbierz „{entitlement}” organizacji {org}. Zmienia to uprawnienia rozliczeniowe organizacji.",
+    "source_hash": "a5d2a8a6"
+  },
+  "web.admin.organizations.entitlements.confirm.clearTitle": {
+    "text": "Wyczyścić wszystkie nadpisania uprawnień?",
+    "source_hash": "e36eb218"
+  },
+  "web.admin.organizations.entitlements.confirm.clearDescription": {
+    "text": "Usuń wszystkie nadpisania przyznań i odebrań dla {org}, resetując je do uprawnień planu.",
+    "source_hash": "96bad079"
+  },
+  "web.admin.organizations.entitlements.success.granted": {
+    "text": "Przyznano uprawnienie „{entitlement}”.",
+    "source_hash": "cf52fb0e"
+  },
+  "web.admin.organizations.entitlements.success.revoked": {
+    "text": "Odebrano uprawnienie „{entitlement}”.",
+    "source_hash": "279d425d"
+  },
+  "web.admin.organizations.entitlements.success.cleared": {
+    "text": "Wyczyszczono wszystkie nadpisania uprawnień.",
+    "source_hash": "a482743b"
+  },
+  "web.admin.organizations.fields.contactEmail": {
+    "text": "E-mail kontaktowy",
+    "source_hash": "6d7fce11"
+  },
+  "web.admin.organizations.fields.owner": {
+    "text": "Właściciel",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.fields.plan": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.fields.subscription": {
+    "text": "Status subskrypcji",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.organizations.fields.periodEnd": {
+    "text": "Koniec okresu",
+    "source_hash": "eeae9fdd"
+  },
+  "web.admin.organizations.fields.billingEmail": {
+    "text": "E-mail do płatności",
+    "source_hash": "8805b928"
+  },
+  "web.admin.organizations.fields.stripeCustomer": {
+    "text": "Klient Stripe",
+    "source_hash": "8f169be1"
+  },
+  "web.admin.organizations.fields.stripeSubscription": {
+    "text": "Subskrypcja Stripe",
+    "source_hash": "53f71e08"
+  },
+  "web.admin.organizations.fields.orgId": {
+    "text": "Identyfikator organizacji",
+    "source_hash": "1f466322"
+  },
+  "web.admin.organizations.fields.created": {
+    "text": "Utworzono",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.organizations.fields.updated": {
+    "text": "Zaktualizowano",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.organizations.investigate.description": {
+    "text": "Porównaj lokalny stan płatności z aktywną subskrypcją Stripe.",
+    "source_hash": "d7bbe9ed"
+  },
+  "web.admin.organizations.investigate.rawPayload": {
+    "text": "Surowe dane badania",
+    "source_hash": "29ca7df2"
+  },
+  "web.admin.organizations.investigate.parseError": {
+    "text": "Odpowiedź badania nie odpowiadała oczekiwanemu formatowi.",
+    "source_hash": "db59cab1"
+  },
+  "web.admin.organizations.list.loadError": {
+    "text": "Nie można załadować organizacji.",
+    "source_hash": "130d5e70"
+  },
+  "web.admin.organizations.addMember.button": {
+    "text": "Dodaj istniejące konto",
+    "source_hash": "45a3b757"
+  },
+  "web.admin.organizations.addMember.title": {
+    "text": "Dodaj istniejące konto",
+    "source_hash": "2f676a94"
+  },
+  "web.admin.organizations.addMember.description": {
+    "text": "Dodaj do {org} osobę, która ma już konto. Użyj tej opcji, gdy ktoś zarejestrował się samodzielnie i nie można go zaprosić, ponieważ konto już istnieje.",
+    "source_hash": "bb41faa6"
+  },
+  "web.admin.organizations.addMember.searchLabel": {
+    "text": "Adres e-mail lub identyfikator konta",
+    "source_hash": "82b3040b"
+  },
+  "web.admin.organizations.addMember.searchPlaceholder": {
+    "text": "Szukaj według adresu e-mail",
+    "source_hash": "b75cc66c"
+  },
+  "web.admin.organizations.addMember.searchHint": {
+    "text": "Dopasowuje część adresu e-mail lub dokładny identyfikator konta.",
+    "source_hash": "84547a60"
+  },
+  "web.admin.organizations.addMember.searchError": {
+    "text": "Nie udało się wyszukać kont. Sprawdź połączenie i spróbuj ponownie.",
+    "source_hash": "4b6caa41"
+  },
+  "web.admin.organizations.addMember.searchParseError": {
+    "text": "Wyszukiwanie kont zwróciło nieoczekiwaną odpowiedź. Wyniki mogą być niekompletne.",
+    "source_hash": "0c814231"
+  },
+  "web.admin.organizations.addMember.idle": {
+    "text": "Wprowadź adres e-mail, aby znaleźć konto.",
+    "source_hash": "f6340d35"
+  },
+  "web.admin.organizations.addMember.noResults": {
+    "text": "Żadne konto nie pasuje do „{term}”.",
+    "source_hash": "199b662a"
+  },
+  "web.admin.organizations.addMember.noResultsHint": {
+    "text": "Tutaj można dodać tylko istniejące konta. Jeśli dana osoba nigdy się nie rejestrowała, zamiast tego wyślij jej zaproszenie.",
+    "source_hash": "ee90aeeb"
+  },
+  "web.admin.organizations.addMember.select": {
+    "text": "Wybierz",
+    "source_hash": "2a78025d"
+  },
+  "web.admin.organizations.addMember.selectedEyebrow": {
+    "text": "Wybrane konto",
+    "source_hash": "8b63d947"
+  },
+  "web.admin.organizations.addMember.change": {
+    "text": "Wybierz inne konto",
+    "source_hash": "d4fe39ab"
+  },
+  "web.admin.organizations.addMember.createdOn": {
+    "text": "Zarejestrowano {date}",
+    "source_hash": "cfc0e19f"
+  },
+  "web.admin.organizations.addMember.organizationsUnavailable": {
+    "text": "Nie udało się załadować bieżących organizacji tego konta.",
+    "source_hash": "a35b6bfc"
+  },
+  "web.admin.organizations.addMember.defaultOrg": {
+    "text": "domyślna",
+    "source_hash": "37a8eec1"
+  },
+  "web.admin.organizations.addMember.roleLabel": {
+    "text": "Rola w tej organizacji",
+    "source_hash": "817475fa"
+  },
+  "web.admin.organizations.addMember.submit": {
+    "text": "Dodaj do organizacji",
+    "source_hash": "0e0cb636"
+  },
+  "web.admin.organizations.addMember.success": {
+    "text": "Dodano {account} jako {role}.",
+    "source_hash": "533be0dc"
+  },
+  "web.admin.organizations.addMember.badges.verified": {
+    "text": "Zweryfikowane",
+    "source_hash": "4f783840"
+  },
+  "web.admin.organizations.addMember.badges.unverified": {
+    "text": "Niezweryfikowane",
+    "source_hash": "15133907"
+  },
+  "web.admin.organizations.addMember.badges.suspended": {
+    "text": "Zawieszone",
+    "source_hash": "e392a389"
+  },
+  "web.admin.organizations.addMember.badges.alreadyMember": {
+    "text": "Już jest członkiem",
+    "source_hash": "1739ed7c"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMember": {
+    "text": "To konto jest już członkiem tej organizacji z rolą {role}. Dodanie nie zmienia istniejącej roli — użyj do tego działania ustawiania roli.",
+    "source_hash": "cb6a4774"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMemberUnknownRole": {
+    "text": "To konto jest już członkiem tej organizacji. Dodanie nie zmienia istniejącej roli.",
+    "source_hash": "035641ec"
+  },
+  "web.admin.organizations.addMember.errors.notFound": {
+    "text": "To konto lub ta organizacja już nie istnieje. Wyszukaj ponownie, aby potwierdzić konto.",
+    "source_hash": "bd88db18"
+  },
+  "web.admin.organizations.addMember.errors.invalidRole": {
+    "text": "Ta rola została odrzucona. Wybierz jedną z wymienionych ról i spróbuj ponownie.",
+    "source_hash": "eb696a8f"
+  },
+  "web.admin.organizations.addMember.errors.noSelection": {
+    "text": "Nie wybrano żadnego konta.",
+    "source_hash": "dd15bb5b"
+  },
+  "web.admin.organizations.addMember.fields.created": {
+    "text": "Zarejestrowano",
+    "source_hash": "486b3fe0"
+  },
+  "web.admin.organizations.addMember.fields.verified": {
+    "text": "Weryfikacja",
+    "source_hash": "7140f4f1"
+  },
+  "web.admin.organizations.addMember.fields.lastLogin": {
+    "text": "Ostatnie logowanie",
+    "source_hash": "0b70af7a"
+  },
+  "web.admin.organizations.addMember.fields.organizations": {
+    "text": "Bieżące organizacje",
+    "source_hash": "cbb5b92f"
+  },
+  "web.admin.organizations.addMember.roleHints.member": {
+    "text": "Codzienny dostęp do sekretów i domen organizacji.",
+    "source_hash": "d0c7439e"
+  },
+  "web.admin.organizations.addMember.roleHints.admin": {
+    "text": "Może zarządzać członkami, domenami i ustawieniami organizacji.",
+    "source_hash": "beaa50d7"
+  },
+  "web.admin.organizations.addMember.roleHints.owner": {
+    "text": "Pełna kontrola, w tym płatności. Przyznawaj tę rolę tylko na wyraźną prośbę.",
+    "source_hash": "614ace63"
+  },
+  "web.admin.organizations.addMember.roles.member": {
+    "text": "Członek",
+    "source_hash": "7c968fb7"
+  },
+  "web.admin.organizations.addMember.roles.admin": {
+    "text": "Administrator",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.organizations.addMember.roles.owner": {
+    "text": "Właściciel",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.openCustomer": {
+    "text": "Otwórz rekord klienta",
+    "source_hash": "c057ca13"
+  },
+  "web.admin.organizations.detail.reconcile.memberships": {
+    "text": "Ponownie zmaterializowane członkostwa:",
+    "source_hash": "fe7db10c"
+  },
+  "web.admin.organizations.detail.reconcile.membershipsFailed": {
+    "text": "niepowodzenie, pozostają nieaktualne uprawnienia:",
+    "source_hash": "cc4dae37"
+  },
+  "web.admin.organizations.entitlements.catalogWarning": {
+    "text": "„{entitlement}” nie znajduje się w katalogu płatności — sprawdź, czy nie ma literówki. Mimo to kontynuujemy: przyznanie uprawnienia dostarczanego w późniejszym katalogu jest obsługiwane i celowo nieblokowane.",
+    "source_hash": "cbde548a"
+  },
+  "web.admin.organizations.entitlements.matrix.caption": {
+    "text": "Macierz rozstrzygania uprawnień: plan, przyznania i odebrania z nadpisań, zbiór wynikowy oraz to, co jest zmaterializowane.",
+    "source_hash": "9eac8999"
+  },
+  "web.admin.organizations.entitlements.matrix.yes": {
+    "text": "Tak",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.matrix.no": {
+    "text": "Nie",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.matrix.empty": {
+    "text": "Ta organizacja nie ma żadnych uprawnień z planu ani żadnych nadpisań.",
+    "source_hash": "f6cf2169"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.entitlement": {
+    "text": "Uprawnienie",
+    "source_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.inPlan": {
+    "text": "W planie",
+    "source_hash": "e2222361"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.granted": {
+    "text": "Przyznane",
+    "source_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.revoked": {
+    "text": "Odebrane",
+    "source_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.expected": {
+    "text": "Oczekiwane",
+    "source_hash": "ca99b7f1"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.materialized": {
+    "text": "Zmaterializowane",
+    "source_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.state": {
+    "text": "Stan",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.formula": {
+    "text": "Rozstrzyganie: oczekiwane = (plan ∪ przyznania) − odebrania. Zmaterializowane to to, co jest faktycznie zapisane w organizacji.",
+    "source_hash": "bc4bff2d"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.orphaned": {
+    "text": "Osierocone — zmaterializowane, ale nieoczekiwane, zwykle pozostawione przez odebranie, które nigdy nie zostało ponownie zmaterializowane. Uzgodnienie je usuwa.",
+    "source_hash": "3a27a9af"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.missing": {
+    "text": "Brakujące — oczekiwane, ale niezmaterializowane. To jest uprawnienie, którego członkom faktycznie teraz brakuje.",
+    "source_hash": "485e44ad"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.revoked": {
+    "text": "Przekreślone wiersze są odebrane przez nadpisanie administratora, co usuwa je ze zbioru oczekiwanego.",
+    "source_hash": "89a2e9b6"
+  },
+  "web.admin.organizations.entitlements.matrix.state.plan": {
+    "text": "Z planu",
+    "source_hash": "1d346b26"
+  },
+  "web.admin.organizations.entitlements.matrix.state.granted": {
+    "text": "Przyznane",
+    "source_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.state.revoked": {
+    "text": "Odebrane",
+    "source_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.state.orphaned": {
+    "text": "Osierocone",
+    "source_hash": "8d827807"
+  },
+  "web.admin.organizations.entitlements.matrix.state.missing": {
+    "text": "Brakujące",
+    "source_hash": "6be36ca4"
+  },
+  "web.admin.organizations.entitlements.picker.selectPlaceholder": {
+    "text": "Wybierz uprawnienie…",
+    "source_hash": "53af3be8"
+  },
+  "web.admin.organizations.entitlements.picker.other": {
+    "text": "Inne — spoza katalogu…",
+    "source_hash": "f08bc3a3"
+  },
+  "web.admin.organizations.entitlements.picker.customLabel": {
+    "text": "Nazwa uprawnienia (spoza katalogu)",
+    "source_hash": "52783229"
+  },
+  "web.admin.organizations.entitlements.picker.backToCatalog": {
+    "text": "Powrót do katalogu",
+    "source_hash": "9b727f40"
+  },
+  "web.admin.organizations.entitlements.picker.uncategorized": {
+    "text": "Bez kategorii",
+    "source_hash": "8d40d123"
+  },
+  "web.admin.organizations.entitlements.picker.catalogUnavailable": {
+    "text": "Nie udało się odczytać katalogu płatności, więc nazwy uprawnień nie są tutaj sprawdzane.",
+    "source_hash": "724869ec"
+  },
+  "web.admin.organizations.entitlements.picker.tags.inPlan": {
+    "text": "w planie",
+    "source_hash": "5f2251bb"
+  },
+  "web.admin.organizations.entitlements.picker.tags.granted": {
+    "text": "przyznane",
+    "source_hash": "dd515d19"
+  },
+  "web.admin.organizations.entitlements.picker.tags.revoked": {
+    "text": "odebrane",
+    "source_hash": "4bb47f18"
+  },
+  "web.admin.organizations.entitlements.summary.sync": {
+    "text": "Synchronizacja",
+    "source_hash": "8d261a37"
+  },
+  "web.admin.organizations.entitlements.summary.materialized": {
+    "text": "Zmaterializowane",
+    "source_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.summary.materializedAt": {
+    "text": "Ostatnia materializacja",
+    "source_hash": "9325dce9"
+  },
+  "web.admin.organizations.entitlements.summary.planDefinition": {
+    "text": "Definicja planu",
+    "source_hash": "6b531454"
+  },
+  "web.admin.organizations.entitlements.summary.yes": {
+    "text": "Tak",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.summary.no": {
+    "text": "Nie",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.summary.never": {
+    "text": "Nigdy",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.organizations.entitlements.summary.planStale": {
+    "text": "Zmieniona od czasu materializacji",
+    "source_hash": "e682d8a4"
+  },
+  "web.admin.organizations.entitlements.summary.planCurrent": {
+    "text": "Aktualna",
+    "source_hash": "e0d1b682"
+  },
+  "web.admin.organizations.entitlements.summary.planUnknown": {
+    "text": "Nieznana — nie udało się porównać",
+    "source_hash": "b607e540"
+  },
+  "web.admin.organizations.actions.plan.label": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.actions.plan.apply": {
+    "text": "Zastosuj",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.organizations.actions.plan.confirmTitle": {
+    "text": "Zmienić plan?",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.organizations.actions.plan.confirmDescription": {
+    "text": "Zmień plan dla {org} na {plan}.",
+    "source_hash": "aecf8277"
+  },
+  "web.admin.organizations.actions.plan.success": {
+    "text": "Plan zaktualizowany.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.organizations.actions.plan.problem": {
+    "text": "Plan został zapisany, ale uprawnienia nie zostały zaktualizowane. Uruchom uzgodnienie dla tej organizacji.",
+    "source_hash": "2addb095"
+  },
+  "web.admin.organizations.actions.plan.localConfigWarning": {
+    "text": "Plany załadowane z lokalnej konfiguracji — Stripe nie jest skonfigurowany lub niedostępny.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.organizations.detail.delete.button": {
+    "text": "Usuń organizację",
+    "source_hash": "a70d189a"
+  },
+  "web.admin.organizations.detail.delete.previewing": {
+    "text": "Ładowanie planu usunięcia…",
+    "source_hash": "c9773eb9"
+  },
+  "web.admin.organizations.detail.delete.warning": {
+    "text": "Trwale usuwa organizację, jej członkostwa i oczekujące zaproszenia oraz wysyła e-mail do byłych członków. Tej operacji nie można cofnąć.",
+    "source_hash": "fd314131"
+  },
+  "web.admin.organizations.detail.delete.confirmTitle": {
+    "text": "Usunąć tę organizację?",
+    "source_hash": "6a3bba0f"
+  },
+  "web.admin.organizations.detail.delete.confirmDescription": {
+    "text": "Spowoduje to trwałe usunięcie {org}. Wpisz ponownie identyfikator organizacji, aby potwierdzić.",
+    "source_hash": "c63a0221"
+  },
+  "web.admin.organizations.detail.delete.membersLabel": {
+    "text": "Członkowie",
+    "source_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.delete.invitationsLabel": {
+    "text": "Oczekujące zaproszenia",
+    "source_hash": "76198e63"
+  },
+  "web.admin.organizations.detail.delete.domainsLabel": {
+    "text": "Domeny",
+    "source_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.delete.defaultOrgLabel": {
+    "text": "Czyści domyślny obszar roboczy dla",
+    "source_hash": "d535ac2a"
+  },
+  "web.admin.organizations.detail.delete.forceDefault": {
+    "text": "To jest domyślny (osobisty) obszar roboczy właściciela. Usuń go mimo to.",
+    "source_hash": "1a8b0f7d"
+  },
+  "web.admin.organizations.detail.delete.forceSubscription": {
+    "text": "Subskrypcja jest aktywna. Usuń mimo to — nie anuluje to płatności w Stripe.",
+    "source_hash": "51cb3456"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsLabel": {
+    "text": "Rozbieżne domeny",
+    "source_hash": "fef96f49"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsRepair": {
+    "text": "Napraw za pomocą: bin/ots domains doctor --all --repair",
+    "source_hash": "14c9c59f"
+  },
+  "web.admin.organizations.detail.delete.success": {
+    "text": "Usunięto {org}.",
+    "source_hash": "9cdda5d0"
+  },
+  "web.admin.organizations.detail.delete.blocked.hasDomains": {
+    "text": "Zablokowane: najpierw usuń domeny niestandardowe ({domains}).",
+    "source_hash": "dc3248b2"
+  },
+  "web.admin.organizations.detail.delete.blocked.driftedDomains": {
+    "text": "Zablokowane: te rekordy domen nadal odwołują się do tej organizacji, ale brakuje ich na jej liście domen ({domains}). Najpierw uruchom bin/ots domains doctor --all --repair — nie ma możliwości nadpisania.",
+    "source_hash": "3136496c"
+  },
+  "web.admin.organizations.detail.delete.blocked.isDefault": {
+    "text": "Zablokowane: to jest domyślny obszar roboczy właściciela. Zaznacz poniższe nadpisanie, aby mimo to go usunąć.",
+    "source_hash": "09d5baa4"
+  },
+  "web.admin.organizations.detail.delete.blocked.activeSubscription": {
+    "text": "Zablokowane: organizacja ma aktywną subskrypcję. Najpierw anuluj ją w Stripe lub zaznacz poniższe nadpisanie.",
+    "source_hash": "68663641"
+  },
+  "web.admin.organizations.detail.delete.blocked.lastOrg": {
+    "text": "Zablokowane: to jedyna organizacja, do której należy {owner}, a jej usunięcie pozostawiłoby tę osobę bez obszaru roboczego. Nie ma możliwości nadpisania — najpierw utwórz organizację zastępczą.",
+    "source_hash": "f09b4f9a"
+  },
+  "web.admin.organizations.detail.delete.errors.planUnreadable": {
+    "text": "Nie można odczytać planu usunięcia z serwera. Nic nie zostało usunięte.",
+    "source_hash": "91406cbb"
+  },
+  "web.admin.organizations.detail.delete.errors.unverified": {
+    "text": "Nie można zweryfikować odpowiedzi serwera. Załaduj ponownie listę organizacji, aby sprawdzić, czy usuwanie zostało ukończone.",
+    "source_hash": "7a261fb0"
+  },
+  "web.admin.organizations.detail.delete.errors.notApplied": {
+    "text": "Serwer zwrócił podgląd, a nie usunięcie. Nic nie zostało usunięte.",
+    "source_hash": "9d84971d"
+  }
+}

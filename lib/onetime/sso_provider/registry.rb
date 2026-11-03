@@ -1,0 +1,218 @@
+# lib/onetime/sso_provider/registry.rb
+#
+# frozen_string_literal: true
+
+# Single source of truth for SSO (OmniAuth) provider wiring.
+#
+# Every place that needs to know "which providers exist and how are they
+# configured" reads from DEFINITIONS below:
+#
+#   - Onetime::AuthConfig#provider_definitions — serializer gating
+#     (sso_providers), email-linking trust flags, and CSP form-action
+#     origins.
+#   - Auth::Config::Features::OmniAuth.configure — boot-time strategy
+#     registration (real credentials or tenant-SSO placeholders).
+#
+# Each provider's definition lives in its own file alongside this one
+# (lib/onetime/sso_provider/<key>.rb) as Onetime::SsoProvider::<Key>::DEFINITION.
+# This registry requires them and fixes their order — DEFINITIONS order is the
+# default login-button order (see SSO_PROVIDER_ORDER in .env.reference).
+#
+# ADDING A PROVIDER is a Gemfile line plus one definition file here (plus
+# brand polish in the frontend if desired). See
+# docs/authentication/adding-sso-providers.md for the full checklist —
+# including the issuer-scoping decision each new provider forces:
+#
+#   ISSUER-CAPABLE (:issuer_capable true — OIDC, Entra, and other providers
+#   whose auth hash carries a validated issuer) participate fully in the
+#   (provider, issuer, uid) identity key and are usable on both the platform
+#   and tenant surfaces.
+#
+#   ISSUERLESS (:issuer_capable false — plain OAuth2: GitHub, GitLab, Google,
+#   Facebook, Discord, ...) resolve to the '' sentinel issuer on every
+#   surface, so the tenant surface REFUSES them at callback time
+#   (refuse_issuerless_on_tenant? in features/omniauth.rb). They remain
+#   available for platform SSO only. Prefer OIDC-capable providers when
+#   expanding the roster.
+#
+# Field reference (per definition):
+#
+#   key:              stable internal identifier (Symbol)
+#   label:            human label for boot logs ('OIDC', 'Entra ID', ...)
+#   strategy:         OmniAuth strategy symbol passed to omniauth_provider
+#   gem_require:      require path for the strategy gem (required lazily at
+#                     boot-registration time, so these files stay loadable in
+#                     environments without the omniauth gems)
+#   issuer_capable:   whether the strategy yields a validated issuer (see above)
+#   enabled:          OPTIONAL zero-arg callable returning a boolean: an
+#                     install-wide switch for the provider, checked BEFORE
+#                     required_vars by configure_provider (a false answer
+#                     registers no route at all, not even the tenant
+#                     placeholder, and loads no gem) and by
+#                     AuthConfig#provider_active? (no button, no admitted
+#                     IdP origin). SAML's reads SAML_ENABLED (#4604), default
+#                     off. Omitted means always on.
+#   enabled_var:      the env var :enabled reads, for the boot log line.
+#   required_vars:    env vars that must ALL be present for the provider to
+#                     register with real credentials (and to appear in
+#                     sso_providers / CSP origins)
+#   vars_valid:       OPTIONAL zero-arg callable returning a boolean, checked
+#                     after required_vars by AuthConfig#provider_active?. For
+#                     a constraint presence cannot express — e.g. a URL
+#                     variable that must carry a scheme. Needed only by a
+#                     definition whose strategy_options can RAISE, since
+#                     configure_provider skips such a provider and the
+#                     advertised set must not then disagree with the
+#                     registered one. SAML's checks the IdP URL, EntityID and
+#                     certificate the same way. Omitted means always valid.
+#   route_var/route_default:     env var and default for the route name — the
+#                     URL segment, auth-hash provider value, and
+#                     account_identities.provider value
+#   display_var/display_default: env var and default for the button label
+#   trust_var/trust_default:     the #3836 email-linking escape hatch — an
+#                     explicit per-provider operator declaration that the IdP
+#                     is inside the trust boundary (see
+#                     AuthConfig#trust_email_for_linking?)
+#   idp_origin / idp_origin_from: feed the CSP form-action derivations — the
+#                     boot-time AuthConfig#sso_form_action_origins (platform
+#                     providers) and, for entra's static origin, the
+#                     per-request AuthConfig#tenant_idp_origin (tenant SSO,
+#                     #4173). Either a static origin for providers whose IdP
+#                     host is fixed, or the name of an env var whose URL the
+#                     origin is derived from (OIDC's issuer; tenant OIDC uses
+#                     the SsoConfig record's issuer instead; SAML's SSO
+#                     service URL — never its EntityID, which is an opaque
+#                     name and often not the login host). ENTRA is static
+#                     because the OmniAuth strategy hard-pins the commercial
+#                     cloud (login.microsoftonline.com); there is no
+#                     sovereign-cloud authority env in this app. This applies
+#                     to both platform and tenant Entra. Configure sovereign
+#                     Entra as OIDC with its sovereign issuer instead; the
+#                     origin is derived automatically. SSO_FORM_ACTION_ORIGINS
+#                     cannot change the Entra redirect, so it only widens
+#                     form-action. Reserve it for OIDC configurations whose
+#                     authorization endpoint uses a different origin or for a
+#                     tenant derivation gap (docs/authentication/per-install-sso.md).
+#                     CONSTRAINT on adding a second non-OIDC TENANT provider:
+#                     AuthConfig#tenant_idp_origin picks the definition by the
+#                     SsoConfig::PROVIDER_ROUTE_MAP :default route name and
+#                     never consults that entry's :env_var override, so an
+#                     operator-renamed route resolves the DEFAULT definition,
+#                     silently. Harmless for every provider that exists today:
+#                     the non-OIDC tenant type (entra_id) carries a STATIC
+#                     idp_origin, so which route name the operator chose cannot
+#                     change the answer (and tenant OIDC bypasses the registry
+#                     entirely, deriving from the SsoConfig record's issuer).
+#                     A new provider whose route-name override must also select
+#                     a DIFFERENT definition — e.g. per-cloud definitions keyed
+#                     off the route env — breaks that assumption and has to
+#                     teach #tenant_idp_origin to resolve :env_var first.
+#   discovery_issuer_var: OPTIONAL env var naming an install-wide OIDC issuer
+#                     that uses discovery. The omniauth_setup hook compares it
+#                     to the discovery document's `issuer` on the first
+#                     platform sign-in attempt (exact String ==, #4513), and
+#                     AuthConfig#sso_providers withholds the button while a
+#                     mismatch is cached (SsoProvider::IssuerValidation),
+#                     except under restrict_to 'sso'. Route registration,
+#                     HttpOrigin origins and restrict_to availability are
+#                     unaffected, so tenant OIDC on the same route keeps
+#                     working.
+#   placeholder_options: strategy options (minus name:) used when platform
+#                     credentials are absent but org-level SSO is enabled —
+#                     the OmniAuthTenant hook injects real tenant credentials
+#                     at request time
+#   strategy_options: zero-arg callable returning strategy options (minus
+#                     name:) built from the env at boot. Called only after
+#                     required_vars are verified present.
+
+require_relative 'oidc'
+require_relative 'entra'
+require_relative 'google'
+require_relative 'github'
+require_relative 'apple'
+require_relative 'saml'
+require_relative 'gitlab'
+
+module Onetime
+  module SsoProvider
+    module Registry
+      DEFINITIONS = [
+        Oidc::DEFINITION,
+        Entra::DEFINITION,
+        Google::DEFINITION,
+        Github::DEFINITION,
+        # Appended after the four launch providers so the default button order
+        # stays stable for existing deployments. SSO_PROVIDER_ORDER reorders
+        # per deployment; only definitions whose required_vars are all present
+        # reach the login page at all, so an unconfigured entry costs nothing.
+        Apple::DEFINITION,
+        # SAML 2.0 (#4450). The one definition whose strategy is an in-repo
+        # subclass rather than a gem's own class — see saml.rb and
+        # request_bound_saml.rb — and the one issuer-capable definition that
+        # must NOT declare an `issuer:` strategy option.
+        Saml::DEFINITION,
+        # Appended for the same reason as Apple. Issuerless like GitHub, and
+        # gitlab.com only (see gitlab.rb).
+        Gitlab::DEFINITION,
+      ].freeze
+
+      # Definition lookup by :key that answers nil on a miss — the per-request
+      # counterpart to .fetch, for callers where a KeyError would be worse
+      # than a skipped provider (AuthConfig#tenant_idp_origin resolves a
+      # PROVIDER_ROUTE_MAP route name here, inside the CSP middleware).
+      def self.find(key)
+        DEFINITIONS.find { |defn| defn[:key] == key }
+      end
+
+      # Definition lookup by :key. Raises KeyError on an unknown key so a typo
+      # fails loudly at boot rather than silently skipping a provider.
+      #
+      # Delegates to .find so the lookup predicate lives in exactly one place:
+      # reshaping DEFINITIONS cannot leave a stale inlined copy behind.
+      def self.fetch(key)
+        find(key) ||
+          raise(KeyError, "unknown SSO provider definition: #{key.inspect}")
+      end
+
+      # Does the platform provider registered under +route_name+ require
+      # its boot-pinned ACS host? Resolves
+      # operator-renamed routes the same way provider registration does.
+      #
+      # Case-insensitive: OmniAuth matches its request and callback paths
+      # with casecmp (strategy.rb on_path?), as does the staging transport
+      # (SamlCallbackTransport.callback?), so a caller that derives the route
+      # name from a request path must reach the same answer for
+      # /auth/sso/SAML/callback as for /auth/sso/saml/callback. Otherwise the
+      # host restriction this predicate keys could be sidestepped by case.
+      #
+      # @param route_name [String, nil] the OmniAuth route / provider name
+      # @return [Boolean]
+      def self.request_bound_platform_acs_route?(route_name)
+        route_name = route_name.to_s
+        return false if route_name.empty?
+
+        DEFINITIONS.any? do |defn|
+          defn[:key] == :saml &&
+            ENV.fetch(defn[:route_var], defn[:route_default]).casecmp?(route_name)
+        end
+      end
+
+      # Whether a platform provider may be used on the resolved request host.
+      # Most providers are host-independent. A request-bound ACS provider is
+      # available only on its boot-pinned platform host. Verified domain
+      # ownership does not authorize receiving platform assertions.
+      # Callers supply resolved facts so this policy stays pure and does not
+      # duplicate domain lookups across Rack hooks and serializers.
+      #
+      # @param route_name [String, nil] the registered platform route
+      # @param platform_host [Boolean] whether this is the provider's pinned host
+
+      # @return [Boolean]
+      def self.platform_route_available_on_host?(route_name, platform_host:)
+        return true unless request_bound_platform_acs_route?(route_name)
+
+        platform_host
+      end
+    end
+  end
+end

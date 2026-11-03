@@ -1,0 +1,331 @@
+# lib/onetime/application/otto_hooks.rb
+#
+# frozen_string_literal: true
+
+#
+# Shared Otto request lifecycle hooks for Otto-based applications.
+#
+# This module provides common Otto hook configurations that can be included
+# by applications using Otto as their router (Core, V2). Applications using
+# other routers (Auth/Roda) do not need these hooks.
+
+require_relative '../logger_methods'
+require_relative 'request_helpers'
+require_relative 'error_resolver'
+require_relative 'error_correlation'
+require_relative 'middleware_stack'
+require_relative 'network_requirements'
+require_relative 'request_logger'
+
+module Onetime
+  module Application
+    module OttoHooks
+      include Onetime::LoggerMethods
+
+      # Configure Otto request completion hook for operational metrics
+      #
+      # Logs every completed request with timing, status, and authentication context.
+      # This provides a centralized audit trail for all HTTP requests through Otto.
+      #
+      # @param router [Otto] The Otto router instance to configure
+      # @return [void]
+      #
+      # @example
+      #   def build_router
+      #     router = Otto.new(routes_path)
+      #     configure_otto_request_hook(router)
+      #     router
+      #   end
+      def configure_otto_request_hook(router)
+        # Register Onetime-specific request helpers
+        router.register_request_helpers(Onetime::Application::RequestHelpers)
+
+        # Enforce declarative route constraints such as `network=admin` after
+        # Otto matches a route and before authentication or controller work.
+        Onetime::Application::NetworkRequirements.register(router)
+
+        # Register expected errors with status codes and log levels. Errors
+        # carrying an i18n error_key get resolved by ErrorResolver before
+        # to_h serializes them. Errors without an error_key are left as-is
+        # so legacy callers continue to render their pre-resolved message.
+        #
+        # Otto matches handlers by exact class, so subclasses (MissingSecret
+        # < RecordNotFound, EntitlementRequired < Forbidden, LimitExceeded
+        # < Forbidden) each need their own registration even when the body
+        # block is identical.
+
+        not_found_handler = ->(error, req) {
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          body = error.respond_to?(:to_h) ? error.to_h : { message: error.message || 'Not Found' }
+          with_error_correlation(body, req, error)
+        }
+        router.register_error_handler(Onetime::RecordNotFound, status: 404, log_level: :info, &not_found_handler)
+        router.register_error_handler(Onetime::MissingSecret, status: 404, log_level: :info, &not_found_handler)
+
+        # Form errors return 422 with error type and field info
+        router.register_error_handler(Onetime::FormError, status: 422, log_level: :info) do |error, req|
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # Forbidden errors return 403. Resolver localizes when error_key is
+        # present; pure-legacy callers (no error_key) get the response built
+        # from the pre-resolved message untouched.
+        router.register_error_handler(Onetime::Forbidden, status: 403, log_level: :warn) do |error, req|
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          body = error.respond_to?(:to_h) ? error.to_h : { message: error.message }
+          with_error_correlation(body, req, error)
+        end
+
+        # Server-side destructive-action confirmation (#4326). Same 403 family as
+        # Forbidden; separate registration because Otto resolves handlers by exact
+        # class name (see the note above).
+        router.register_error_handler(Onetime::ConfirmationRequired, status: 403, log_level: :warn) do |error, req|
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # Step-up (sudo) window for tier-1 colonel verbs (#4327). Two classes,
+        # two registrations: Otto matches by exact class name, so neither is
+        # covered by the Forbidden handler above. ElevationRequired means "no
+        # live window"; ElevationFailed means "the elevation attempt failed".
+        router.register_error_handler(Onetime::ElevationRequired, status: 403, log_level: :warn) do |error, req|
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        router.register_error_handler(Onetime::ElevationFailed, status: 403, log_level: :warn) do |error, req|
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # Password re-authentication for a lapsed admin session window
+        # (POST /api/colonel/reauthenticate). Same 403 family, own
+        # registrations for the same exact-class reason: Failed is a refused
+        # attempt, Unavailable an account the endpoint does not serve (a
+        # second factor is enrolled in full mode).
+        router.register_error_handler(Onetime::ReauthenticationFailed, status: 403, log_level: :warn) do |error, req|
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        router.register_error_handler(Onetime::ReauthenticationUnavailable, status: 403, log_level: :warn) do |error, req|
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # Programming error in a destructive guard (#4326). Registered so it is a
+        # deliberate 500 with correlation rather than an unhandled one.
+        router.register_error_handler(Onetime::GuardMisconfigured, status: 500, log_level: :error) do |error, req|
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # Persisted signup provisioning failures are account-state conflicts.
+        # The stable code/classification lets clients and support distinguish
+        # them from transient entitlement-context failures.
+        router.register_error_handler(Onetime::AccountProvisioningFailed, status: 409, log_level: :warn) do |error, req|
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # Provisioning that persisted nothing and will be retried by the next
+        # request (unreadable collision evidence, or another request holds the
+        # per-customer creation lock). 503 and NOT the 409 above: that one tells
+        # the user to contact support, which is wrong for a state that clears
+        # itself. log_level :warn — transient, like the billing breaker. The
+        # body's retry_after becomes a Retry-After header one frame up
+        # (Middleware::RetryAfterHeader). Mirrored in Auth::ErrorTranslator.
+        router.register_error_handler(Onetime::AccountProvisioningUnavailable, status: 503, log_level: :warn) do |error, req|
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # A write that a retry can clear (datastore unreachable, an optimistic
+        # lock lost to a concurrent write). 503, like the entry above, so the
+        # client retries rather than treating it as bad input; the body's
+        # retry_after becomes the Retry-After header.
+        router.register_error_handler(Onetime::TemporarilyUnavailable, status: 503, log_level: :warn) do |error, req|
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # Rate limit exceeded errors return 429 with retry info
+        router.register_error_handler(Onetime::LimitExceeded, status: 429, log_level: :warn) do |error, req|
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # Entitlement errors return 403 with upgrade path info
+        # NOTE: Otto handles Content-Type header automatically; handler returns body hash only
+        router.register_error_handler(Onetime::EntitlementRequired, status: 403, log_level: :info) do |error, req|
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # Guest routes disabled errors return 403 with error code
+        router.register_error_handler(Onetime::GuestRoutesDisabled, status: 403, log_level: :info) do |error, req|
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # Unauthorized errors return 401. Onetime::Unauthorized is a marker
+        # class (no #to_h); messages are caller-supplied and verified
+        # non-sensitive across call sites ('Invalid credentials',
+        # 'Not authorized to update this receipt'). Symmetric with
+        # Auth::ErrorTranslator so the Roda and Otto layers agree.
+        router.register_error_handler(Onetime::Unauthorized, status: 401, log_level: :warn) do |error, req|
+          with_error_correlation({ error: error.message, error_type: 'Unauthorized' }, req, error)
+        end
+
+        # Plan-catalog cache misses (Billing::PlanCacheMissError) are a known,
+        # expected backend condition: the Stripe-synced plan catalog isn't
+        # populated (or a stale plan_id no longer resolves), so org plan/limit
+        # resolution fails closed in WithMaterializedLimits/WithPlanEntitlements.
+        # That is an ops problem, not an unexpected crash, so it must not surface
+        # as an unhandled 500 on otherwise-valid read endpoints (account
+        # permissions, domains list, organizations). Return 503 with a safe,
+        # generic message — never the error's internal "cache or config" wording
+        # or the plan_id/organization_id it carries.
+        #
+        # Registered by string name (not the constant) per Otto's lazy-loading
+        # form: Otto matches handlers on error.class.name, so this is harmless in
+        # builds where the billing app — and thus Billing::PlanCacheMissError —
+        # is never loaded (the error can't be raised there). log_level :error
+        # keeps the fail-closed design's ops visibility intact.
+        router.register_error_handler('Billing::PlanCacheMissError', status: 503, log_level: :error) do |error, req|
+          with_error_correlation(
+            {
+              error: 'Plan catalog is temporarily unavailable. Please try again shortly.',
+              error_type: 'PlanCatalogUnavailable',
+            },
+            req,
+            error,
+          )
+        end
+
+        # Stripe circuit breaker open (Billing::CircuitOpenError) is the sibling
+        # "backend temporarily can't serve" case: the breaker trips after
+        # consecutive Stripe failures and fails fast to let the upstream recover.
+        # Like the catalog miss above it is a known backend condition, not a
+        # crash, so map it to 503 rather than letting it surface as a 500.
+        #
+        # Forward-looking, not a fix for an observed 500: today the breaker only
+        # wraps the catalog Pull, whose callers (CLI, boot, webhook handler that
+        # rescues it, scheduled jobs) are off the synchronous HTTP edge, so this
+        # error cannot currently reach an Otto-handled request. The customer
+        # facing billing endpoints call Stripe directly and already handle outages
+        # via their own Stripe::StripeError rescues. This registration only fires
+        # if a synchronous endpoint later routes a Stripe call through the breaker.
+        #
+        # Drop the error's message — it carries the internal failure count
+        # ("...(7 failures)...") — and never name the upstream provider. Surface
+        # retry_after in the body (Otto error handlers return a body hash only and
+        # cannot set a Retry-After response header). log_level :warn, not :error:
+        # this is a transient, self-healing protective state, unlike the catalog
+        # miss which signals an operator-actionable config/sync problem. Registered
+        # by string name per Otto's lazy-loading form (harmless when billing is not
+        # loaded — the error can't be raised there).
+        router.register_error_handler('Billing::CircuitOpenError', status: 503, log_level: :warn) do |error, req|
+          body               = {
+            error: 'The billing service is temporarily unavailable. Please try again shortly.',
+            error_type: 'BillingServiceUnavailable',
+          }
+          body[:retry_after] = error.retry_after if error.retry_after
+          with_error_correlation(body, req, error)
+        end
+
+        # A secret whose ciphertext cannot be decrypted with the running
+        # SECRET (C10/QS-6): the reveal claim has been rolled back, the record
+        # and ciphertext survive, and the link becomes revealable again the
+        # moment the operator restores the key. 503 is the honest status —
+        # server-side condition, retryable after operator action, same family
+        # as the billing 503s above. The client-side effect of a non-2xx (the
+        # UI reverts to click-to-reveal) is exactly right here: the secret IS
+        # still revealable. log_level :error — this is operator-actionable
+        # (wrong key), not transient.
+        router.register_error_handler(Onetime::SecretUndecryptable, status: 503, log_level: :error) do |error, req|
+          Onetime::Application::ErrorResolver.resolve!(error, req)
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # The restrict_to gate could not read this host's sign-in policy
+        # (ADR-034#restrict-to-is-an-access-control-not-a-display-preference
+        # / #degradation-is-fail-closed, #4139) — the per-domain half lives
+        # in the datastore.
+        # Raised by Core::Controllers::Base#restrict_to_allows? (simple-mode
+        # POST /auth/login and the pre-auth password surfaces) and by
+        # Auth::RestrictTo on the invite API's host-policy paths.
+        #
+        # 503, and deliberately NOT the gate's own 404: that reject shape is
+        # built to be indistinguishable from an undefined route, so wearing it
+        # here would put mystery not-founds on sign-in during a datastore blip.
+        # See Onetime::SigninPolicyUnavailable. The body's retry_after becomes a
+        # Retry-After header one frame up (Middleware::RetryAfterHeader).
+        # log_level :error — an auth surface is down and it must alert.
+        # Mirrored in Auth::ErrorTranslator for the Roda auth router.
+        router.register_error_handler(Onetime::SigninPolicyUnavailable, status: 503, log_level: :error) do |error, req|
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        # The sign-up gate could not read this host's SignupConfig (#4157).
+        # Raised by Onetime::Logic::SignupConfigResolution — so from
+        # Core::Controllers::Base#signup_enabled? (POST /auth/create-account)
+        # and from CreateAccount's autoverify resolution.
+        #
+        # Registered separately from the sign-in handler above: Otto walks
+        # error.class.ancestors, but the shared Onetime::AuthPolicyUnavailable
+        # parent is deliberately unregistered so each gate's error_type stays
+        # distinct — the parent buys the shape, not the routing. Identical
+        # status, level and body construction to its sibling: same failure,
+        # and the only thing that should differ between the two responses is
+        # the error_type and the sentence a user reads.
+        router.register_error_handler(Onetime::SignupPolicyUnavailable, status: 503, log_level: :error) do |error, req|
+          with_error_correlation(error.to_h, req, error)
+        end
+
+        return unless Onetime.debug?
+
+        router.on_request_complete do |req, res, duration|
+          # Use HTTP logger for request lifecycle events
+          logger = Onetime.get_logger('HTTP')
+
+          # Extract auth context if available
+          user_id         = req.env['otto.user']&.[](:id)
+          strategy_result = req.env['otto.strategy_result']
+          auth_strategy   = strategy_result&.strategy_name
+
+          logger.trace 'Request completed',
+            {
+              method: req.request_method,
+              path: RequestLogger.redacted_path(req),
+              status: res.status,
+              duration: duration / 1_000_000.0,  # Convert microseconds to seconds for SemanticLogger
+              user_id: user_id,
+              auth_strategy: auth_strategy,
+              ip: req.ip,
+              user_agent: req.user_agent&.slice(0, 100),
+            }
+        end
+      end
+
+      private
+
+      # Adapt the Otto request to the shared correlation primitive.
+      #
+      # The Otto error-handler blocks above pass their `req`; the handler unit
+      # specs pass nil, and a defensive non-nil object without #env is possible
+      # too. `req.respond_to?(:env) ? req.env : nil` covers both — a plain
+      # `req&.env` would guard the nil but still NoMethodError on the latter —
+      # then delegates to Onetime::Application::ErrorCorrelation, which works on
+      # the Rack env. The actual "echo request_id into the body, stash
+      # error_type into env" logic, and the rationale for it, live in that
+      # shared module, which the Roda /auth surface calls too.
+      #
+      # @param body [Hash] The JSON error body the handler is about to return
+      # @param req [Rack::Request, Otto::Request, nil] The current request
+      # @param error [Exception, nil] The error being handled; used only as the
+      #   fallback source for error_type when the body omits it
+      # @return [Hash] The body, with :request_id merged in when available
+      def with_error_correlation(body, req, error = nil)
+        env = req.respond_to?(:env) ? req.env : nil
+        Onetime::Application::ErrorCorrelation.apply(body, env, error)
+      end
+    end
+  end
+end

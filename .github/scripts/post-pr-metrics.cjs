@@ -1,0 +1,165 @@
+/**
+ * Post CI performance metrics as a PR comment.
+ *
+ * This script formats tier timing data and posts/updates a PR comment
+ * with the CI performance metrics summary.
+ *
+ * Usage (in GitHub Actions with actions/github-script@v7):
+ *   const script = require('./.github/scripts/post-pr-metrics.cjs');
+ *   await script({ github, context, core, tierData });
+ *
+ * @param {Object} options
+ * @param {Object} options.github - GitHub API client from actions/github-script
+ * @param {Object} options.context - Action context from actions/github-script
+ * @param {Object} options.core - Core utilities from actions/github-script
+ * @param {Object} options.tierData - Tier timing data with seconds and targets
+ * @param {string} [options.breakdownFile] - Markdown from
+ *   .github/scripts/ci-metrics-breakdown.sh (completion state and per-test-step
+ *   time against the main baseline); embedded verbatim when present.
+ */
+module.exports = async function postPrMetrics({ github, context, core, tierData, breakdownFile }) {
+  const fs = require('fs');
+
+  // Targets are supplied by the check-ci-metrics action (the single source of
+  // truth for tier targets) and arrive as strings via the Actions expression
+  // syntax. Coerce to a number so the arithmetic below adds instead of
+  // concatenating. A missing/blank value yields null and the row renders "N/A"
+  // rather than a hardcoded default — this script intentionally keeps no copy
+  // of the target numbers.
+  function targetSeconds(value) {
+    const n = parseInt(value, 10);
+    return isNaN(n) ? null : n;
+  }
+
+  const tiers = [
+    {
+      name: 'Tier 1',
+      jobs: 'Lint & Build',
+      seconds: tierData.tier1Seconds,
+      target: targetSeconds(tierData.tier1Target),
+    },
+    {
+      name: 'Tier 2',
+      jobs: 'Unit Tests',
+      seconds: tierData.tier2Seconds,
+      target: targetSeconds(tierData.tier2Target),
+    },
+    {
+      name: 'Tier 3',
+      jobs: 'Integration Tests',
+      seconds: tierData.tier3Seconds,
+      target: targetSeconds(tierData.tier3Target),
+    },
+    {
+      name: 'Tier 4',
+      jobs: 'Container Validation',
+      seconds: tierData.tier4Seconds,
+      target: targetSeconds(tierData.tier4Target),
+    },
+  ];
+
+  /**
+   * Format duration in seconds to human-readable string.
+   * @param {string|number} secs - Duration in seconds
+   * @returns {string} Formatted duration (e.g., "2m 30s")
+   */
+  function formatDuration(secs) {
+    if (!secs || secs === 'N/A') return 'N/A';
+    const s = parseInt(secs, 10);
+    if (isNaN(s)) return 'N/A';
+    if (s >= 60) {
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${m}m ${r}s`;
+    }
+    return `${s}s`;
+  }
+
+  /**
+   * Get status icon based on actual vs target time.
+   * @param {string|number} secs - Actual duration in seconds
+   * @param {number} target - Target duration in seconds
+   * @returns {string} Status icon emoji
+   */
+  function statusIcon(secs, target) {
+    if (!secs || secs === 'N/A') return '❓';
+    if (target == null) return '❓';
+    const s = parseInt(secs, 10);
+    if (isNaN(s)) return '❓';
+    // Same bands as check-ci-metrics: warning above target, x above 2x.
+    if (s <= target) return '✅';
+    if (s <= target * 2) return '⚠️';
+    return '❌';
+  }
+
+  // Build tier rows for the table
+  const tierRows = tiers
+    .map((t) => {
+      const target = t.target == null ? 'N/A' : `<${t.target}s`;
+      return `| ${t.name} | ${t.jobs} | ${formatDuration(t.seconds)} | ${target} | ${statusIcon(t.seconds, t.target)} |`;
+    })
+    .join('\n');
+
+  const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+  // The breakdown is produced by the check-ci-metrics action and read here as
+  // finished markdown: this script renders, it does not compute.
+  let breakdown = '';
+  if (breakdownFile && fs.existsSync(breakdownFile)) {
+    breakdown = fs.readFileSync(breakdownFile, 'utf8').trim();
+  } else {
+    breakdown = '_Test-step breakdown unavailable for this run._';
+  }
+
+  const comment = `## 📊 CI Performance Metrics
+
+| Tier | Jobs | From start | Target | Status |
+|------|------|-----------:|--------|--------|
+${tierRows}
+
+<details>
+<summary>Tier Details</summary>
+
+- **Tier 1 - Lint & Build**: Ruby Lint, TypeScript Lint, i18n Validation, Hygiene, Build Frontend Assets
+- **Tier 2 - Unit Tests**: Ruby Unit Tests, TypeScript Unit Tests
+- **Tier 3 - Integration Tests**: Ruby Integration (Simple, API contract, Full matrix, Disabled modes)
+- **Tier 4 - Container Validation**: Docker build and health check
+- **Tier 5 - CI Metrics**: Performance validation and reporting
+
+Tier times are the critical path: seconds from workflow start until the tier's last job finished, queue and setup included. Test execution itself is in the breakdown below.
+</details>
+
+${breakdown}
+
+🔗 [View full workflow run](${runUrl})
+`;
+
+  // Find existing bot comment with this header
+  const { data: comments } = await github.rest.issues.listComments({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    issue_number: context.issue.number,
+  });
+
+  const botComment = comments.find(
+    (c) => c.user.type === 'Bot' && c.body.includes('📊 CI Performance Metrics')
+  );
+
+  if (botComment) {
+    await github.rest.issues.updateComment({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      comment_id: botComment.id,
+      body: comment,
+    });
+    core.info(`Updated existing PR comment: ${botComment.html_url}`);
+  } else {
+    const { data: newComment } = await github.rest.issues.createComment({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: context.issue.number,
+      body: comment,
+    });
+    core.info(`Created new PR comment: ${newComment.html_url}`);
+  }
+};

@@ -1,0 +1,560 @@
+# lib/onetime/models/organization/features/with_organization_billing.rb
+#
+# frozen_string_literal: true
+
+if Onetime.billing_config.enabled?
+  require 'billing/metadata'
+  require 'billing/models/plan'
+  require 'billing/lib/billing_service'
+  require 'billing/lib/plan_validator'
+  require 'billing/operations/apply_subscription_to_org'
+end
+require_relative '../../../utils/email_hash'
+
+module Onetime
+  module Models
+    module Features
+      # Organization Billing Feature
+      #
+      # Adds Stripe billing fields and methods to Organization model.
+      # Organizations own subscriptions, not customers or teams.
+      #
+      module WithOrganizationBilling
+        Familia::Base.add_feature self, :with_organization_billing
+
+        # Stripe statuses where the subscription can charge a card again with
+        # NO further human action.
+        #
+        # That is the whole rule, and it is what makes the set consistent:
+        #   in  — 'active'/'trialing' bill now; 'past_due'/'unpaid' are
+        #         delinquent but not gone, and Stripe recovers them to 'active'
+        #         by itself the moment a retry succeeds.
+        #   out — 'canceled' is gone. 'incomplete', 'incomplete_expired' and
+        #         'paused' all still need a person to complete a payment or
+        #         attach a payment method before a cent moves.
+        #
+        # Deliberately WIDER than active_subscription?, which is the
+        # ENTITLEMENT predicate and must stay at active/trialing — a past_due
+        # org is delinquent and should not keep its premium features.
+        #
+        # The excluded three matter because the customer-facing delete has no
+        # force flag (only colonel and `bin/ots org delete` do), so every status
+        # added here is an unappealable lockout for an org owner. 'paused' in
+        # particular has no expiry at all — an org could sit undeletable
+        # forever waiting on support.
+        #
+        # Residual risk, accepted: 'incomplete' can still become 'active' if a
+        # 3DS confirmation lands inside its ~23h window, and subscription_status
+        # is a local cache. A delete in that window produces exactly the orphan
+        # this guard exists to prevent. Judged rarer than the lockout it trades
+        # against, not impossible.
+        #
+        # An unrecognised status PERMITS the delete (allowlist, fails open).
+        # Pinned by spec — widening this set is a product decision.
+        LIVE_SUBSCRIPTION_STATUSES = %w[active trialing past_due unpaid].freeze
+
+        def self.included(base)
+          OT.ld "[features] #{base}: #{name}"
+
+          base.include InstanceMethods
+          base.extend ClassMethods
+
+          # Stripe billing fields
+          base.field :stripe_customer_id       # Stripe Customer ID
+          base.field :stripe_subscription_id   # Active Stripe Subscription ID
+          base.field :planid                   # Plan identifier (e.g., 'single_team_monthly')
+          base.field :billing_email            # Billing contact email
+          base.field :subscription_status      # active, past_due, canceled, etc.
+          base.field :subscription_period_end  # Unix epoch seconds as an Integer (legacy rows may hold a String)
+          base.field :stripe_checkout_email    # Not necessarily the same as billing_email
+
+          # HMAC email hash for cross-region federation (computed from billing_email)
+          # Used to match accounts across regions without exposing email addresses.
+          # The hash is immutable once set in Stripe customer metadata.
+          base.field :email_hash
+          base.field :email_hash_synced_at  # Format: YYYY-MM-DD@HH:MMZ
+
+          # Track when subscription was federated (not owned) - for notification UX
+          # Unix timestamp, nil if owner or no subscription
+          base.field :subscription_federated_at
+
+          # Track when user dismissed the federation notification - for UX
+          # Unix timestamp, nil if never dismissed
+          base.field :federation_notification_dismissed_at
+
+          # Complimentary subscription marker (read-only cache, Stripe → local)
+          #
+          # Mirrors Stripe subscription metadata['complimentary']. The source
+          # of truth is Stripe — this field is written only by webhook
+          # processing (ApplySubscriptionToOrg) and migration tooling, never
+          # pushed back to Stripe. To grant or revoke complimentary status,
+          # update the Stripe subscription metadata and let webhooks propagate.
+          base.field :complimentary
+
+          # Currency migration intent fields
+          # Set when user initiates graceful migration (cancel-at-period-end path).
+          # Frontend checks these to prompt user for new checkout after old sub ends.
+          base.field :pending_currency_migration      # 'true' when migration in progress
+          base.field :migration_target_price_id       # Stripe price ID for the new plan
+          base.field :migration_effective_after        # Unix timestamp (current_period_end)
+
+          # Add indexes. e.g. unique_index :extid, :extid_index, within: Onetime::Organization
+          base.unique_index :stripe_customer_id, :stripe_customer_id_index
+          base.unique_index :stripe_subscription_id, :stripe_subscription_id_index
+          base.unique_index :stripe_checkout_email, :stripe_checkout_email_index
+          base.unique_index :billing_email, :billing_email_index
+          base.multi_index :email_hash, :email_hash_index
+        end
+
+        # Class methods for Organization federation lookups
+        module ClassMethods
+          # Find organizations with matching email_hash that don't own a subscription
+          #
+          # "Federated" orgs have the same email as a subscription owner in another region,
+          # but don't have their own direct Stripe link (no stripe_customer_id).
+          #
+          # @param email_hash [String] HMAC hash of email address
+          # @return [Array<Onetime::Organization>] Organizations with matching hash and no stripe_customer_id
+          #
+          # @example
+          #   federated = Organization.find_federated_by_email_hash('a1b2c3...')
+          #   federated.each { |org| org.update_from_stripe_subscription(sub) }
+          #
+          def find_federated_by_email_hash(email_hash)
+            return [] if email_hash.to_s.empty?
+
+            # Use multi_index to find all orgs with matching hash
+            all_matching = find_all_by_email_hash(email_hash)
+            return [] unless all_matching
+
+            # Filter to only those without stripe_customer_id (not owners)
+            all_matching.select { |org| org.stripe_customer_id.to_s.empty? }
+          end
+
+          # Create-time attributes that claim a Stripe customer for a new org.
+          #
+          # Setting stripe_customer_id at create! time makes the org's save
+          # take the unique index's server-side CAS, which is what elects a
+          # single creator when two checkout-completion surfaces race (see
+          # Billing::CheckoutTargetResolver.adopt_claimed_workspace). Returns
+          # an EMPTY hash for a blank or non-Stripe value so the field is never
+          # written as a literal null.
+          #
+          # @param stripe_customer_id [String, nil]
+          # @return [Hash] {} or { stripe_customer_id: 'cus_...' }
+          def stripe_claim_fields(stripe_customer_id)
+            return {} unless stripe_customer_id.is_a?(String)
+            return {} unless stripe_customer_id.start_with?('cus_')
+
+            { stripe_customer_id: stripe_customer_id }
+          end
+        end
+
+        module InstanceMethods
+          # Retrieve Stripe customer object
+          #
+          # @return [Stripe::Customer, nil] Stripe customer or nil if not found
+          def stripe_customer
+            return nil if stripe_customer_id.to_s.empty?
+
+            @stripe_customer ||= Stripe::Customer.retrieve(stripe_customer_id)
+          rescue Stripe::StripeError => ex
+            OT.le "[Organization.stripe_customer] Error: #{ex.message}"
+            nil
+          end
+
+          # Retrieve Stripe subscription object
+          #
+          # @return [Stripe::Subscription, nil] Stripe subscription or nil if not found
+          def stripe_subscription
+            return nil if stripe_subscription_id.to_s.empty?
+
+            @stripe_subscription ||= Stripe::Subscription.retrieve(stripe_subscription_id)
+          rescue Stripe::StripeError => ex
+            OT.le "[Organization.stripe_subscription] Error: #{ex.message}"
+            nil
+          end
+
+          # Check if organization has an active subscription
+          #
+          # @return [Boolean] True if subscription status is 'active' or 'trialing'
+          def active_subscription?
+            %w[active trialing].include?(subscription_status.to_s)
+          end
+
+          # Check if subscription is past due
+          #
+          # @return [Boolean] True if subscription status is 'past_due'
+          def past_due?
+            subscription_status.to_s == 'past_due'
+          end
+
+          # Check if subscription is canceled
+          #
+          # @return [Boolean] True if subscription status is 'canceled'
+          def canceled?
+            subscription_status.to_s == 'canceled'
+          end
+
+          # Check whether a subscription still exists in Stripe and can bill
+          #
+          # This is the LIVENESS question, not the entitlement question. Use
+          # active_subscription?/paid? to decide what an org may DO; use this
+          # to decide whether tearing the org down would strand a subscription
+          # that keeps charging a card with nothing left to attach it to.
+          #
+          # Reads the locally-stored subscription_status only — never calls
+          # Stripe. A stale status makes this answer stale in both directions.
+          #
+          # @return [Boolean] True if the subscription is live or recoverable
+          #
+          # @example
+          #   org.billing_live?  # => true  (past_due — Stripe is still retrying)
+          #   org.billing_live?  # => false (canceled)
+          #   org.billing_live?  # => false (never subscribed)
+          #
+          def billing_live?
+            WithOrganizationBilling::LIVE_SUBSCRIPTION_STATUSES.include?(subscription_status.to_s)
+          end
+
+          # Canonical Paid Status
+          # ---------------------
+          # Single source of truth for whether an organization is paying.
+          # Combines subscription liveness with plan classification.
+
+          # Check if organization has premium entitlements via subscription
+          #
+          # An org is paid when it has an active (or trialing) subscription
+          # AND a non-free plan assigned. This prevents false positives from
+          # stale planid values after cancellation (webhooks set planid to
+          # 'free_v1' on cancel, but this guards against race conditions).
+          #
+          # NOTE: Complimentary ($0) subscriptions return true here. This is
+          # intentional — complimentary accounts behave identically to paying
+          # accounts for entitlements, features, and UX. The distinction is
+          # purely financial and belongs in reporting/analytics, not in
+          # application authorization logic. Use complimentary? when you need
+          # to distinguish revenue-bearing subscriptions.
+          #
+          # @return [Boolean] True if org has active subscription with paid plan
+          #
+          # @example
+          #   org.paid?  # => true (active sub + identity_plus_v1)
+          #   org.paid?  # => true (complimentary $0 sub + identity_plus_v1)
+          #   org.paid?  # => false (canceled sub, even with paid planid)
+          #   org.paid?  # => false (active sub + free_v1)
+          #
+          def paid?
+            return false unless active_subscription? && !planid.to_s.empty?
+
+            # When billing is disabled, treat all plans as free
+            return false unless defined?(Billing::Metadata::FREE_PLAN_IDS)
+
+            !Billing::Metadata::FREE_PLAN_IDS.include?(planid.to_s)
+          end
+
+          # Check if organization has a complimentary (pro-bono) subscription
+          #
+          # A complimentary org has an active $0 subscription with the
+          # 'complimentary' marker set. This is distinct from paid? because
+          # the subscription carries no revenue, but the org still gets
+          # premium entitlements through its planid.
+          #
+          # This reads a local cache of Stripe state. To change an org's
+          # complimentary status, update the Stripe subscription metadata
+          # and let webhooks propagate — do not set this field directly.
+          #
+          # @return [Boolean] True if org has active complimentary subscription
+          #
+          # @example
+          #   org.complimentary?  # => true ($0 sub, complimentary marker)
+          #   org.complimentary?  # => false (regular paid sub)
+          #   org.complimentary?  # => false (canceled complimentary sub)
+          #
+          def complimentary?
+            active_subscription? && complimentary.to_s == 'true'
+          end
+
+          # Federation Methods
+          # ------------------
+          # These methods support cross-region subscription federation using HMAC email hashes.
+          # See: https://github.com/onetimesecret/onetimesecret/issues/2471
+
+          # Compute and store the HMAC email hash from billing_email
+          #
+          # The hash is computed using FEDERATION_SECRET and is deterministic:
+          # same email + same secret = same hash across all regions.
+          #
+          # @return [String, nil] The computed email hash, or nil if billing_email is empty
+          # @raise [Onetime::Problem] If FEDERATION_SECRET is not configured
+          #
+          def compute_email_hash!
+            self.email_hash           = Onetime::Utils::EmailHash.compute(billing_email)
+            self.email_hash_synced_at = Time.now.utc.strftime('%Y-%m-%d@%H:%MZ')
+            email_hash
+          end
+
+          # Check if this organization owns a subscription (has direct Stripe link)
+          #
+          # Owners have stripe_customer_id set, meaning they created the subscription.
+          # Non-owners receive benefits via federation (matching email_hash).
+          #
+          # @return [Boolean] True if organization has a stripe_customer_id
+          #
+          def subscription_owner?
+            !stripe_customer_id.to_s.empty?
+          end
+
+          # Check if this organization received subscription benefits via federation
+          #
+          # Federated orgs have subscription_federated_at set but are not owners.
+          # This is used to show a one-time notification to users.
+          #
+          # @return [Boolean] True if subscription was federated (not owned)
+          #
+          def subscription_federated?
+            !subscription_federated_at.to_s.empty? && !subscription_owner?
+          end
+
+          # Mark this organization as having received federated subscription benefits
+          #
+          # Only marks non-owners; owners should never be marked as federated.
+          # Uses Unix timestamp for consistency with other timestamp fields.
+          #
+          # @return [Integer, nil] The timestamp set, or nil if organization is an owner
+          #
+          def mark_subscription_federated!
+            return nil if subscription_owner?
+
+            self.subscription_federated_at = Familia.now.to_i
+            subscription_federated_at.to_i
+          end
+
+          # Clear the federated status (e.g., when org becomes a direct subscriber)
+          #
+          # @return [void]
+          #
+          def clear_federated_status!
+            self.subscription_federated_at = nil
+          end
+
+          # Check if the federation notification should be shown
+          #
+          # Shows notification if:
+          # - Organization is federated (has subscription_federated_at)
+          # - User has NOT dismissed the notification
+          #
+          # @return [Boolean] True if notification should be shown
+          #
+          def show_federation_notification?
+            subscription_federated? && federation_notification_dismissed_at.to_s.empty?
+          end
+
+          # Dismiss the federation notification
+          #
+          # Records when the user dismissed the notification so it won't show again.
+          #
+          # @return [Integer] The timestamp when dismissed
+          #
+          def dismiss_federation_notification!
+            self.federation_notification_dismissed_at = Familia.now.to_i
+            federation_notification_dismissed_at.to_i
+          end
+
+          # Check if federation notification was dismissed
+          #
+          # @return [Boolean] True if notification was dismissed
+          #
+          def federation_notification_dismissed?
+            !federation_notification_dismissed_at.to_s.empty?
+          end
+
+          # Currency Migration Intent Methods
+          # ----------------------------------
+
+          # Check if this organization has a pending currency migration
+          #
+          # @return [Boolean] True if a graceful migration is in progress
+          def pending_currency_migration?
+            pending_currency_migration.to_s == 'true'
+          end
+
+          # Store migration intent for graceful (cancel-at-period-end) path
+          #
+          # @param target_price_id [String] Stripe price ID for the new plan
+          # @param effective_after [Integer] Unix timestamp when migration should proceed
+          # @return [void]
+          def set_currency_migration_intent!(target_price_id, effective_after)
+            self.pending_currency_migration = 'true'
+            self.migration_target_price_id  = target_price_id
+            self.migration_effective_after  = effective_after.to_s
+            save
+          end
+
+          # Clear migration intent (after migration completes or is canceled)
+          #
+          # @return [void]
+          def clear_currency_migration_intent!
+            self.pending_currency_migration = nil
+            self.migration_target_price_id  = nil
+            self.migration_effective_after  = nil
+            save
+          end
+
+          # Update billing fields from Stripe subscription
+          #
+          # Validates subscription data before updating organization fields.
+          # Ensures data integrity and prevents corruption from invalid webhook data.
+          #
+          # @param subscription [Stripe::Subscription] Stripe subscription object
+          # @return [Boolean] True if saved successfully
+          # @raise [ArgumentError] If subscription is invalid or missing required fields
+          def update_from_stripe_subscription(subscription)
+            # Validate subscription object type
+            unless subscription.is_a?(Stripe::Subscription)
+              raise ArgumentError, "Expected Stripe::Subscription, got #{subscription.class}"
+            end
+
+            # Validate required fields
+            unless subscription.id && subscription.customer && subscription.status
+              raise ArgumentError, 'Subscription missing required fields (id, customer, status)'
+            end
+
+            # Validate subscription status is known value (when billing loaded)
+            if defined?(Billing::Metadata::VALID_SUBSCRIPTION_STATUSES) && !Billing::Metadata::VALID_SUBSCRIPTION_STATUSES.include?(subscription.status)
+                OT.lw '[Organization.update_from_stripe_subscription] Unknown subscription status',
+                  {
+                    subscription_id: subscription.id,
+                    status: subscription.status,
+                    orgid: objid,
+                  }
+              end
+
+            # ==========================================================================
+            # REPLAY-SAFE CUSTOMER ID HANDLING
+            # ==========================================================================
+            # The stripe_customer_id has a unique index. For idempotent replay:
+            # - If this org already has this customer ID → continue (same association)
+            # - If a different org has this customer ID → error (data integrity issue)
+            # - If no org has it yet → proceed with assignment
+            # ==========================================================================
+            new_customer_id = subscription.customer
+            if stripe_customer_id != new_customer_id
+              existing_org = Onetime::Organization.find_by_stripe_customer_id(new_customer_id)
+              if existing_org && existing_org.objid != objid
+                raise OT::Problem, "Stripe customer #{new_customer_id} already linked to org #{existing_org.extid}"
+              end
+            end
+
+            # Delegate field-setting to shared operation (owner path)
+            unless defined?(Billing::Operations::ApplySubscriptionToOrg)
+              raise OT::Problem, 'Billing module not loaded - cannot process subscription'
+            end
+
+            Billing::Operations::ApplySubscriptionToOrg.call(
+              self, subscription, owner: true
+            )
+          end
+
+          # Clear billing fields (on subscription cancellation)
+          #
+          # Called by webhook handlers when a subscription is deleted.
+          # Clears the complimentary cache along with other billing state
+          # because the Stripe subscription that sourced it no longer exists.
+          #
+          # @return [Boolean] True if saved successfully
+          def clear_billing_fields
+            Billing::Operations::ApplySubscriptionToOrg.apply_free_tier(self, owner: true)
+          end
+
+          private
+
+          # Robust Stripe customer retrieval with fallbacks
+          #
+          # Tries in order:
+          # 1. stripe_customer_id (if set) - uses stripe_customer method
+          # 2. billing_email lookup
+          # 3. stripe_checkout_email lookup
+          # 4. contact_email lookup
+          #
+          # @return [Stripe::Customer, nil] Stripe customer or nil if not found
+          def get_stripe_customer
+            return stripe_customer unless stripe_customer_id.to_s.empty?
+
+            get_stripe_customer_by_email
+          rescue Stripe::StripeError => ex
+            OT.le "[Organization.get_stripe_customer] Error: #{ex.message}"
+            nil
+          end
+
+          # Find Stripe customer by email (tries multiple email fields)
+          #
+          # Attempts to find Stripe customer using organization email fields in priority order:
+          # 1. billing_email (primary billing contact)
+          # 2. stripe_checkout_email (email used during Stripe checkout)
+          # 3. contact_email (general organization contact)
+          #
+          # @return [Stripe::Customer, nil] Stripe customer or nil if not found
+          def get_stripe_customer_by_email
+            email_to_try = [billing_email, stripe_checkout_email, contact_email]
+              .map(&:to_s).find { |email| !email.strip.empty? }
+
+            return nil if email_to_try.nil?
+
+            OT.info "[Organization.get_stripe_customer_by_email] Searching for: #{email_to_try}"
+            customers = Stripe::Customer.list(email: email_to_try, limit: 1)
+
+            if customers.data.empty?
+              OT.info "[Organization.get_stripe_customer_by_email] No customer found: #{email_to_try}"
+              nil
+            else
+              @stripe_customer = customers.data.first
+              OT.info "[Organization.get_stripe_customer_by_email] Found: #{@stripe_customer.id}"
+              @stripe_customer
+            end
+          rescue Stripe::StripeError => ex
+            OT.le "[Organization.get_stripe_customer_by_email] Error: #{ex.message}"
+            nil
+          end
+
+          # Robust subscription retrieval with fallback to listing
+          #
+          # Tries in order:
+          # 1. stripe_subscription_id (if set) - uses stripe_subscription method
+          # 2. List active subscriptions for customer and take first
+          #
+          # Note: Organizations should only have ONE subscription. If multiple subscriptions
+          # exist, this returns the first active one found.
+          #
+          # @return [Stripe::Subscription, nil] Stripe subscription or nil if not found
+          def get_stripe_subscription
+            return stripe_subscription unless stripe_subscription_id.to_s.empty?
+
+            # Fallback: Get customer's subscriptions and take first active one
+            customer = get_stripe_customer
+            return nil unless customer
+
+            OT.info "[Organization.get_stripe_subscription] Listing subscriptions for customer: #{customer.id}"
+            subscriptions = Stripe::Subscription.list(
+              customer: customer.id,
+              status: 'active',
+              limit: 1,
+            )
+
+            if subscriptions.data.empty?
+              OT.info '[Organization.get_stripe_subscription] No active subscriptions found'
+              nil
+            else
+              subscription = subscriptions.data.first
+              OT.info "[Organization.get_stripe_subscription] Found subscription: #{subscription.id}"
+              subscription
+            end
+          rescue Stripe::StripeError => ex
+            OT.le "[Organization.get_stripe_subscription] Error: #{ex.message}"
+            nil
+          end
+        end
+      end
+    end
+  end
+end

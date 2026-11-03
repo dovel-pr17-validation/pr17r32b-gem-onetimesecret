@@ -1,0 +1,74 @@
+{
+  "web.feedback.your_feedback": {
+    "text": "המשוב שלך",
+    "source_hash": "cdb1c0a5"
+  },
+  "web.feedback.all_feedback_welcome": {
+    "text": "כל משוב מתקבל בברכה!",
+    "source_hash": "c57d3006"
+  },
+  "web.feedback.help_us_improve": {
+    "text": "עזור לנו להשתפר",
+    "source_hash": "f35439c4"
+  },
+  "web.feedback.close_feedback_modal": {
+    "text": "סגור חלון משוב",
+    "source_hash": "41689bb4"
+  },
+  "web.feedback.share_your_feedback": {
+    "text": "שתף את המשוב שלך",
+    "source_hash": "6d62dfbd"
+  },
+  "web.feedback.delano_mandelbaum": {
+    "text": "Delano Mandelbaum",
+    "source_hash": "6da0b72b"
+  },
+  "web.feedback.delano": {
+    "text": "Delano",
+    "source_hash": "f58154f7"
+  },
+  "web.feedback.help_content_goes_here": {
+    "text": "תוכן העזרה יופיע כאן.",
+    "source_hash": "796979ea"
+  },
+  "web.feedback.founder_note_line1": {
+    "text": "אני קורא כל משוב שמגיע לכאן. כך אני מבין על מה להשקיע זמן.",
+    "source_hash": "8b430d93"
+  },
+  "web.feedback.founder_note_line2": {
+    "text": "אם משהו לא בסדר, או שיש לך רעיונות איך זה צריך לעבוד, זה המקום הנכון.",
+    "source_hash": "d4b8f073"
+  },
+  "web.feedback.open_feedback_form": {
+    "text": "פתח טופס משוב",
+    "source_hash": "acd8409b"
+  },
+  "web.feedback.enter_your_feedback": {
+    "text": "הזן את המשוב שלך",
+    "source_hash": "1bb310f4"
+  },
+  "web.feedback.send_feedback": {
+    "text": "שלח משוב",
+    "source_hash": "8235980b"
+  },
+  "web.feedback.sending_ellipses": {
+    "text": "שולח...",
+    "source_hash": "286a3af7"
+  },
+  "web.feedback.reason_email_change_unauthorized": {
+    "text": "נראה שאתה מדווח על שינוי דואר אלקטרוני בלתי מורשה בחשבונך. תאר מה קרה ואנחנו נחקור מיד.",
+    "source_hash": "00e56551"
+  },
+  "web.feedback.anonymous_no_reply": {
+    "text": "הערה: אם ברצונך לקבל תגובה, אנא חתום או כלול כתובת דוא״ל בהודעה.",
+    "source_hash": "c984f705"
+  },
+  "web.feedback.characters_remaining": {
+    "text": "נותרו {count} תווים",
+    "source_hash": "8d796f40"
+  },
+  "web.feedback.character_limit_reached": {
+    "text": "הגעת למגבלת התווים",
+    "source_hash": "031e9310"
+  }
+}

@@ -1,0 +1,76 @@
+// src/apps/workspace/routes/organizations.ts
+
+/**
+ * Routes for organization management
+ *
+ * Organizations are a workspace feature, not a billing feature.
+ * These routes do not require billing to be enabled.
+ */
+
+import WorkspaceLayout from '@/apps/workspace/layouts/WorkspaceLayout.vue';
+import { SCOPE_PRESETS } from '@/types/router';
+import type { RouteRecordRaw } from 'vue-router';
+
+const standardLayoutProps = {
+  displayMasthead: true,
+  displayNavigation: true,
+  displayFooterLinks: true,
+  displayFeedback: false,
+  displayPoweredBy: false,
+  displayVersion: true,
+  showSidebar: false,
+} as const;
+
+const routes: Array<RouteRecordRaw> = [
+  {
+    path: '/orgs',
+    name: 'Organizations',
+    component: () => import('@/apps/workspace/account/settings/OrganizationsSettings.vue'),
+    meta: {
+      title: 'web.TITLES.organizations_settings',
+      requiresAuth: true,
+      // Owner-only: the list page has no single-org context, so this is met
+      // when the user owns at least one org (handleOrgRoleRequirement).
+      requiresOrgRole: 'owner',
+      layout: WorkspaceLayout,
+      layoutProps: standardLayoutProps,
+      scopesAvailable: SCOPE_PRESETS.hideBoth, // Hide switcher on org list page
+      sentryScrubParams: false,
+    },
+  },
+  {
+    path: '/org/:extid/:tab?',
+    name: 'Organization Settings',
+    component: () => import('@/apps/workspace/account/settings/OrganizationSettings.vue'),
+    meta: {
+      title: 'web.TITLES.organization_settings',
+      requiresAuth: true,
+      requiresOrgRole: 'admin', // owner or admin of the org named by :extid
+      // A tab switch is a router navigation, so router.currentRoute (and
+      // everything that reads it, e.g. the org switcher's 'same' target)
+      // names the tab on screen; this keeps it from remounting the page.
+      keepMountedAcrossParams: ['tab'],
+      layout: WorkspaceLayout,
+      layoutProps: standardLayoutProps,
+      scopesAvailable: {
+        ...SCOPE_PRESETS.orgShowDomainHide,
+        onOrgSwitch: 'same',
+      },
+      sentryScrubParams: false,
+    },
+    props: true,
+  },
+  // Legacy redirects (no billing guard needed)
+  {
+    path: '/account/settings/organizations',
+    redirect: '/orgs',
+  },
+  {
+    path: '/account/settings/organization/:extid',
+    redirect: (to) => ({
+      path: `/org/${to.params.extid}`,
+    }),
+  },
+];
+
+export default routes;

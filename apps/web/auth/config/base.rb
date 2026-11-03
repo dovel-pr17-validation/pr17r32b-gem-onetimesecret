@@ -1,0 +1,137 @@
+# apps/web/auth/config/base.rb
+#
+# frozen_string_literal: true
+
+require_relative '../database'
+
+module Auth::Config::Base
+  def self.configure(auth)
+    # Core features required for all authentication flows
+    auth.enable :base, :json, :login, :logout, :external_identity
+    auth.enable :hmac_secret_guard
+    auth.hmac_secret_env_key 'AUTH_SECRET'
+    auth.hmac_old_secret ENV['AUTH_OLD_SECRET'] if ENV['AUTH_OLD_SECRET']
+
+    # Obfuscate the numeric account id that Rodauth otherwise leaks in
+    # plaintext inside email-link tokens (verify_account, reset_password,
+    # email_auth, verify_login_change, unlock). Rodauth's remember feature is
+    # not enabled (features/remember_me.rb), so there is no remember cookie
+    # to cover. Keyed format-preserving encryption; no schema change (the
+    # integer PK is still used internally, only the value on the wire is
+    # swapped). Legacy plaintext tokens pass through untouched via the
+    # version tag, so in-flight links keep working. Shares the SecretGuard
+    # plumbing with
+    # hmac_secret_guard: ACCOUNT_ID_SECRET (>= 32 bytes) is required in
+    # production (boot raises if missing); an unset RACK_ENV fails closed to
+    # production. Independent of AUTH_SECRET so rotating one never invalidates
+    # the other's in-flight tokens (ADR-008 Category 2).
+    auth.enable :account_id_obfuscation
+    auth.account_id_obfuscation_secret_env_key 'ACCOUNT_ID_SECRET'
+
+    auth.enable :internal_request
+
+    # Block form defers evaluation until runtime, not class definition time.
+    # Critical for testing: allows stubs to be installed after `require 'auth/config'`
+    # but before first DB access. Without the block, `sqlite::memory:` connections
+    # created at config time would be separate from test-stubbed connections.
+    # See: http://rodauth.jeremyevans.net/rdoc/files/README_rdoc.html#label-Database
+    auth.db { Auth::Database.connection }
+
+    # Update 2026-01-02: Completely disable table_guard in lieu of sequel
+    # migrations.
+    #
+    # # Table guard modes: strict in production, permissive in development
+    # if Onetime.development?
+    #   auth.table_guard_mode :warn
+    #   auth.table_guard_sequel_mode :create
+    # else
+    #   auth.table_guard_mode :raise
+    #   auth.table_guard_sequel_mode :log
+    # end
+    # auth.table_guard_logger Onetime.get_logger('Auth')
+
+    # Configure external_id column for Redis-SQL synchronization
+    # This links Rodauth SQL accounts to Redis-based Customer records
+    auth.external_identity_column :external_id
+    auth.external_identity_check_columns :autocreate
+
+    # JSON-only mode configuration
+    auth.json_response_success_key :success
+    auth.json_response_error_key :error
+    auth.json_response_field_error_key :'field-error'
+    auth.json_response_custom_error_status? true
+    auth.only_json? true
+
+    # Use email as the account identifier
+    # auth.account_id_column :id
+    auth.login_column :email
+    auth.login_label 'Email'
+
+    # Identity model: global (no tenant scoping). Org context resolved post-auth.
+    # See apps/web/auth/README.md "Identity Model" for rationale.
+
+    # Normalize login to lowercase for consistent storage and Redis lookups.
+    # PostgreSQL uses citext (case-insensitive) but Redis requires exact match.
+    # Uses NFC normalization for consistent Unicode representation and :fold
+    # for proper case folding of international characters.
+    auth.normalize_login do |login|
+      OT::Utils.normalize_email(login)
+    end
+
+    # Session configuration
+    # NOTE: session_key is the hash key where account_id is stored in session[]
+    # Default is 'account_id', which is what we want to use
+    # The session cookie name is configured in the session middleware, not here
+    auth.session_key 'account_id'  # Using Rodauth default
+
+    # Override clear_session to properly destroy session and trigger cookie deletion
+    # Rodauth's default clear_session only calls session.clear which doesn't delete
+    # the session from the store or generate a new session ID. We need session.destroy
+    # to trigger delete_session on our custom Onetime::Session store.
+    auth.clear_session do
+      session.destroy
+    end
+
+    # Refuse a signed-in session on the routes Rodauth serves to the logged
+    # out: login, webauthn-login, create-account, the verify-account resend
+    # and redemption, the email-login request and redemption, and the
+    # unlock-account request and redemption. Rodauth's default is a no-op
+    # (2.47 warns at boot that it is unconfigured; Rodauth 3 will raise), and
+    # the router's active-session gate only diverts REJECTED sessions
+    # (router.rb revoked_outcome), so without this a valid login could run
+    # signup again or switch accounts through a verify or magic link. The
+    # reason is withdrawn from the failure-code stash
+    # (Auth::CredentialFailureCode), so the 403 stays uncoded. In JSON-only
+    # mode `redirect` answers with the JSON error body (json feature); the
+    # login_redirect target is never followed.
+    #
+    # Rodauth calls this whenever `logged_in?` (an account_id in the session)
+    # is true. Two kinds of request in that state go through:
+    #
+    #   - A session the app has not marked `authenticated`, the flag that
+    #     after_login (Auth::Operations::SyncSession) and the SSO and MFA
+    #     completions write. The verify-account autologin never fires
+    #     after_login (session_recheck.rb, "Autologin sessions"), and the SPA
+    #     then sends the user to /signin to log in with the password chosen
+    #     at signup (useAuth.verifyAccount), on that cookie. An MFA-pending
+    #     session lacks the flag as well.
+    #   - The reset-password request and redemption, from any session: the
+    #     account settings page requests the mailbox-proof link from a
+    #     signed-in one (ResetPassword.vue; set-password mode for a
+    #     passwordless account, #3886), and the link is followed in the same
+    #     browser.
+    auth.already_logged_in do
+      next unless session['authenticated'] == true
+      next if [:reset_password_request, :reset_password].include?(current_route)
+
+      set_redirect_error_status 403
+      set_error_reason :already_logged_in
+      set_redirect_error_flash 'Already logged in'
+      redirect login_redirect
+    end
+
+    # auth.max_invalid_logins 2
+    # auth.account_password_hash_column :ph
+    # auth.title_instance_variable :@page_title
+  end
+end

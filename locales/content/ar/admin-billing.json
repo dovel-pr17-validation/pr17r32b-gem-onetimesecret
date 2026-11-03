@@ -1,0 +1,362 @@
+{
+  "web.admin.billing.title": {
+    "text": "كتالوج الفوترة",
+    "source_hash": "bfde7e68"
+  },
+  "web.admin.billing.description": {
+    "text": "عرض للقراءة فقط للخطط المُعدّة واستحقاقاتها، وأي انحراف عن الكتالوج المباشر المتزامن مع Stripe.",
+    "source_hash": "05d5b332"
+  },
+  "web.admin.billing.retry": {
+    "text": "إعادة المحاولة",
+    "source_hash": "942087cc"
+  },
+  "web.admin.billing.loadError": {
+    "text": "تعذّر تحميل كتالوج الفوترة.",
+    "source_hash": "c3110f77"
+  },
+  "web.admin.billing.localConfigWarning": {
+    "text": "ذاكرة التخزين المؤقت للخطط المتزامنة مع Stripe فارغة، لذا لا يمكن تقييم الخطط المباشرة أو الانحراف. يتم عرض الكتالوج المُعدّ (billing.yaml) فقط — وهو أمر معتاد في بيئة التطوير أو عندما لا يكون Stripe مُعدّاً.",
+    "source_hash": "905d95f8"
+  },
+  "web.admin.billing.inSync": {
+    "text": "متزامن",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.driftCount": {
+    "text": "{count} اختلاف",
+    "source_hash": "166538f5"
+  },
+  "web.admin.billing.inSyncDetail": {
+    "text": "يطابق الكتالوج المُعدّ الخطط المباشرة. لم يُكتشف أي انحراف.",
+    "source_hash": "57ab60a6"
+  },
+  "web.admin.billing.columns.planid": {
+    "text": "معرّف الخطة",
+    "source_hash": "1f0d4dc6"
+  },
+  "web.admin.billing.columns.name": {
+    "text": "الاسم",
+    "source_hash": "dcd1d522"
+  },
+  "web.admin.billing.columns.tier": {
+    "text": "المستوى",
+    "source_hash": "cb9e8664"
+  },
+  "web.admin.billing.columns.status": {
+    "text": "الحالة",
+    "source_hash": "920e413c"
+  },
+  "web.admin.billing.diff.title": {
+    "text": "مقارنة الخطة: {planid}",
+    "source_hash": "bc86e5f7"
+  },
+  "web.admin.billing.diff.subtitle": {
+    "text": "الكتالوج المُعدّ (billing.yaml) مقابل الخطة المباشرة المتزامنة مع Stripe، جنباً إلى جنب.",
+    "source_hash": "d92e93ae"
+  },
+  "web.admin.billing.diff.config": {
+    "text": "المُعدّ (billing.yaml)",
+    "source_hash": "6bf2ff04"
+  },
+  "web.admin.billing.diff.live": {
+    "text": "المباشر (ذاكرة Stripe المؤقتة)",
+    "source_hash": "4886945d"
+  },
+  "web.admin.billing.diff.absentConfig": {
+    "text": "هذه الخطة غير موجودة في الكتالوج المُعدّ.",
+    "source_hash": "0b594c88"
+  },
+  "web.admin.billing.diff.absentLive": {
+    "text": "هذه الخطة غير موجودة في ذاكرة Stripe المؤقتة المباشرة.",
+    "source_hash": "c53f31c3"
+  },
+  "web.admin.billing.plans.title": {
+    "text": "الخطط",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.admin.billing.plans.empty": {
+    "text": "لم يتم العثور على أي خطط في الكتالوج.",
+    "source_hash": "39db3c13"
+  },
+  "web.admin.billing.plans.viewDiff": {
+    "text": "عرض المقارنة",
+    "source_hash": "0e5d6873"
+  },
+  "web.admin.billing.source.stripe": {
+    "text": "ذاكرة Stripe المؤقتة",
+    "source_hash": "b5577327"
+  },
+  "web.admin.billing.source.localConfig": {
+    "text": "الإعداد المحلي",
+    "source_hash": "49de43d2"
+  },
+  "web.admin.billing.stats.configured": {
+    "text": "الخطط المُعدّة",
+    "source_hash": "4fda4796"
+  },
+  "web.admin.billing.stats.live": {
+    "text": "الخطط المباشرة",
+    "source_hash": "faaa88d9"
+  },
+  "web.admin.billing.stats.source": {
+    "text": "المصدر",
+    "source_hash": "0e570ca6"
+  },
+  "web.admin.billing.stats.drift": {
+    "text": "الانحراف",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.billing.status.in_sync": {
+    "text": "متزامن",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.status.only_config": {
+    "text": "الإعداد فقط",
+    "source_hash": "15836cba"
+  },
+  "web.admin.billing.status.only_live": {
+    "text": "المباشر فقط",
+    "source_hash": "8f4ed495"
+  },
+  "web.admin.billing.status.changed": {
+    "text": "تم التغيير",
+    "source_hash": "2a6141e4"
+  },
+  "web.admin.billing.diff.backToCatalog": {
+    "text": "العودة إلى كتالوج الفوترة",
+    "source_hash": "8532b373"
+  },
+  "web.admin.billing.diff.driftedFields": {
+    "text": "الحقول المختلفة:",
+    "source_hash": "9890c95b"
+  },
+  "web.admin.billing.diff.notFound": {
+    "text": "الخطة غير موجودة في الكتالوج",
+    "source_hash": "0253898b"
+  },
+  "web.admin.billing.diff.notFoundDescription": {
+    "text": "لم يتم العثور على خطة بالمعرف {planid} في الكتالوج المكون أو ذاكرة التخزين المؤقت المتزامنة مع Stripe.",
+    "source_hash": "2e69551c"
+  },
+  "web.admin.billing.stripeOrgs.title": {
+    "text": "عملاء Stripe",
+    "source_hash": "0463ae27"
+  },
+  "web.admin.billing.stripeOrgs.description": {
+    "text": "المؤسسات المرتبطة بسجل عميل Stripe.",
+    "source_hash": "2ab09aec"
+  },
+  "web.admin.billing.stripeOrgs.searchPlaceholder": {
+    "text": "البحث بمعرف عميل Stripe",
+    "source_hash": "d5acf08f"
+  },
+  "web.admin.billing.stripeOrgs.empty": {
+    "text": "لا توجد مؤسسات لديها معرف عميل Stripe.",
+    "source_hash": "2e373537"
+  },
+  "web.admin.billing.stripeOrgs.emptySearch": {
+    "text": "لا يوجد معرف عميل Stripe يطابق هذا البحث.",
+    "source_hash": "75011174"
+  },
+  "web.admin.billing.stripeOrgs.loadError": {
+    "text": "تعذر تحميل قائمة عملاء Stripe.",
+    "source_hash": "15e2d9a7"
+  },
+  "web.admin.billing.stripeOrgs.unavailable": {
+    "text": "قائمة عملاء Stripe غير متاحة على هذا الخادم بعد.",
+    "source_hash": "aab6451a"
+  },
+  "web.admin.billing.stripeOrgs.none": {
+    "text": "لا يوجد",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.billing.stripeOrgs.capped": {
+    "text": "وصل مسح الفهرس إلى حده الأقصى، لذا العدد الإجمالي هو الحد الأدنى — قم بتضييق البحث لرؤية البقية.",
+    "source_hash": "20bcaa38"
+  },
+  "web.admin.billing.stripeOrgs.stale": {
+    "text": "{count} إدخال فهرس في هذه الصفحة يشير إلى مؤسسة لم تعد تحمل وتم تخطيه.",
+    "source_hash": "51980f83"
+  },
+  "web.admin.billing.stripeOrgs.copyStripeId": {
+    "text": "نسخ معرف عميل Stripe",
+    "source_hash": "a77d18b1"
+  },
+  "web.admin.billing.stripeOrgs.columns.organization": {
+    "text": "المؤسسة",
+    "source_hash": "d764d425"
+  },
+  "web.admin.billing.stripeOrgs.columns.owner": {
+    "text": "المالك",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.billing.stripeOrgs.columns.plan": {
+    "text": "الخطة",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.billing.stripeOrgs.columns.subscription": {
+    "text": "الاشتراك",
+    "source_hash": "4999c6c6"
+  },
+  "web.admin.billing.stripeOrgs.columns.stripeCustomer": {
+    "text": "معرف عميل Stripe",
+    "source_hash": "7e1d8bbb"
+  },
+  "web.admin.billing.pendingFederated.title": {
+    "text": "الاشتراكات الاتحادية المعلّقة",
+    "source_hash": "8bc81ff7"
+  },
+  "web.admin.billing.pendingFederated.description": {
+    "text": "اشتراكات بانتظار حساب تم التحقق منه في هذه المنطقة للمطالبة بمزاياها.",
+    "source_hash": "e4c714c8"
+  },
+  "web.admin.billing.pendingFederated.correlationRetention": {
+    "text": "يمكن أن تبقى الاشتراكات المعلّقة لمدة 90 يوماً، لكن سجلات webhook المحلية لا يُحتفظ بها إلا لمدة خمسة أيام. ولا يدلّ انتهاء صلاحية الارتباط أو عدم توفره على نتيجة المعالجة.",
+    "source_hash": "c846410e"
+  },
+  "web.admin.billing.pendingFederated.loadError": {
+    "text": "تعذّر تحميل الاشتراكات الاتحادية المعلّقة.",
+    "source_hash": "a1ecc6cb"
+  },
+  "web.admin.billing.pendingFederated.capped": {
+    "text": "وصل مسح الاشتراكات المعلّقة إلى حده الأقصى، لذا فإن العدد الإجمالي هو حد أدنى.",
+    "source_hash": "a1e02735"
+  },
+  "web.admin.billing.pendingFederated.stale": {
+    "text": "تم تخطي {count} من إدخالات الفهرس في هذه الصفحة لأنها تشير إلى اشتراك معلّق لم يعد من الممكن تحميله.",
+    "source_hash": "56b4bd53"
+  },
+  "web.admin.billing.pendingFederated.empty": {
+    "text": "لم يتم العثور على اشتراكات اتحادية معلّقة.",
+    "source_hash": "91453fda"
+  },
+  "web.admin.billing.pendingFederated.unresolvedPlan": {
+    "text": "غير محدّدة",
+    "source_hash": "36afca80"
+  },
+  "web.admin.billing.pendingFederated.columns.status": {
+    "text": "حالة الاشتراك",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.billing.pendingFederated.columns.planid": {
+    "text": "معرّف الخطة المخزّن",
+    "source_hash": "159600ef"
+  },
+  "web.admin.billing.pendingFederated.columns.region": {
+    "text": "المنطقة",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.billing.pendingFederated.columns.received": {
+    "text": "تاريخ الاستلام",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.pendingFederated.columns.webhook": {
+    "text": "webhook المصدر",
+    "source_hash": "e96bd1ef"
+  },
+  "web.admin.billing.pendingFederated.webhook.no_correlation": {
+    "text": "غير متاح — لم يُسجَّل أي webhook محلي مرتبط.",
+    "source_hash": "57ed7d3a"
+  },
+  "web.admin.billing.pendingFederated.webhook.expired": {
+    "text": "غير متاح — انتهت صلاحية webhook المحلي المرتبط بعد خمسة أيام.",
+    "source_hash": "6173ad4b"
+  },
+  "web.admin.billing.webhookEvents.title": {
+    "text": "أحداث webhook في Stripe",
+    "source_hash": "3a7c05f8"
+  },
+  "web.admin.billing.webhookEvents.description": {
+    "text": "سجل محلي للقراءة فقط لمعالجة أحداث webhook في Stripe.",
+    "source_hash": "adc1e97f"
+  },
+  "web.admin.billing.webhookEvents.retention": {
+    "text": "يُحتفظ بسجلات أحداث webhook المحلية لمدة خمسة أيام. الأحداث الأقدم غير متاحة هنا.",
+    "source_hash": "de4c2f78"
+  },
+  "web.admin.billing.webhookEvents.loadError": {
+    "text": "تعذّر تحميل قائمة أحداث webhook.",
+    "source_hash": "b070d441"
+  },
+  "web.admin.billing.webhookEvents.capped": {
+    "text": "وصل مسح الأحداث إلى حده الأقصى، لذا فإن العدد الإجمالي هو حد أدنى.",
+    "source_hash": "5b96b15b"
+  },
+  "web.admin.billing.webhookEvents.stale": {
+    "text": "تم تخطي {count} من إدخالات الفهرس في هذه الصفحة لأنها تشير إلى حدث webhook لم يعد من الممكن تحميله.",
+    "source_hash": "879c2d98"
+  },
+  "web.admin.billing.webhookEvents.empty": {
+    "text": "لم يتم العثور على أحداث webhook محتفَظ بها محلياً.",
+    "source_hash": "7e33e23d"
+  },
+  "web.admin.billing.webhookEvents.viewDetail": {
+    "text": "عرض التفاصيل",
+    "source_hash": "d1bf045b"
+  },
+  "web.admin.billing.webhookEvents.columns.eventId": {
+    "text": "معرّف الحدث",
+    "source_hash": "3045abaf"
+  },
+  "web.admin.billing.webhookEvents.columns.type": {
+    "text": "النوع",
+    "source_hash": "baaddf70"
+  },
+  "web.admin.billing.webhookEvents.columns.status": {
+    "text": "حالة المعالجة",
+    "source_hash": "3f6498ae"
+  },
+  "web.admin.billing.webhookEvents.columns.received": {
+    "text": "تاريخ الاستلام",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.webhookEvents.columns.outcome": {
+    "text": "النتيجة",
+    "source_hash": "4e80abb5"
+  },
+  "web.admin.billing.webhookEvents.detail.title": {
+    "text": "تفاصيل حدث webhook",
+    "source_hash": "829b940c"
+  },
+  "web.admin.billing.webhookEvents.detail.notFound": {
+    "text": "لم يعد هذا الحدث المحلي متاحاً.",
+    "source_hash": "b029d878"
+  },
+  "web.admin.billing.webhookEvents.detail.loadError": {
+    "text": "تعذّر تحميل تفاصيل حدث webhook.",
+    "source_hash": "39f7a33b"
+  },
+  "web.admin.billing.webhookEvents.detail.received": {
+    "text": "وقت الاستلام",
+    "source_hash": "1ddb1a75"
+  },
+  "web.admin.billing.webhookEvents.detail.lastAttempt": {
+    "text": "آخر محاولة معالجة",
+    "source_hash": "b1325ebb"
+  },
+  "web.admin.billing.webhookEvents.detail.processed": {
+    "text": "وقت المعالجة",
+    "source_hash": "2eb2da28"
+  },
+  "web.admin.billing.webhookEvents.detail.attempts": {
+    "text": "المحاولات",
+    "source_hash": "06e70139"
+  },
+  "web.admin.billing.webhookEvents.detail.mode": {
+    "text": "الوضع",
+    "source_hash": "5e23ec6a"
+  },
+  "web.admin.billing.webhookEvents.detail.live": {
+    "text": "مباشر",
+    "source_hash": "b64ac05f"
+  },
+  "web.admin.billing.webhookEvents.detail.test": {
+    "text": "اختبار",
+    "source_hash": "532eaabd"
+  },
+  "web.admin.billing.webhookEvents.detail.apiVersion": {
+    "text": "إصدار Stripe API",
+    "source_hash": "9cd61c6f"
+  }
+}

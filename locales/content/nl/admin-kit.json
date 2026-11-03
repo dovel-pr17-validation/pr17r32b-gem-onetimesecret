@@ -1,0 +1,90 @@
+{
+  "web.admin.kit.confirmDialog.typePrompt": {
+    "text": "Typ {token} hieronder om te bevestigen",
+    "source_hash": "282445b6"
+  },
+  "web.admin.kit.confirmDialog.inputLabel": {
+    "text": "Bevestigingstekst",
+    "source_hash": "8edc1113"
+  },
+  "web.admin.kit.confirmDialog.mismatchHint": {
+    "text": "De ingevoerde tekst moet exact overeenkomen om door te gaan.",
+    "source_hash": "f0cc7389"
+  },
+  "web.admin.kit.dataTable.empty": {
+    "text": "Geen records gevonden",
+    "source_hash": "6e2ea637"
+  },
+  "web.admin.kit.dataTable.sortBy": {
+    "text": "Sorteren op {column}",
+    "source_hash": "55fb1bf9"
+  },
+  "web.admin.kit.filterBar.search": {
+    "text": "Zoeken",
+    "source_hash": "49c266ba"
+  },
+  "web.admin.kit.filterBar.searchPlaceholder": {
+    "text": "Zoeken…",
+    "source_hash": "7336265a"
+  },
+  "web.admin.kit.filterBar.clearFilters": {
+    "text": "Filters wissen",
+    "source_hash": "7179ea00"
+  },
+  "web.admin.kit.filterBar.all": {
+    "text": "Alle",
+    "source_hash": "a52ace42"
+  },
+  "web.admin.kit.jsonViewer.expandAll": {
+    "text": "Alles uitvouwen",
+    "source_hash": "a3e586be"
+  },
+  "web.admin.kit.jsonViewer.collapseAll": {
+    "text": "Alles invouwen",
+    "source_hash": "25f7b372"
+  },
+  "web.admin.kit.jsonViewer.empty": {
+    "text": "Geen gegevens",
+    "source_hash": "3b41ba9c"
+  },
+  "web.admin.kit.jsonViewer.copyLabel": {
+    "text": "JSON kopiëren",
+    "source_hash": "7708c6e2"
+  },
+  "web.admin.kit.revealEmail.reveal": {
+    "text": "E-mailadres tonen",
+    "source_hash": "f6272277"
+  },
+  "web.admin.kit.revealEmail.hide": {
+    "text": "E-mailadres verbergen",
+    "source_hash": "9755e870"
+  },
+  "web.admin.kit.revealEmail.copy": {
+    "text": "E-mailadres kopiëren",
+    "source_hash": "61b94846"
+  },
+  "web.admin.errors.rateLimited": {
+    "text": "Je kunt het over ongeveer {minutes} minuten opnieuw proberen.",
+    "source_hash": "27f2d054"
+  },
+  "web.admin.errors.rateLimitedRecovery": {
+    "text": "Als je eerder moet handelen, reset de limiter voor je eigen account met POST /api/colonel/ratelimit/reset, of voer `bin/ots ratelimit keys <kind> <extid>` uit.",
+    "source_hash": "b77e1388"
+  },
+  "web.admin.kit.confirmDialog.reasonLabel": {
+    "text": "Reden (optioneel)",
+    "source_hash": "0f7d4664"
+  },
+  "web.admin.kit.confirmDialog.reasonPlaceholder": {
+    "text": "Waarom doe je dit?",
+    "source_hash": "ef83fe82"
+  },
+  "web.admin.kit.confirmDialog.reasonHint": {
+    "text": "Wordt samen met deze actie vastgelegd in het auditlogboek voor beheerders.",
+    "source_hash": "23779076"
+  },
+  "web.admin.kit.filterBar.searchSubmit": {
+    "text": "Zoeken",
+    "source_hash": "49c266ba"
+  }
+}

@@ -1,0 +1,350 @@
+{
+  "web.admin.system.title": {
+    "text": "Sistem",
+    "source_hash": "6725e7bb"
+  },
+  "web.admin.system.description": {
+    "text": "Stanje podatkovne baze, čakalne vrste in infrastrukture.",
+    "source_hash": "0115f495"
+  },
+  "web.admin.system.retry": {
+    "text": "Poskusi znova",
+    "source_hash": "942087cc"
+  },
+  "web.admin.system.database.title": {
+    "text": "Glavna podatkovna baza ({engine})",
+    "source_hash": "1391230b"
+  },
+  "web.admin.system.database.loadError": {
+    "text": "Meritev podatkovne baze ni bilo mogoče naložiti.",
+    "source_hash": "905055c6"
+  },
+  "web.admin.system.database.server": {
+    "text": "Strežnik",
+    "source_hash": "aef7de28"
+  },
+  "web.admin.system.database.memory": {
+    "text": "Pomnilnik",
+    "source_hash": "c3963aed"
+  },
+  "web.admin.system.database.databases": {
+    "text": "Podatkovne baze",
+    "source_hash": "61d2afe2"
+  },
+  "web.admin.system.database.dbSummary": {
+    "text": "{keys} ključev, {expires} s TTL",
+    "source_hash": "26b9e17c"
+  },
+  "web.admin.system.database.fields.version": {
+    "text": "Različica",
+    "source_hash": "dd167905"
+  },
+  "web.admin.system.database.fields.mode": {
+    "text": "Način",
+    "source_hash": "5e23ec6a"
+  },
+  "web.admin.system.database.fields.uptimeDays": {
+    "text": "Čas delovanja (dni)",
+    "source_hash": "7ab314f8"
+  },
+  "web.admin.system.database.fields.connectedClients": {
+    "text": "Povezani odjemalci",
+    "source_hash": "434adc3a"
+  },
+  "web.admin.system.database.fields.opsPerSec": {
+    "text": "Operacij/s",
+    "source_hash": "6634251d"
+  },
+  "web.admin.system.database.fields.totalCommands": {
+    "text": "Skupaj ukazov",
+    "source_hash": "c5ce5aaf"
+  },
+  "web.admin.system.database.fields.usedMemory": {
+    "text": "Porabljen pomnilnik",
+    "source_hash": "bac68a65"
+  },
+  "web.admin.system.database.fields.rssMemory": {
+    "text": "Pomnilnik RSS",
+    "source_hash": "7fe77d15"
+  },
+  "web.admin.system.database.fields.peakMemory": {
+    "text": "Vršni pomnilnik",
+    "source_hash": "9d44afa6"
+  },
+  "web.admin.system.database.fields.fragmentation": {
+    "text": "Razmerje fragmentacije",
+    "source_hash": "721494dd"
+  },
+  "web.admin.system.database.stats.customers": {
+    "text": "Stranke",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.system.database.stats.secrets": {
+    "text": "Skrivnosti",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.system.database.stats.receipts": {
+    "text": "Potrdila",
+    "source_hash": "60a627df"
+  },
+  "web.admin.system.database.stats.totalKeys": {
+    "text": "Skupaj ključev",
+    "source_hash": "4e0d27f5"
+  },
+  "web.admin.system.queue.title": {
+    "text": "Čakalna vrsta",
+    "source_hash": "3b2fe03e"
+  },
+  "web.admin.system.queue.loadError": {
+    "text": "Meritev čakalne vrste ni bilo mogoče naložiti.",
+    "source_hash": "715bdc88"
+  },
+  "web.admin.system.queue.empty": {
+    "text": "Ni najdenih čakalnih vrst",
+    "source_hash": "3cd4eb88"
+  },
+  "web.admin.system.queue.connected": {
+    "text": "Povezano",
+    "source_hash": "22965568"
+  },
+  "web.admin.system.queue.disconnected": {
+    "text": "Prekinjeno",
+    "source_hash": "04dfac36"
+  },
+  "web.admin.system.queue.activeWorkers": {
+    "text": "{count} aktivnih delavcev",
+    "source_hash": "49e6369c"
+  },
+  "web.admin.system.queue.columns.name": {
+    "text": "Čakalna vrsta",
+    "source_hash": "3b2fe03e"
+  },
+  "web.admin.system.queue.columns.pending": {
+    "text": "V čakanju",
+    "source_hash": "331551b0"
+  },
+  "web.admin.system.queue.columns.consumers": {
+    "text": "Porabniki",
+    "source_hash": "212b350d"
+  },
+  "web.admin.system.queue.health.healthy": {
+    "text": "Brezhibno",
+    "source_hash": "7f1e323b"
+  },
+  "web.admin.system.queue.health.degraded": {
+    "text": "Poslabšano",
+    "source_hash": "a8494c12"
+  },
+  "web.admin.system.queue.health.unhealthy": {
+    "text": "Okvarjeno",
+    "source_hash": "317b1fbc"
+  },
+  "web.admin.system.queue.health.unknown": {
+    "text": "Neznano",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.system.redis.title": {
+    "text": "Redis INFO",
+    "source_hash": "e762bd3c"
+  },
+  "web.admin.system.redis.loadError": {
+    "text": "Meritev Redis ni bilo mogoče naložiti.",
+    "source_hash": "ca5945d6"
+  },
+  "web.admin.system.redis.captured": {
+    "text": "Zajeto {at}",
+    "source_hash": "57b40c0f"
+  },
+  "web.admin.system.brand.title": {
+    "text": "Diagnostika blagovne znamke",
+    "source_hash": "1cf9abd5"
+  },
+  "web.admin.system.brand.description": {
+    "text": "Kateri paket blagovne znamke je zagnana instanca razrešila na disku — razkrije, zakaj regija morda streže nevtralno blagovno znamko.",
+    "source_hash": "be29e282"
+  },
+  "web.admin.system.brand.loadError": {
+    "text": "Diagnostike blagovne znamke ni bilo mogoče naložiti.",
+    "source_hash": "80607303"
+  },
+  "web.admin.system.brand.none": {
+    "text": "(brez)",
+    "source_hash": "552e4230"
+  },
+  "web.admin.system.brand.resolution": {
+    "text": "Razrešitev",
+    "source_hash": "d4055faf"
+  },
+  "web.admin.system.brand.envVsConfig": {
+    "text": "Okolje proti konfiguraciji",
+    "source_hash": "bee3debb"
+  },
+  "web.admin.system.brand.absorbed": {
+    "text": "Absorbirani ključi",
+    "source_hash": "9784e110"
+  },
+  "web.admin.system.brand.operatorKeys": {
+    "text": "Ključi operaterja",
+    "source_hash": "434e8248"
+  },
+  "web.admin.system.brand.overlayAssets": {
+    "text": "Prekrivna sredstva",
+    "source_hash": "c87de1f9"
+  },
+  "web.admin.system.brand.exists.yes": {
+    "text": "Prisotno",
+    "source_hash": "43f9b89c"
+  },
+  "web.admin.system.brand.exists.no": {
+    "text": "Manjka",
+    "source_hash": "6be36ca4"
+  },
+  "web.admin.system.brand.fields.resolvedDir": {
+    "text": "Razrešeni imenik",
+    "source_hash": "0623b983"
+  },
+  "web.admin.system.brand.fields.home": {
+    "text": "Domov",
+    "source_hash": "3a786953"
+  },
+  "web.admin.system.brand.fields.envPack": {
+    "text": "Paket blagovne znamke ENV",
+    "source_hash": "940aeb5c"
+  },
+  "web.admin.system.brand.fields.configPack": {
+    "text": "Paket blagovne znamke konfiguracije",
+    "source_hash": "761b9550"
+  },
+  "web.admin.system.brand.fields.envAssetsDir": {
+    "text": "Imenik sredstev blagovne znamke ENV",
+    "source_hash": "05854f1f"
+  },
+  "web.admin.system.brand.fields.configAssetsDir": {
+    "text": "Imenik sredstev blagovne znamke konfiguracije",
+    "source_hash": "e91e5c46"
+  },
+  "web.admin.system.brand.flags.fellBack.danger": {
+    "text": "Vrnitev na privzeti paket",
+    "source_hash": "7bf7ba2f"
+  },
+  "web.admin.system.brand.flags.fellBack.ok": {
+    "text": "Paket blagovne znamke razrešen",
+    "source_hash": "1ab3162f"
+  },
+  "web.admin.system.brand.flags.mismatch.danger": {
+    "text": "Neujemanje ob zagonu / v živo",
+    "source_hash": "0a022192"
+  },
+  "web.admin.system.brand.flags.mismatch.ok": {
+    "text": "Zagon ustreza živemu",
+    "source_hash": "d4792c09"
+  },
+  "web.admin.system.brand.manifest.title": {
+    "text": "Manifest",
+    "source_hash": "3c99f1f3"
+  },
+  "web.admin.system.brand.manifest.path": {
+    "text": "Pot",
+    "source_hash": "62fa5a5b"
+  },
+  "web.admin.system.brand.manifest.exists": {
+    "text": "Obstaja",
+    "source_hash": "fefd8ba5"
+  },
+  "web.admin.system.brand.manifest.keysOnDisk": {
+    "text": "Ključi na disku",
+    "source_hash": "52439c03"
+  },
+  "web.admin.system.brand.roots.title": {
+    "text": "Iskalniki korenov",
+    "source_hash": "d8696f2b"
+  },
+  "web.admin.system.brand.roots.empty": {
+    "text": "Brez iskalnih korenov",
+    "source_hash": "867a471c"
+  },
+  "web.admin.system.brand.roots.columns.path": {
+    "text": "Pot",
+    "source_hash": "62fa5a5b"
+  },
+  "web.admin.system.brand.roots.columns.exists": {
+    "text": "Obstaja",
+    "source_hash": "fefd8ba5"
+  },
+  "web.admin.system.brand.stats.brandPack": {
+    "text": "Paket blagovne znamke",
+    "source_hash": "884437d0"
+  },
+  "web.admin.system.brand.stats.overlayAssets": {
+    "text": "Prekrivna sredstva",
+    "source_hash": "c87de1f9"
+  },
+  "web.admin.system.brand.stats.manifestKeys": {
+    "text": "Ključi manifesta",
+    "source_hash": "c4267198"
+  },
+  "web.admin.system.backups.title": {
+    "text": "Stanje varnostnih kopij",
+    "source_hash": "6100b034"
+  },
+  "web.admin.system.backups.description": {
+    "text": "Najnovejši dogodki varnostnega kopiranja in zadnji uspešen zagon na tem gostitelju.",
+    "source_hash": "19070c41"
+  },
+  "web.admin.system.backups.loadError": {
+    "text": "Stanja varnostnih kopij ni bilo mogoče naložiti.",
+    "source_hash": "9b83029b"
+  },
+  "web.admin.system.backups.notConfigured": {
+    "text": "Tukaj ni konfigurirano",
+    "source_hash": "d287939f"
+  },
+  "web.admin.system.backups.latest": {
+    "text": "Zadnji dogodek",
+    "source_hash": "cd7ad68a"
+  },
+  "web.admin.system.backups.lastOk": {
+    "text": "Zadnji uspešen zagon",
+    "source_hash": "81120703"
+  },
+  "web.admin.system.backups.artifact": {
+    "text": "Artefakt",
+    "source_hash": "e06171a1"
+  },
+  "web.admin.system.backups.unknownUnit": {
+    "text": "Neznana enota",
+    "source_hash": "d120e025"
+  },
+  "web.admin.system.backups.unknownError": {
+    "text": "Ni podrobnosti o napaki",
+    "source_hash": "b2c696e7"
+  },
+  "web.admin.system.backups.destination": {
+    "text": "Cilj",
+    "source_hash": "293d404a"
+  },
+  "web.admin.system.backups.shippedOf": {
+    "text": "Poslano: {shipped} od {candidates}",
+    "source_hash": "406119a9"
+  },
+  "web.admin.system.backups.freshness.notConfigured": {
+    "text": "Ni konfigurirano",
+    "source_hash": "dd1841d2"
+  },
+  "web.admin.system.backups.freshness.notMonitored": {
+    "text": "Ni nadzorovano",
+    "source_hash": "0f0d1855"
+  },
+  "web.admin.system.backups.freshness.fresh": {
+    "text": "Sveže",
+    "source_hash": "f810b668"
+  },
+  "web.admin.system.backups.freshness.stale": {
+    "text": "Zastarelo — alarm",
+    "source_hash": "c7a9733a"
+  },
+  "web.admin.system.backups.freshness.alarm": {
+    "text": "Alarm",
+    "source_hash": "f3b67957"
+  }
+}

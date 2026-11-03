@@ -1,0 +1,263 @@
+# Security Resolution Log
+
+This append-only log records verified closure of public security findings. Historical audits retain
+the original evidence; each entry here identifies the fix and the baseline used to verify closure.
+
+## 2026-09-09
+
+### RISK-2026-08-13-01 — Resolved
+
+- **Finding:** `RABBITMQ_VERIFY_PEER` failed open when an operator supplied any value other than
+  the exact string `true`, disabling AMQPS certificate verification.
+- **Source:** [2026-08-13 security audit](../audits/security-audit-2026-08-13.md)
+- **Resolution:** `4b27b3c0dc` routes the setting through
+  `Onetime::Utils::Strings.strict_bool!` with a default of `true`.
+- **Verification:** `tests/lanes/run simple --only spec/unit/onetime/utils/strings_spec.rb
+  --only spec/unit/onetime/initializers/setup_rabbitmq_spec.rb` completed with 192 examples and
+  0 failures.
+- **Closure baseline:** `999967a` on 2026-09-09.
+
+### OBS-2026-08-13-RESTRICT-TO — Resolved
+
+- **Finding:** The 2026-08-13 audit recorded domain `restrict_to` enforcement as known and
+  tracked rather than filing it as a rated finding.
+- **Source:** [2026-08-13 security audit](../audits/security-audit-2026-08-13.md)
+- **Resolution:** `b74175efdb` enforces `restrict_to` across sign-in surfaces; later changes add
+  fail-closed handling and coverage.
+- **Closure baseline:** `999967a` on 2026-09-09.
+
+## 2026-09-19
+
+### RISK-2026-08-13-02 — Resolved
+
+- **Finding:** A session that had presented a password but not its second factor could read
+  `/auth/account`, list and remove active sessions (including every other session of the
+  account), and list SSO identities and passkey identifiers, because those routes tested only
+  `rodauth.logged_in?`.
+- **Source:** [2026-08-13 security audit](../audits/security-audit-2026-08-13.md), finding 2;
+  carried as open by the [2026-09-09 audit](../audits/security-audit-2026-09-09.md).
+- **Resolution:** `a99a07fb27` (merged to `main` in #4483) gates the `/auth` router on the shared
+  customer-session verdict. An `awaiting_mfa` session reaches only the second-factor completion
+  routes, logout and `GET /auth/mfa-status`; everything else is answered `401` before any route
+  runs. The gate is an allowlist, so routes added later (such as the #4419 re-authentication
+  pair) are refused by default.
+- **Verification:** `295038d24` adds the every-route example the 2026-09-09 audit asked for to
+  `apps/web/auth/spec/integration/full_mfa/customer_session_evaluator_mfa_pending_spec.rb`.
+  `tests/lanes/run full-mfa` completed with 17 examples and 0 failures. Details in the
+  [2026-09-19 review](../audits/security-audit-2026-09-19.md).
+- **Closure baseline:** `295038d24` (`feature/4451-auth-session-consistency`) on 2026-09-19.
+
+### RISK-2026-09-19-01 — Resolved
+
+- **Finding:** In simple authentication mode a request in flight during a logout could write the
+  session blob back and re-install the cookie, leaving that browser signed in. The store is
+  last-writer-wins and simple mode has no active-session row to make the copy refusable.
+- **Source:** [2026-09-19 session-consistency package review](../audits/security-audit-2026-09-19.md),
+  finding 1.
+- **Resolution:** `c1fe2f8c4` (merged to `main` in #4496). Every path that deletes a session blob first sets a 300-second
+  ended-marker (`Onetime::SessionEnded`, key `ended_sid:<HMAC-SHA256 of the id>`, never the id),
+  and `Onetime::Session#write_session` looks for it after its own `SET` and takes the copy back
+  out, reporting the write as not saved so no cookie is sent. Set-then-delete against
+  set-then-check leaves no interleaving in which the copy survives. The review's scope widened
+  while fixing it: a single-session revoke (`RevokeForCustomer`, `DeleteSession`) deletes the blob
+  and leaves the active-session row, so the same race existed in full mode for revocation; the
+  marker is therefore checked in both modes, and the session operations delete blobs through
+  `Store.destroy_blob` only.
+- **Verification:** `spec/integration/simple/logout_write_back_spec.rb` holds a real request open
+  across `GET /logout` and across a colonel revoke, so the late write goes through
+  `write_session` itself. With the check disabled 3 of its 4 examples fail (the blob is back and
+  the old cookie answers `200`). `tests/lanes/run simple --only
+  spec/integration/simple/logout_write_back_spec.rb` completed with 4 examples and 0 failures;
+  `tests/lanes/run full-sqlite --only spec/integration/full/logout_ends_active_session_spec.rb`
+  with 6 and 0; `tests/lanes/run unit --only spec/unit/onetime/session/ended_spec.rb` with 15
+  and 0.
+- **Follow-up, `1fe3d0165` (#4496):** two loose ends of the same mechanism. A cookie naming an id with no
+  blob (never issued, expired, or ended) is never adopted: the empty session starts under a
+  server-generated id, as stock Rack does, which replaces the ended-marker lookup `c1fe2f8c4` made
+  on that branch. And `delete_session` destroys the sid-keyed `session_metadata:<sid>` record, so
+  an ended session's id no longer stays readable in a key name until that record's 30-day TTL.
+  Both are covered in `try/unit/session_try.rb`.
+- **Closure baseline:** `c1fe2f8c4` (`main`, #4496) on 2026-09-20.
+
+### RISK-2026-09-19-03 — Resolved
+
+- **Finding:** Personalized `/api` JSON responses sent no `Cache-Control`.
+- **Source:** [2026-09-19 session-consistency package review](../audits/security-audit-2026-09-19.md),
+  finding 3.
+- **Resolution:** `891cbcd23` (merged to `main` in #4496) mounts `Onetime::Middleware::ApiCachePolicy` in the universal
+  middleware stack. Every response under `/api` that set no policy of its own is sent with
+  `Cache-Control: private, no-store`: all nine API applications, anonymous responses and Otto's
+  own error responses included. A route's own header is never overwritten. This is the `/api`
+  part of [#4470](https://github.com/onetimesecret/onetimesecret/issues/4470); that issue's
+  inventory of the remaining personalized surfaces stands.
+- **Verification:** `tests/lanes/run unit --only
+  spec/unit/onetime/middleware/api_cache_policy_spec.rb --only
+  spec/unit/onetime/application/middleware_manifest_spec.rb` completed with 63 examples and
+  0 failures. The customer-session failure matrix asserts the header on every protected API
+  refusal and on the authenticated `200` in both lanes: `tests/lanes/run full-sqlite --only
+  spec/integration/full/customer_session_failure_matrix_spec.rb` 61 examples, 0 failures;
+  `tests/lanes/run simple --only spec/integration/simple/customer_session_failure_matrix_spec.rb`
+  25 examples, 0 failures.
+- **Closure baseline:** `891cbcd23` (`main`, #4496) on 2026-09-20.
+
+### RISK-2026-09-19-04 — Resolved
+
+- **Finding:** Dashboard data refreshes counted as session activity, so a tab left on the
+  dashboard never reached the inactivity deadline.
+- **Source:** [2026-09-19 session-consistency package review](../audits/security-audit-2026-09-19.md),
+  finding 4.
+- **Resolution:** Server half `26ac8f094` (merged to `main` in #4496): a `GET` or `HEAD` carrying `X-Session-Activity: passive`
+  is verified in full and moves no inactivity clock
+  ([failure matrix D8a](../../authentication/customer-session-failure-matrix.md)). Client half
+  `4f2a16370` (#4496): the API client takes a per-request `passive` option, and its request interceptor is
+  the one place that writes the header, on `GET` and `HEAD` only and never as an instance default.
+  The receipt lists on `/recent` (`DashboardRecent.vue`) and on the dashboard
+  (`RecentSecretsTable.vue`) refresh through `useBackgroundRefresh`, every 5 minutes while the tab
+  is visible and when it becomes visible again, and each of those requests is passive. The load on
+  arrival stays an ordinary request. A hidden tab sends nothing.
+- **Correction to the finding:** the two timers it named sent no request. `DashboardRecent.vue`'s
+  timer called a refresh that returned early once the list was loaded, and
+  `SecretLinksTable.vue`'s timer incremented a value nothing read. The unmarked background request
+  that did run was `RecentSecretsTable.vue`'s tab-visibility refresh, which fires only when the
+  tab becomes visible again, so a tab left open and untouched was not being kept alive. The
+  resolution makes
+  the timers work as the release notes describe and marks every background refresh, so the risk
+  does not appear with them.
+- **Verification:** `pnpm exec vitest run src/tests/api/passiveRequest.spec.ts
+  src/tests/apps/workspace/dashboard/passiveRefresh.spec.ts
+  src/tests/composables/useBackgroundRefresh.spec.ts src/tests/stores/receiptListStore.spec.ts`
+  completed with 44 passed, 1 skipped, 0 failed. `passiveRequest.spec.ts` asserts the header on
+  the real `createApi()` client: present on a passive `GET` and `HEAD`, absent on an ordinary
+  request, absent on `POST`, `PUT`, `PATCH` and `DELETE` even when asked for, and absent from the
+  instance defaults afterwards. `passiveRefresh.spec.ts` mounts both components with the real
+  store and interceptor and asserts the header per trigger: arrival none, timer `passive`,
+  visibility `passive`, hidden tab no request, unmounted no request. Removing the option from one
+  composable fails two of its examples. The server side is asserted by the failure matrix (D8a)
+  in both lanes.
+- **Residual:** a proxy that strips unknown request headers turns these refreshes back into
+  activity (rollout notes). Full mode's absolute session lifetime still applies.
+- **Closure baseline:** `4f2a16370` (`main`, #4496) on 2026-09-20.
+
+## 2026-10-07
+
+### RISK-2026-08-14-M11 — Resolved
+
+- **Finding:** `sqlite3` 2.9.5 use-after-free (`GHSA-mwm8-39rw-8826`).
+- **Source:** [2026-08-14 historical risk register](../risk-registers/risk-register-2026-08-14.md), M-11.
+- **Resolution:** `Gemfile.lock` locks `sqlite3` 2.9.6 on all nine platform entries, with no 2.9.5
+  entry left. The advisory lists affected versions as `>= 1.4.0, <= 2.9.5` and the first patched
+  version as `2.9.6`. v0.26.13 still locked 2.9.5; v0.26.14 is the first tag that locks 2.9.6.
+  `Gemfile` already allowed it (`~> 2.0`).
+- **Verification:** lockfile inspection only, on `main` and `develop`. The installed gem was not
+  loaded and no test lane was run; the change is a version pin.
+- **Closure baseline:** `7d324f41d` (`main`) on 2026-10-07; first release `v0.26.14`.
+
+## 2026-10-11
+
+### RISK-2026-08-14-M02 — Resolved
+
+- **Finding:** Magic links kept the Rodauth 24-hour column-default deadline on PostgreSQL and
+  SQLite instead of the configured 15 minutes, because Rodauth writes key deadlines only when
+  `set_deadline_values?` is true (MySQL by default).
+- **Source:** [2026-08-14 historical risk register](../risk-registers/risk-register-2026-08-14.md), M-2.
+  Tracking: #4689.
+- **Resolution:** #4703 (`d69d7c80` on `main`). `email_auth_key_insert_hash`
+  (`apps/web/auth/config/features/email_auth.rb`) writes the deadline as
+  `Sequel.date_add(CURRENT_TIMESTAMP, minutes: 15)`; `set_deadline_values?` stays off, so reset
+  and lockout keys are unchanged. A resend inside the window reuses the existing key and does not
+  extend its deadline.
+- **Verification:** CI on the PR head `ef7f16ca` passed, including `T2 · Ruby Unit Tests`, which
+  runs the SQLite examples (`apps/web/auth/spec/config/features/email_auth_deadline_spec.rb`), and
+  `T3 · Ruby Auth Configuration (PG agnostic, billing: off)`, the lane named in the run line of the
+  PostgreSQL copy (`apps/web/auth/spec/integration/full/email_auth_deadline_on_postgres_spec.rb`,
+  shared examples in `apps/web/auth/spec/support/shared_examples/email_auth_deadline_examples.rb`).
+  The examples pin issue time + 15 minutes, refusal after 15 minutes, and a resend that keeps the
+  original key and deadline. The override and both specs are present at the closure baseline. No
+  lane was re-run for this entry.
+- **Closure baseline:** `c27d903e` (`main`) on 2026-10-11.
+
+### RISK-2026-10-10-03 — Resolved
+
+- **Finding:** Tenant SSO allowlist entries and asserted addresses were compared byte for byte, so
+  the Unicode and A-label forms of one IDN domain denied each other (fail-closed: lost sign-ins).
+- **Source:** [2026-10-10 G3 review](../audits/security-audit-2026-10-10.md) S7, probe P5.
+  Tracking: #4736.
+- **Resolution:** #4751 (`2fe5207f` on `main`), action R4. `SsoConfig#matching_allowed_domain`
+  (`lib/onetime/models/custom_domain/sso_config.rb`) tries an exact match first, then compares by
+  `AsciiHostname.comparison_key` (`lib/onetime/domain_validation/ascii_hostname.rb`), which
+  accepts a Unicode name's A-label only when it decodes back to the name's own NFC lower-case
+  spelling. A sign-in admitted only because the forms differed logs
+  `omniauth_tenant_domain_idn_match` with `reason: :idn_form_differed`. Entries stay stored as
+  typed.
+- **Verification:** CI on the PR head `9d6c819c` passed, including `T2 · Ruby Unit Tests` and
+  `T3 · Ruby Integration (Full, SQLite, billing: off)`, which carry
+  `spec/unit/onetime/domain_validation/ascii_hostname_spec.rb`,
+  `apps/web/auth/spec/unit/domain_sso_config_spec.rb` and
+  `apps/web/auth/spec/integration/full/callback_validation_spec.rb`. No lane was re-run for this
+  entry.
+- **Residual:** `SignupConfig#allowed_signup_domains` and the global `allowed_signup_domains`
+  still compare byte for byte on the account-creation path; #4751 left them out of scope.
+- **Closure baseline:** `c27d903e` (`main`) on 2026-10-11.
+
+## 2026-10-30
+
+The two entries below use code baseline `f42fdedc54afcb5973460358c65e3aef363dd5cd`
+on `main` and [CI run 41167690970](https://github.com/onetimesecret/onetimesecret/actions/runs/41167690970).
+The run reports `success` for `ci-verdict` and each validation lane linked below.
+No test lane was re-run locally for these documentation changes.
+
+### RISK-2026-08-14-COOKIE-TOSSING — Resolved
+
+- **Finding:** Duplicate session cookies were not refused, and simple-mode password sign-in
+  reused the session ID presented before authentication.
+- **Source:** [2026-08-14 historical risk register](../risk-registers/risk-register-2026-08-14.md).
+- **Resolution:** `d5e80277cc` mounts `Onetime::Middleware::CookieTossing` before
+  `Onetime::Session`, so a duplicate-cookie refusal loads no session and returns only cookie
+  clears. The middleware checks the configured cookie name, clears host and parent-domain
+  copies, and keeps its refusal state per request.
+  `59a40e1e08` changes simple-mode password sign-in: `AuthenticateSession#start_new_session!`
+  clears the session, calls `Onetime::SessionRotation.rotate!` before writing identity, and
+  refuses sign-in when rotation does not complete. Both changes are present at the baseline.
+- **Verification:** The [unit job](https://github.com/onetimesecret/onetimesecret/actions/runs/41167690970/job/124439029352)
+  includes `spec/unit/onetime/middleware/cookie_tossing_spec.rb` and the middleware manifest
+  assertions. The [simple-mode job](https://github.com/onetimesecret/onetimesecret/actions/runs/41167690970/job/124439029421)
+  includes `spec/integration/simple/login_session_rotation_spec.rb`: verified and pending
+  accounts get a new ID, the old cookie is refused, prior session state is removed, and an
+  incomplete rotation grants no authenticated session. The [full SQLite job](https://github.com/onetimesecret/onetimesecret/actions/runs/41167690970/job/124439029430)
+  includes `spec/integration/full/customer_session_continuation_baseline_spec.rb`, which checks
+  duplicate cookies in both orders and a refusal containing clears only.
+- **Deployment conditions:** `site.middleware.cookie_tossing` defaults on, but an operator can
+  disable the middleware. Cookie-clear recovery uses the public host resolved by
+  `Rack::DetectHost`; `clear_host` falls back to Rack's host only when no host was detected.
+  If detection supplies no public host and a proxy rewrites `Host` to its origin target,
+  the clears target that origin instead of the browser's cookies, so the duplicate remains.
+- **Closure baseline:** `f42fdedc54afcb5973460358c65e3aef363dd5cd` (`main`) on 2026-10-30.
+
+### RISK-2026-09-19-02 — Resolved
+
+- **Finding:** MFA completion kept the ID issued at the password step; the wider review also
+  identified re-authentication proof and first second-factor setup without renewal, and missing
+  rotation assertions for other sign-in paths.
+- **Source:** [2026-09-19 session-consistency review](../audits/security-audit-2026-09-19.md), finding 2.
+- **Resolution:** `64b2c23f23` adds MFA-completion rotation; `0e812e2279` refuses completion when
+  the old ID cannot be ended. `01fccc49dc`, `645e149610` and `54e32e56c3` add rotation before
+  colonel elevation, re-authentication proof and first second-factor setup respectively.
+  `4b406aac63` and `ce47edc1a9` add assertions for the remaining sign-in paths.
+  The implementation and per-path inventory in `lib/onetime/session/rotation.rb` are present
+  at the baseline. Impersonation start/stop intentionally keep the same ID; `61f4e7f639` adds
+  the corresponding real-route assertions. Organization switching changes the active
+  organization rather than the authenticated identity.
+- **Verification:** The [MFA job](https://github.com/onetimesecret/onetimesecret/actions/runs/41167690970/job/124439029406)
+  includes MFA completion, factor setup, re-authentication, magic-link and passkey rotation
+  specs. The full SQLite job linked above includes OIDC callbacks, verification and invite
+  autologin, SSO linking/Connect, impersonation and full-mode elevation/password-change specs;
+  the simple-mode job includes simple-mode elevation/password-change specs.
+  The [platform-SAML job](https://github.com/onetimesecret/onetimesecret/actions/runs/41167690970/job/124439029355)
+  includes platform callback rotation assertions. The [full PostgreSQL job](https://github.com/onetimesecret/onetimesecret/actions/runs/41167690970/job/124439029414)
+  also passed at this baseline. All five jobs report `success`.
+- **Separate open follow-ups:** [#4706](https://github.com/onetimesecret/onetimesecret/issues/4706)
+  tracks existing sessions receiving a role grant without a new sign-in;
+  [#4707](https://github.com/onetimesecret/onetimesecret/issues/4707) tracks user-menu sign-out
+  being refused during impersonation. Both issues remain open. This closure neither resolves
+  those behaviors nor records an acceptance decision for them.
+- **Closure baseline:** `f42fdedc54afcb5973460358c65e3aef363dd5cd` (`main`) on 2026-10-30.

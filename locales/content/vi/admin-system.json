@@ -1,0 +1,350 @@
+{
+  "web.admin.system.title": {
+    "text": "Hệ thống",
+    "source_hash": "6725e7bb"
+  },
+  "web.admin.system.description": {
+    "text": "Trạng thái cơ sở dữ liệu, hàng đợi và hạ tầng.",
+    "source_hash": "0115f495"
+  },
+  "web.admin.system.retry": {
+    "text": "Thử lại",
+    "source_hash": "942087cc"
+  },
+  "web.admin.system.database.title": {
+    "text": "Cơ sở dữ liệu chính ({engine})",
+    "source_hash": "1391230b"
+  },
+  "web.admin.system.database.loadError": {
+    "text": "Không thể tải chỉ số cơ sở dữ liệu.",
+    "source_hash": "905055c6"
+  },
+  "web.admin.system.database.server": {
+    "text": "Máy chủ",
+    "source_hash": "aef7de28"
+  },
+  "web.admin.system.database.memory": {
+    "text": "Bộ nhớ",
+    "source_hash": "c3963aed"
+  },
+  "web.admin.system.database.databases": {
+    "text": "Cơ sở dữ liệu",
+    "source_hash": "61d2afe2"
+  },
+  "web.admin.system.database.dbSummary": {
+    "text": "{keys} khóa, {expires} có TTL",
+    "source_hash": "26b9e17c"
+  },
+  "web.admin.system.database.fields.version": {
+    "text": "Phiên bản",
+    "source_hash": "dd167905"
+  },
+  "web.admin.system.database.fields.mode": {
+    "text": "Chế độ",
+    "source_hash": "5e23ec6a"
+  },
+  "web.admin.system.database.fields.uptimeDays": {
+    "text": "Thời gian hoạt động (ngày)",
+    "source_hash": "7ab314f8"
+  },
+  "web.admin.system.database.fields.connectedClients": {
+    "text": "Máy khách đã kết nối",
+    "source_hash": "434adc3a"
+  },
+  "web.admin.system.database.fields.opsPerSec": {
+    "text": "Thao tác/giây",
+    "source_hash": "6634251d"
+  },
+  "web.admin.system.database.fields.totalCommands": {
+    "text": "Tổng số lệnh",
+    "source_hash": "c5ce5aaf"
+  },
+  "web.admin.system.database.fields.usedMemory": {
+    "text": "Bộ nhớ đã dùng",
+    "source_hash": "bac68a65"
+  },
+  "web.admin.system.database.fields.rssMemory": {
+    "text": "Bộ nhớ RSS",
+    "source_hash": "7fe77d15"
+  },
+  "web.admin.system.database.fields.peakMemory": {
+    "text": "Bộ nhớ đỉnh",
+    "source_hash": "9d44afa6"
+  },
+  "web.admin.system.database.fields.fragmentation": {
+    "text": "Tỷ lệ phân mảnh",
+    "source_hash": "721494dd"
+  },
+  "web.admin.system.database.stats.customers": {
+    "text": "Khách hàng",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.system.database.stats.secrets": {
+    "text": "Bí mật",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.system.database.stats.receipts": {
+    "text": "Biên nhận",
+    "source_hash": "60a627df"
+  },
+  "web.admin.system.database.stats.totalKeys": {
+    "text": "Tổng số khóa",
+    "source_hash": "4e0d27f5"
+  },
+  "web.admin.system.queue.title": {
+    "text": "Hàng đợi",
+    "source_hash": "3b2fe03e"
+  },
+  "web.admin.system.queue.loadError": {
+    "text": "Không thể tải chỉ số hàng đợi.",
+    "source_hash": "715bdc88"
+  },
+  "web.admin.system.queue.empty": {
+    "text": "Không tìm thấy hàng đợi nào",
+    "source_hash": "3cd4eb88"
+  },
+  "web.admin.system.queue.connected": {
+    "text": "Đã kết nối",
+    "source_hash": "22965568"
+  },
+  "web.admin.system.queue.disconnected": {
+    "text": "Đã ngắt kết nối",
+    "source_hash": "04dfac36"
+  },
+  "web.admin.system.queue.activeWorkers": {
+    "text": "{count} worker đang hoạt động",
+    "source_hash": "49e6369c"
+  },
+  "web.admin.system.queue.columns.name": {
+    "text": "Hàng đợi",
+    "source_hash": "3b2fe03e"
+  },
+  "web.admin.system.queue.columns.pending": {
+    "text": "Đang chờ",
+    "source_hash": "331551b0"
+  },
+  "web.admin.system.queue.columns.consumers": {
+    "text": "Consumers",
+    "source_hash": "212b350d"
+  },
+  "web.admin.system.queue.health.healthy": {
+    "text": "Tốt",
+    "source_hash": "7f1e323b"
+  },
+  "web.admin.system.queue.health.degraded": {
+    "text": "Suy giảm",
+    "source_hash": "a8494c12"
+  },
+  "web.admin.system.queue.health.unhealthy": {
+    "text": "Không tốt",
+    "source_hash": "317b1fbc"
+  },
+  "web.admin.system.queue.health.unknown": {
+    "text": "Không rõ",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.system.redis.title": {
+    "text": "Redis INFO",
+    "source_hash": "e762bd3c"
+  },
+  "web.admin.system.redis.loadError": {
+    "text": "Không thể tải chỉ số Redis.",
+    "source_hash": "ca5945d6"
+  },
+  "web.admin.system.redis.captured": {
+    "text": "Đã thu thập {at}",
+    "source_hash": "57b40c0f"
+  },
+  "web.admin.system.brand.title": {
+    "text": "Chẩn đoán thương hiệu",
+    "source_hash": "1cf9abd5"
+  },
+  "web.admin.system.brand.description": {
+    "text": "Gói thương hiệu nào mà phiên bản đang chạy đã giải quyết trên đĩa — cho thấy tại sao một khu vực có thể phục vụ thương hiệu trung lập.",
+    "source_hash": "be29e282"
+  },
+  "web.admin.system.brand.loadError": {
+    "text": "Không thể tải chẩn đoán thương hiệu.",
+    "source_hash": "80607303"
+  },
+  "web.admin.system.brand.none": {
+    "text": "(không có)",
+    "source_hash": "552e4230"
+  },
+  "web.admin.system.brand.resolution": {
+    "text": "Giải quyết",
+    "source_hash": "d4055faf"
+  },
+  "web.admin.system.brand.envVsConfig": {
+    "text": "Môi trường so với Cấu hình",
+    "source_hash": "bee3debb"
+  },
+  "web.admin.system.brand.absorbed": {
+    "text": "Khóa đã hấp thụ",
+    "source_hash": "9784e110"
+  },
+  "web.admin.system.brand.operatorKeys": {
+    "text": "Khóa vận hành",
+    "source_hash": "434e8248"
+  },
+  "web.admin.system.brand.overlayAssets": {
+    "text": "Tài sản phủ",
+    "source_hash": "c87de1f9"
+  },
+  "web.admin.system.brand.exists.yes": {
+    "text": "Có mặt",
+    "source_hash": "43f9b89c"
+  },
+  "web.admin.system.brand.exists.no": {
+    "text": "Thiếu",
+    "source_hash": "6be36ca4"
+  },
+  "web.admin.system.brand.fields.resolvedDir": {
+    "text": "Thư mục đã giải quyết",
+    "source_hash": "0623b983"
+  },
+  "web.admin.system.brand.fields.home": {
+    "text": "Trang chủ",
+    "source_hash": "3a786953"
+  },
+  "web.admin.system.brand.fields.envPack": {
+    "text": "ENV Brand Pack",
+    "source_hash": "940aeb5c"
+  },
+  "web.admin.system.brand.fields.configPack": {
+    "text": "Config Brand Pack",
+    "source_hash": "761b9550"
+  },
+  "web.admin.system.brand.fields.envAssetsDir": {
+    "text": "ENV Brand Assets Dir",
+    "source_hash": "05854f1f"
+  },
+  "web.admin.system.brand.fields.configAssetsDir": {
+    "text": "Config Brand Assets Dir",
+    "source_hash": "e91e5c46"
+  },
+  "web.admin.system.brand.flags.fellBack.danger": {
+    "text": "Đã quay về gói mặc định",
+    "source_hash": "7bf7ba2f"
+  },
+  "web.admin.system.brand.flags.fellBack.ok": {
+    "text": "Đã giải quyết gói thương hiệu",
+    "source_hash": "1ab3162f"
+  },
+  "web.admin.system.brand.flags.mismatch.danger": {
+    "text": "Không khớp Boot / live",
+    "source_hash": "0a022192"
+  },
+  "web.admin.system.brand.flags.mismatch.ok": {
+    "text": "Boot khớp với live",
+    "source_hash": "d4792c09"
+  },
+  "web.admin.system.brand.manifest.title": {
+    "text": "Manifest",
+    "source_hash": "3c99f1f3"
+  },
+  "web.admin.system.brand.manifest.path": {
+    "text": "Đường dẫn",
+    "source_hash": "62fa5a5b"
+  },
+  "web.admin.system.brand.manifest.exists": {
+    "text": "Tồn tại",
+    "source_hash": "fefd8ba5"
+  },
+  "web.admin.system.brand.manifest.keysOnDisk": {
+    "text": "Khóa trên đĩa",
+    "source_hash": "52439c03"
+  },
+  "web.admin.system.brand.roots.title": {
+    "text": "Gốc tìm kiếm",
+    "source_hash": "d8696f2b"
+  },
+  "web.admin.system.brand.roots.empty": {
+    "text": "Không có gốc tìm kiếm",
+    "source_hash": "867a471c"
+  },
+  "web.admin.system.brand.roots.columns.path": {
+    "text": "Đường dẫn",
+    "source_hash": "62fa5a5b"
+  },
+  "web.admin.system.brand.roots.columns.exists": {
+    "text": "Tồn tại",
+    "source_hash": "fefd8ba5"
+  },
+  "web.admin.system.brand.stats.brandPack": {
+    "text": "Brand Pack",
+    "source_hash": "884437d0"
+  },
+  "web.admin.system.brand.stats.overlayAssets": {
+    "text": "Tài sản phủ",
+    "source_hash": "c87de1f9"
+  },
+  "web.admin.system.brand.stats.manifestKeys": {
+    "text": "Khóa Manifest",
+    "source_hash": "c4267198"
+  },
+  "web.admin.system.backups.title": {
+    "text": "Trạng thái sao lưu",
+    "source_hash": "6100b034"
+  },
+  "web.admin.system.backups.description": {
+    "text": "Các sự kiện sao lưu mới nhất và lần chạy thành công gần nhất từ máy chủ này.",
+    "source_hash": "19070c41"
+  },
+  "web.admin.system.backups.loadError": {
+    "text": "Không thể tải trạng thái sao lưu.",
+    "source_hash": "9b83029b"
+  },
+  "web.admin.system.backups.notConfigured": {
+    "text": "Chưa được cấu hình ở đây",
+    "source_hash": "d287939f"
+  },
+  "web.admin.system.backups.latest": {
+    "text": "Sự kiện mới nhất",
+    "source_hash": "cd7ad68a"
+  },
+  "web.admin.system.backups.lastOk": {
+    "text": "Lần chạy thành công gần nhất",
+    "source_hash": "81120703"
+  },
+  "web.admin.system.backups.artifact": {
+    "text": "Tệp sao lưu",
+    "source_hash": "e06171a1"
+  },
+  "web.admin.system.backups.unknownUnit": {
+    "text": "Unit không xác định",
+    "source_hash": "d120e025"
+  },
+  "web.admin.system.backups.unknownError": {
+    "text": "Không có chi tiết lỗi",
+    "source_hash": "b2c696e7"
+  },
+  "web.admin.system.backups.destination": {
+    "text": "Đích",
+    "source_hash": "293d404a"
+  },
+  "web.admin.system.backups.shippedOf": {
+    "text": "Đã chuyển đi {shipped} trên {candidates}",
+    "source_hash": "406119a9"
+  },
+  "web.admin.system.backups.freshness.notConfigured": {
+    "text": "Chưa cấu hình",
+    "source_hash": "dd1841d2"
+  },
+  "web.admin.system.backups.freshness.notMonitored": {
+    "text": "Không được giám sát",
+    "source_hash": "0f0d1855"
+  },
+  "web.admin.system.backups.freshness.fresh": {
+    "text": "Mới",
+    "source_hash": "f810b668"
+  },
+  "web.admin.system.backups.freshness.stale": {
+    "text": "Quá hạn — cảnh báo",
+    "source_hash": "c7a9733a"
+  },
+  "web.admin.system.backups.freshness.alarm": {
+    "text": "Cảnh báo",
+    "source_hash": "f3b67957"
+  }
+}

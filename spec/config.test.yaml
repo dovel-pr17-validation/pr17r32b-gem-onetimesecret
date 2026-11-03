@@ -1,0 +1,384 @@
+# spec/config.test.yaml
+---
+site:
+  host: '127.0.0.1:3000'
+  # Turns https/http on or off when generating links
+  ssl: true
+  # Hardcoded secret for test environment - must not use ENV vars
+  # to ensure consistent behavior across CI and local development
+  secret: 'SuP0r_53cRU7_t3st_0nly'
+  # Session configuration for tests
+  # secure: false is required for Rack::Test which uses HTTP (not HTTPS)
+  #
+  # SESSION_COOKIE_SECURE / SESSION_COOKIE_SAME_SITE: a lane whose spec needs
+  # the SAML-compatible cookie (Secure with SameSite=Lax or None; #4450, the
+  # platform SAML provider is SKIPPED at boot under Strict or a non-Secure
+  # cookie) sets both; full-saml-platform pins lax. Such a lane's requests
+  # must then be https:// — Rack::Test withholds a Secure cookie on http, and
+  # Onetime::Session drops it on a non-SSL request.
+  session:
+    secret: 'test-session-secret-do-not-use-in-production-minimum-64-characters-long'
+    expire_after: 86400 # 24 hours
+    key: 'onetime.session' # Unified cookie name
+    secure: <%= ENV['SESSION_COOKIE_SECURE'] == 'true' || false %> # Must be false for Rack::Test (uses HTTP, not HTTPS)
+    httponly: true
+    same_site: <%= ENV['SESSION_COOKIE_SAME_SITE'] || 'lax' %>
+  interface:
+    # Controls whether the web user interface is available. When disabled, the
+    # homepage becomes a basic, readonly page with the logo and a brief
+    # explanation of the site and how it works. This is helpful for link
+    # recipients who may do some light investigation to see if the site is legit.
+    ui:
+      enabled: true
+  secret_options:
+    default_ttl: 43200 # 12 hours in seconds
+    ttl_options: '1800 43200 604800' # 30m, 12h, 7d
+    passphrase:
+      required: false
+      minimum_length: 8
+      maximum_length: 128
+      enforce_complexity: false
+    generated_value_display_ttl: 60
+    # Disabled under test so the many specs that create secrets are not throttled
+    # (the cap is per masked IP, and the whole suite shares one); the F-02
+    # limiter tests enable it in-process. See conceal_secret_rate_limiter.rb.
+    create_rate_limit:
+      enabled: false
+    password_generation:
+      default_length: 12
+      length_options: [8, 12, 16, 20, 24, 32]
+      character_sets:
+        uppercase: true
+        lowercase: true
+        numbers: true
+        symbols: false
+        exclude_ambiguous: true
+  # Middleware Configuration for tests
+  # Enable CSRF protection to test enforcement
+  middleware:
+    utf8_sanitizer: true
+    authenticity_token: true
+    http_origin: false
+    xss_header: false
+    frame_options: false
+    path_traversal: false
+    cookie_tossing: true
+    ip_spoofing: false
+    strict_transport: false
+  # Registration and Authentication settings
+  authentication:
+    # Can be disabled altogether, including API authentication.
+    enabled: true
+    # Allow users to create accounts. This can be disabled if you plan
+    # to create accounts manually or enable during setup when accounts
+    # can be created and then disabled to prevent any new users from
+    # creating accounts.
+    signup: true
+    # Generally if you allow registration, you allow signin. But there
+    # are circumstances where it's helpful to turn off authentication
+    # temporarily.
+    signin: true
+    # By default, new accounts need to verify their email address before
+    # they can sign in. This is a security measure to prevent spamming
+    # and abuse of the system. If you're running a private instance or
+    # an instance for your team or company, you can disable this feature
+    # to make it easier for users to sign in.
+    autoverify: false
+    # Disable the homepage secret form for users that are not logged in.
+    required: false
+    colonels:
+      - 'CHANGEME@EXAMPLE.com'
+    # Disabled under test so full-mode reset-password specs are not throttled;
+    # the #3872 limiter tests enable it in-process. See
+    # reset_request_rate_limiter.rb.
+    reset_request_rate_limit:
+      enabled: false
+    # Disabled under test for the same reason: the full-mfa lane requests
+    # magic links from one process and one masked IP; the
+    # RISK-2026-08-14-M04 limiter tests enable it in-process. See the
+    # :email_login_request scope in reset_request_rate_limiter.rb.
+    email_login_request_rate_limit:
+      enabled: false
+    # Disabled under test so the many specs that sign accounts up are not
+    # throttled (the cap is per masked IP, and the whole suite shares one);
+    # the finding-#4 limiter tests enable it in-process. See
+    # create_account_rate_limiter.rb.
+    create_account_rate_limit:
+      enabled: false
+  admin:
+    # Disabled under test so the colonel spec + tryout suites (which hit many
+    # destructive endpoints from one process, as one actor) are not gated; the
+    # #4327 elevation specs enable it in-process. See
+    # apps/api/colonel/logic/colonel/elevation.rb.
+    #
+    # The SHIPPED defaults are asserted separately by
+    # spec/unit/onetime/config/admin_defaults_spec.rb — do not let this file
+    # become the only posture under test.
+    elevation:
+      enabled: false
+    rate_limit:
+      enabled: false
+    # Disabled under test so a long-running suite cannot cut its own colonel
+    # session off mid-run (the idle bound reads a sidecar the suite rarely
+    # writes, and the absolute bound would bite any fixture that back-dates
+    # authenticated_at); the #4331 lifetime specs enable it in-process. See
+    # lib/onetime/application/auth_strategies/admin_session_lifetime.rb.
+    session:
+      enabled: false
+
+features:
+  regions:
+    enabled: false
+    current_jurisdiction: 'EU'
+    # JURISDICTIONS env var format: ID:domain,ID:domain
+    # Example: JURISDICTIONS=AT:at.example.com,CE:ce.example.com
+    # For tests, this is set in spec_helper or individual specs via ENV
+    jurisdictions: <%= ENV['JURISDICTIONS'] || '' %>
+  domains:
+    enabled: <%= ENV['DOMAINS_ENABLED'] == 'true' || false %>
+    require_verified: <%= ENV['DOMAINS_REQUIRE_VERIFIED'] == 'true' || false %>
+    serve_unverified: <%= ENV['DOMAINS_SERVE_UNVERIFIED'] == 'true' || false %>
+    # A PARSEABLE primary canonical host whenever the domains axis is on.
+    #
+    # site.host is `127.0.0.1:3000` and PublicSuffix cannot parse an IP
+    # literal, so with domains enabled and no `default` the canonical set
+    # comes out EMPTY, Chooserator classifies every host :invalid (the
+    # canonical one included), and Auth::SigninEnabled takes the tenant-safe
+    # default-OFF branch — 404ing /auth/login for specs that have nothing to
+    # do with custom domains. `default` becomes the PRIMARY canonical host
+    # (#3841), which demotes the unparseable site.host to a skipped set member
+    # instead of the entry that disables the feature.
+    #
+    # Gated on DOMAINS_ENABLED so it is a strict no-op with domains off: it is
+    # NOT enough that DomainStrategy ignores `default` when disabled
+    # (initialize_from_config), because Onetime::Utils::CanonicalHosts reads
+    # features.domains.default UNGATED and every link-anchoring consumer would
+    # move off site.host. Same value as the 'domains enabled' shared context
+    # (apps/web/auth/spec/support/domains_enabled_context.rb) installs, and the
+    # same one bin/visual passes as DEFAULT_DOMAIN.
+    default: <%= ENV['DEFAULT_DOMAIN'] || (ENV['DOMAINS_ENABLED'] == 'true' ? 'canonical.example.org' : nil) %>
+    # Three-way: unset -> nil (picker offers canonical), set -> verbatim,
+    # set-but-empty -> [] which raises at boot. The `&.` keeps unset and
+    # set-but-empty distinct; do not copy `default:`'s `|| nil`. Every
+    # entry also joins the canonical host set. See config.defaults.yaml.
+    link_domains: <%= ENV['LINK_DOMAINS']&.split(',')&.map(&:strip) %>
+    validation_strategy: <%= ENV['DOMAINS_VALIDATION_STRATEGY'] || 'passthrough' %>
+    approximated:
+      api_key: <%= ENV['APPROXIMATED_API_KEY'] || nil %>
+      proxy_ip: <%= ENV['APPROXIMATED_PROXY_IP'] || nil %>
+      proxy_host: <%= ENV['APPROXIMATED_PROXY_HOST'] || nil %>
+      proxy_name: <%= ENV['APPROXIMATED_PROXY_NAME'] || nil %>
+      vhost_target: <%= ENV['APPROXIMATED_VHOST_TARGET'] || nil %>
+    acme:
+      enabled: <%= ENV['ACME_ENDPOINT_ENABLED'] == 'true' %>
+      # IP address to bind to in standalone mode (should always be localhost)
+      listen_address: <%= ENV['ACME_LISTEN_ADDRESS'] || '127.0.0.1' %>
+      # Port for standalone mode (Caddy's ask directive points here)
+      port: <%= ENV['ACME_PORT'] || '12020' %>
+  incoming:
+    recipients: []
+    # Disabled under test so existing incoming tryouts/specs are not throttled;
+    # AZ9 limiter tests enable it in-process. See incoming_rate_limiter.rb.
+    rate_limit:
+      enabled: false
+  organizations:
+    enabled: <%= ENV['ENABLE_ORGS'] == 'true' %>
+    sso_enabled: <%= ENV['ORGS_SSO_ENABLED'] == 'true' %>
+    custom_mail_enabled: <%= ENV['ORGS_CUSTOM_MAIL_ENABLED'] == 'true' %>
+    incoming_secrets_enabled: <%= ENV['ORGS_INCOMING_SECRETS_ENABLED'] == 'true' %>
+    homepage_network_rules_ui_enabled: <%= ENV['ORGS_HOMEPAGE_NETWORK_RULES_UI_ENABLED'] == 'true' %>
+    base_domain_signup_enabled: <%= ENV['ORGS_BASE_DOMAIN_SIGNUP_ENABLED'] == 'true' %>
+    # Disabled under test so the diagnostics specs, which run many examples
+    # as one owner against the shared test Valkey, are not throttled; the
+    # limiter tryout enables it in-process. See
+    # lib/onetime/security/sso_diagnostics_rate_limiter.rb.
+    sso_diagnostics_rate_limit:
+      enabled: false
+    # Disabled under test for the same reason (the metadata-fetch specs run
+    # many fetches as one owner); the endpoint spec enables it in-process.
+    # See lib/onetime/security/sso_metadata_fetch_rate_limiter.rb.
+    sso_metadata_fetch_rate_limit:
+      enabled: false
+    # Disabled under test for the same reason (the sender specs run many
+    # sends as one owner); the limiter tryout enables it in-process. See
+    # lib/onetime/security/sender_test_email_rate_limiter.rb.
+    sender_test_email_rate_limit:
+      enabled: false
+
+redis:
+  # Host and port are hardcoded on purpose (#2128): a test boot can only ever
+  # reach the isolated test valkey on 2163, never a dev/prod service, and no
+  # env var can redirect it. Only the DB index varies: tests/lanes/run exports
+  # LANES_DATASTORE_DB (derived per worktree) so concurrent lane runs in a
+  # worktree forest don't share keys (#4168). Non-digit or absent values fall
+  # back to 0, so an interactive `bundle exec rspec` behaves as before.
+  uri: redis://127.0.0.1:2163/<%= ((db = ENV.fetch('LANES_DATASTORE_DB', '')).match?(/\A\d+\z/) && db.to_i <= 65_535) ? db : 0 %>
+  dbs:
+    session: 0
+    custom_domain: 0
+    customer: 0
+    metadata: 0
+    secret: 0
+    feedback: 0
+
+# When disabled, email delivery falls back to synchronous mode.
+jobs:
+  enabled: false
+  rabbitmq_url: "<%= ENV['RABBITMQ_URL'] || '' %>"
+  channel_pool_size: 1
+  fallback_to_sync: true
+  dlq_consumer:
+    enabled: false
+  maintenance:
+    housekeeping:
+      enabled: false
+      cron: ~
+
+emailer:
+  mode: 'logger'
+  from: 'secure@onetime.dev'
+  from_name: 'Jan'
+  # SMTP settings: hardcoded nil for test environment
+  # Test config must be self-sufficient and not rely on environment variables
+  # to ensure consistent behavior across CI and local development
+  host: ~
+  port: ~
+  user: ~
+  pass: ~
+  auth: ~
+  tls: ~
+
+mail:
+  truemail:
+    # Available validation types: :regex, :mx, :mx_blacklist, :smtp
+    # Use regex for tests to avoid MX lookups which can fail for test domains
+    default_validation_type: :regex
+    # Required for :smtp validation
+    verifier_email: 'CHANGEME@example.com'
+    verifier_domain: 'example.com'
+    connection_timeout: 1
+    response_timeout: 1
+    connection_attempts: 1
+    validation_type_for:
+      'example.com': :regex
+      'test.dev': :regex
+      'onetimesecret.com': :regex
+    # Truemail will only validate email addresses that match the
+    # domains listed in :allowed_domains. If the domain is not
+    # listed, the email address will always be considered invalid.
+    allowed_domains_only: false
+    #
+    # Email addresses in this list will always be valid.
+    #:allowed_emails: []
+    #
+    # Email addresses in this list will always be invalid.
+    #:blocked_emails: []
+    #
+    # Addresses with these domains will always be valid
+    #:allowed_domains: []
+    #
+    # Addresses with these domains will always be invalid
+    #:blocked_domains: []
+    #
+    # Exclude these IP addresses from the MX lookup process.
+    #:blocked_mx_ip_addresses: []
+    #
+    # Name servers to use for MX et al record lookup.
+    # Default is CloudFlare, Google, Oracle/OpenDNS servers.
+    dns:
+      - 1.1.1.1
+      - 8.8.4.4
+      - 208.67.220.220
+    #:smtp_port: 25
+    #
+    # End smtp validation after the first invalid response rather than
+    # retrying, followed by trying the next server. Can reduce the time
+    # time to validate an email address, but may not catch all issues.
+    smtp_fail_fast: true
+    #
+    # Parse the content of the SMTP error message to determine if the
+    # email address is valid. This can be useful for some SMTP servers
+    # that don't return exact answers.
+    smtp_safe_check: true
+    #
+    # Whether to disable the RFC MX lookup flow. When true, only DNS
+    # validation will be performed on MX and Null MX records.
+    not_rfc_mx_lookup_flow: false
+    #
+    # Override default regular expression pattern for email addresses
+    # and/or the content in SMTP error messages.
+    #:email_pattern: /regex_pattern/
+    #:smtp_error_body_pattern: /regex_pattern/
+    #
+    # Log to the console, a file, or both. The ruby process must have
+    # write access to the log file. The log file will be created if it
+    # does not exist. Log file rotation is not handled by the app.
+    logger:
+      # One of: :error (default), :unrecognized_error,
+      # :recognized_error, :all.
+      tracking_event: :unrecognized_error
+      stdout: true
+      # log_absolute_path: '/home/app/log/truemail.log'
+
+internationalization:
+  enabled: true
+  default_locale: en
+  fallback_locale:
+    fr-CA: [fr_CA, fr_FR, en]
+    fr: [fr_FR, fr_CA, en]
+    'fr-*': [fr_FR, en]
+    default: [en]
+  # A list of ISO language codes (e.g., 'en' for English, 'es'
+  # for Spanish, etc.). There is a corresponding file in src/locales
+  # with the same name containing the translated text. If it's not
+  # selected automatically, users are able to select their preferred
+  # language by using the toggle in the footer or in the settings
+  # modal if they're logged in.
+  locales:
+    - en
+    - fr_CA
+    - fr_FR
+
+diagnostics:
+  # If this is false, the rest of the settings are ignored
+  enabled: true
+  sentry:
+    # Default Sentry configuration that applies to both frontend and
+    # backend. Values set here are overridden by codebase-specific ones.
+    #
+    # `dsn` - Primary Sentry DSN.
+    # `sampleRate` - Percentage of events to sample (0.0 to 1.0)
+    # `maxBreadcrumbs` - Maximum number of breadcrumbs to capture
+    # `logErrors` - Whether to log errors to console
+    defaults:
+      dsn: <%= nil %>
+      sampleRate: 0.11
+      maxBreadcrumbs: 22
+      logErrors: true
+    # Ruby backend-specific Sentry configuration
+    #
+    # `dsn` - Backend-specific Sentry DSN
+    backend:
+      dsn: <%= nil %>
+    # Vue frontend-specific Sentry configuration
+    # Options here map directly to @sentry/vue client options
+    # These options are passed directly to @sentry/vue client initialization
+    # and to maintain type safety, they must be typed in
+    # src/types/diagnostics.ts DiagnosticsConfig interface.
+    #
+    # `dsn` - Frontend-specific Sentry DSN
+    # `trackComponents` - Enable automatic instrumentation of Vue components
+    frontend:
+      dsn: <%= nil %>
+      trackComponents: true
+
+development:
+  enabled: false
+  debug: false
+  frontend_host: 'http://localhost:5173'
+  allow_nil_global_secret: false
+  # Explicitly nil so dev_*_auth_enabled? falls through to ENV check at
+  # runtime, allowing tryout tests to toggle via env var. Defaults file
+  # evaluates ERB at boot which freezes the value.
+  devbasicauth: ~
+  devsessionauth: ~

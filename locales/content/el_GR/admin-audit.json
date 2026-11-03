@@ -1,0 +1,150 @@
+{
+  "web.admin.audit.title": {
+    "text": "Αρχείο καταγραφής ελέγχου",
+    "source_hash": "47751f88"
+  },
+  "web.admin.audit.description": {
+    "text": "Κάθε ενέργεια διαχειριστή που τροποποιεί δεδομένα, με τις νεότερες πρώτα — ποιος έκανε τι σε ποιον, και πώς εξελίχθηκε.",
+    "source_hash": "2326a1a0"
+  },
+  "web.admin.audit.categories.customer": {
+    "text": "Πελάτες",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.audit.categories.session": {
+    "text": "Συνεδρίες",
+    "source_hash": "6fa3cbf4"
+  },
+  "web.admin.audit.categories.domain": {
+    "text": "Τομείς",
+    "source_hash": "ced67718"
+  },
+  "web.admin.audit.categories.organization": {
+    "text": "Οργανισμοί",
+    "source_hash": "2730183d"
+  },
+  "web.admin.audit.categories.banner": {
+    "text": "Πανό",
+    "source_hash": "b7f4d98f"
+  },
+  "web.admin.audit.categories.queue": {
+    "text": "Ουρές",
+    "source_hash": "be77db11"
+  },
+  "web.admin.audit.categories.email": {
+    "text": "Email",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.audit.categories.ratelimit": {
+    "text": "Όρια ρυθμού",
+    "source_hash": "6ed021f7"
+  },
+  "web.admin.audit.categories.ip": {
+    "text": "Αποκλεισμοί IP",
+    "source_hash": "48cdea49"
+  },
+  "web.admin.audit.columns.timestamp": {
+    "text": "Χρονική σήμανση",
+    "source_hash": "115a2cc9"
+  },
+  "web.admin.audit.columns.actor": {
+    "text": "Δράστης",
+    "source_hash": "449995c4"
+  },
+  "web.admin.audit.columns.action": {
+    "text": "Ενέργεια",
+    "source_hash": "64cff131"
+  },
+  "web.admin.audit.columns.target": {
+    "text": "Στόχος",
+    "source_hash": "978354db"
+  },
+  "web.admin.audit.columns.result": {
+    "text": "Αποτέλεσμα",
+    "source_hash": "6e7d50e8"
+  },
+  "web.admin.audit.columns.detail": {
+    "text": "Λεπτομέρεια",
+    "source_hash": "fb5f27d5"
+  },
+  "web.admin.audit.filters.actorPlaceholder": {
+    "text": "Φιλτράρισμα κατά δράστη (extid ή email)",
+    "source_hash": "966aa580"
+  },
+  "web.admin.audit.filters.actionLabel": {
+    "text": "Ενέργεια",
+    "source_hash": "64cff131"
+  },
+  "web.admin.audit.filters.allActions": {
+    "text": "Όλες οι ενέργειες",
+    "source_hash": "83140cf1"
+  },
+  "web.admin.audit.list.loadError": {
+    "text": "Δεν ήταν δυνατή η φόρτωση του αρχείου καταγραφής ελέγχου.",
+    "source_hash": "acf244f4"
+  },
+  "web.admin.audit.list.retry": {
+    "text": "Επανάληψη",
+    "source_hash": "942087cc"
+  },
+  "web.admin.audit.list.empty": {
+    "text": "Δεν έχουν καταγραφεί ακόμη συμβάντα ελέγχου",
+    "source_hash": "8fe0cac3"
+  },
+  "web.admin.audit.result.success": {
+    "text": "Επιτυχία",
+    "source_hash": "c88a0b90"
+  },
+  "web.admin.audit.result.failure": {
+    "text": "Αποτυχία",
+    "source_hash": "7031edbc"
+  },
+  "web.admin.audit.categories.secret": {
+    "text": "Μυστικά",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.audit.categories.membership": {
+    "text": "Συνδρομές",
+    "source_hash": "b50f1a42"
+  },
+  "web.admin.audit.categories.entitlement_preview": {
+    "text": "Προεπισκοπήσεις δικαιωμάτων",
+    "source_hash": "255c5797"
+  },
+  "web.admin.audit.categories.colonel": {
+    "text": "Συνδέσεις Colonel",
+    "source_hash": "01eeeb38"
+  },
+  "web.admin.audit.filters.actorLabel": {
+    "text": "Ενεργών χρήστης",
+    "source_hash": "449995c4"
+  },
+  "web.admin.audit.filters.searchButton": {
+    "text": "Αναζήτηση",
+    "source_hash": "49c266ba"
+  },
+  "web.admin.audit.filters.searchHint": {
+    "text": "Πληκτρολογήστε έναν ενεργό χρήστη και πατήστε Enter ή επιλέξτε Αναζήτηση για εκτέλεση. Η λίστα δεν ενημερώνεται κατά την πληκτρολόγηση.",
+    "source_hash": "45eceb12"
+  },
+  "web.admin.audit.filters.pendingSearch": {
+    "text": "Δεν έχει γίνει αναζήτηση ακόμα — πατήστε Enter ή επιλέξτε Αναζήτηση για εφαρμογή αυτού του ενεργού χρήστη.",
+    "source_hash": "f76095c2"
+  },
+  "web.admin.audit.list.contractError": {
+    "text": "Ο διακομιστής απάντησε, αλλά τα δεδομένα ελέγχου δεν ταιριάζουν με την αναμενόμενη μορφή. Δεν είναι δυνατή η εμφάνιση συμβάντων — πρόκειται για σφάλμα αναφοράς, όχι για κενό αρχείο καταγραφής.",
+    "source_hash": "7f48137e"
+  },
+  "web.admin.audit.export.csv": {
+    "text": "Εξαγωγή CSV",
+    "source_hash": "91f71c14"
+  },
+  "web.admin.audit.export.ndjson": {
+    "text": "Εξαγωγή NDJSON",
+    "source_hash": "3ee2c07c"
+  },
+  "web.admin.audit.export.hint": {
+    "text": "Οι εξαγωγές καλύπτουν ολόκληρο το διατηρούμενο αρχείο καταγραφής με τα τρέχοντα φίλτρα, όχι μόνο αυτήν τη σελίδα. Η διατήρηση είναι περιορισμένη — το παλαιότερο ιστορικό βρίσκεται στον προορισμό (sink) του αρχείου καταγραφής ελέγχου.",
+    "source_hash": "163e8ad0"
+  }
+}

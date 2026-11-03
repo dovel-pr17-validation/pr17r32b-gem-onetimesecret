@@ -1,0 +1,290 @@
+# apps/api/v1/logic/secrets/show_receipt.rb
+#
+# frozen_string_literal: true
+
+module V1::Logic
+  module Secrets
+
+    using Familia::Refinements::TimeLiterals
+
+    class ShowReceipt < V1::Logic::Base
+      # Working variables
+      attr_reader :key, :receipt, :secret
+      # Template variables
+      attr_reader :receipt_key, :receipt_shortid, :secret_key, :secret_state,
+            :secret_shortid, :recipients, :no_cache, :expiration_in_seconds,
+            :natural_expiration, :is_received, :is_burned, :secret_realttl,
+            :is_destroyed, :expiration, :view_count,
+            :has_passphrase, :can_decrypt, :secret_value, :is_truncated,
+            :show_secret, :show_secret_link, :show_receipt_link, :receipt_attributes,
+            :show_receipt, :show_recipients, :share_domain, :is_orphaned,
+            :share_path, :burn_path, :receipt_path, :share_url, :is_expired,
+            :receipt_url, :metadata_path, :metadata_url, :burn_url, :display_lines,
+            :show_metadata # maintain public API
+
+      def process_params
+        @key = sanitize_identifier(params['key'].to_s)
+        @receipt = Onetime::Receipt.load key
+      end
+
+      def raise_concerns
+
+        raise OT::MissingSecret if receipt.nil?
+      end
+
+      def process # rubocop:disable Metrics/MethodLength,Metrics/PerceivedComplexity
+        @secret = @receipt.load_secret
+
+        # Canonical fields only. The deprecated `key` field is never written
+        # for current receipts (and `secret_key` is no longer declared), so
+        # reading them built receipt URLs ending in "/receipt/" and share
+        # links ending in "/secret/" (#4835).
+        @receipt_key = receipt.identifier
+        @receipt_shortid = receipt.shortid
+        @secret_key = receipt.secret_identifier
+        @secret_shortid = receipt.secret_shortid
+
+        # Default the recipients to an empty string. When a Familia::Horreum
+        # object is loaded, the fields that have no values (or that don't
+        # exist in the db hash yet) will have a value of "" (empty string).
+        # But for a newly instantiated object, the fields will have a value
+        # of nil. Later on, we rely on being able to check for emptiness
+        # like: `@recipients.empty?`.
+        @recipients = receipt.recipients.to_s
+
+        @no_cache = true
+
+        @natural_expiration = receipt.secret_natural_duration
+        @expiration = receipt.secret_expiration
+        @expiration_in_seconds = receipt.secret_ttl
+
+        secret = @secret
+
+        if secret.nil?
+
+          burned_or_revealed = receipt.state?(:burned) || receipt.state?(:revealed) || receipt.state?(:received)
+
+          if !burned_or_revealed && receipt.secret_expired?
+            OT.le("[show_receipt] Receipt has expired secret. #{receipt.shortid}")
+            receipt.expired!
+          elsif !burned_or_revealed
+            OT.le("[show_receipt] Receipt is an orphan. #{receipt.shortid}")
+            receipt.orphaned!
+          end
+
+          # Check for both new 'revealed' state and legacy 'received' state
+          @is_received = receipt.state?(:revealed) || receipt.state?(:received)
+          @is_burned = receipt.state?(:burned)
+          @is_expired = receipt.state?(:expired)
+          @is_orphaned = receipt.state?(:orphaned)
+          @is_destroyed = @is_burned || @is_received || @is_expired || @is_orphaned
+        else
+          @secret_state = secret.state
+          @secret_realttl = secret.current_expiration
+
+          @view_count = nil
+          if secret.viewable?
+            @has_passphrase = !secret.passphrase.to_s.empty?
+            @can_decrypt = secret.can_decrypt?
+            # If we can't decrypt the secret (i.e. if we can't access it) then
+            # then we leave secret_value nil. We do this so that after creating
+            # a secret we can show the received contents on the "/receipt/receipt_key"
+            # page ONE TIME. Particularly for generated passwords which are not
+            # shown any other time.
+            #
+            # Aligned with V2/V3: only generated values are revealed here, and
+            # only on the first (state :new) view within the configured display
+            # window. Concealed (user-supplied) plaintext is never echoed back
+            # on the receipt — the creator already has it, and reading it back
+            # later would sidestep the at-most-once rule.
+            #
+            # claim_secret_value_display! is the "one time" guarantee: it
+            # atomically claims the display so a repeated or concurrent load
+            # never re-reveals the value (#3633 retired the previewed! state
+            # mutation that used to bound this, so this GET must not lean on a
+            # state change). display_ttl now only bounds *when* the single
+            # reveal may happen. Claim last, so the window/kind checks
+            # short-circuit before we consume the one-shot claim.
+            if @can_decrypt && receipt.state?(:new)
+              receipt_age  = Familia.now.to_i - receipt.created.to_i
+              is_generated = receipt.kind.to_s == 'generate'
+              display_ttl  = OT.conf.dig('site', 'secret_options', 'generated_value_display_ttl').to_i
+              if is_generated && display_ttl.positive? && receipt_age < display_ttl && receipt.claim_secret_value_display!
+                OT.ld "[show_receipt] m:#{receipt_shortid} Decrypting generated secret for creator viewing (age: #{receipt_age}s)"
+                @secret_value = secret.decrypted_secret_value
+              end
+            end
+            @is_truncated = secret.truncated?
+          end
+        end
+
+        # Show the secret if it exists and hasn't been seen yet.
+        #
+        # It will be true if:
+        #   1. The secret is not nil (i.e., a secret exists), AND
+        #   2. The receipt state is NOT in any of these states: previewed/viewed,
+        #      revealed/received, or burned
+        #
+        # Note: Check both new states (previewed, revealed) and legacy states (viewed, received)
+        @show_secret = !secret.nil? && !has_passphrase && !(receipt.state?(:previewed) || receipt.state?(:viewed) || receipt.state?(:revealed) || receipt.state?(:received) || receipt.state?(:burned) || receipt.state?(:orphaned))
+
+        # The secret link is shown only when appropriate, considering the
+        # state, ownership, and recipient information.
+        #
+        # It will be true if ALL of these conditions are met:
+        #   1. The receipt state is NOT revealed/received or burned, AND
+        #   2. The secret is showable (@show_secret is true), AND
+        #   3. There are no recipients specified (@recipients is nil)
+        #
+        @show_secret_link = !(receipt.state?(:revealed) || receipt.state?(:received) || receipt.state?(:burned) || receipt.state?(:orphaned)) &&
+                            @show_secret &&
+                            @recipients.empty?
+
+        # A simple check to show the receipt link only for newly
+        # created secrets.
+        #
+        @show_receipt_link = receipt.state?(:new)
+
+        # Allow the receipt to be shown if it hasn't been previewed/viewed yet OR
+        # if the current user owns it (regardless of its previewed/viewed state).
+        #
+        # It will be true if EITHER of these conditions are met:
+        #   1. The receipt state is NOT 'previewed' or 'viewed', OR
+        #   2. The current customer is the owner of the receipt
+        #
+        @show_receipt = !(receipt.state?(:previewed) || receipt.state?(:viewed)) || receipt.owner?(cust)
+        @show_metadata = @show_receipt # maintain public API
+
+        # Recipient information is only displayed when the receipt is
+        # visible and there are actually recipients to show.
+        #
+        # It will be true if BOTH of these conditions are met:
+        #   1. The receipt should be shown (@show_receipt is true), AND
+        #   2. There are recipients specified (@recipients is not empty)
+        #
+        @show_recipients = @show_receipt && !@recipients.empty?
+
+        domain = if domains_enabled
+                    if receipt.share_domain.to_s.empty?
+                      site_host
+                    else
+                      receipt.share_domain
+                    end
+                  else
+                    site_host
+                  end
+
+        @share_domain = [base_scheme, domain].join
+        OT.ld "[process] Set @share_domain: #{@share_domain}"
+        process_uris
+
+        @receipt_attributes = self._receipt_attributes
+
+        # Loading the receipt page is a safe GET (#3633): record a one-time
+        # 'receipt_viewed' audit event but do NOT advance the secret's
+        # lifecycle state. See the v2 ShowReceipt for the full rationale.
+        receipt.record_receipt_view!(actor_context: receipt_view_actor_context)
+      end
+
+      def one_liner
+        return if secret_value.to_s.empty? # return nil when the value is empty
+        secret_value.to_s.scan(/\n/).size.zero?
+      end
+
+      def success_data
+        {
+          record: receipt_attributes,
+          details: ancillary_attributes,
+        }
+      end
+
+      private
+
+      # Actor attribution for the receipt-page view (#3637); see the v2
+      # ShowReceipt sibling. Anonymous guard FIRST, then the same
+      # Receipt#owner?(cust) predicate @show_receipt uses. V1::Logic::Base
+      # does not include AuthorizationPolicies, so the canonical anonymous
+      # check (cust.nil? || cust.anonymous?) is inlined here.
+      def receipt_view_actor_context
+        return { 'actor' => 'anonymous' } if cust.nil? || cust.anonymous?
+
+        actor = receipt.owner?(cust) ? 'creator' : 'authenticated_other'
+        { 'actor' => actor, 'actor_id' => cust.objid }
+      end
+
+      def _receipt_attributes
+        # Start with safe receipt attributes
+        attributes = receipt.safe_dump
+
+        # Provenance gate: incoming secrets withhold the share link (and its
+        # bearer key) from the creator, and a consumed secret has no link to
+        # give. See Receipt#share_link_available?.
+        link_visible = receipt.share_link_available?
+
+        # Only include the secret's identifying key when necessary AND when
+        # provenance permits sharing the link.
+        attributes[:secret_key] = secret_key if show_secret && link_visible
+
+        # Add additional attributes not included in safe dump
+        attributes.merge!({
+          secret_state: secret_state, # can be nil (e.g. if secret is consumed)
+          natural_expiration: natural_expiration,
+          expiration: expiration,
+          expiration_in_seconds: expiration_in_seconds,
+          # share_path/share_url withheld (null) for incoming provenance; burn
+          # and receipt paths stay for the creator.
+          share_path: link_visible ? share_path : nil,
+          burn_path: burn_path,
+          receipt_path: receipt_path,
+          metadata_path: metadata_path, # maintain public API
+          share_url: link_visible ? share_url : nil,
+          receipt_url: receipt_url,
+          metadata_url: metadata_url, # maintain public API
+          burn_url: burn_url,
+        })
+
+        attributes
+      end
+
+      def ancillary_attributes
+        {
+          type: 'record',
+          display_lines: display_lines,
+          no_cache: no_cache,
+          secret_realttl: secret_realttl,
+          view_count: view_count,
+          has_passphrase: has_passphrase,
+          can_decrypt: can_decrypt,
+          secret_value: secret_value,
+          is_truncated: is_truncated,
+          show_secret: show_secret,
+          show_secret_link: show_secret_link,
+          show_receipt_link: show_receipt_link,
+          show_receipt: show_receipt,
+          show_metadata: show_metadata, # maintain public API
+          show_recipients: show_recipients,
+        }
+      end
+
+      def process_uris
+        @share_path = build_path(:secret, secret_key)
+        @burn_path = build_path(:receipt, receipt_key, 'burn')
+        @receipt_path = build_path(:receipt, receipt_key)
+        @metadata_path = @receipt_path # maintain public API
+        @share_url = build_url(share_domain, @share_path)
+        @receipt_url = build_url(share_domain, @receipt_path)
+        @metadata_url = @receipt_url # maintain public API
+        @burn_url = build_url(share_domain, @burn_path)
+        @display_lines = calculate_display_lines
+      end
+
+      def calculate_display_lines
+        v = secret_value.to_s
+        ret = ((80+v.size)/80) + (v.scan(/\n/).size) + 3
+        ret = ret > 30 ? 30 : ret
+      end
+
+    end
+
+  end
+end

@@ -1,0 +1,38 @@
+{
+  "web.dashboard.title_received": {
+    "text": "Rebut",
+    "source_hash": "49f19bee"
+  },
+  "web.dashboard.title_not_received": {
+    "text": "No rebut",
+    "source_hash": "a4cf12ca"
+  },
+  "web.dashboard.title_no_recent_secrets": {
+    "text": "Cap secret recent",
+    "source_hash": "02b7b86b"
+  },
+  "web.dashboard.get_started_by_creating_your_first_secret": {
+    "text": "Comença creant el teu primer secret.",
+    "source_hash": "e96db24d"
+  },
+  "web.dashboard.fetch_error_title": {
+    "text": "No s'han pogut carregar les dades",
+    "source_hash": "ba7df1be"
+  },
+  "web.dashboard.fetch_error_description": {
+    "text": "Hi ha hagut un problema en carregar les teves dades. Torna-ho a provar.",
+    "source_hash": "ff0d904e"
+  },
+  "web.teams.create_first_team_title": {
+    "text": "Crea el teu primer equip",
+    "source_hash": "54693f14"
+  },
+  "web.teams.create_first_team_description": {
+    "text": "Els equips et permeten col·laborar amb altres persones en un espai de treball compartit.",
+    "source_hash": "d61b86b5"
+  },
+  "web.teams.create_team": {
+    "text": "Crea un equip",
+    "source_hash": "284ff194"
+  }
+}

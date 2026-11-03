@@ -1,0 +1,169 @@
+// src/shared/composables/useSecretConcealer.ts
+
+import {
+  AsyncHandlerOptions,
+  createError,
+  useAsyncHandler,
+} from '@/shared/composables/useAsyncHandler';
+import { type ConcealDataResponse } from '@/schemas/api/v3/responses';
+import { ConcealPayload, GeneratePayload } from '@/schemas/api/v3/requests/content';
+import { DEFAULT_SECRET_DISPLAY_TYPE, SecretDisplayType } from '@/schemas/contracts/secret';
+import { loggingService } from '@/services/logging.service';
+import { useAuthStore } from '@/shared/stores/authStore';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import { useNotificationsStore } from '@/shared/stores/notificationsStore';
+import { useSecretStore } from '@/shared/stores/secretStore';
+import { storeToRefs } from 'pinia';
+import { ref, watch } from 'vue';
+
+import { useSecretForm } from './useSecretForm';
+
+interface SecretConcealerOptions {
+  onSuccess?: (response: ConcealDataResponse) => Promise<void> | void;
+  /** Use public /api/v3/guest endpoints instead of authenticated /api/v3 */
+  usePublicApi?: boolean;
+}
+
+type SubmitType = 'conceal' | 'generate';
+
+/**
+ * useSecretConcealer
+ *
+ * Orchestrates secret creation workflow. Transforms form data into API
+ * payloads, handles submission, and manages async state. Coordinates
+ * between form state and API operations.
+ *
+ * Responsibilities:
+ * - API payload creation
+ * - Form submission
+ * - Response handling
+ * - Navigation after success
+ * - Error management
+ */
+
+// eslint-disable-next-line max-lines-per-function -- temporary debug logging
+export function useSecretConcealer(options?: SecretConcealerOptions) {
+  const authStore = useAuthStore();
+  const bootstrapStore = useBootstrapStore();
+  const secretStore = useSecretStore();
+  const notifications = useNotificationsStore();
+  const { secret_options, features } = storeToRefs(bootstrapStore);
+
+  // Determine API mode: explicit option takes precedence, otherwise based on auth state
+  const usePublicApi = options?.usePublicApi ?? !authStore.isAuthenticated;
+  secretStore.setApiMode(usePublicApi ? 'public' : 'authenticated');
+
+  const isSubmitting = ref(false);
+
+  const { form, validation, operations } = useSecretForm();
+
+  // A bootstrap refresh can turn Markdown off while a form holds it. The
+  // control goes away with the flag, so put the field back to text here;
+  // otherwise every conceal would get the API's 422 with no way to clear it.
+  watch(
+    () => features.value?.markdown === true,
+    (enabled) => {
+      if (!enabled && form.display_type === SecretDisplayType.MARKDOWN) {
+        operations.updateField('display_type', DEFAULT_SECRET_DISPLAY_TYPE);
+      }
+    }
+  );
+
+  const asyncHandlerOptions: AsyncHandlerOptions = {
+    notify: (message, severity) => notifications.show(message, severity, 'top'),
+    setLoading: (loading) => (isSubmitting.value = loading),
+  };
+
+  const { wrap } = useAsyncHandler(asyncHandlerOptions);
+
+  /**
+   * Creates API payload based on submission type.
+   * Only includes passphrase field if user provided one - omitting the field
+   * entirely signals "no passphrase protection" to the backend.
+   *
+   * display_type rides along on conceal only: it describes content the
+   * creator wrote, and the generate endpoint ignores it anyway.
+   */
+  const createPayload = (
+    type: SubmitType
+  ): ConcealPayload | GeneratePayload => {
+    const basePayload: Record<string, unknown> = {
+      kind: type,
+      secret: form.secret,
+      ttl: form.ttl,
+      recipient: form.recipient,
+      share_domain: form.share_domain,
+    };
+
+    // Only include passphrase if user provided one
+    if (form.passphrase) {
+      basePayload.passphrase = form.passphrase;
+    }
+
+    // Add password generation options for generate type
+    if (type === 'generate') {
+      const passwordConfig = secret_options.value?.password_generation;
+
+      return {
+        ...basePayload,
+        length: passwordConfig?.default_length,
+        character_sets: passwordConfig?.character_sets,
+      } as GeneratePayload;
+    }
+
+    return { ...basePayload, display_type: form.display_type } as ConcealPayload;
+  };
+
+  /**
+   * Handles form submission for both conceal and generate operations
+   */
+  const submit = async (type: SubmitType = 'conceal') =>
+    // eslint-disable-next-line complexity -- temporary debug logging
+    wrap(async () => {
+      const timestamp = Date.now();
+      loggingService.debug('[DEBUG:useSecretConcealer] Submit started', {
+        timestamp,
+        type,
+      });
+
+      // Generate mode skips full-form validation (the schema requires
+      // `secret`, which isn't user-typed there) but recipient is still
+      // user input and still gets mailed, so it's checked on its own.
+      const isValid =
+        type === 'conceal' ? validation.validate() : validation.validateRecipient();
+      if (!isValid) {
+        throw createError('Please check the form for errors', 'human');
+      }
+
+      const payload = createPayload(type);
+
+      const response = await (type === 'conceal'
+        ? secretStore.conceal(payload as ConcealPayload)
+        : secretStore.generate(payload as GeneratePayload));
+
+      loggingService.debug('[DEBUG:useSecretConcealer] API response received', {
+        timestamp,
+        receiptId: response?.record?.receipt?.identifier,
+        receiptShortid: response?.record?.receipt?.shortid,
+      });
+
+      if (response && typeof response === 'object' && options?.onSuccess) {
+        loggingService.debug('[DEBUG:useSecretConcealer] Calling onSuccess callback', {
+          timestamp,
+        });
+        await options.onSuccess(response);
+        loggingService.debug('[DEBUG:useSecretConcealer] onSuccess callback completed', {
+          timestamp,
+        });
+      }
+
+      return response;
+    });
+  return {
+    form,
+    validation,
+    operations,
+    isSubmitting,
+    submit,
+  };
+}

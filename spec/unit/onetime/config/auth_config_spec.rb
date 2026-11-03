@@ -1,0 +1,1100 @@
+# spec/unit/onetime/config/auth_config_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+require_relative '../../../support/saml/test_idp'
+require 'tempfile'
+require 'fileutils'
+
+# Systematic tests for AuthConfig, covering all env var mappings and
+# the restrict_to single-auth-method override.
+#
+# Strategy: write a minimal YAML config to a temp file, point
+# ConfigResolver at it, and reset the singleton between tests.
+RSpec.describe Onetime::AuthConfig do
+  let(:temp_dir) { Dir.mktmpdir('auth_config_test') }
+  let(:config_path) { File.join(temp_dir, 'auth.yaml') }
+
+  # Base YAML that mirrors auth.defaults.yaml structure using ERB
+  let(:base_yaml) do
+    <<~YAML
+      ---
+      mode: <%= ENV['AUTHENTICATION_MODE'] || 'full' %>
+      simple: {}
+      full:
+        database_url: "sqlite::memory:"
+        features:
+          lockout: <%= ENV['AUTH_LOCKOUT_ENABLED'] != 'false' %>
+          password_requirements: <%= ENV['AUTH_PASSWORD_REQUIREMENTS_ENABLED'] != 'false' %>
+          active_sessions: <%= ENV['AUTH_ACTIVE_SESSIONS_ENABLED'] != 'false' %>
+          remember_me: <%= ENV['AUTH_REMEMBER_ME_ENABLED'] != 'false' %>
+          verify_account: <%= ENV['AUTH_VERIFY_ACCOUNT_ENABLED'] == 'true' %>
+          mfa: <%= ENV['AUTH_MFA_ENABLED'] == 'true' %>
+          email_auth: <%= ENV['AUTH_EMAIL_AUTH_ENABLED'] == 'true' %>
+          webauthn: <%= ENV['AUTH_WEBAUTHN_ENABLED'] == 'true' %>
+          webauthn_verify_account: <%= ENV['AUTH_WEBAUTHN_VERIFY_ACCOUNT'] == 'true' %>
+          webauthn_autofill: <%= ENV['AUTH_WEBAUTHN_AUTOFILL'] == 'true' %>
+          sso: <%= ENV['AUTH_SSO_ENABLED'] == 'true' %>
+        <%
+          only_flags = [
+            ENV['AUTH_PASSWORD_ONLY'] == 'true' ? 'password' : nil,
+            ENV['AUTH_EMAIL_AUTH_ONLY'] == 'true' ? 'email_auth' : nil,
+            ENV['AUTH_WEBAUTHN_ONLY'] == 'true' ? 'webauthn' : nil,
+            ENV['AUTH_SSO_ONLY'] == 'true' ? 'sso' : nil,
+          ].compact
+          restrict_to = only_flags.length == 1 ? only_flags.first : nil
+        %>
+        restrict_to: <%= restrict_to %>
+        sso:
+          sso_display_name: ''
+          sso_only: <%= ENV['AUTH_LEGACY_SSO_ONLY'] == 'true' %>
+          trust_email_for_linking: <%= ENV['SSO_TRUST_EMAIL_FOR_LINKING'] == 'true' %>
+    YAML
+  end
+
+  # ENV vars we touch — saved and restored around each example
+  let(:env_vars) do
+    %w[
+      AUTHENTICATION_MODE
+      AUTH_LOCKOUT_ENABLED AUTH_PASSWORD_REQUIREMENTS_ENABLED
+      AUTH_ACTIVE_SESSIONS_ENABLED AUTH_REMEMBER_ME_ENABLED AUTH_VERIFY_ACCOUNT_ENABLED
+      AUTH_MFA_ENABLED AUTH_EMAIL_AUTH_ENABLED AUTH_WEBAUTHN_ENABLED
+      AUTH_WEBAUTHN_VERIFY_ACCOUNT AUTH_WEBAUTHN_AUTOFILL
+      AUTH_SSO_ENABLED AUTH_SSO_ONLY AUTH_LEGACY_SSO_ONLY
+      AUTH_PASSWORD_ONLY AUTH_EMAIL_AUTH_ONLY AUTH_WEBAUTHN_ONLY
+      OIDC_ISSUER OIDC_CLIENT_ID
+      ENTRA_TENANT_ID ENTRA_CLIENT_ID ENTRA_CLIENT_SECRET
+      GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET
+      GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET
+      GITLAB_CLIENT_ID GITLAB_CLIENT_SECRET
+      APPLE_CLIENT_ID APPLE_TEAM_ID APPLE_KEY_ID APPLE_PRIVATE_KEY
+      SAML_ENABLED SAML_IDP_SSO_SERVICE_URL SAML_IDP_ENTITY_ID SAML_IDP_CERT
+      SAML_SP_ENTITY_ID SAML_UID_ATTRIBUTE
+      SSO_PROVIDER_ORDER
+      OIDC_ROUTE_NAME ENTRA_ROUTE_NAME GOOGLE_ROUTE_NAME GITHUB_ROUTE_NAME
+      GITLAB_ROUTE_NAME APPLE_ROUTE_NAME SAML_ROUTE_NAME
+      SSO_TRUST_EMAIL_FOR_LINKING
+      OIDC_TRUST_EMAIL_FOR_LINKING ENTRA_TRUST_EMAIL_FOR_LINKING
+      GOOGLE_TRUST_EMAIL_FOR_LINKING GITHUB_TRUST_EMAIL_FOR_LINKING
+      GITLAB_TRUST_EMAIL_FOR_LINKING APPLE_TRUST_EMAIL_FOR_LINKING
+      SAML_TRUST_EMAIL_FOR_LINKING
+    ]
+  end
+
+  before do
+    # Save existing env
+    @saved_env = env_vars.to_h { |k| [k, ENV.fetch(k, nil)] }
+
+    # Clear env vars to start with a clean slate (CI may set AUTHENTICATION_MODE=simple)
+    env_vars.each { |k| ENV.delete(k) }
+
+    # Write config file
+    File.write(config_path, base_yaml)
+
+    # Stub ConfigResolver to use our temp file
+    allow(Onetime::Utils::ConfigResolver).to receive(:resolve)
+      .with('auth').and_return(config_path)
+  end
+
+  after do
+    # Restore env
+    @saved_env.each do |k, v|
+      if v.nil?
+        ENV.delete(k)
+      else
+        ENV[k] = v
+      end
+    end
+
+    # Clear singleton so next test gets a fresh instance
+    described_class.instance_variable_set(:@singleton__instance__, nil)
+
+    FileUtils.rm_rf(temp_dir)
+  end
+
+  # Helper: reset singleton and return a fresh instance
+  def fresh_config(**env_overrides)
+    env_overrides.each { |k, v| ENV[k.to_s] = v }
+    described_class.instance_variable_set(:@singleton__instance__, nil)
+    File.write(config_path, base_yaml) # re-render ERB with new env
+    described_class.instance
+  end
+
+  # bin/ots resolves simple mode whenever AUTHENTICATION_MODE is not exported
+  # into its shell; the destructive customer commands refuse on that
+  # fallback and run once the variable is exported, with either value.
+  describe '#simple_by_default?' do
+    context 'with a config that falls back to simple' do
+      let(:base_yaml) do
+        <<~YAML
+          ---
+          mode: <%= ENV['AUTHENTICATION_MODE'] || 'simple' %>
+          simple: {}
+          full: {}
+        YAML
+      end
+
+      it 'is true when nothing chose the mode' do
+        config = fresh_config
+
+        expect(config.simple_enabled?).to be(true)
+        expect(config.simple_by_default?).to be(true)
+      end
+
+      it 'is false once AUTHENTICATION_MODE=simple is exported' do
+        config = fresh_config(AUTHENTICATION_MODE: 'simple')
+
+        expect(config.simple_enabled?).to be(true)
+        expect(config.simple_by_default?).to be(false)
+      end
+
+      it 'is false when the variable selects full mode' do
+        expect(fresh_config(AUTHENTICATION_MODE: 'full').simple_by_default?).to be(false)
+      end
+    end
+
+    it 'is false when the config itself names full mode' do
+      expect(fresh_config.simple_by_default?).to be(false)
+    end
+  end
+
+  describe 'request-scoped tenant origin cache' do
+    let(:config) { fresh_config }
+    let(:concealed_url) { double('concealed SSO URL') }
+    let(:tenant) { double('SAML config', provider_type: 'saml', idp_sso_service_url: concealed_url) }
+
+    it 'caches decryption failure as no origin without falling back to the platform' do
+      env = {}
+      expect(concealed_url).to receive(:reveal).once.and_raise(Familia::EncryptionError, 'tag')
+      expect(config).not_to receive(:provider_origin)
+
+      2.times { expect(config.tenant_idp_origin(tenant, env: env)).to be_nil }
+      expect(config.tenant_origin_source(tenant, env: env)).to eq('')
+    end
+
+    it 'does not reuse an admitted origin across requests after ciphertext becomes unreadable' do
+      expect(concealed_url).to receive(:reveal).ordered.and_yield('https://idp.example/sso')
+      expect(concealed_url).to receive(:reveal).ordered.and_raise(Familia::EncryptionError, 'tag')
+
+      expect(config.tenant_idp_origin(tenant, env: {})).to eq('https://idp.example')
+      expect(config.tenant_idp_origin(tenant, env: {})).to be_nil
+    end
+
+    it 'does not keep a failed reveal cached after a new request can read the repaired field' do
+      expect(concealed_url).to receive(:reveal).ordered.and_raise(Familia::EncryptionError, 'tag')
+      expect(concealed_url).to receive(:reveal).ordered.and_yield('https://repaired.example/sso')
+
+      expect(config.tenant_idp_origin(tenant, env: {})).to be_nil
+      expect(config.tenant_idp_origin(tenant, env: {})).to eq('https://repaired.example')
+    end
+  end
+
+  # ── Mode tests ─────────────────────────────────────────────────────
+
+  describe '#mode' do
+    it 'defaults to full when AUTHENTICATION_MODE is unset' do
+      ENV.delete('AUTHENTICATION_MODE')
+      config = fresh_config
+      expect(config.mode).to eq('full')
+    end
+
+    it 'returns simple when AUTHENTICATION_MODE=simple' do
+      config = fresh_config('AUTHENTICATION_MODE' => 'simple')
+      expect(config.mode).to eq('simple')
+    end
+
+    it 'returns full when AUTHENTICATION_MODE=full' do
+      config = fresh_config('AUTHENTICATION_MODE' => 'full')
+      expect(config.mode).to eq('full')
+    end
+  end
+
+  # ── Feature toggle env vars ────────────────────────────────────────
+
+  describe 'feature toggles (default-ON pattern)' do
+    %w[lockout password_requirements active_sessions remember_me].each do |feature|
+      env_key = "AUTH_#{feature.upcase}_ENABLED"
+
+      describe "##{feature}_enabled?" do
+        it "returns true when #{env_key} is unset (default ON)" do
+          ENV.delete(env_key)
+          config = fresh_config
+          expect(config.public_send(:"#{feature}_enabled?")).to be true
+        end
+
+        it "returns true when #{env_key}=true" do
+          config = fresh_config(env_key => 'true')
+          expect(config.public_send(:"#{feature}_enabled?")).to be true
+        end
+
+        it "returns false when #{env_key}=false" do
+          config = fresh_config(env_key => 'false')
+          expect(config.public_send(:"#{feature}_enabled?")).to be false
+        end
+
+        it 'returns false in simple mode regardless' do
+          config = fresh_config('AUTHENTICATION_MODE' => 'simple', env_key => 'true')
+          expect(config.public_send(:"#{feature}_enabled?")).to be false
+        end
+      end
+    end
+  end
+
+  # Remember-me sessions are honoured in simple mode too (the session store
+  # carries them), so this reads the same switch without the full-mode gate
+  # the Rodauth feature toggles above have.
+  describe '#remember_me_sessions_enabled?' do
+    it 'is true in both modes when AUTH_REMEMBER_ME_ENABLED is unset', :aggregate_failures do
+      ENV.delete('AUTH_REMEMBER_ME_ENABLED')
+      expect(fresh_config('AUTHENTICATION_MODE' => 'simple').remember_me_sessions_enabled?).to be true
+      expect(fresh_config('AUTHENTICATION_MODE' => 'full').remember_me_sessions_enabled?).to be true
+    end
+
+    it 'is false in both modes when AUTH_REMEMBER_ME_ENABLED=false', :aggregate_failures do
+      expect(fresh_config('AUTHENTICATION_MODE' => 'simple', 'AUTH_REMEMBER_ME_ENABLED' => 'false')
+        .remember_me_sessions_enabled?).to be false
+      expect(fresh_config('AUTHENTICATION_MODE' => 'full', 'AUTH_REMEMBER_ME_ENABLED' => 'false')
+        .remember_me_sessions_enabled?).to be false
+    end
+  end
+
+  describe 'feature toggles (default-OFF pattern)' do
+    {
+      'mfa' => 'AUTH_MFA_ENABLED',
+      'email_auth' => 'AUTH_EMAIL_AUTH_ENABLED',
+      'webauthn' => 'AUTH_WEBAUTHN_ENABLED',
+      'webauthn_verify_account' => 'AUTH_WEBAUTHN_VERIFY_ACCOUNT',
+      'webauthn_autofill' => 'AUTH_WEBAUTHN_AUTOFILL',
+      'sso' => 'AUTH_SSO_ENABLED',
+    }.each do |feature, env_key|
+      describe "##{feature}_enabled?" do
+        it "returns false when #{env_key} is unset (default OFF)" do
+          ENV.delete(env_key)
+          config = fresh_config
+          expect(config.public_send(:"#{feature}_enabled?")).to be false
+        end
+
+        it "returns true when #{env_key}=true" do
+          config = fresh_config(env_key => 'true')
+          expect(config.public_send(:"#{feature}_enabled?")).to be true
+        end
+
+        it "returns false when #{env_key}=false" do
+          config = fresh_config(env_key => 'false')
+          expect(config.public_send(:"#{feature}_enabled?")).to be false
+        end
+
+        it 'returns false in simple mode regardless' do
+          config = fresh_config('AUTHENTICATION_MODE' => 'simple', env_key => 'true')
+          expect(config.public_send(:"#{feature}_enabled?")).to be false
+        end
+      end
+    end
+  end
+
+  # The Rodauth verify_account feature is loaded by its own flag or as the
+  # dependency of webauthn_verify_account (apps/web/auth/config/features/
+  # webauthn.rb enables that sub-feature only with webauthn on).
+  describe '#verify_account_loaded?' do
+    it 'is false when neither flag is on' do
+      config = fresh_config('AUTH_WEBAUTHN_ENABLED' => 'true')
+      expect(config.verify_account_loaded?).to be false
+    end
+
+    it 'is true by the verify_account flag' do
+      config = fresh_config('AUTH_VERIFY_ACCOUNT_ENABLED' => 'true')
+      expect(config.verify_account_loaded?).to be true
+    end
+
+    it 'is true for webauthn_verify_account with webauthn on' do
+      config = fresh_config('AUTH_WEBAUTHN_ENABLED' => 'true', 'AUTH_WEBAUTHN_VERIFY_ACCOUNT' => 'true')
+      expect(config.verify_account_loaded?).to be true
+    end
+
+    it 'ignores webauthn_verify_account without webauthn, as config.rb does' do
+      config = fresh_config('AUTH_WEBAUTHN_VERIFY_ACCOUNT' => 'true')
+      expect(config.verify_account_loaded?).to be false
+    end
+
+    it 'is false in simple mode regardless' do
+      config = fresh_config('AUTHENTICATION_MODE' => 'simple', 'AUTH_VERIFY_ACCOUNT_ENABLED' => 'true')
+      expect(config.verify_account_loaded?).to be false
+    end
+
+    # The enables read the YAML values by truthiness, so a quoted "true" loads
+    # the feature; config.rb compares this answer with the loaded features.
+    it 'is a Boolean when a flag is a quoted YAML string' do
+      File.write(config_path, base_yaml.sub(/^    verify_account: .*$/, '    verify_account: "true"'))
+      described_class.instance_variable_set(:@singleton__instance__, nil)
+      expect(described_class.instance.verify_account_loaded?).to be true
+    end
+  end
+
+  # ── restrict_to ────────────────────────────────────────────────────
+
+  describe '#restrict_to' do
+    it 'returns nil by default' do
+      config = fresh_config
+      expect(config.restrict_to).to be_nil
+    end
+
+    it 'returns "password" when AUTH_PASSWORD_ONLY=true' do
+      config = fresh_config('AUTH_PASSWORD_ONLY' => 'true')
+      expect(config.restrict_to).to eq('password')
+    end
+
+    it 'returns "email_auth" when AUTH_EMAIL_AUTH_ONLY=true' do
+      config = fresh_config('AUTH_EMAIL_AUTH_ONLY' => 'true', 'AUTH_EMAIL_AUTH_ENABLED' => 'true')
+      expect(config.restrict_to).to eq('email_auth')
+    end
+
+    it 'returns "webauthn" when AUTH_WEBAUTHN_ONLY=true' do
+      config = fresh_config('AUTH_WEBAUTHN_ONLY' => 'true', 'AUTH_WEBAUTHN_ENABLED' => 'true')
+      expect(config.restrict_to).to eq('webauthn')
+    end
+
+    it 'returns "sso" when AUTH_SSO_ONLY=true' do
+      config = fresh_config('AUTH_SSO_ONLY' => 'true', 'AUTH_SSO_ENABLED' => 'true', 'OIDC_ISSUER' => 'https://example.com', 'OIDC_CLIENT_ID' => 'test')
+      expect(config.restrict_to).to eq('sso')
+    end
+
+    it 'returns nil in simple mode' do
+      config = fresh_config('AUTHENTICATION_MODE' => 'simple', 'AUTH_PASSWORD_ONLY' => 'true')
+      expect(config.restrict_to).to be_nil
+    end
+
+    # AuthConfig is deliberately blind here: the template renders NOTHING when
+    # several AUTH_*_ONLY flags are true, so by the time the config is parsed
+    # the contradiction only exists in the process environment. That silent
+    # fail-open is caught at boot by ValidateAuthConfig#validate_restrict_to_flags!
+    # (ADR-034#conflicting-auth-only-env-flags-are-a-boot-error, #4139) — see
+    # spec/unit/onetime/initializers/validate_auth_config_spec.rb.
+    it 'returns nil when multiple ENV vars are set (mutual exclusivity)' do
+      config = fresh_config('AUTH_PASSWORD_ONLY' => 'true', 'AUTH_SSO_ONLY' => 'true')
+      expect(config.restrict_to).to be_nil
+      expect(config.validate_restrict_to!).to be_nil
+    end
+
+    # ADR-034#degradation-is-fail-closed (#4140): the drop-to-standard
+    # fallback is retired. An unavailable method keeps the restriction in
+    # place so consumers degrade fail-closed; it must never read as
+    # "unrestricted".
+    context 'when the restricted method is unavailable (post-boot degradation)' do
+      it "keeps 'sso' when SSO is disabled" do
+        config = fresh_config('AUTH_SSO_ONLY' => 'true', 'AUTH_SSO_ENABLED' => 'false')
+        expect(config.restrict_to).to eq('sso')
+        expect(config.restrict_to_available?).to be false
+      end
+
+      it "keeps 'sso' when SSO is enabled but no provider is configured" do
+        config = fresh_config('AUTH_SSO_ONLY' => 'true', 'AUTH_SSO_ENABLED' => 'true')
+        expect(config.restrict_to).to eq('sso')
+        expect(config.restrict_to_available?).to be false
+      end
+
+      it "keeps 'email_auth' when email auth is disabled" do
+        config = fresh_config('AUTH_EMAIL_AUTH_ONLY' => 'true', 'AUTH_EMAIL_AUTH_ENABLED' => 'false')
+        expect(config.restrict_to).to eq('email_auth')
+        expect(config.restrict_to_available?).to be false
+      end
+
+      it "keeps 'webauthn' when webauthn is disabled" do
+        config = fresh_config('AUTH_WEBAUTHN_ONLY' => 'true', 'AUTH_WEBAUTHN_ENABLED' => 'false')
+        expect(config.restrict_to).to eq('webauthn')
+        expect(config.restrict_to_available?).to be false
+      end
+    end
+
+    context 'legacy sso.sso_only fallback' do
+      it "resolves to 'sso' when restrict_to is unset" do
+        config = fresh_config(
+          'AUTH_LEGACY_SSO_ONLY' => 'true',
+          'AUTH_SSO_ENABLED' => 'true',
+          'OIDC_ISSUER' => 'https://example.com',
+          'OIDC_CLIENT_ID' => 'test-client',
+        )
+        expect(config.restrict_to).to eq('sso')
+      end
+
+      it 'gets identical fail-closed treatment when SSO is unavailable' do
+        config = fresh_config('AUTH_LEGACY_SSO_ONLY' => 'true', 'AUTH_SSO_ENABLED' => 'false')
+        expect(config.restrict_to).to eq('sso')
+        expect(config.restrict_to_available?).to be false
+      end
+    end
+  end
+
+  # ── #restrict_to_available? ────────────────────────────────────────
+
+  describe '#restrict_to_available?' do
+    it 'returns true when no restriction is configured' do
+      expect(fresh_config.restrict_to_available?).to be true
+    end
+
+    it 'returns true for password (no prerequisite)' do
+      expect(fresh_config('AUTH_PASSWORD_ONLY' => 'true').restrict_to_available?).to be true
+    end
+
+    it 'returns true when the restricted method is available' do
+      config = fresh_config('AUTH_WEBAUTHN_ONLY' => 'true', 'AUTH_WEBAUTHN_ENABLED' => 'true')
+      expect(config.restrict_to_available?).to be true
+    end
+  end
+
+  # ── #validate_restrict_to! (ADR-034#degradation-is-fail-closed fatal boot error, #4140) ────
+
+  describe '#validate_restrict_to!' do
+    it 'returns nil and does not raise when no restriction is configured' do
+      config = fresh_config
+      expect(config.validate_restrict_to!).to be_nil
+    end
+
+    it 'returns nil in simple mode without validating' do
+      config = fresh_config('AUTHENTICATION_MODE' => 'simple', 'AUTH_SSO_ONLY' => 'true')
+      expect(config.validate_restrict_to!).to be_nil
+    end
+
+    context 'with prerequisites met' do
+      it "returns 'password' (password has no prerequisite)" do
+        config = fresh_config('AUTH_PASSWORD_ONLY' => 'true')
+        expect(config.validate_restrict_to!).to eq('password')
+      end
+
+      it "returns 'email_auth' when email auth is enabled" do
+        config = fresh_config('AUTH_EMAIL_AUTH_ONLY' => 'true', 'AUTH_EMAIL_AUTH_ENABLED' => 'true')
+        expect(config.validate_restrict_to!).to eq('email_auth')
+      end
+
+      it "returns 'webauthn' when webauthn is enabled" do
+        config = fresh_config('AUTH_WEBAUTHN_ONLY' => 'true', 'AUTH_WEBAUTHN_ENABLED' => 'true')
+        expect(config.validate_restrict_to!).to eq('webauthn')
+      end
+
+      it "returns 'sso' when SSO is enabled with a provider" do
+        config = fresh_config(
+          'AUTH_SSO_ONLY' => 'true',
+          'AUTH_SSO_ENABLED' => 'true',
+          'OIDC_ISSUER' => 'https://example.com',
+          'OIDC_CLIENT_ID' => 'test-client',
+        )
+        expect(config.validate_restrict_to!).to eq('sso')
+      end
+    end
+
+    context 'with prerequisites unmet' do
+      it 'raises when restrict_to=sso but SSO is disabled' do
+        config = fresh_config('AUTH_SSO_ONLY' => 'true', 'AUTH_SSO_ENABLED' => 'false')
+        expect { config.validate_restrict_to! }
+          .to raise_error(Onetime::ConfigError, /restricted to "sso".*SSO is disabled/m)
+      end
+
+      it 'raises when restrict_to=sso but no provider is configured' do
+        config = fresh_config('AUTH_SSO_ONLY' => 'true', 'AUTH_SSO_ENABLED' => 'true')
+        expect { config.validate_restrict_to! }
+          .to raise_error(Onetime::ConfigError, /no provider is configured/)
+      end
+
+      it 'raises when restrict_to=email_auth but email auth is disabled' do
+        config = fresh_config('AUTH_EMAIL_AUTH_ONLY' => 'true', 'AUTH_EMAIL_AUTH_ENABLED' => 'false')
+        expect { config.validate_restrict_to! }
+          .to raise_error(Onetime::ConfigError, /email auth is disabled/)
+      end
+
+      it 'raises when restrict_to=webauthn but webauthn is disabled' do
+        config = fresh_config('AUTH_WEBAUTHN_ONLY' => 'true', 'AUTH_WEBAUTHN_ENABLED' => 'false')
+        expect { config.validate_restrict_to! }
+          .to raise_error(Onetime::ConfigError, /WebAuthn is disabled/)
+      end
+
+      it 'names the legacy config key when the value came from sso.sso_only' do
+        config = fresh_config('AUTH_LEGACY_SSO_ONLY' => 'true', 'AUTH_SSO_ENABLED' => 'false')
+        expect { config.validate_restrict_to! }
+          .to raise_error(Onetime::ConfigError, /full\.sso\.sso_only \(AUTH_SSO_ONLY\)/)
+      end
+
+      it 'raises on an unrecognised restriction value' do
+        config                                                        = fresh_config
+        config.instance_variable_get(:@config)['full']['restrict_to'] = 'carrier_pigeon'
+        expect { config.validate_restrict_to! }
+          .to raise_error(Onetime::ConfigError, /not a valid restriction/)
+      end
+
+      it 'memoizes so a second call does not re-raise' do
+        config                                                        = fresh_config('AUTH_PASSWORD_ONLY' => 'true')
+        expect(config.validate_restrict_to!).to eq('password')
+        config.instance_variable_get(:@config)['full']['restrict_to'] = 'carrier_pigeon'
+        expect(config.validate_restrict_to!).to eq('password')
+      end
+    end
+  end
+
+  # ── *_only_enabled? convenience predicates ─────────────────────────
+
+  describe '#password_only_enabled?' do
+    it 'returns true when restrict_to is password' do
+      config = fresh_config('AUTH_PASSWORD_ONLY' => 'true')
+      expect(config.password_only_enabled?).to be true
+    end
+
+    it 'returns false by default' do
+      config = fresh_config
+      expect(config.password_only_enabled?).to be false
+    end
+  end
+
+  describe '#email_auth_only_enabled?' do
+    it 'returns true when restrict_to is email_auth and email_auth is enabled' do
+      config = fresh_config('AUTH_EMAIL_AUTH_ONLY' => 'true', 'AUTH_EMAIL_AUTH_ENABLED' => 'true')
+      expect(config.email_auth_only_enabled?).to be true
+    end
+
+    # ADR-034#degradation-is-fail-closed (#4140): the restriction stands
+    # even when the method is unavailable — consumers fail closed rather
+    # than widening to standard mode.
+    it 'stays true when restrict_to is email_auth but email_auth is disabled' do
+      config = fresh_config('AUTH_EMAIL_AUTH_ONLY' => 'true', 'AUTH_EMAIL_AUTH_ENABLED' => 'false')
+      expect(config.email_auth_only_enabled?).to be true
+      expect(config.restrict_to_available?).to be false
+    end
+  end
+
+  describe '#webauthn_only_enabled?' do
+    it 'returns true when restrict_to is webauthn and webauthn is enabled' do
+      config = fresh_config('AUTH_WEBAUTHN_ONLY' => 'true', 'AUTH_WEBAUTHN_ENABLED' => 'true')
+      expect(config.webauthn_only_enabled?).to be true
+    end
+
+    it 'stays true when restrict_to is webauthn but webauthn is disabled' do
+      config = fresh_config('AUTH_WEBAUTHN_ONLY' => 'true', 'AUTH_WEBAUTHN_ENABLED' => 'false')
+      expect(config.webauthn_only_enabled?).to be true
+      expect(config.restrict_to_available?).to be false
+    end
+  end
+
+  describe '#sso_only_enabled?' do
+    it 'returns true when restrict_to is sso, SSO enabled, and provider configured' do
+      config = fresh_config(
+        'AUTH_SSO_ONLY' => 'true',
+        'AUTH_SSO_ENABLED' => 'true',
+        'OIDC_ISSUER' => 'https://example.com',
+        'OIDC_CLIENT_ID' => 'test-client',
+      )
+      expect(config.sso_only_enabled?).to be true
+    end
+
+    # ADR-034#degradation-is-fail-closed (#4140): SSO-only stays engaged
+    # when SSO is unavailable — account management stays locked down and
+    # sign-in fails closed. Widening here would re-expose password
+    # management the operator restricted away.
+    it 'stays true when restrict_to is sso but SSO disabled' do
+      config = fresh_config('AUTH_SSO_ONLY' => 'true', 'AUTH_SSO_ENABLED' => 'false')
+      expect(config.sso_only_enabled?).to be true
+      expect(config.restrict_to_available?).to be false
+    end
+
+    it 'stays true when restrict_to is sso, SSO enabled, but no provider' do
+      ENV.delete('OIDC_ISSUER')
+      ENV.delete('OIDC_CLIENT_ID')
+      config = fresh_config('AUTH_SSO_ONLY' => 'true', 'AUTH_SSO_ENABLED' => 'true')
+      expect(config.sso_only_enabled?).to be true
+      expect(config.restrict_to_available?).to be false
+    end
+  end
+
+  # ── trust_email_for_linking? (#3836 email-linking escape hatch) ─────
+  #
+  # Keys on the ROUTE NAME (the value omniauth_provider returns), reverse-
+  # mapped to the provider's env prefix via the registry. Each provider has
+  # its own *_TRUST_EMAIL_FOR_LINKING var; a global SSO_TRUST_EMAIL_FOR_LINKING
+  # is the deprecated single-OIDC / catch-all fallback.
+
+  describe '#trust_email_for_linking?' do
+    # Route name -> per-provider trust var. Verifies the reverse-mapping
+    # (entra_id != entra != ENTRA) resolves to the right env var for every
+    # registered provider.
+    {
+      'oidc' => 'OIDC_TRUST_EMAIL_FOR_LINKING',
+      'entra' => 'ENTRA_TRUST_EMAIL_FOR_LINKING',
+      'google' => 'GOOGLE_TRUST_EMAIL_FOR_LINKING',
+      'github' => 'GITHUB_TRUST_EMAIL_FOR_LINKING',
+      'gitlab' => 'GITLAB_TRUST_EMAIL_FOR_LINKING',
+      'apple' => 'APPLE_TRUST_EMAIL_FOR_LINKING',
+      'saml' => 'SAML_TRUST_EMAIL_FOR_LINKING',
+    }.each do |route_name, trust_var|
+      context "for the '#{route_name}' route" do
+        it "defaults to false when #{trust_var} is unset" do
+          config = fresh_config
+          expect(config.trust_email_for_linking?(route_name)).to be false
+        end
+
+        it "returns true when #{trust_var}=true" do
+          config = fresh_config(trust_var => 'true')
+          expect(config.trust_email_for_linking?(route_name)).to be true
+        end
+
+        it "returns false when #{trust_var}=false" do
+          config = fresh_config(trust_var => 'false')
+          expect(config.trust_email_for_linking?(route_name)).to be false
+        end
+
+        it "is unaffected by another provider's trust var" do
+          prefixes = %w[OIDC ENTRA GOOGLE GITHUB GITLAB APPLE SAML]
+          other    = (prefixes - [trust_var.delete_suffix('_TRUST_EMAIL_FOR_LINKING')]).first
+          config   = fresh_config("#{other}_TRUST_EMAIL_FOR_LINKING" => 'true')
+          expect(config.trust_email_for_linking?(route_name)).to be false
+        end
+      end
+    end
+
+    it 'accepts a symbol route name (omniauth_provider returns a symbol)' do
+      config = fresh_config('ENTRA_TRUST_EMAIL_FOR_LINKING' => 'true')
+      expect(config.trust_email_for_linking?(:entra)).to be true
+    end
+
+    it 'reverse-maps a custom route name from *_ROUTE_NAME' do
+      config = fresh_config(
+        'OIDC_ROUTE_NAME' => 'zitadel',
+        'OIDC_TRUST_EMAIL_FOR_LINKING' => 'true',
+      )
+      expect(config.trust_email_for_linking?('zitadel')).to be true
+      # The default 'oidc' route name no longer maps to the OIDC definition.
+      expect(config.trust_email_for_linking?('oidc')).to be false
+    end
+
+    it 'returns false for an unknown route name with no global flag' do
+      config = fresh_config
+      expect(config.trust_email_for_linking?('unknown')).to be false
+    end
+
+    context 'global SSO_TRUST_EMAIL_FOR_LINKING fallback' do
+      it 'applies to every provider when no per-provider var is set' do
+        config = fresh_config('SSO_TRUST_EMAIL_FOR_LINKING' => 'true')
+        expect(config.trust_email_for_linking?('oidc')).to be true
+        expect(config.trust_email_for_linking?('entra')).to be true
+        expect(config.trust_email_for_linking?('google')).to be true
+        expect(config.trust_email_for_linking?('github')).to be true
+      end
+
+      it 'is overridden by an explicit per-provider var (per-provider wins)' do
+        config = fresh_config(
+          'SSO_TRUST_EMAIL_FOR_LINKING' => 'true',
+          'ENTRA_TRUST_EMAIL_FOR_LINKING' => 'false',
+        )
+        # entra explicitly opts out; the others still inherit the global true.
+        expect(config.trust_email_for_linking?('entra')).to be false
+        expect(config.trust_email_for_linking?('oidc')).to be true
+      end
+    end
+  end
+
+  describe '#trust_email_for_linking_enabled?' do
+    it 'returns false when no trust flag is set (clean install)' do
+      config = fresh_config
+      expect(config.trust_email_for_linking_enabled?).to be false
+    end
+
+    it 'returns true when the global flag is set' do
+      config = fresh_config('SSO_TRUST_EMAIL_FOR_LINKING' => 'true')
+      expect(config.trust_email_for_linking_enabled?).to be true
+    end
+
+    it 'returns true when any per-provider flag is set' do
+      config = fresh_config('GITHUB_TRUST_EMAIL_FOR_LINKING' => 'true')
+      expect(config.trust_email_for_linking_enabled?).to be true
+    end
+
+    it 'returns false when a per-provider flag is explicitly false' do
+      config = fresh_config('GITHUB_TRUST_EMAIL_FOR_LINKING' => 'false')
+      expect(config.trust_email_for_linking_enabled?).to be false
+    end
+
+    # Truth-table (b) — global true, all provider vars absent → true — is
+    # already covered by 'returns true when the global flag is set' above.
+
+    it 'returns false when the global flag is set but every provider opts out' do
+      # Truth-table (a) — the #3844 fix. A global true with EVERY provider
+      # explicitly false means linking is disabled everywhere; the boot guard
+      # must NOT warn about a flag that has no effect.
+      #
+      # "Every provider" is derived from the registry rather than listed here:
+      # trust_email_for_linking_enabled? iterates provider_definitions, so a
+      # hardcoded list silently stops meaning "every" the moment a provider is
+      # added — the new entry has no explicit var, inherits the global true,
+      # and this example fails for a reason that has nothing to do with the
+      # behaviour under test. (It did, when the roster grew past four.)
+      # Any new trust var must also be added to `env_vars` above so the
+      # before/after hooks restore it.
+      all_opted_out = Onetime::SsoProvider::Registry::DEFINITIONS.to_h do |defn|
+        [defn[:trust_var], 'false']
+      end
+      config        = fresh_config(**{ 'SSO_TRUST_EMAIL_FOR_LINKING' => 'true' }, **all_opted_out)
+      expect(config.trust_email_for_linking_enabled?).to be false
+    end
+
+    it 'returns true when the global flag is set and only some providers opt out' do
+      # Guards against over-correcting the fix: providers WITHOUT an explicit
+      # var still inherit the global true, so the flag remains effectively on.
+      config = fresh_config(
+        'SSO_TRUST_EMAIL_FOR_LINKING' => 'true',
+        'GITHUB_TRUST_EMAIL_FOR_LINKING' => 'false',
+      )
+      expect(config.trust_email_for_linking_enabled?).to be true
+    end
+
+    it 'returns true for a trusted provider on a custom route name' do
+      # Truth-table (c): a custom *_ROUTE_NAME must still round-trip through
+      # provider_definition_for_route back to its own trust var.
+      config = fresh_config(
+        'OIDC_ROUTE_NAME' => 'zitadel',
+        'OIDC_TRUST_EMAIL_FOR_LINKING' => 'true',
+      )
+      expect(config.trust_email_for_linking_enabled?).to be true
+    end
+  end
+
+  # ── RESTRICT_TO_VALUES constant ────────────────────────────────────
+
+  # ── sso_providers: registry delegation and ordering ────────────────
+
+  describe '#sso_providers' do
+    # Enable SSO and give three providers their required env vars.
+    def config_with_three_providers(**extra_env)
+      fresh_config(
+        AUTH_SSO_ENABLED: 'true',
+        GOOGLE_CLIENT_ID: 'gid',
+        GOOGLE_CLIENT_SECRET: 'gs',
+        GITHUB_CLIENT_ID: 'hid',
+        GITHUB_CLIENT_SECRET: 'hs',
+        ENTRA_TENANT_ID: 'tid',
+        ENTRA_CLIENT_ID: 'eid',
+        ENTRA_CLIENT_SECRET: 'es',
+        **extra_env,
+      )
+    end
+
+    it 'lists active providers in registry order by default' do
+      config = config_with_three_providers
+      expect(config.sso_providers.map { |p| p['route_name'] })
+        .to eq(%w[entra google github])
+    end
+
+    it 'honors SSO_PROVIDER_ORDER for listed providers' do
+      config = config_with_three_providers(SSO_PROVIDER_ORDER: 'github, google')
+      expect(config.sso_providers.map { |p| p['route_name'] })
+        .to eq(%w[github google entra])
+    end
+
+    it 'ignores unknown route names in SSO_PROVIDER_ORDER' do
+      config = config_with_three_providers(SSO_PROVIDER_ORDER: 'okta github')
+      expect(config.sso_providers.map { |p| p['route_name'] })
+        .to eq(%w[github entra google])
+    end
+
+    # The gate is required_vars, not registry membership: adding a definition
+    # must not put a button on the login page for every deployment.
+    it 'omits registered providers whose credentials are absent' do
+      config = config_with_three_providers
+      expect(config.sso_providers.map { |p| p['route_name'] })
+        .not_to include('apple')
+    end
+
+    it 'lists a configured Apple provider after the launch four' do
+      config = config_with_three_providers(
+        APPLE_CLIENT_ID: 'com.example.web',
+        APPLE_TEAM_ID: 'TEAM123456',
+        APPLE_KEY_ID: 'KEY1234567',
+        APPLE_PRIVATE_KEY: 'pem',
+      )
+      expect(config.sso_providers.map { |p| p['route_name'] })
+        .to eq(%w[entra google github apple])
+    end
+
+    it 'lists a configured GitLab provider with its default display name' do
+      config = config_with_three_providers(GITLAB_CLIENT_ID: 'lid', GITLAB_CLIENT_SECRET: 'ls')
+      expect(config.sso_providers.last).to include('route_name' => 'gitlab', 'display_name' => 'GitLab')
+    end
+
+    # required_vars is a presence check. A definition may also carry a
+    # :vars_valid predicate for a constraint presence cannot express; the
+    # advertised set must follow it so a provider configure_provider would skip
+    # is never offered as a login button pointing at an unregistered route.
+    # Exercised through #sso_providers, the public gate, with the registry
+    # narrowed to one definition.
+    describe 'the :vars_valid predicate' do
+      def advertised_with(defn, **env)
+        config = fresh_config(AUTH_SSO_ENABLED: 'true', **env)
+        allow(config).to receive(:provider_definitions).and_return([defn])
+        config.sso_providers.map { |p| p['route_name'] }
+      end
+
+      def base = Onetime::SsoProvider::Registry.fetch(:github)
+      def env  = { GITHUB_CLIENT_ID: 'cid', GITHUB_CLIENT_SECRET: 'cs' }
+
+      it 'advertises a provider whose required vars are present and declares no predicate' do
+        expect(advertised_with(base, **env)).to eq(%w[github])
+      end
+
+      it 'omits a provider with a required var absent' do
+        expect(advertised_with(base, GITHUB_CLIENT_ID: 'cid')).to be_empty
+      end
+
+      it 'omits a provider whose predicate answers false' do
+        expect(advertised_with(base.merge(vars_valid: -> { false }), **env)).to be_empty
+      end
+
+      # An install-wide :enabled switch (SAML_ENABLED, #4604) is checked
+      # before presence and before :vars_valid: configure_provider registers
+      # nothing for a switched-off provider, so nothing is advertised.
+      it 'omits a provider whose :enabled switch answers false, before consulting :vars_valid' do
+        consulted = false
+        defn = base.merge(enabled: -> { false }, vars_valid: -> { consulted = true })
+        expect(advertised_with(defn, **env)).to be_empty
+        expect(consulted).to be(false)
+      end
+
+      it 'advertises a provider whose :enabled switch answers true' do
+        expect(advertised_with(base.merge(enabled: -> { true }), **env)).to eq(%w[github])
+      end
+
+      it 'omits a provider whose :enabled switch raises, without raising' do
+        allow(OT).to receive(:lw)
+        defn = base.merge(enabled: -> { raise Onetime::ConfigError, 'X_ENABLED is set to an unrecognized boolean' })
+        expect(advertised_with(defn, **env)).to be_empty
+        expect(OT).to have_received(:lw).with(/enabled switch raised.*X_ENABLED/)
+      end
+
+      # Runs per request and inside the HttpOrigin middleware, so a raising
+      # predicate drops the provider, not the response.
+      it 'omits a provider whose predicate raises, without raising' do
+        defn = base.merge(vars_valid: -> { raise ArgumentError, 'bad value' })
+        expect(advertised_with(defn, **env)).to be_empty
+      end
+    end
+
+    # #4513: an install-wide OIDC issuer known to mismatch its discovery
+    # document cannot sign anyone in (the gem refuses it in the request
+    # phase), so the button must not be offered while that verdict is cached.
+    describe 'a cached install-wide OIDC issuer verdict' do
+      let(:issuer) { 'https://idp.example.com' }
+
+      def oidc_config
+        fresh_config(AUTH_SSO_ENABLED: 'true', OIDC_ISSUER: issuer, OIDC_CLIENT_ID: 'cid')
+      end
+
+      def cache_verdict(discovered)
+        body    = { issuer: discovered }.to_json
+        result  = Onetime::SsoProvider::DiscoveryFetcher::Result.new(
+          status: :ok,
+          url: nil,
+          http_status: 200,
+          http_message: 'OK',
+          content_type: 'application/json',
+          body: body,
+          error: nil,
+        )
+        fetcher = instance_double(Onetime::SsoProvider::DiscoveryFetcher, fetch: result)
+        Onetime::SsoProvider::IssuerValidation.verify(issuer, fetcher: fetcher)
+      end
+
+      before { Onetime::SsoProvider::IssuerValidation.reset! }
+      after { Onetime::SsoProvider::IssuerValidation.reset! }
+
+      it 'advertises OIDC before any verdict exists (lazy check)' do
+        expect(oidc_config.sso_providers.map { |p| p['route_name'] }).to eq(%w[oidc])
+      end
+
+      it 'omits OIDC while a mismatch is cached' do
+        config = oidc_config
+        cache_verdict("#{issuer}/")
+
+        expect(config.sso_providers).to be_empty
+      end
+
+      it 'advertises OIDC when the cached verdict is a match' do
+        config = oidc_config
+        cache_verdict(issuer)
+
+        expect(config.sso_providers.map { |p| p['route_name'] }).to eq(%w[oidc])
+      end
+
+      it 'leaves other providers advertised' do
+        config = fresh_config(
+          AUTH_SSO_ENABLED: 'true',
+          OIDC_ISSUER: issuer,
+          OIDC_CLIENT_ID: 'cid',
+          GITHUB_CLIENT_ID: 'hid',
+          GITHUB_CLIENT_SECRET: 'hs',
+        )
+        cache_verdict("#{issuer}/")
+
+        expect(config.sso_providers.map { |p| p['route_name'] }).to eq(%w[github])
+      end
+
+      # The verdict is per-process display state. It must not reach the
+      # restriction's availability, which also gates custom domains whose own
+      # tenant OIDC is unaffected by the install-wide issuer.
+      def sso_only_config
+        fresh_config(AUTH_SSO_ENABLED: 'true', AUTH_SSO_ONLY: 'true', OIDC_ISSUER: issuer, OIDC_CLIENT_ID: 'cid')
+      end
+
+      it 'keeps restrict_to sso available while a mismatch is cached' do
+        config = sso_only_config
+        cache_verdict("#{issuer}/")
+
+        expect(config.restrict_to).to eq('sso')
+        expect(config.restrict_to_available?).to be(true)
+      end
+
+      it 'keeps the OIDC button under restrict_to sso (an empty list renders the standard form)' do
+        config = sso_only_config
+        cache_verdict("#{issuer}/")
+
+        expect(config.sso_providers.map { |p| p['route_name'] }).to eq(%w[oidc])
+      end
+
+      it 'reports the install-wide issuer for the OIDC route only' do
+        config = oidc_config
+
+        expect(config.install_discovery_issuer_for_route('oidc')).to eq(issuer)
+        expect(config.install_discovery_issuer_for_route('entra')).to be_nil
+        expect(config.install_discovery_issuer_for_route('nope')).to be_nil
+      end
+    end
+
+    # SAML (#4450). Presence is not enough: an unusable trio makes
+    # configure_provider skip the route, so :vars_valid must keep the button
+    # off the login page too.
+    describe 'SAML' do
+      let(:saml_env) do
+        {
+          SAML_ENABLED: 'true',
+          SAML_IDP_SSO_SERVICE_URL: 'https://idp.example.com/saml/sso',
+          SAML_IDP_ENTITY_ID: 'https://idp.example.com/saml/metadata',
+          SAML_IDP_CERT: SamlSpec::TestIdp.new.cert_pem,
+          SAML_SP_ENTITY_ID: 'https://ots.example.com/auth/sso/saml/metadata',
+        }
+      end
+
+      # The install-wide switch (#4604): configure_provider registers no saml
+      # route while it is off, so the button must not be offered either,
+      # however complete and valid the SAML_* vars are.
+      [nil, 'false'].each do |value|
+        it "does not list SAML while SAML_ENABLED is #{value.inspect}, with the vars complete and usable" do
+          config = config_with_three_providers(**saml_env, SAML_ENABLED: value)
+          expect(config.sso_providers.map { |p| p['route_name'] }).to eq(%w[entra google github])
+        end
+      end
+
+      # The SAML-compatible session cookie: :vars_valid (Saml.platform_usable?)
+      # checks it first, and the lane config carries the shipped lax cookie.
+      before do
+        allow(Onetime).to receive(:session_config).and_return('same_site' => 'none', 'secure' => true)
+      end
+
+      # The rule is :vars_valid's, so it must gate the advertised set exactly
+      # as it gates registration (registry_spec pins the boot side).
+      it 'does not list SAML under a session cookie SAML cannot use' do
+        allow(Onetime).to receive(:session_config).and_return('same_site' => 'lax', 'secure' => false)
+
+        config = config_with_three_providers(**saml_env)
+        expect(config.sso_providers.map { |p| p['route_name'] }).to eq(%w[entra google github])
+      end
+
+      it 'lists a configured SAML provider last, with its default label' do
+        config = config_with_three_providers(**saml_env)
+        expect(config.sso_providers.last).to eq('route_name' => 'saml', 'display_name' => 'SAML SSO')
+        expect(config.sso_providers.map { |p| p['route_name'] }).to eq(%w[entra google github saml])
+      end
+
+      it 'honours SAML_ROUTE_NAME and SAML_DISPLAY_NAME' do
+        saved = ENV.fetch('SAML_DISPLAY_NAME', nil)
+        ENV['SAML_DISPLAY_NAME'] = 'Okta'
+        config = config_with_three_providers(**saml_env, SAML_ROUTE_NAME: 'okta')
+        expect(config.sso_providers.last).to eq('route_name' => 'okta', 'display_name' => 'Okta')
+      ensure
+        saved.nil? ? ENV.delete('SAML_DISPLAY_NAME') : ENV['SAML_DISPLAY_NAME'] = saved
+      end
+
+      %i[SAML_IDP_SSO_SERVICE_URL SAML_IDP_ENTITY_ID SAML_IDP_CERT].each do |var|
+        it "omits SAML when #{var} is missing" do
+          config = config_with_three_providers(**saml_env.except(var))
+          expect(config.sso_providers.map { |p| p['route_name'] }).not_to include('saml')
+        end
+      end
+
+      {
+        'the certificate does not parse' => { SAML_IDP_CERT: 'not a certificate' },
+        'the certificate has expired' => {
+          SAML_IDP_CERT: SamlSpec::TestIdp.new(cert_not_after: Time.utc(2020, 1, 2)).cert_pem,
+        },
+        'the SSO service URL is http' => { SAML_IDP_SSO_SERVICE_URL: 'http://idp.example.com/saml/sso' },
+        'the EntityID is whitespace' => { SAML_IDP_ENTITY_ID: '  ' },
+      }.each do |label, overrides|
+        it "does not advertise SAML when #{label}" do
+          config = config_with_three_providers(**saml_env, **overrides)
+          expect(config.sso_providers.map { |p| p['route_name'] }).to eq(%w[entra google github])
+        end
+      end
+    end
+
+    it 'derives definitions from the shared SsoProvider::Registry' do
+      config          = fresh_config
+      registry_routes = Onetime::SsoProvider::Registry::DEFINITIONS.map { |d| d[:route_default] }
+      expect(config.send(:provider_definitions).map { |d| d[:route_default] })
+        .to eq(registry_routes)
+    end
+  end
+
+  describe 'RESTRICT_TO_VALUES' do
+    it 'contains the four valid restriction values' do
+      expect(described_class::RESTRICT_TO_VALUES).to eq(
+        %w[password email_auth webauthn sso],
+      )
+    end
+
+    it 'is frozen' do
+      expect(described_class::RESTRICT_TO_VALUES).to be_frozen
+    end
+  end
+
+  # ── Missing config file (graceful degradation) ─────────────────────
+
+  describe 'when config file is missing' do
+    subject(:config) { described_class.instance }
+
+    before do
+      allow(Onetime::Utils::ConfigResolver).to receive(:resolve)
+        .with('auth').and_return('/nonexistent/auth.yaml')
+      described_class.instance_variable_set(:@singleton__instance__, nil)
+    end
+
+    it 'does not raise on instantiation' do
+      expect { config }.not_to raise_error
+    end
+
+    it 'reports as not configured' do
+      expect(config.configured?).to be false
+    end
+
+    it 'returns nil for mode' do
+      expect(config.mode).to be_nil
+    end
+
+    it 'returns false for full_enabled?' do
+      expect(config.full_enabled?).to be false
+    end
+
+    it 'returns false for simple_enabled?' do
+      expect(config.simple_enabled?).to be false
+    end
+
+    it 'returns empty hash for full' do
+      expect(config.full).to eq({})
+    end
+
+    it 'returns empty hash for simple' do
+      expect(config.simple).to eq({})
+    end
+  end
+end

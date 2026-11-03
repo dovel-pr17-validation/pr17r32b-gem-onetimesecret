@@ -1,0 +1,51 @@
+// src/shared/composables/useLanguage.ts
+
+import { useLanguageStore } from '@/shared/stores/languageStore';
+import { reactive, computed } from 'vue';
+
+import { useAsyncHandler, AsyncHandlerOptions } from './useAsyncHandler';
+
+export function useLanguage(options?: AsyncHandlerOptions) {
+  const languageStore = useLanguageStore();
+
+  const state = reactive({
+    isLoading: false,
+    error: '',
+    success: '',
+  });
+
+  const defaultOptions: AsyncHandlerOptions = {
+    notify: (message, severity) => {
+      if (severity === 'error') {
+        state.error = message;
+      } else {
+        state.success = message;
+      }
+    },
+    setLoading: (loading) => (state.isLoading = loading),
+    onError: () => (state.success = ''),
+    ...options,
+  };
+
+  const { wrap } = useAsyncHandler(defaultOptions);
+
+  // Safe from any component at any time: init() is idempotent and activates
+  // nothing, so a component mounting mid-session cannot re-run locale
+  // selection or replace the active locale. The router activates locales.
+  const initializeLanguage = () => languageStore.init();
+
+  const updateLanguage = (newLocale: string) => wrap(() => languageStore.updateLanguage(newLocale));
+
+  return {
+    // Expose store values through composable (wrapped in computed for reactivity)
+    currentLocale: computed(() => languageStore.getCurrentLocale),
+    pendingLocale: computed(() => languageStore.pendingLocale),
+    supportedLocales: computed(() => languageStore.getSupportedLocales),
+    supportedLocalesWithNames: computed(() => languageStore.supportedLocalesWithNames),
+
+    // Encapsulate business logic and side effects
+    updateLanguage,
+    initializeLanguage,
+    state,
+  };
+}

@@ -1,0 +1,362 @@
+{
+  "web.admin.billing.title": {
+    "text": "Каталог за фактуриране",
+    "source_hash": "bfde7e68"
+  },
+  "web.admin.billing.description": {
+    "text": "Изглед само за четене на конфигурираните планове и техните правомощия, както и на всяко отклонение от активния каталог, синхронизиран със Stripe.",
+    "source_hash": "05d5b332"
+  },
+  "web.admin.billing.retry": {
+    "text": "Повторен опит",
+    "source_hash": "942087cc"
+  },
+  "web.admin.billing.loadError": {
+    "text": "Каталогът за фактуриране не можа да бъде зареден.",
+    "source_hash": "c3110f77"
+  },
+  "web.admin.billing.localConfigWarning": {
+    "text": "Кешът на плановете, синхронизиран със Stripe, е празен, така че активните планове и отклоненията не могат да бъдат оценени. Показва се само конфигурираният каталог (billing.yaml) — типично в среда за разработка или когато Stripe не е конфигуриран.",
+    "source_hash": "905d95f8"
+  },
+  "web.admin.billing.inSync": {
+    "text": "Синхронизиран",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.driftCount": {
+    "text": "{count} разлика(и)",
+    "source_hash": "166538f5"
+  },
+  "web.admin.billing.inSyncDetail": {
+    "text": "Конфигурираният каталог съответства на активните планове. Не е открито отклонение.",
+    "source_hash": "57ab60a6"
+  },
+  "web.admin.billing.columns.planid": {
+    "text": "ИД на плана",
+    "source_hash": "1f0d4dc6"
+  },
+  "web.admin.billing.columns.name": {
+    "text": "Име",
+    "source_hash": "dcd1d522"
+  },
+  "web.admin.billing.columns.tier": {
+    "text": "Ниво",
+    "source_hash": "cb9e8664"
+  },
+  "web.admin.billing.columns.status": {
+    "text": "Състояние",
+    "source_hash": "920e413c"
+  },
+  "web.admin.billing.diff.title": {
+    "text": "Разлика в плана: {planid}",
+    "source_hash": "bc86e5f7"
+  },
+  "web.admin.billing.diff.subtitle": {
+    "text": "Конфигуриран каталог (billing.yaml) спрямо активния план, синхронизиран със Stripe, един до друг.",
+    "source_hash": "d92e93ae"
+  },
+  "web.admin.billing.diff.config": {
+    "text": "Конфигуриран (billing.yaml)",
+    "source_hash": "6bf2ff04"
+  },
+  "web.admin.billing.diff.live": {
+    "text": "Активен (Stripe кеш)",
+    "source_hash": "4886945d"
+  },
+  "web.admin.billing.diff.absentConfig": {
+    "text": "Този план не присъства в конфигурирания каталог.",
+    "source_hash": "0b594c88"
+  },
+  "web.admin.billing.diff.absentLive": {
+    "text": "Този план не присъства в активния кеш, синхронизиран със Stripe.",
+    "source_hash": "c53f31c3"
+  },
+  "web.admin.billing.plans.title": {
+    "text": "Планове",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.admin.billing.plans.empty": {
+    "text": "Не са намерени планове в каталога.",
+    "source_hash": "39db3c13"
+  },
+  "web.admin.billing.plans.viewDiff": {
+    "text": "Преглед на разликата",
+    "source_hash": "0e5d6873"
+  },
+  "web.admin.billing.source.stripe": {
+    "text": "Stripe кеш",
+    "source_hash": "b5577327"
+  },
+  "web.admin.billing.source.localConfig": {
+    "text": "Локална конфигурация",
+    "source_hash": "49de43d2"
+  },
+  "web.admin.billing.stats.configured": {
+    "text": "Конфигурирани планове",
+    "source_hash": "4fda4796"
+  },
+  "web.admin.billing.stats.live": {
+    "text": "Активни планове",
+    "source_hash": "faaa88d9"
+  },
+  "web.admin.billing.stats.source": {
+    "text": "Източник",
+    "source_hash": "0e570ca6"
+  },
+  "web.admin.billing.stats.drift": {
+    "text": "Отклонение",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.billing.status.in_sync": {
+    "text": "Синхронизиран",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.status.only_config": {
+    "text": "Само конфигурация",
+    "source_hash": "15836cba"
+  },
+  "web.admin.billing.status.only_live": {
+    "text": "Само активен",
+    "source_hash": "8f4ed495"
+  },
+  "web.admin.billing.status.changed": {
+    "text": "Променен",
+    "source_hash": "2a6141e4"
+  },
+  "web.admin.billing.diff.backToCatalog": {
+    "text": "Обратно към каталога за таксуване",
+    "source_hash": "8532b373"
+  },
+  "web.admin.billing.diff.driftedFields": {
+    "text": "Полета с разлики:",
+    "source_hash": "9890c95b"
+  },
+  "web.admin.billing.diff.notFound": {
+    "text": "Планът не е в каталога",
+    "source_hash": "0253898b"
+  },
+  "web.admin.billing.diff.notFoundDescription": {
+    "text": "Не е намерен план с идентификатор {planid} в конфигурирания каталог или в синхронизирания кеш на Stripe.",
+    "source_hash": "2e69551c"
+  },
+  "web.admin.billing.stripeOrgs.title": {
+    "text": "Клиенти в Stripe",
+    "source_hash": "0463ae27"
+  },
+  "web.admin.billing.stripeOrgs.description": {
+    "text": "Организации, свързани със запис на клиент в Stripe.",
+    "source_hash": "2ab09aec"
+  },
+  "web.admin.billing.stripeOrgs.searchPlaceholder": {
+    "text": "Търсене по идентификатор на клиент в Stripe",
+    "source_hash": "d5acf08f"
+  },
+  "web.admin.billing.stripeOrgs.empty": {
+    "text": "Няма организации с идентификатор на клиент в Stripe.",
+    "source_hash": "2e373537"
+  },
+  "web.admin.billing.stripeOrgs.emptySearch": {
+    "text": "Няма съвпадение на идентификатор на клиент в Stripe.",
+    "source_hash": "75011174"
+  },
+  "web.admin.billing.stripeOrgs.loadError": {
+    "text": "Не можа да се зареди списъкът с клиенти в Stripe.",
+    "source_hash": "15e2d9a7"
+  },
+  "web.admin.billing.stripeOrgs.unavailable": {
+    "text": "Списъкът с клиенти в Stripe все още не е наличен на този сървър.",
+    "source_hash": "aab6451a"
+  },
+  "web.admin.billing.stripeOrgs.none": {
+    "text": "Няма",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.billing.stripeOrgs.capped": {
+    "text": "Сканирането на индекса достигна лимита си, така че общият брой е долна граница — стеснете търсенето, за да видите останалото.",
+    "source_hash": "20bcaa38"
+  },
+  "web.admin.billing.stripeOrgs.stale": {
+    "text": "{count} запис/записа в индекса на тази страница сочи към организация, която вече не се зарежда, и беше пропуснат.",
+    "source_hash": "51980f83"
+  },
+  "web.admin.billing.stripeOrgs.copyStripeId": {
+    "text": "Копиране на идентификатор на клиент в Stripe",
+    "source_hash": "a77d18b1"
+  },
+  "web.admin.billing.stripeOrgs.columns.organization": {
+    "text": "Организация",
+    "source_hash": "d764d425"
+  },
+  "web.admin.billing.stripeOrgs.columns.owner": {
+    "text": "Собственик",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.billing.stripeOrgs.columns.plan": {
+    "text": "План",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.billing.stripeOrgs.columns.subscription": {
+    "text": "Абонамент",
+    "source_hash": "4999c6c6"
+  },
+  "web.admin.billing.stripeOrgs.columns.stripeCustomer": {
+    "text": "Идентификатор на клиент в Stripe",
+    "source_hash": "7e1d8bbb"
+  },
+  "web.admin.billing.pendingFederated.title": {
+    "text": "Чакащи федерирани абонаменти",
+    "source_hash": "8bc81ff7"
+  },
+  "web.admin.billing.pendingFederated.description": {
+    "text": "Абонаменти, които изчакват потвърден акаунт в този регион да заяви предимствата им.",
+    "source_hash": "e4c714c8"
+  },
+  "web.admin.billing.pendingFederated.correlationRetention": {
+    "text": "Чакащите абонаменти могат да останат до 90 дни, но локалните записи за уебхукове се съхраняват само пет дни. Изтекла или недостъпна корелация не означава конкретен резултат от обработката.",
+    "source_hash": "c846410e"
+  },
+  "web.admin.billing.pendingFederated.loadError": {
+    "text": "Чакащите федерирани абонаменти не можаха да бъдат заредени.",
+    "source_hash": "a1ecc6cb"
+  },
+  "web.admin.billing.pendingFederated.capped": {
+    "text": "Сканирането на чакащите абонаменти достигна лимита си, така че общият брой е долна граница.",
+    "source_hash": "a1e02735"
+  },
+  "web.admin.billing.pendingFederated.stale": {
+    "text": "{count} запис(а) в индекса на тази страница сочат към чакащ абонамент, който вече не се зарежда, и са пропуснати.",
+    "source_hash": "56b4bd53"
+  },
+  "web.admin.billing.pendingFederated.empty": {
+    "text": "Не са намерени чакащи федерирани абонаменти.",
+    "source_hash": "91453fda"
+  },
+  "web.admin.billing.pendingFederated.unresolvedPlan": {
+    "text": "Неопределен",
+    "source_hash": "36afca80"
+  },
+  "web.admin.billing.pendingFederated.columns.status": {
+    "text": "Състояние на абонамента",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.billing.pendingFederated.columns.planid": {
+    "text": "Съхранен ИД на плана",
+    "source_hash": "159600ef"
+  },
+  "web.admin.billing.pendingFederated.columns.region": {
+    "text": "Регион",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.billing.pendingFederated.columns.received": {
+    "text": "Получен",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.pendingFederated.columns.webhook": {
+    "text": "Изходен уебхук",
+    "source_hash": "e96bd1ef"
+  },
+  "web.admin.billing.pendingFederated.webhook.no_correlation": {
+    "text": "Недостъпно — не е записан съответстващ локален уебхук.",
+    "source_hash": "57ed7d3a"
+  },
+  "web.admin.billing.pendingFederated.webhook.expired": {
+    "text": "Недостъпно — съответстващият локален уебхук е изтекъл след пет дни.",
+    "source_hash": "6173ad4b"
+  },
+  "web.admin.billing.webhookEvents.title": {
+    "text": "Stripe уебхук събития",
+    "source_hash": "3a7c05f8"
+  },
+  "web.admin.billing.webhookEvents.description": {
+    "text": "Локален запис само за четене на обработката на уебхуковете от Stripe.",
+    "source_hash": "adc1e97f"
+  },
+  "web.admin.billing.webhookEvents.retention": {
+    "text": "Локалните записи за уебхук събития се съхраняват пет дни. По-старите събития не са достъпни тук.",
+    "source_hash": "de4c2f78"
+  },
+  "web.admin.billing.webhookEvents.loadError": {
+    "text": "Списъкът с уебхук събития не можа да бъде зареден.",
+    "source_hash": "b070d441"
+  },
+  "web.admin.billing.webhookEvents.capped": {
+    "text": "Сканирането на събитията достигна лимита си, така че общият брой е долна граница.",
+    "source_hash": "5b96b15b"
+  },
+  "web.admin.billing.webhookEvents.stale": {
+    "text": "{count} запис(а) в индекса на тази страница сочат към уебхук събитие, което вече не се зарежда, и са пропуснати.",
+    "source_hash": "879c2d98"
+  },
+  "web.admin.billing.webhookEvents.empty": {
+    "text": "Не са намерени локално съхранени уебхук събития.",
+    "source_hash": "7e33e23d"
+  },
+  "web.admin.billing.webhookEvents.viewDetail": {
+    "text": "Преглед на подробностите",
+    "source_hash": "d1bf045b"
+  },
+  "web.admin.billing.webhookEvents.columns.eventId": {
+    "text": "ИД на събитието",
+    "source_hash": "3045abaf"
+  },
+  "web.admin.billing.webhookEvents.columns.type": {
+    "text": "Тип",
+    "source_hash": "baaddf70"
+  },
+  "web.admin.billing.webhookEvents.columns.status": {
+    "text": "Състояние на обработката",
+    "source_hash": "3f6498ae"
+  },
+  "web.admin.billing.webhookEvents.columns.received": {
+    "text": "Получено",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.webhookEvents.columns.outcome": {
+    "text": "Резултат",
+    "source_hash": "4e80abb5"
+  },
+  "web.admin.billing.webhookEvents.detail.title": {
+    "text": "Подробности за уебхук събитието",
+    "source_hash": "829b940c"
+  },
+  "web.admin.billing.webhookEvents.detail.notFound": {
+    "text": "Това локално събитие вече не е достъпно.",
+    "source_hash": "b029d878"
+  },
+  "web.admin.billing.webhookEvents.detail.loadError": {
+    "text": "Подробностите за уебхук събитието не можаха да бъдат заредени.",
+    "source_hash": "39f7a33b"
+  },
+  "web.admin.billing.webhookEvents.detail.received": {
+    "text": "Получено на",
+    "source_hash": "1ddb1a75"
+  },
+  "web.admin.billing.webhookEvents.detail.lastAttempt": {
+    "text": "Последен опит за обработка",
+    "source_hash": "b1325ebb"
+  },
+  "web.admin.billing.webhookEvents.detail.processed": {
+    "text": "Обработено на",
+    "source_hash": "2eb2da28"
+  },
+  "web.admin.billing.webhookEvents.detail.attempts": {
+    "text": "Опити",
+    "source_hash": "06e70139"
+  },
+  "web.admin.billing.webhookEvents.detail.mode": {
+    "text": "Режим",
+    "source_hash": "5e23ec6a"
+  },
+  "web.admin.billing.webhookEvents.detail.live": {
+    "text": "Реален",
+    "source_hash": "b64ac05f"
+  },
+  "web.admin.billing.webhookEvents.detail.test": {
+    "text": "Тестов",
+    "source_hash": "532eaabd"
+  },
+  "web.admin.billing.webhookEvents.detail.apiVersion": {
+    "text": "Версия на Stripe API",
+    "source_hash": "9cd61c6f"
+  }
+}

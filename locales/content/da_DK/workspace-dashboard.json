@@ -1,0 +1,38 @@
+{
+  "web.dashboard.title_received": {
+    "text": "Modtaget",
+    "source_hash": "49f19bee"
+  },
+  "web.dashboard.title_not_received": {
+    "text": "Ikke modtaget",
+    "source_hash": "a4cf12ca"
+  },
+  "web.dashboard.title_no_recent_secrets": {
+    "text": "Ingen nylige beskeder",
+    "source_hash": "02b7b86b"
+  },
+  "web.dashboard.get_started_by_creating_your_first_secret": {
+    "text": "Kom i gang ved at oprette din første besked.",
+    "source_hash": "e96db24d"
+  },
+  "web.dashboard.fetch_error_title": {
+    "text": "Kunne ikke indlæse data",
+    "source_hash": "ba7df1be"
+  },
+  "web.dashboard.fetch_error_description": {
+    "text": "Der opstod et problem med at indlæse dine data. Prøv venligst igen.",
+    "source_hash": "ff0d904e"
+  },
+  "web.teams.create_first_team_title": {
+    "text": "Opret dit første team",
+    "source_hash": "54693f14"
+  },
+  "web.teams.create_first_team_description": {
+    "text": "Med teams kan du samarbejde med andre i et fælles workspace.",
+    "source_hash": "d61b86b5"
+  },
+  "web.teams.create_team": {
+    "text": "Opret team",
+    "source_hash": "284ff194"
+  }
+}

@@ -1,0 +1,1009 @@
+{
+  "web.auth._guidance": {
+    "skip": true,
+    "_meta": {
+      "_purpose": "These messages follow OWASP/NIST guidelines to prevent information disclosure. Translations MUST maintain generic wording to prevent credential enumeration and timing attacks. Never reveal: which credential failed, precise timing, account existence, or attack progress.",
+      "authentication_failed": {
+        "security_note": "MUST NOT reveal which credential failed (password, OTP, or recovery code). This prevents attackers from determining valid credentials or enumerating accounts.",
+        "owasp_ref": "ASVS 2.2.2 - Authentication failure responses must be generic"
+      },
+      "rate_limited": {
+        "security_note": "MUST NOT reveal precise lockout duration, attempt counts, or remaining attempts. This prevents timing attacks and progress tracking.",
+        "owasp_ref": "ASVS 2.2.1 - Account lockout must not be timing-based enumerable"
+      },
+      "session_expired": {
+        "security_note": "Safe to indicate session issue as it doesn't reveal credential information. Helps users understand they need to re-authenticate.",
+        "owasp_ref": "Session management best practices"
+      },
+      "recovery_code_not_found": {
+        "security_note": "Safe to indicate recovery code context as user explicitly selected this authentication method. Does not reveal whether code exists.",
+        "owasp_ref": "Recovery code validation guidance"
+      },
+      "recovery_code_used": {
+        "security_note": "Safe expected behavior message. Users need to know recovery codes are single-use to prevent confusion.",
+        "owasp_ref": "User guidance for recovery mechanisms"
+      }
+    },
+    "_translation_guidelines": {
+      "DO_NOT_translate_as": [
+        "Wrong password",
+        "Invalid OTP code",
+        "Incorrect recovery code",
+        "Wait 5 minutes",
+        "3 attempts remaining",
+        "Account locked for 15 minutes"
+      ],
+      "MUST_translate_as": [
+        "Generic authentication failure (no credential specifics)",
+        "Generic rate limit message (no precise timing)",
+        "Recovery code validation (no existence confirmation)"
+      ],
+      "WHY": "These restrictions prevent attackers from: (1) determining valid usernames/emails, (2) knowing which credential to focus attacks on, (3) conducting timing attacks, (4) measuring attack progress"
+    },
+    "_safe_information": {
+      "format_requirements": "Safe to specify format rules (e.g., 'OTP must be 6 digits')",
+      "expected_behavior": "Safe to describe how features work (e.g., 'Codes expire every 30 seconds')",
+      "recovery_options": "Safe to offer alternatives (e.g., 'Use a recovery code instead')",
+      "general_guidance": "Safe to provide help (e.g., 'Check your authenticator app')"
+    }
+  },
+  "web.auth.mfa_required": {
+    "text": "Me manatoko MFA",
+    "context": "Page heading shown when user must complete MFA to proceed",
+    "source_hash": "e93fd3a4"
+  },
+  "web.auth.mfa_verification_required": {
+    "text": "Me manatoko MFA ki te uru ki tō pūkete",
+    "context": "Explanatory text below the heading",
+    "source_hash": "3cff3311"
+  },
+  "web.auth.complete_mfa_verification": {
+    "text": "Whakaotia te Manatokotanga MFA",
+    "source_hash": "0e681134"
+  },
+  "web.auth.security._guidance": {
+    "skip": true,
+    "context": "⚠️ SECURITY-CRITICAL: Messages prevent information disclosure. See src/locales/SECURITY-TRANSLATION-GUIDE.md"
+  },
+  "web.auth.security.authentication_failed": {
+    "text": "I rahua te whakamotuhēhē. Tēnā manatoko i ō taipitopito me whakamātau anō.",
+    "source_hash": "b0eeece9"
+  },
+  "web.auth.security.rate_limited": {
+    "text": "He nui rawa ngā nganatanga. Tēnā whakamātauria anō ā muri.",
+    "source_hash": "282db6f3"
+  },
+  "web.auth.security.session_expired": {
+    "text": "Kua pau te wātū. Tēnā takiuru anō.",
+    "source_hash": "f6f51186"
+  },
+  "web.auth.security.recovery_code_not_found": {
+    "text": "Kāore i kitea te waehere whakaora. Tēnā manatoko i urungahia tika.",
+    "source_hash": "f5f1bd09"
+  },
+  "web.auth.security.recovery_code_used": {
+    "text": "Kua whakamahia kē tēnei waehere whakaora. Ka taea te whakamahi ia waehere kotahi wā anake.",
+    "source_hash": "b51d6820"
+  },
+  "web.auth.security.network_error": {
+    "text": "Hapa whatunga. Tēnā tirohia tō hononga me whakamātau anō.",
+    "source_hash": "31f2678d"
+  },
+  "web.auth.security.internal_error": {
+    "text": "I puta he hapa. Tēnā whakamātauria anō.",
+    "source_hash": "9c170dda"
+  },
+  "web.auth.methods.password": {
+    "text": "Kupuhipa",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.methods.magicLink": {
+    "text": "Hononga Īmēra",
+    "context": "Passwordless authentication via email link",
+    "source_hash": "1b6ffed2"
+  },
+  "web.auth.methods.webauthn": {
+    "text": "Koiora",
+    "source_hash": "ab2ba7db"
+  },
+  "web.auth.magicLink.title": {
+    "text": "Takiuru mā te Īmēra",
+    "source_hash": "79a864df"
+  },
+  "web.auth.magicLink.description": {
+    "text": "Ka tuku mātou i tētahi hononga takiuru haumaru ki a koe",
+    "source_hash": "5d75aeb0"
+  },
+  "web.auth.magicLink.emailPlaceholder": {
+    "text": "Urunga tō īmēra",
+    "source_hash": "2837f6fa"
+  },
+  "web.auth.magicLink.sendLink": {
+    "text": "Tukua te Hononga Takiuru",
+    "source_hash": "f5f52392"
+  },
+  "web.auth.magicLink.checkEmail": {
+    "text": "Tirohia tō īmēra",
+    "source_hash": "77322879"
+  },
+  "web.auth.magicLink.sentTo": {
+    "text": "I tukuna e mātou he hononga takiuru ki {email}",
+    "source_hash": "d9193f59"
+  },
+  "web.auth.magicLink.linkExpiresIn": {
+    "text": "Ka pau tēnei hononga i roto i te 15 meneti",
+    "source_hash": "91b5f027"
+  },
+  "web.auth.magicLink.tryDifferentEmail": {
+    "text": "Whakamātauria he īmēra kē",
+    "source_hash": "98657c0b"
+  },
+  "web.auth.magicLink.noPasswordNeeded": {
+    "text": "Kāore e hiahiatia te kupuhipa — pāwhiria noa te hononga i roto i tō īmēra",
+    "source_hash": "5f539b97"
+  },
+  "web.auth.magicLink.networkError": {
+    "text": "Hapa whatunga. Tēnā whakamātauria anō.",
+    "source_hash": "9ff8cfaf"
+  },
+  "web.auth.magicLink.requestFailed": {
+    "text": "I rahua te tuku i te hononga takiuru. Tēnā whakamātauria anō.",
+    "source_hash": "4c685e97"
+  },
+  "web.auth.magicLink.invalidLink": {
+    "text": "Hononga takiuru muhu, ngaro rānei",
+    "source_hash": "d726c0da"
+  },
+  "web.auth.magicLink.sessionExpired": {
+    "text": "Kua pau tō wātū. Tēnā, whakahouhia te whārangi ka ngana anō.",
+    "source_hash": "be9ed96d"
+  },
+  "web.auth.magicLink.loginFailed": {
+    "text": "I rahua te takiuru. Tēnā whakamātauria anō.",
+    "source_hash": "c95b4875"
+  },
+  "web.auth.magicLink.signingYouIn": {
+    "text": "E takiuru ana i a koe...",
+    "source_hash": "9d432ef1"
+  },
+  "web.auth.magicLink.pleaseWait": {
+    "text": "Tēnā tatari i a mātou e manatoko ana i tō hononga",
+    "source_hash": "81e4efed"
+  },
+  "web.auth.magicLink.error": {
+    "text": "Hapa Whakamotuhēhē",
+    "source_hash": "797b4f03"
+  },
+  "web.auth.magicLink.back_to_signin": {
+    "text": "Hoki ki te Takiuru",
+    "source_hash": "ee9eb75e"
+  },
+  "web.auth.webauthn.signIn": {
+    "text": "Takiuru mā Face ID / Touch ID",
+    "source_hash": "46f75469"
+  },
+  "web.auth.webauthn.setup": {
+    "text": "Tautuhia te takiuru koiora",
+    "source_hash": "7593dd46"
+  },
+  "web.auth.webauthn.notSupported": {
+    "text": "Kāore e tautokohia te whakamotuhēhētanga koiora i tēnei tirotiro",
+    "source_hash": "fe2a2c2b"
+  },
+  "web.auth.webauthn.requiresModernBrowser": {
+    "text": "Tēnā whakamahia he tirotiro hou e tautoko ana i te WebAuthn (Chrome, Safari, Firefox, Edge rānei)",
+    "source_hash": "fd9752eb"
+  },
+  "web.auth.webauthn.setupSuccess": {
+    "text": "Kua whakahohea te takiuru koiora",
+    "source_hash": "63407e97"
+  },
+  "web.auth.webauthn.setupFailed": {
+    "text": "I rahua te tautuhinga takiuru koiora",
+    "source_hash": "290cca44"
+  },
+  "web.auth.webauthn.passwordRequired": {
+    "text": "Me whai kupuhipa hei whakatū i te kī urunga",
+    "source_hash": "085bb238"
+  },
+  "web.auth.webauthn.authFailed": {
+    "text": "I rahua te whakamotuhēhētanga koiora. Tēnā whakamātauria anō.",
+    "source_hash": "626b9ece"
+  },
+  "web.auth.webauthn.cancelled": {
+    "text": "I whakakore te whakamotuhēhētanga",
+    "source_hash": "57461b04"
+  },
+  "web.auth.webauthn.processing": {
+    "text": "E whakamotuhēhē ana...",
+    "source_hash": "1f6087c2"
+  },
+  "web.auth.webauthn.description": {
+    "text": "Whakamahia tō tapumati, kanohi, kī haumaru rānei hei takiuru",
+    "source_hash": "f02f0427"
+  },
+  "web.auth.webauthn.supportedMethods": {
+    "text": "Ka tautoko i Face ID, Touch ID, Windows Hello, me ngā kī haumaru",
+    "source_hash": "3ea1c1a2"
+  },
+  "web.auth.passkeys.title": {
+    "text": "Ngā Kī Urunga",
+    "context": "Title for passkey management section",
+    "source_hash": "c87ccdb4"
+  },
+  "web.auth.passkeys.description": {
+    "text": "Takiuru mā te Face ID, Touch ID, Windows Hello, te kī haumaru rānei",
+    "context": "Description of passkey authentication",
+    "source_hash": "a513ed5c"
+  },
+  "web.auth.passkeys.setup_description": {
+    "text": "Mā ngā kī urunga koe e takiuru haumaru ai me te kore kupuhipa",
+    "context": "Setup page description",
+    "source_hash": "85630bef"
+  },
+  "web.auth.passkeys.not_configured": {
+    "text": "Kāore anō kia whirihia",
+    "context": "Status when no passkeys are registered",
+    "source_hash": "dd1841d2"
+  },
+  "web.auth.passkeys.count": {
+    "text": "{count} kī urunga kua rēhitatia | {count} ngā kī urunga kua rēhitatia",
+    "context": "Number of registered passkeys",
+    "source_hash": "82e6681f"
+  },
+  "web.auth.passkeys.add_passkey": {
+    "text": "Tāpiri Kī Urunga",
+    "context": "Button to add a new passkey",
+    "source_hash": "93713ad7"
+  },
+  "web.auth.passkeys.register_passkey": {
+    "text": "Rēhita Kī Urunga",
+    "context": "Button to register a new passkey",
+    "source_hash": "26db6968"
+  },
+  "web.auth.passkeys.remove_passkey": {
+    "text": "Tango Kī Urunga",
+    "context": "Button to remove a passkey",
+    "source_hash": "67b1d47c"
+  },
+  "web.auth.passkeys.confirm_remove": {
+    "text": "Kei te tino hiahia koe ki te tango i tēnei kī urunga? E kore koe e taea te takiuru mā tēnei kī ā muri atu.",
+    "context": "Confirmation message for passkey removal",
+    "source_hash": "487ab72c"
+  },
+  "web.auth.passkeys.removed_success": {
+    "text": "Kua tangohia te kī urunga",
+    "context": "Success message after removing passkey",
+    "source_hash": "436c1050"
+  },
+  "web.auth.passkeys.registered_success": {
+    "text": "Kua rēhitatia te kī urunga",
+    "context": "Success message after registering passkey",
+    "source_hash": "fbfb0713"
+  },
+  "web.auth.passkeys.no_passkeys": {
+    "text": "Kāore he kī urunga kua rēhitatia",
+    "context": "Empty state when no passkeys exist",
+    "source_hash": "1d97fde4"
+  },
+  "web.auth.passkeys.no_passkeys_description": {
+    "text": "Tāpirihia he kī urunga hei takiuru haumaru ake me te kore kupuhipa",
+    "context": "Description for empty state",
+    "source_hash": "e5bc07f1"
+  },
+  "web.auth.passkeys.name": {
+    "text": "Kī Urunga",
+    "context": "Label for passkey name field",
+    "source_hash": "904c9aa9"
+  },
+  "web.auth.passkeys.created": {
+    "text": "Kua hangaia",
+    "context": "Label for creation date",
+    "source_hash": "d70b9e24"
+  },
+  "web.auth.passkeys.last_used": {
+    "text": "I whakamahia whakamutunga: {time}",
+    "context": "Last used timestamp",
+    "source_hash": "e1af94fe"
+  },
+  "web.auth.passkeys.never_used": {
+    "text": "Kāore anō kia whakamahia",
+    "context": "Status when passkey has not been used",
+    "source_hash": "24d3236c"
+  },
+  "web.auth.passkeys.benefit_secure": {
+    "text": "Haumaru ake i ngā kupuhipa - kaha ki te ārai whakapae hī",
+    "context": "Passkey benefit",
+    "source_hash": "41afb6ec"
+  },
+  "web.auth.passkeys.benefit_fast": {
+    "text": "Tere, māmā hoki - whakamahia tō tapumati, kanohi, kī haumaru rānei",
+    "context": "Passkey benefit",
+    "source_hash": "5a0ce96c"
+  },
+  "web.auth.passkeys.benefit_synced": {
+    "text": "Ka tukutahi puta noa i ō pūrere ina whakamahi i ngā kaiwhakaū pūhara",
+    "context": "Passkey benefit",
+    "source_hash": "7480c7ae"
+  },
+  "web.auth.passkeys.link_title": {
+    "text": "Ngā Kī Urunga",
+    "context": "Navigation link title",
+    "source_hash": "c87ccdb4"
+  },
+  "web.auth.lockout.attempts_remaining": {
+    "text": "Whakatūpato: E {count} ngā nganatanga takiuru e toe ana",
+    "source_hash": "151dcb5e"
+  },
+  "web.auth.lockout.account_locked": {
+    "text": "Kua rakaina te pūkete nā te maha rawa o ngā nganatanga takiuru hē",
+    "source_hash": "5247f389"
+  },
+  "web.auth.lockout.locked_until": {
+    "text": "Kua rakaina tō pūkete tae noa ki te {time}",
+    "source_hash": "1a8f382e"
+  },
+  "web.auth.lockout.contact_support": {
+    "text": "Whakapā atu ki te tautoko mēnā me uru wawe koe",
+    "source_hash": "23d82e46"
+  },
+  "web.auth.lockout.try_password_reset": {
+    "text": "Ka taea e koe te tautuhi anō i tō kupuhipa kē",
+    "source_hash": "a98a3f9d"
+  },
+  "web.auth.sessions._guidance": {
+    "skip": true,
+    "context": "User's logged-in devices/browsers management page"
+  },
+  "web.auth.sessions.title": {
+    "text": "Ngā Wātū Hohe",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.sessions.current": {
+    "text": "Wātū o Nāianei",
+    "source_hash": "386c7932"
+  },
+  "web.auth.sessions.other": {
+    "text": "Ngā Wātū Kē",
+    "source_hash": "8409f445"
+  },
+  "web.auth.sessions.device": {
+    "text": "Pūrere",
+    "source_hash": "6ba0bdec"
+  },
+  "web.auth.sessions.location": {
+    "text": "Wāhi",
+    "source_hash": "15b61974"
+  },
+  "web.auth.sessions.ip_address": {
+    "text": "Wāhitau IP",
+    "source_hash": "3c3de0c9"
+  },
+  "web.auth.sessions.last_active": {
+    "text": "Hohe Whakamutunga",
+    "source_hash": "b6dc1b95"
+  },
+  "web.auth.sessions.created": {
+    "text": "I hangaia",
+    "source_hash": "d70b9e24"
+  },
+  "web.auth.sessions.remove": {
+    "text": "Tango",
+    "source_hash": "c3812fc4"
+  },
+  "web.auth.sessions.remove_all": {
+    "text": "Takiputa i ngā Wātū Kē Katoa",
+    "source_hash": "412bb9e2"
+  },
+  "web.auth.sessions.confirm_remove": {
+    "text": "Kei te tino hiahia koe ki te tango i tēnei wātū?",
+    "source_hash": "ef12c1ba"
+  },
+  "web.auth.sessions.confirm_remove_all": {
+    "text": "Ka takiputa koe mai i ngā pūrere kē katoa. Kei te tino hiahia koe?",
+    "source_hash": "4a1a73e9"
+  },
+  "web.auth.sessions.no_sessions": {
+    "text": "Kāore he wātū hohe kē",
+    "source_hash": "b83317f2"
+  },
+  "web.auth.sessions.removed_success": {
+    "text": "Kua tangohia te wātū",
+    "source_hash": "6d27d44a"
+  },
+  "web.auth.sessions.removed_all_success": {
+    "text": "Kua takiputa ngā wātū kē katoa",
+    "source_hash": "1b49e75c"
+  },
+  "web.auth.sessions.link_title": {
+    "text": "Ngā Wātū Hohe",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.mfa.title": {
+    "text": "Whakamotuhēhētanga Āhuatanga-Rua",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.mfa.enabled": {
+    "text": "Kua whakahohea te whakamotuhēhētanga āhuatanga-rua",
+    "source_hash": "d27a70c6"
+  },
+  "web.auth.mfa.disabled": {
+    "text": "Kua monokia te whakamotuhēhētanga āhuatanga-rua",
+    "source_hash": "0af18e50"
+  },
+  "web.auth.mfa.enable": {
+    "text": "Whakahohea te Whakamotuhēhētanga Āhuatanga-Rua",
+    "source_hash": "9b83e658"
+  },
+  "web.auth.mfa.disable": {
+    "text": "Monokia te Whakamotuhēhētanga Āhuatanga-Rua",
+    "source_hash": "c9698815"
+  },
+  "web.auth.mfa.setup_title": {
+    "text": "Tautuhia te Whakamotuhēhētanga Āhuatanga-Rua",
+    "source_hash": "04e05601"
+  },
+  "web.auth.mfa.setup_description": {
+    "text": "Tāpirihia he taumata haumaru anō ki tō pūkete",
+    "source_hash": "d47240b9"
+  },
+  "web.auth.mfa.step_scan": {
+    "text": "1. Matawai i te Waehere QR",
+    "source_hash": "efd0134a"
+  },
+  "web.auth.mfa.step_verify": {
+    "text": "2. Manatoko te Tautuhinga",
+    "source_hash": "59bba5f7"
+  },
+  "web.auth.mfa.scan_qr": {
+    "text": "Matawai i tēnei waehere QR ki tō taupānga whakamotuhēhē",
+    "source_hash": "65752db3"
+  },
+  "web.auth.mfa.manual_entry": {
+    "text": "Urunga rānei tēnei waehere ā-ringa",
+    "source_hash": "3ea15b3e"
+  },
+  "web.auth.mfa.verify_code": {
+    "text": "Urunga te waehere mati-6 mai i tō taupānga",
+    "source_hash": "38f61733"
+  },
+  "web.auth.mfa.enter_code": {
+    "text": "Urunga te waehere whakamotuhēhē",
+    "source_hash": "186a582a"
+  },
+  "web.auth.mfa.verify": {
+    "text": "Manatoko me Whakahohea",
+    "source_hash": "7c08f68d"
+  },
+  "web.auth.mfa.verify_login": {
+    "text": "Manatoko",
+    "source_hash": "eea2745e"
+  },
+  "web.auth.mfa.code_required": {
+    "text": "Me whai te waehere whakamotuhēhē",
+    "source_hash": "217de0fc"
+  },
+  "web.auth.mfa.invalid_code": {
+    "text": "He waehere muhu. Ka pau ngā waehere ia 30 hēkona. Whakamātauria te waehere hou rawa mai i tō taupānga whakamotuhēhē.",
+    "source_hash": "94b58889"
+  },
+  "web.auth.mfa.success_enabled": {
+    "text": "Kua whakahohea te whakamotuhēhētanga āhuatanga-rua",
+    "source_hash": "e5aff73d"
+  },
+  "web.auth.mfa.success_disabled": {
+    "text": "Kua monokia te whakamotuhēhētanga āhuatanga-rua",
+    "source_hash": "4fd6b4b4"
+  },
+  "web.auth.mfa.require_password": {
+    "text": "Urunga tō kupuhipa hei monoki i te 2FA",
+    "source_hash": "c384b93c"
+  },
+  "web.auth.mfa.password_confirmation": {
+    "text": "Kupuhipa",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.mfa.password_reason": {
+    "text": "Whakaūngia tō tuakiri hei whakarereke i ngā tautuhinga whakamotuhēhētanga āhuatanga-rua",
+    "source_hash": "09a96c07"
+  },
+  "web.auth.mfa.last_used": {
+    "text": "I whakamahia whakamutunga: {time}",
+    "source_hash": "e1af94fe"
+  },
+  "web.auth.mfa.never_used": {
+    "text": "Kāore anō kia whakamahia",
+    "source_hash": "24d3236c"
+  },
+  "web.auth.mfa.use_recovery_code": {
+    "text": "Whakamahia kē he waehere whakaora",
+    "source_hash": "23d3441a"
+  },
+  "web.auth.mfa.use_recovery_code_short": {
+    "text": "Whakamahia te waehere whakaora",
+    "source_hash": "50d5790d"
+  },
+  "web.auth.mfa.back_to_code": {
+    "text": "Hoki ki te waehere whakamotuhēhē",
+    "source_hash": "6fa090b4"
+  },
+  "web.auth.mfa.cancel": {
+    "text": "Whakakore me hoki ki te takiuru",
+    "source_hash": "83256742"
+  },
+  "web.auth.mfa.cancel_sign_in": {
+    "text": "Whakakore te takiuru",
+    "source_hash": "1bebad2f"
+  },
+  "web.auth.mfa.loading_status": {
+    "text": "E uta ana i te tūnga MFA...",
+    "source_hash": "01919f0e"
+  },
+  "web.auth.mfa.protected_description": {
+    "text": "Kua tiakina tō pūkete ki te whakamotuhēhētanga āhuatanga-rua",
+    "source_hash": "02b9d169"
+  },
+  "web.auth.mfa.enable_description": {
+    "text": "Tiakina tō pūkete ki tētahi taumata haumaru anō",
+    "source_hash": "06d9123b"
+  },
+  "web.auth.mfa.benefit_unauthorized": {
+    "text": "Aukati i te urunga kore-whakaaetia ahakoa kua pāhekeheke tō kupuhipa",
+    "source_hash": "61d99c71"
+  },
+  "web.auth.mfa.benefit_apps": {
+    "text": "Ka mahi ki Google Authenticator, Authy, me ētahi atu taupānga TOTP",
+    "source_hash": "6ee8ab12"
+  },
+  "web.auth.mfa.benefit_recovery": {
+    "text": "Ngā waehere whakaora tāruarua mō te urunga ohorere",
+    "source_hash": "747917bb"
+  },
+  "web.auth.mfa.password_placeholder": {
+    "text": "Urunga tō kupuhipa",
+    "source_hash": "c06bf967"
+  },
+  "web.auth.mfa.disabling": {
+    "text": "E monoki ana...",
+    "source_hash": "e4080e19"
+  },
+  "web.auth.mfa.disable_button": {
+    "text": "Monokia 2FA",
+    "source_hash": "1c3193f3"
+  },
+  "web.auth.mfa.generating_qr": {
+    "text": "E hanga ana i te waehere QR...",
+    "source_hash": "8eab9da9"
+  },
+  "web.auth.mfa.supported_apps": {
+    "text": "Whakamahia Google Authenticator, Authy, tētahi taupānga TOTP rānei",
+    "source_hash": "a8eaef9d"
+  },
+  "web.auth.mfa.continue_verification": {
+    "text": "Haere tonu ki te Manatokotanga",
+    "source_hash": "4da96e87"
+  },
+  "web.auth.mfa.enter_code_description": {
+    "text": "Urunga te waehere mati-6 mai i tō taupānga whakamotuhēhē",
+    "source_hash": "a160dee6"
+  },
+  "web.auth.mfa.enable_and_continue": {
+    "text": "Whakahohea MFA",
+    "source_hash": "37c8090d"
+  },
+  "web.auth.mfa.complete_setup": {
+    "text": "Whakaotia te Tautuhinga",
+    "source_hash": "30e87601"
+  },
+  "web.auth.mfa.enter_recovery_code": {
+    "text": "Urunga tētahi o ō waehere whakaora",
+    "source_hash": "91ab44cf"
+  },
+  "web.auth.mfa.recovery_code_label": {
+    "text": "Waehere Whakaora",
+    "source_hash": "cf25d0fc"
+  },
+  "web.auth.mfa.recovery_code_placeholder": {
+    "text": "Urunga te waehere whakaora",
+    "source_hash": "586d719c"
+  },
+  "web.auth.mfa.verify_recovery_code": {
+    "text": "Manatoko te Waehere Whakaora",
+    "source_hash": "c244c7bd"
+  },
+  "web.auth.mfa.six_digit_code": {
+    "text": "Urunga te waehere whakamotuhēhē mati-6",
+    "source_hash": "36a438ba"
+  },
+  "web.auth.mfa.recovery_code_mode_active": {
+    "text": "Kua hohe te aratau waehere whakaora",
+    "source_hash": "c895f08b"
+  },
+  "web.auth.mfa.otp_mode_active": {
+    "text": "Kua hohe te aratau waehere whakamotuhēhē",
+    "source_hash": "8c44a306"
+  },
+  "web.auth.mfa.enter_all_digits": {
+    "text": "Tēnā urunga ngā mati 6 katoa hei haere tonu",
+    "source_hash": "7914f7b2"
+  },
+  "web.auth.mfa.digit_of_count": {
+    "text": "Mati {current} o te {total}",
+    "source_hash": "879df41a"
+  },
+  "web.auth.recovery_codes.title": {
+    "text": "Ngā Waehere Whakaora",
+    "source_hash": "579c7f4e"
+  },
+  "web.auth.recovery_codes.description": {
+    "text": "Tiakina ēnei waehere ki tētahi wāhi haumaru. Ka taea te whakamahi kotahi wā mēnā ka ngaro tō urunga ki tō taupānga whakamotuhēhē.",
+    "source_hash": "87aebdfb"
+  },
+  "web.auth.recovery_codes.warning": {
+    "text": "Ka whakaaturia ēnei waehere kotahi wā anake",
+    "source_hash": "d13f2877"
+  },
+  "web.auth.recovery_codes.save_required": {
+    "text": "Me tikiake, me tārua rānei ō waehere whakaora i mua i te whakaoti i te tautuhinga.",
+    "source_hash": "6b97bc6d"
+  },
+  "web.auth.recovery_codes.generate_new": {
+    "text": "Hanga Waehere Hou",
+    "source_hash": "4025779e"
+  },
+  "web.auth.recovery_codes.regenerate": {
+    "text": "Whakahou ngā Waehere",
+    "source_hash": "aa652d21"
+  },
+  "web.auth.recovery_codes.generate_new_warning": {
+    "text": "Mā tēnei ka whakakore i ngā waehere whakaora o nāianei katoa",
+    "source_hash": "9795a175"
+  },
+  "web.auth.recovery_codes.download": {
+    "text": "Tikiake ngā Waehere",
+    "source_hash": "9c23dbba"
+  },
+  "web.auth.recovery_codes.downloaded": {
+    "text": "Kua tikiakena ngā waehere whakaora",
+    "source_hash": "10486340"
+  },
+  "web.auth.recovery_codes.print": {
+    "text": "Tā ngā Waehere",
+    "source_hash": "ff940182"
+  },
+  "web.auth.recovery_codes.copy": {
+    "text": "Tārua ngā Waehere Katoa",
+    "source_hash": "ee956b2b"
+  },
+  "web.auth.recovery_codes.copied": {
+    "text": "Kua tāruatia ngā waehere ki te papatopenga",
+    "source_hash": "06ebb466"
+  },
+  "web.auth.recovery_codes.copy_failed": {
+    "text": "I rahua te tārua i ngā waehere ki te papatopenga",
+    "source_hash": "e8be6a51"
+  },
+  "web.auth.recovery_codes.code_used": {
+    "text": "Kua whakamahia",
+    "source_hash": "ae7d8dfa"
+  },
+  "web.auth.recovery_codes.code_unused": {
+    "text": "Kāore anō kia whakamahia",
+    "source_hash": "231aedff"
+  },
+  "web.auth.recovery_codes.remaining": {
+    "text": "{count} o te {limit} waehere whakaora e toe ana",
+    "source_hash": "b5d484e7"
+  },
+  "web.auth.recovery_codes.usage_hint": {
+    "text": "Ka taea te whakamahi i ia waehere kotahi wā anake. Whakahou ngā waehere mēnā kei te iti haere.",
+    "source_hash": "737a7702"
+  },
+  "web.auth.recovery_codes.none_remaining": {
+    "text": "Kāore he waehere whakaora e toe ana",
+    "source_hash": "9ae26d68"
+  },
+  "web.auth.recovery_codes.generate_success": {
+    "text": "Kua hangaia ngā waehere whakaora hou",
+    "source_hash": "831cb1aa"
+  },
+  "web.auth.recovery_codes.link_title": {
+    "text": "Ngā Waehere Whakaora",
+    "source_hash": "579c7f4e"
+  },
+  "web.auth.google": {
+    "text": "Google",
+    "source_hash": "ce770667"
+  },
+  "web.auth.mfa.alternative_auth_options": {
+    "text": "Ngā kōwhiringa motuhēhēnga kē",
+    "source_hash": "5ddea736"
+  },
+  "web.auth.remember.enabled": {
+    "text": "Noho takiuru tonu",
+    "source_hash": "b0a1ca80"
+  },
+  "web.auth.sessions.session_singular": {
+    "text": "wātū",
+    "source_hash": "3f3af1ec"
+  },
+  "web.auth.sessions.session_plural": {
+    "text": "ngā wātū",
+    "source_hash": "1225ae6c"
+  },
+  "web.auth.connections.title": {
+    "text": "Ngā Tuakiri Hono",
+    "source_hash": "e132c4d9"
+  },
+  "web.auth.connections.description": {
+    "text": "Whakahaerea ngā kaiwhakarato takiuru-kotahi kua hono ki tō pūkete.",
+    "source_hash": "42c6d148"
+  },
+  "web.auth.connections.section_title": {
+    "text": "Takiuru-kotahi",
+    "source_hash": "3bc44ac2"
+  },
+  "web.auth.connections.section_subtitle": {
+    "text": "Ngā kaiwhakarato tuakiri ka taea e koe te whakamahi hei takiuru ki tēnei pūkete",
+    "source_hash": "507254cd"
+  },
+  "web.auth.connections.connect_title": {
+    "text": "Hono he kaiwhakarato",
+    "source_hash": "a002b3f3"
+  },
+  "web.auth.connections.connect_description": {
+    "text": "Honoa he kaiwhakarato takiuru-kotahi anō ka taea e koe te whakamahi hei takiuru ki tēnei pūkete.",
+    "source_hash": "32895a5a"
+  },
+  "web.auth.connections.connect_action": {
+    "text": "Honoa {provider}",
+    "context": "Button label to start linking a specific SSO provider; {provider} is the provider display name",
+    "source_hash": "c77540af"
+  },
+  "web.auth.connections.issuer": {
+    "text": "Kaiwhakaputa",
+    "source_hash": "39e02c46"
+  },
+  "web.auth.connections.identifier": {
+    "text": "Tuakiri",
+    "source_hash": "9b10587f"
+  },
+  "web.auth.connections.remove": {
+    "text": "Tangohia",
+    "source_hash": "c3812fc4"
+  },
+  "web.auth.connections.remove_confirm_title": {
+    "text": "Tangohia te tuakiri hono",
+    "source_hash": "4e8ffe4c"
+  },
+  "web.auth.connections.remove_confirm_message": {
+    "text": "Kei te tino hiahia koe ki te tango i tēnei tuakiri hono? Kāore e taea e koe te takiuru mā tēnei.",
+    "source_hash": "64939c89"
+  },
+  "web.auth.connections.removed_success": {
+    "text": "Kua tangohia te tuakiri hono",
+    "source_hash": "cf87daf3"
+  },
+  "web.auth.connections.no_identities": {
+    "text": "Kāore he tuakiri hono",
+    "source_hash": "5254048e"
+  },
+  "web.auth.connections.no_identities_description": {
+    "text": "Kāore anō koe i hono i tētahi kaiwhakarato takiuru-kotahi ki tēnei pūkete.",
+    "source_hash": "0f58d5d0"
+  },
+  "web.auth.connections.overview_status": {
+    "text": "Takiuru-kotahi",
+    "source_hash": "3bc44ac2"
+  },
+  "web.auth.connections.errors.last_credential": {
+    "text": "Ko tēnei tō huarahi takiuru anake. Honoa he kaiwhakarato kē i te tuatahi, whakatūria rānei he kupuhipa mai i Tautuhinga → Haumarutanga, kia kore ai koe e rakaina ki waho.",
+    "source_hash": "3de8084d"
+  },
+  "web.auth.connections.errors.last_credential_sso_enforced": {
+    "text": "Ko tēnei tō huarahi takiuru anake. Honoa he kaiwhakarato kē i te tuatahi kia kore ai koe e rakaina ki waho.",
+    "source_hash": "eed7a50e"
+  },
+  "web.auth.connections.errors.not_found": {
+    "text": "Kāore i kitea taua tuakiri hono. Tērā pea kua tangohia kē.",
+    "source_hash": "cf2c7673"
+  },
+  "web.auth.connections.errors.unauthorized": {
+    "text": "Kua pau te wā o tō hōtaka. Takiurua anō.",
+    "source_hash": "b529fce2"
+  },
+  "web.auth.connections.errors.generic": {
+    "text": "Kāore i taea te whakaoti i taua mahi. Ngana anō.",
+    "source_hash": "a0d4edc0"
+  },
+  "web.link_sso.title": {
+    "text": "Honoa tō tikanga takiuru",
+    "source_hash": "46339bac"
+  },
+  "web.link_sso.prompt": {
+    "text": "I takiuru koe mā {provider}, e ōrite ana ki te pūkete {email} kua noho. Whakauru te kupuhipa o taua pūkete hei hono i a {provider}, ka haere tonu.",
+    "context": "Instruction on the sign-in interstitial. {provider} is a friendly provider name (e.g. Microsoft Entra); {email} is the claimed account email returned by GET /auth/link-sso/:token.",
+    "source_hash": "59da1c08"
+  },
+  "web.link_sso.password_label": {
+    "text": "Kupuhipa",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.link_sso.password_placeholder": {
+    "text": "Tō kupuhipa kua noho",
+    "source_hash": "ad4e56da"
+  },
+  "web.link_sso.submit": {
+    "text": "Honoa, haere tonu",
+    "source_hash": "c969b759"
+  },
+  "web.link_sso.cancel": {
+    "text": "Whakakore",
+    "source_hash": "19766ed6"
+  },
+  "web.link_sso.unavailable_title": {
+    "text": "Kua pau te wā o tēnei tono hono",
+    "source_hash": "b53c7e55"
+  },
+  "web.link_sso.unavailable_message": {
+    "text": "Mō tō haumarutanga, kāore kē te tono hono i tēnei tikanga takiuru e whaimana ana. Takiurua mā tō kupuhipa kua noho, kātahi honoa tēnei kaiwhakarato i raro i ngā tautuhinga Haumarutanga → Ngā tuakiri hono.",
+    "source_hash": "f7e349d1"
+  },
+  "web.link_sso.unavailable_action": {
+    "text": "Haere tonu ki te takiuru",
+    "source_hash": "d398cd0a"
+  },
+  "web.link_sso.errors.invalid_password": {
+    "text": "Kāore taua kupuhipa e ōrite ana ki tēnei pūkete. Ngana anō.",
+    "source_hash": "3259b4f5"
+  },
+  "web.link_sso.errors.invalid_token": {
+    "text": "Kua pau te wā o tēnei tono hono, kua whakamahia kē rānei. Takiurua mā tō kupuhipa kua noho, kātahi honoa tēnei kaiwhakarato mai i ō tautuhinga pūkete.",
+    "source_hash": "541f9127"
+  },
+  "web.link_sso.errors.link_conflict": {
+    "text": "Kāore i taea te hono i tēnei tikanga takiuru. Tērā pea kua huri tō pūkete, kua hono kē rānei tēnei kaiwhakarato ki tētahi pūkete kē. Takiurua mā tō kupuhipa kua noho, kātahi whakahaerea ngā hononga i raro i ngā tautuhinga Haumarutanga → Ngā tuakiri hono.",
+    "source_hash": "7b0e0d0e"
+  },
+  "web.link_sso.errors.link_rate_limited": {
+    "text": "He nui rawa ngā ngana kupuhipa. Tatari mō ētahi meneti, kātahi ngana anō.",
+    "source_hash": "a95e78cd"
+  },
+  "web.link_sso.errors.invalid_request": {
+    "text": "Kāore i taea te whakahaere i tēnei tono hono. Takiurua mā tō kaiwhakarato SSO anō.",
+    "source_hash": "053b9fc6"
+  },
+  "web.link_sso.errors.generic": {
+    "text": "Kāore i taea te hono i tō pūkete. Ngana anō.",
+    "source_hash": "f727c174"
+  },
+  "web.sso_link_confirm.title": {
+    "text": "Whakaūngia te hono i tō pūkete",
+    "source_hash": "ad80bfe7"
+  },
+  "web.sso_link_confirm.prompt": {
+    "text": "I takiuru koe mā {provider}, e ōrite ana ki tō pūkete {email}. Whakaūngia kia hono i a {provider} ki tēnei pūkete, ka whakaoti i te takiuru.",
+    "context": "Consent instruction on the #3840 Phase 4 mailbox-proof SSO linking page. {provider} is a friendly provider name (e.g. Microsoft Entra); {email} is the claimed account email returned by GET /auth/sso-link-confirm/:token. No password is asked — clicking the emailed link is the proof.",
+    "source_hash": "6ff0d6cc"
+  },
+  "web.sso_link_confirm.submit": {
+    "text": "Whakaū, honoa",
+    "source_hash": "5cf663e6"
+  },
+  "web.sso_link_confirm.cancel": {
+    "text": "Whakakore",
+    "source_hash": "19766ed6"
+  },
+  "web.sso_link_confirm.unavailable_title": {
+    "text": "Kāore e taea te whakaoti i tēnei tono hono",
+    "source_hash": "47abb784"
+  },
+  "web.sso_link_confirm.unavailable_message": {
+    "text": "Mō tō haumarutanga, kāore kē tēnei tono hono i tō tikanga takiuru e whaimana ana. Takiurua mā tō kaiwhakarato anō, ka tuku mātou he hononga hou ki tō īmēra.",
+    "source_hash": "080e6f9f"
+  },
+  "web.sso_link_confirm.unavailable_action": {
+    "text": "Hoki ki te takiuru",
+    "source_hash": "8504054f"
+  },
+  "web.sso_link_confirm.errors.link_expired": {
+    "text": "Kua pau te wā o tēnei tono hono, kua whakamahia kē rānei. Takiurua mā tō kaiwhakarato anō, ka tuku mātou he hononga hou ki tō īmēra.",
+    "source_hash": "a50538df"
+  },
+  "web.sso_link_confirm.errors.link_conflict": {
+    "text": "Kāore i taea te hono i tēnei tikanga takiuru. Tērā pea kua huri tō pūkete, kua hono kē rānei tēnei kaiwhakarato ki tētahi pūkete kē. Takiurua mā tō kaiwhakarato anō kia haere tonu.",
+    "source_hash": "c954854b"
+  },
+  "web.sso_link_confirm.errors.link_invalidated": {
+    "text": "I huri ō taipitopito pūkete i muri i te tukutanga o tēnei hononga, nā reira kāore kē e whaimana ana. Takiurua mā tō kaiwhakarato anō, ka tuku mātou he hononga hou ki tō īmēra.",
+    "source_hash": "db88cb1d"
+  },
+  "web.sso_link_confirm.errors.link_error": {
+    "text": "I hē tētahi mea i tō mātou taha, kāore i taea te whakaū i tēnei hononga. Takiurua mā tō kaiwhakarato anō, ka tuku mātou he mea hou ki tō īmēra.",
+    "source_hash": "ec24e0a1"
+  },
+  "web.sso_link_confirm.errors.confirm_rate_limited": {
+    "text": "He nui rawa ngā ngana mai i tō pūrere. Tatari mō ētahi meneti, kātahi whakatuwherahia anō te hononga i īmēratia, takiurua rānei mā tō kaiwhakarato mō tētahi mea hou.",
+    "source_hash": "f29af782"
+  },
+  "web.sso_link_confirm.errors.generic": {
+    "text": "Kāore i taea te whakaū i tēnei hononga. Takiurua mā tō kaiwhakarato anō.",
+    "source_hash": "076fa25a"
+  },
+  "web.auth.mfa.passkey_mode_active": {
+    "text": "Kei te hohe te aratau kī urunga",
+    "source_hash": "824dceb6"
+  },
+  "web.auth.mfa.passkey_prompt": {
+    "text": "Manatokohia ko koe tēnei mā te kī urunga. Ka tono tō pūrere i tō tapumati, kanohi, kī haumaru rānei.",
+    "source_hash": "c0b0cbbc"
+  },
+  "web.auth.mfa.verify_with_passkey": {
+    "text": "Manatokohia mā te kī urunga",
+    "source_hash": "4f105a30"
+  },
+  "web.auth.mfa.use_passkey": {
+    "text": "Whakamahia he kī urunga kē",
+    "source_hash": "bd6430a4"
+  },
+  "web.auth.passkeys.remove_failed": {
+    "text": "Kāore i taea te tango i te kī urunga",
+    "source_hash": "3e131515"
+  },
+  "web.auth.passkeys.load_failed": {
+    "text": "Kāore i taea te uta i ngā kī urunga",
+    "source_hash": "8d704e00"
+  },
+  "web.auth.webauthn.emailRequired": {
+    "text": "Whakaurua tō wāhitau īmēra hei takiuru mā te kī urunga",
+    "source_hash": "7f07647f"
+  },
+  "web.auth.login.verification_unavailable": {
+    "text": "I angitu tō takiuru, engari kāore i taea e mātou te whakaū i tō wātū. Tēnā ngana anō ā tōna wā poto.",
+    "source_hash": "9a19dfc9"
+  },
+  "web.auth.mfa.verification_unavailable": {
+    "text": "I whakaaetia tō kupuhipa, engari kāore i taea e mātou te tīmata i te manatoko āhuatanga-rua. Tēnā ngana anō ā tōna wā poto.",
+    "source_hash": "5fd5e240"
+  },
+  "web.auth.session.ended": {
+    "text": "Kua mutu tō wātū. Tēnā takiuru anō.",
+    "source_hash": "673e9822"
+  },
+  "web.auth.session.replaced": {
+    "text": "I panoni tō takiuru i tētahi atu ripa, nā reira i utaina anō tēnei whārangi.",
+    "source_hash": "3767d43b"
+  },
+  "web.auth.session.stale_session_title": {
+    "text": "Kua tawhito tēnei whārangi",
+    "source_hash": "0293e093"
+  },
+  "web.auth.session.stale_session_notice": {
+    "text": "Kua panoni tō wātū mai i te utanga o tēnei whārangi. Tāruatia ngā mea kāore anō koe kia tiaki, kātahi ka uta anō i te whārangi kia haere tonu ai.",
+    "source_hash": "c62e236c"
+  },
+  "web.auth.session.reload_now": {
+    "text": "Utaina anō te whārangi",
+    "source_hash": "437d0d63"
+  },
+  "web.auth.session.verification_unavailable_title": {
+    "text": "Kāore e taea e mātou te manatoko i tō wātū i tēnei wā",
+    "source_hash": "2130dda1"
+  },
+  "web.auth.session.verification_unavailable_body": {
+    "text": "Kāore koe i takiputaina. Kāore i taea e mātou te toro atu ki te tūmau hei whakaū i tō wātū, nā reira kua hunaia tēnei whārangi kia taea rā anō. Ka ngana tonu mātou.",
+    "source_hash": "bb230c2c"
+  },
+  "web.auth.session.retry": {
+    "text": "Ngana anō",
+    "source_hash": "d8b8392e"
+  },
+  "web.auth.session.retrying": {
+    "text": "E tirotiro ana…",
+    "source_hash": "ec963ffc"
+  },
+  "web.auth.session.retry_failed": {
+    "text": "Kāore tonu e wātea. Tēnā ngana anō ā tōna wā poto.",
+    "source_hash": "b81c022c"
+  }
+}

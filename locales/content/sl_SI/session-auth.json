@@ -1,0 +1,551 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "Potrebujete račun?",
+    "source_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "Registrirajte se.",
+    "source_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "Ste pozabili geslo?",
+    "source_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "Prijava",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "Vnesite svoje poverilnice",
+    "source_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "Zapomni si me",
+    "source_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "Pošlji prijavno povezavo",
+    "source_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "Na vaš e-poštni naslov bo poslana varna povezava.",
+    "source_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "ali",
+    "source_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "Prijava z geslom",
+    "source_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "Uporabi prijavo brez gesla",
+    "source_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "Ustvari račun",
+    "source_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "Nazaj na začetno stran",
+    "source_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "Geslo",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "Čarobna povezava",
+    "source_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "Dostopni ključ",
+    "source_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "Potrebujete pomoč?",
+    "source_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "Ali nadaljujte z",
+    "source_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "Prijava z SSO",
+    "source_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "Prijavite se z {provider}",
+    "source_hash": "b8794f11"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "Preusmerjanje k ponudniku identitete...",
+    "source_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "Prijava SSO ni uspela. Poskusite znova.",
+    "source_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "SSO-avtentikacija ni uspela. Poskusite znova ali se prijavite z geslom.",
+    "source_hash": "13a2210a"
+  },
+  "web.login.errors.token_missing": {
+    "text": "Avtentikacijska povezava je nepopolna. Zahtevajte novo prijavno povezavo.",
+    "source_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "Ta prijavna povezava je potekla. Zahtevajte novo.",
+    "source_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "Ta prijavna povezava ni veljavna. Zahtevajte novo.",
+    "source_hash": "270c6401"
+  },
+  "web.signup.create_your_account": {
+    "text": "Ustvarite svoj račun",
+    "source_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "Že imate račun?",
+    "source_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "Prijavite se.",
+    "source_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "Napaka pri ustvarjanju računa",
+    "source_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "Geslo",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "E-pošta",
+    "source_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": "Email verification flow after signup"
+  },
+  "web.auth.verify.title": {
+    "text": "Potrdite svoj račun",
+    "source_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "Vaš račun je bil uspešno potrjen",
+    "source_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "Neveljaven ali potekel ključ za preverjanje",
+    "source_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "Ta povezava za preverjanje je potekla. Zahtevajte novo.",
+    "source_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "Ta račun je že potrjen. Zdaj se lahko prijavite.",
+    "source_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "Računa ni mogoče potrditi. Poskusite znova ali se obrnite na podporo.",
+    "source_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "Preverite svoj e-poštni predal za povezavo za preverjanje",
+    "source_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "Preverjanje računa ni uspelo. Preverite povezavo za preverjanje ali zahtevajte novo.",
+    "source_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "Preverjanje ni uspelo",
+    "source_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "Kaj naj storim?",
+    "source_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "Preverite svoj e-poštni predal za najnovejšo povezavo za preverjanje",
+    "source_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "Preverite mapo z neželeno pošto, če ne najdete e-pošte",
+    "source_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "Obrnite se na podporo, če imate še naprej težave",
+    "source_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "Potrebna je povezava za preverjanje",
+    "source_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "Za potrditev računa uporabite povezavo za preverjanje, ki smo jo poslali na vaš e-poštni naslov.",
+    "source_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "Ustvari nov račun",
+    "source_hash": "0e24ec84"
+  },
+  "web.auth.change_password.title": {
+    "text": "Spremeni geslo",
+    "source_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "Trenutno geslo",
+    "source_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "Novo geslo",
+    "source_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "Potrdi novo geslo",
+    "source_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "Vaše geslo je bilo uspešno spremenjeno",
+    "source_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "Sprememba gesla ni uspela. Preverite trenutno geslo in poskusite znova.",
+    "source_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "Zapri račun",
+    "source_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "Tega dejanja ni mogoče razveljaviti. Vse vaše skrivnosti bodo trajno izbrisane.",
+    "source_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "Razumem, da je to dejanje trajno",
+    "source_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "Vnesite geslo za potrditev",
+    "source_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "Trajno zapri račun",
+    "source_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "Prekliči",
+    "source_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "Zahtevaj ponastavitev gesla",
+    "source_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "Spodaj vnesite svoj e-poštni naslov in poslali vam bomo povezavo za ponastavitev gesla",
+    "source_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "Pošlji povezavo za ponastavitev",
+    "source_hash": "7d5f16d4"
+  },
+  "web.auth.password_reset.title": {
+    "text": "Izberite novo geslo",
+    "context": "Password reset request flow - user requests a reset link",
+    "source_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "Spodaj vnesite novo geslo. Poskrbite, da bo močno in edinstveno za zaščito vašega računa.",
+    "source_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "Na vaš e-poštni naslov smo poslali povezavo za ponastavitev gesla vašega računa",
+    "source_hash": "63a6af45"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "Strinjam se s",
+    "source_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "Podatki o računu",
+    "context": "User account overview/dashboard section",
+    "source_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "E-poštni naslov",
+    "source_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "Račun ustvarjen",
+    "source_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "E-pošta potrjena",
+    "source_hash": "bc512ab0"
+  },
+  "web.auth.account.region": {
+    "text": "Regija",
+    "source_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "E-pošta ni potrjena",
+    "source_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "Potrdi e-poštni naslov",
+    "source_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "Dvofaktorska avtentikacija",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "Omogočeno",
+    "source_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "Onemogočeno",
+    "source_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "Aktivne seje",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "{count} aktivna seja | {count} aktivni seji | {count} aktivne seje | {count} aktivnih sej",
+    "source_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "Hitra dejanja",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "Upravljaj dvofaktorsko avtentikacijo",
+    "source_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "Upravljaj aktivne seje",
+    "source_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "Spremeni geslo",
+    "source_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "Zapri račun",
+    "source_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "Pomoč in podpora",
+    "source_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "Odpravljanje težav s prijavo",
+    "source_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "Čarobna povezava ne prihaja?",
+    "source_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "Preverite mapo z neželeno pošto",
+    "source_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "Preverite, ali ste pravilno vnesli e-poštni naslov",
+    "source_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "Počakajte nekaj minut – e-pošta ima lahko zamudo",
+    "source_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "Zahtevajte novo povezavo, če je minilo več kot 10 minut",
+    "source_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "Ste pozabili geslo?",
+    "source_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "Zahtevate lahko povezavo za ponastavitev gesla in ustvarite novo geslo.",
+    "source_hash": "3c3eabad"
+  },
+  "web.help.account_locked": {
+    "text": "Račun začasno zaklenjen?",
+    "source_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "Po več neuspelih poskusih prijave se računi iz varnostnih razlogov začasno zaklenejo. Počakajte 15 minut in poskusite znova ali uporabite Čarobno povezavo za prijavo.",
+    "source_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "Še vedno potrebujete pomoč?",
+    "source_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "Če imate še vedno težave, smo tu, da vam pomagamo. Pošljite nam sporočilo in odgovorili vam bomo v najkrajšem možnem času.",
+    "source_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "Obrnite se na podporo",
+    "source_hash": "f8d47b82"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "Račun SSO",
+    "source_hash": "b8f4c728"
+  },
+  "web.help.reset_password_link": {
+    "text": "Ponastavi geslo",
+    "source_hash": "e0edfeb3"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "Enotna prijava (SSO) je na voljo za to domeno",
+    "source_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "Skrbnik organizacije lahko omogoči SSO, da se člani ekipe lahko prijavijo tukaj. Za dostop se obrnite na skrbnika.",
+    "source_hash": "f3726509"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "Prijava ni na voljo",
+    "source_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "Prijava trenutno ni na voljo na tej domeni.",
+    "source_hash": "b681c35d"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "Enotna prijava (SSO) za to domeno ni nastavljena. Obrnite se na svojega skrbnika.",
+    "source_hash": "b39ef93e"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "E-poštni naslov vašega ponudnika identitete ni veljaven. Obrnite se na svojega skrbnika.",
+    "source_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "Vaša e-poštna domena ni pooblaščena za registracijo prek SSO. Obrnite se na svojega skrbnika.",
+    "source_hash": "87603782"
+  },
+  "web.auth.check_email.title": {
+    "text": "Preverite svojo e-pošto",
+    "source_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "Povezavo za preverjanje smo poslali na naslov:",
+    "source_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "Na vaš e-poštni naslov smo poslali povezavo za preverjanje.",
+    "source_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "Kliknite povezavo v e-poštnem sporočilu, da aktivirate račun.",
+    "source_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "Ne najdete? Preverite mapo z neželeno pošto.",
+    "source_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "Ste vnesli napačen naslov?",
+    "source_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "Začni znova",
+    "source_hash": "5eed7e9f"
+  },
+  "web.auth.field-errors.password": {
+    "text": "Geslo",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "Niste prejeli e-poštnega sporočila za preverjanje? Vnesite svoj e-poštni naslov za ponovno pošiljanje.",
+    "source_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "Ponovno pošlji e-pošto za preverjanje",
+    "source_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "Če račun potrebuje preverjanje, je bilo poslano novo e-poštno sporočilo. Preverite mapo prejetih in mapo z neželeno pošto.",
+    "source_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "E-poštnega sporočila za preverjanje ni bilo mogoče poslati. Preverite povezavo in poskusite znova.",
+    "source_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "Ponovno pošlji e-pošto",
+    "source_hash": "4f44603e"
+  },
+  "web.login.verified_notice": {
+    "text": "Vaša e-pošta je bila preverjena — zdaj se lahko prijavite.",
+    "source_hash": "c8d4b5a8"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "Nastavite geslo",
+    "source_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "Vaš račun še nima gesla. Po e-pošti vam bomo poslali varno povezavo za nastavitev, da se boste lahko prijavili tudi neposredno.",
+    "source_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "Pošlji povezavo za nastavitev",
+    "source_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "Poslali smo vam e-pošto s povezavo za nastavitev gesla za vaš račun",
+    "source_hash": "82b686c7"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "Račun s tem e-poštnim naslovom že obstaja, vendar ni povezan s tem načinom prijave. Prijavite se z obstoječim načinom, nato povežite tega ponudnika v Varnostne nastavitve → Povezane identitete.",
+    "source_hash": "7fbbb7e7"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "Te identitete ni bilo mogoče povezati. Morda že pripada drugemu računu.",
+    "source_hash": "d8b71cf8"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "Vašega dodajanja v organizacijo nismo mogli dokončati. Prosimo, obrnite se na svojega skrbnika.",
+    "source_hash": "155e71bb"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "Tega načina prijave nismo mogli povezati. Prijavite se z obstoječim geslom, nato povežite tega ponudnika v Varnostne nastavitve → Povezane identitete.",
+    "source_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "Preverite svojo mapo s prejeto pošto — poslali smo vam e-pošto s povezavo za potrditev povezave vašega računa. Odprite jo za dokončanje prijave.",
+    "source_hash": "b251c8f3"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "Prijava je bila preklicana. Poskusite znova, ko boste pripravljeni.",
+    "source_hash": "b5f3d3ec"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "Prijava s tem ponudnikom je napačno konfigurirana. Obrnite se na svojega skrbnika.",
+    "source_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "Enotna prijava (SSO) za to domeno je konfigurirana, vendar trenutno ni uporabna. Obrnite se na skrbnika svoje organizacije.",
+    "source_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "Enotna prijava (SSO) za to domeno še ni aktivna, ker preverjanje domene še ni končano. Obrnite se na svojega skrbnika.",
+    "source_hash": "bd981480"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "Ta identiteta ni povezana z nobenim računom na tej domeni. Če se na tej domeni lahko prijavite z računom, ki pripada tej organizaciji, jo povežite v razdelku „Povezane identitete“. V nasprotnem primeru prosite lastnika organizacije, naj povabi to identiteto SSO, ali se obrnite na podporo.",
+    "source_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "Te identitete na tej domeni ni bilo mogoče povezati. Povezovanje začnite na spletnem mestu, na katerem ste prijavljeni; na domeni organizacije mora vaš račun že pripadati tej organizaciji.",
+    "source_hash": "d967c761"
+  }
+}

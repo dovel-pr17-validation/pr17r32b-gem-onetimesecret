@@ -1,0 +1,38 @@
+{
+  "web.dashboard.title_received": {
+    "text": "Alındı",
+    "source_hash": "49f19bee"
+  },
+  "web.dashboard.title_not_received": {
+    "text": "Alınmadı",
+    "source_hash": "a4cf12ca"
+  },
+  "web.dashboard.title_no_recent_secrets": {
+    "text": "Son gizli mesaj yok",
+    "source_hash": "02b7b86b"
+  },
+  "web.dashboard.get_started_by_creating_your_first_secret": {
+    "text": "İlk gizli mesajınızı oluşturarak başlayın.",
+    "source_hash": "e96db24d"
+  },
+  "web.dashboard.fetch_error_title": {
+    "text": "Veriler yüklenemedi",
+    "source_hash": "ba7df1be"
+  },
+  "web.dashboard.fetch_error_description": {
+    "text": "Verileriniz yüklenirken bir sorun oluştu. Lütfen tekrar deneyin.",
+    "source_hash": "ff0d904e"
+  },
+  "web.teams.create_first_team_title": {
+    "text": "İlk ekibinizi oluşturun",
+    "source_hash": "54693f14"
+  },
+  "web.teams.create_first_team_description": {
+    "text": "Ekipler, paylaşılan bir çalışma alanında başkalarıyla iş birliği yapmanızı sağlar.",
+    "source_hash": "d61b86b5"
+  },
+  "web.teams.create_team": {
+    "text": "Ekip oluştur",
+    "source_hash": "284ff194"
+  }
+}

@@ -1,0 +1,534 @@
+# apps/web/core/spec/controllers/page_bootstrap_me_spec.rb
+#
+# frozen_string_literal: true
+
+# Integration tests for GET /bootstrap/me endpoint
+#
+# This endpoint returns JSON with the full OnetimeWindow payload for client-side
+# state initialization. It's called every 15 minutes to refresh client state
+# and after login/MFA completion.
+#
+# Run with:
+#   tests/lanes/run unit --only apps/web/core/spec/controllers/page_bootstrap_me_spec.rb
+
+require_relative '../../../../../spec/integration/integration_spec_helper'
+
+RSpec.describe 'GET /bootstrap/me', type: :integration do
+  include Rack::Test::Methods
+
+  def app
+    @app
+  end
+
+  before(:all) do
+    require 'rack'
+    require 'rack/mock'
+    @original_conf           = OT.conf
+    @original_execution_mode = OT.execution_mode
+    @original_familia_uri    = Familia.uri
+    @app = Rack::Builder.parse_file('config.ru')
+  end
+
+  after(:all) do
+    OT.reset_all_boot_state!
+    OT.replace_config!(@original_conf)
+    OT.execution_mode = @original_execution_mode
+    Familia.uri = @original_familia_uri
+    Onetime::Application::Registry.reset!
+  end
+
+  describe 'response format' do
+    it 'returns HTTP 200' do
+      get '/bootstrap/me'
+      expect(last_response.status).to eq(200)
+    end
+
+    it 'returns JSON content type' do
+      get '/bootstrap/me'
+      expect(last_response.content_type).to include('application/json')
+    end
+
+    it 'returns valid JSON body' do
+      get '/bootstrap/me'
+      expect { JSON.parse(last_response.body) }.not_to raise_error
+    end
+
+    it 'prevents storage of the personalized bootstrap response' do
+      get '/bootstrap/me'
+      expect(last_response.headers['Cache-Control']).to eq('private, no-store')
+    end
+  end
+
+  describe 'personalized HTML response caching' do
+    it 'prevents storage of the rendered Web Core shell', :aggregate_failures do
+      get '/'
+
+      expect(last_response.status).to eq(200)
+      expect(last_response.content_type).to include('text/html')
+      expect(last_response.headers['Cache-Control']).to eq('private, no-store')
+    end
+  end
+
+  describe 'bootstrap diagnostics' do
+    it 'retains request correlation and state flags without session identifiers or PII' do
+      logger = spy('session_logger')
+      allow(Onetime).to receive(:get_logger).and_call_original
+      allow(Onetime).to receive(:get_logger).with('Session').and_return(logger)
+      allow(Onetime).to receive(:session_logger).and_return(logger)
+      allow(OT).to receive(:debug?).and_return(true)
+
+      get '/bootstrap/me', {}, { 'HTTP_X_REQUEST_ID' => 'request-4461' }
+
+      expect(logger).to have_received(:debug).with(
+        'Exporting bootstrap state',
+        {
+          session_class: kind_of(String),
+          authenticated: false,
+          has_external_id: false,
+          authenticated_check: false,
+          request_id: 'request-4461',
+        },
+      )
+      expect(logger).to have_received(:debug).with(
+        'Session',
+        {
+          module: 'InitializeViewVars',
+          session_class: kind_of(String),
+          has_account_id: false,
+          has_external_id: false,
+          awaiting_mfa: false,
+          authenticated: false,
+          auth_status: 'anonymous',
+          request_id: 'request-4461',
+        },
+      )
+    end
+
+    # #4455: the verification line is for polls that carried a session claim
+    # (spec/integration/full/passive_verification_spec.rb asserts its counts).
+    # A visitor with no session is most of the traffic and verifies nothing.
+    it 'writes no verification line for a visitor without a session' do
+      logger = spy('session_logger')
+      allow(Onetime).to receive(:get_logger).and_call_original
+      allow(Onetime).to receive(:get_logger).with('Session').and_return(logger)
+      allow(Onetime).to receive(:session_logger).and_return(logger)
+
+      get '/bootstrap/me', {}, { 'HTTP_X_REQUEST_ID' => 'request-4455' }
+
+      expect(last_response.status).to eq(200)
+      expect(logger).not_to have_received(:info).with('Bootstrap verification', anything)
+    end
+
+    # `authenticated?` runs the full CustomerSessionEvaluator (customer load
+    # + active-session gate). Ruby always evaluates method arguments, so a
+    # naive `logger.debug 'msg', { authenticated_check: authenticated? }`
+    # would fire that evaluator on every request even when the logger is
+    # silenced. The OT.debug? guard around the whole log call keeps the
+    # evaluator dormant when diagnostics are off.
+    it 'does not evaluate authenticated? when OT.debug? is false' do
+      allow(OT).to receive(:debug?).and_return(false)
+      expect_any_instance_of(Core::Controllers::Page).not_to receive(:authenticated?)
+
+      get '/bootstrap/me'
+
+      expect(last_response.status).to eq(200)
+    end
+  end
+
+  describe 'anonymous user' do
+    # #4462: the status is the statement; the booleans are its projections.
+    it 'returns auth_status anonymous, agreeing with both projections', :aggregate_failures do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+
+      expect(data['auth_status']).to eq('anonymous')
+      expect(data['authenticated']).to be false
+      expect(data['awaiting_mfa']).to be false
+      expect(data['cust']).to be_nil
+    end
+
+    it 'carries no session-failure code: a public surface speaks through auth_status' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+
+      expect(data).not_to have_key('code')
+      expect(data).not_to have_key('code_scope')
+    end
+
+    # ADR-046: an anonymous session is not ordered. The keys are OMITTED, not
+    # null: the schema rejects null and would fail the whole payload.
+    it 'carries no snapshot ordering fields' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+
+      expect(data.keys.grep(/\Asnapshot_/)).to be_empty
+      expect(last_response.body).not_to include('snapshot_')
+    end
+
+    it 'returns authenticated as false' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['authenticated']).to be false
+    end
+
+    it 'returns awaiting_mfa as false' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['awaiting_mfa']).to be false
+    end
+
+    it 'returns cust as null for anonymous users' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      # Anonymous users get null cust to match frontend customerCanonical.nullable() schema
+      # (PR #2733) - cannot send object with nil fields since schema requires non-null objid
+      expect(data['cust']).to be_nil
+    end
+
+    it 'returns custid as nil for anonymous user' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['custid']).to be_nil
+    end
+
+    it 'returns email as nil for anonymous user' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['email']).to be_nil
+    end
+  end
+
+  describe 'CSRF token (shrimp)' do
+    it 'includes shrimp key in response' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      # The shrimp key should always be present in the response structure
+      # Value may be nil if CSRF middleware hasn't generated a token yet
+      expect(data).to have_key('shrimp')
+    end
+
+    it 'returns different masked shrimp tokens on each request (BREACH mitigation)' do
+      # First request establishes session
+      get '/bootstrap/me'
+      first_shrimp = JSON.parse(last_response.body)['shrimp']
+
+      # Second request with cookies should have different masked token
+      # (same underlying session token, but masked differently each time)
+      get '/bootstrap/me'
+      second_shrimp = JSON.parse(last_response.body)['shrimp']
+
+      # Masked tokens should differ (BREACH mitigation), but both should be non-nil
+      expect(first_shrimp).not_to be_nil
+      expect(second_shrimp).not_to be_nil
+      expect(first_shrimp).not_to eq(second_shrimp)
+    end
+  end
+
+  describe 'locale settings' do
+    it 'returns locale value' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['locale']).not_to be_nil
+    end
+
+    it 'returns default_locale value' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['default_locale']).not_to be_nil
+    end
+
+    it 'returns supported_locales array' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['supported_locales']).to be_an(Array)
+    end
+
+    it 'returns i18n_enabled flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('i18n_enabled')
+    end
+
+    it 'returns fallback_locale value' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('fallback_locale')
+    end
+  end
+
+  describe 'configuration settings' do
+    it 'returns site_host' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['site_host']).not_to be_nil
+    end
+
+    it 'returns authentication config' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('authentication')
+    end
+
+    it 'returns secret_options' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('secret_options')
+    end
+
+    it 'returns domains_enabled flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('domains_enabled')
+    end
+
+    it 'returns regions_enabled flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('regions_enabled')
+    end
+
+    it 'returns billing_enabled flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('billing_enabled')
+    end
+
+    it 'returns features hash' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['features']).to be_a(Hash)
+    end
+  end
+
+  # These requests are unauthenticated (no session is established above), so
+  # they exercise the anonymous branch of SystemSerializer. Version details are
+  # deliberately withheld there: an exact app/Ruby version pairing is the
+  # primary input to fingerprinting an install against known CVEs.
+  #
+  # The keys must still be PRESENT and non-nil — the frontend contract types
+  # them as `z.string()`, so a JSON null would fail Zod validation and reject
+  # the whole bootstrap payload.
+  describe 'system information' do
+    it 'returns ot_version as a string, withheld while anonymous' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['ot_version']).to eq('')
+    end
+
+    it 'returns ot_version_long as a string, withheld while anonymous' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['ot_version_long']).to eq('')
+    end
+
+    it 'returns ruby_version as a string, withheld while anonymous' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['ruby_version']).to eq('')
+    end
+
+    it 'never emits nil for version fields (would break the Zod contract)' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      %w[ot_version ot_version_long ruby_version].each do |key|
+        expect(data[key]).to be_a(String), "Expected '#{key}' to be a String, got #{data[key].inspect}"
+      end
+    end
+
+    # RISK-2026-08-14-M08: the CSP nonce is a server-side value for the shell's
+    # script and link tags; publishing it in the JSON payload weakened the
+    # nonce-only policy against HTML injection. It must not come back.
+    it 'does not emit the CSP nonce' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).not_to have_key('nonce')
+    end
+  end
+
+  describe 'domain configuration' do
+    it 'returns domain_strategy' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('domain_strategy')
+    end
+
+    it 'returns canonical_domain' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('canonical_domain')
+    end
+
+    it 'returns display_domain' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('display_domain')
+    end
+
+    it 'returns domain_context key' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('domain_context')
+    end
+
+    it 'returns nil domain_context for anonymous user' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      # Anonymous users don't have domain_context set
+      expect(data['domain_context']).to be_nil
+    end
+  end
+
+  describe 'messages serializer' do
+    it 'returns messages key' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('messages')
+    end
+  end
+
+  describe 'development settings' do
+    it 'returns development config hash' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['development']).to be_a(Hash)
+    end
+
+    it 'returns frontend_development flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('frontend_development')
+    end
+
+    it 'returns frontend_host' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data).to have_key('frontend_host')
+    end
+  end
+
+  describe 'response structure completeness' do
+    # These are the keys from all serializers that should be present
+    let(:authentication_keys) do
+      %w[auth_status authenticated awaiting_mfa custid cust email customer_since]
+    end
+
+    let(:config_keys) do
+      %w[ui authentication homepage_mode secret_options site_host
+         regions_enabled domains_enabled billing_enabled
+         frontend_development frontend_host development features]
+    end
+
+    let(:domain_keys) do
+      %w[domain_strategy canonical_domain display_domain domain_context]
+    end
+
+    let(:i18n_keys) do
+      %w[locale default_locale fallback_locale supported_locales i18n_enabled]
+    end
+
+    let(:system_keys) do
+      %w[ot_version ot_version_long ruby_version shrimp]
+    end
+
+    it 'includes all authentication serializer keys' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      authentication_keys.each do |key|
+        expect(data).to have_key(key), "Expected response to include '#{key}'"
+      end
+    end
+
+    it 'includes all config serializer keys' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      config_keys.each do |key|
+        expect(data).to have_key(key), "Expected response to include '#{key}'"
+      end
+    end
+
+    it 'includes all domain serializer keys' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      domain_keys.each do |key|
+        expect(data).to have_key(key), "Expected response to include '#{key}'"
+      end
+    end
+
+    it 'includes all i18n serializer keys' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      i18n_keys.each do |key|
+        expect(data).to have_key(key), "Expected response to include '#{key}'"
+      end
+    end
+
+    it 'includes all system serializer keys' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      system_keys.each do |key|
+        expect(data).to have_key(key), "Expected response to include '#{key}'"
+      end
+    end
+  end
+
+  describe 'no auth requirement' do
+    # The endpoint has auth=noauth, meaning it should work without any authentication
+    it 'returns successfully without any session cookies' do
+      # Use a fresh browser with no cookies
+      clear_cookies
+      get '/bootstrap/me'
+      expect(last_response.status).to eq(200)
+    end
+
+    it 'does not redirect unauthenticated users' do
+      clear_cookies
+      get '/bootstrap/me'
+      expect(last_response.status).not_to eq(302)
+      expect(last_response.status).not_to eq(301)
+    end
+  end
+
+  describe 'feature flags in features hash' do
+    it 'includes lockout feature flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['features']).to have_key('lockout')
+    end
+
+    it 'includes password_requirements feature flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['features']).to have_key('password_requirements')
+    end
+
+    it 'includes active_sessions feature flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['features']).to have_key('active_sessions')
+    end
+
+    it 'includes remember_me feature flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['features']).to have_key('remember_me')
+    end
+
+    it 'includes mfa feature flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['features']).to have_key('mfa')
+    end
+
+    it 'includes email_auth feature flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['features']).to have_key('email_auth')
+    end
+
+    it 'includes webauthn feature flag' do
+      get '/bootstrap/me'
+      data = JSON.parse(last_response.body)
+      expect(data['features']).to have_key('webauthn')
+    end
+  end
+end

@@ -1,0 +1,528 @@
+# try/support/test_helpers.rb
+#
+# frozen_string_literal: true
+
+# Common test helpers for Tryouts tests.
+#
+# IMPORTANT: This file must be required BEFORE loading config.ru in integration
+# tests that use Rack::MockRequest. It sets up the test environment properly.
+
+# Force RACK_ENV=test to disable Rack::Lint middleware (which requires all
+# HTTP_* env vars to be strings - incompatible with Rack::MockRequest defaults).
+# Must use = not ||= because tryouts framework may set RACK_ENV=development.
+ENV['RACK_ENV'] = 'test'
+ENV['ONETIME_HOME'] ||= File.expand_path(File.join(__dir__, '..', '..')).freeze
+
+# ── Per-worktree datastore isolation (#4168), mirrored for raw invocations ──
+#
+# The app under test connects to what spec/config.test.yaml derives: a literal
+# 127.0.0.1:2163 with the DB index taken from LANES_DATASTORE_DB (VALKEY_URL /
+# REDIS_URL are not consulted there; #2128 centralized the URL in config).
+# Under tests/lanes/run the index is derived per lane+worktree and exported, so
+# concurrent runs never share keys. A raw `bundle exec try` had no index and
+# collapsed onto the shared DB 0 — along with every other raw run in every
+# worktree and every interactive rspec run (which FLUSHDBs after each
+# integration example). Any concurrent writer there breaks the exact-count
+# assertions tryouts make on globally-keyed state (colonel_audit_event:events,
+# session:* scans), which is the "a different file fails each run" flake.
+#
+# So: when no runner provided a usable index, derive one here from this
+# checkout's own path. The resolution lives in datastore_db.rb, shared with
+# `pnpm run test:database:clean` so the documented cleanup targets the same
+# database raw runs actually write.
+require_relative 'datastore_db'
+db = TryoutsDatastoreDB.provided
+unless db
+  isolation_key = TryoutsDatastoreDB.isolation_key
+  db = TryoutsDatastoreDB.index
+  ENV['LANES_DATASTORE_DB'] = db
+
+  # Claim the index with the runner's own owner marker (_lanes:owner inside
+  # the selected DB) so a checksum collision between this derivation and some
+  # lane run's — different inputs, same 65535-slot space — aborts loudly
+  # instead of silently sharing, the same choice the runner's preflight makes.
+  # Staleness = the owner's root (field 3) no longer exists on disk. Skipped
+  # when the runner supplied the index: the runner already ran this check.
+  # Best-effort: any connection/protocol failure lets the run proceed (boot
+  # reports an unreachable datastore on its own).
+  if db != '0'
+    begin
+      require 'redis'
+      marker = Redis.new(url: "redis://127.0.0.1:2163/#{db}",
+                         connect_timeout: 1, timeout: 1)
+      marker.set('_lanes:owner', isolation_key, nx: true)
+      owner = marker.get('_lanes:owner')
+      if owner && owner != isolation_key
+        owner_root = owner.split('|', 3)[2].to_s
+        if File.directory?(owner_root)
+          abort "error: valkey DB #{db} is in use by another live run: #{owner}\n" \
+                "  this run: #{isolation_key}\n" \
+                'hint: pin a free index by exporting LANES_DATASTORE_DB'
+        end
+        marker.set('_lanes:owner', isolation_key)
+        owner = marker.get('_lanes:owner')
+        if owner != isolation_key
+          abort "error: valkey DB #{db} was claimed mid-takeover by: #{owner}"
+        end
+      end
+      marker.close
+    rescue StandardError
+      nil
+    end
+  end
+end
+
+# Point the env URLs at the SAME database the config will derive, so anything
+# reading the env directly (BillingTestHelpers.ensure_familia_configured!,
+# zset_indexer_try) agrees with Familia.uri — previously these pinned /0 while
+# a lane-run process connected to /<derived>. Overriding unconditionally keeps
+# the original guarantee: production/dev values from .env file or CI can never
+# leak into tests.
+ENV['VALKEY_URL'] = "valkey://127.0.0.1:2163/#{db}"
+ENV['REDIS_URL'] = "redis://127.0.0.1:2163/#{db}"
+
+project_root = ENV['ONETIME_HOME']
+app_root = File.join(project_root, '/apps').freeze
+
+$LOAD_PATH.unshift(File.join(app_root))
+
+require 'onetime'
+require 'onetime/models'
+
+# A bounded connection pool for this process, the same one spec_helper
+# installs. A tryout that boots with connect_to_db=false skips
+# SetupConnectionPool, so its Familia.dbclient lookups otherwise open a
+# connection each (familia 2.12 fallback, delano/familia#456). Nothing has
+# set Familia.uri yet (it reads 127.0.0.1:6379, the development datastore),
+# so the pool is pointed at the isolated URL above, which install! also
+# makes Familia.uri. A full boot replaces the provider with its own.
+require_relative '../../tests/lanes/support/datastore_pool'
+Lanes::DatastorePool.install!(uri: ENV.fetch('REDIS_URL'))
+
+# Log using the current thread to avoid async/concurrency issues
+require 'semantic_logger/sync'
+
+# Log capture for a lane run (`tests/lanes/run --capture-logs`), the same
+# call spec/spec_helper.rb makes; tryouts do not load that file. Nothing
+# happens unless the runner exported one of its LANES_*_LOG_* names.
+#
+# LANES_APP_LOG_FILE: the application log file is installed now, so a tryout
+# that never boots is captured too. A tryout that boots gets the same file,
+# and the console the runner asked for, from spec/logging.test.yaml.
+# LANES_MAIL_LOG_FILE: the logger mail backend appends each delivered email
+# to that file instead of printing it.
+#
+# Every tryout file in a run shares one process, so this holds from the
+# first file that loads these helpers. A file that cannot be opened ends
+# that file's setup with a message, and the next file's, and the run fails.
+require_relative '../../tests/lanes/support/log_capture'
+Lanes::LogCapture.install_or_abort!
+
+# Config resolution is handled automatically by Onetime::Utils::ConfigResolver
+# when RACK_ENV=test - it uses spec/{name}.test.yaml files
+
+# Minimal I18n setup for tests that use I18n.t() without full OT.boot!
+# This provides basic configuration so I18n calls don't fail with InvalidLocale
+require 'i18n'
+I18n.available_locales = [:en]
+I18n.default_locale = :en
+
+# NOTE: Database logging is now handled by the SetupDatabaseLogging initializer
+# which runs automatically during OT.boot!. Set DEBUG_DATABASE=1 to enable.
+
+# Temporarily set an environment variable within a block, restoring it after.
+# @param key [String] The environment variable name
+# @param value [String] The value to set
+# @yield The block to execute with the modified environment
+# @return The return value of the block
+def with_env(key, value)
+  original = ENV[key]
+  ENV[key] = value
+  yield
+ensure
+  ENV[key] = original
+end
+
+# Mint a masked CSRF token bound to a session hash.
+#
+# The session-gated CSRF middleware (Onetime::Middleware::Security) requires a
+# valid X-CSRF-Token on every non-GET request that carries a cookie-authenticated
+# session — this is exactly what the admin SPA sends. Rack::Protection's
+# AuthenticityToken.token mutates the passed session hash to set the raw :csrf
+# key (if absent) and returns a fresh BREACH-masked token that validates against
+# it. Pass the SAME session hash that is injected into env['rack.session'] and
+# add the returned value under 'HTTP_X_CSRF_TOKEN' on non-GET requests.
+#
+# @param session [Hash] the injected rack.session hash
+# @return [String] a masked CSRF token valid for that session
+def tryouts_csrf_token(session)
+  require 'rack/protection'
+  Rack::Protection::AuthenticityToken.token(session)
+end
+
+# Inject a CSRF token into a Rack::Test call's argument list.
+#
+# Rack::Test verbs take (uri, params = {}, env = {}); the env hash carries the
+# injected 'rack.session'. For state-changing requests under a session, the
+# CSRF middleware requires a matching X-CSRF-Token. Given the wrapper's *args,
+# this returns args with 'HTTP_X_CSRF_TOKEN' minted from env['rack.session']
+# (via tryouts_csrf_token). Requests with no session (anonymous) or that already
+# carry a token are returned unchanged, so 401-on-anonymous paths still exercise
+# the auth layer rather than the CSRF gate.
+#
+# @param args [Array] the wrapper's forwarded *args
+# @return [Array] args, possibly with a CSRF token added to the env hash
+def with_csrf(args)
+  env = args[2]
+  return args unless env.is_a?(Hash)
+  session = env['rack.session']
+  return args unless session.is_a?(Hash)
+  return args if env.key?('HTTP_X_CSRF_TOKEN')
+
+  args = args.dup
+  args[2] = env.merge('HTTP_X_CSRF_TOKEN' => tryouts_csrf_token(session))
+  args
+end
+
+# Tryouts integration files commonly construct an authenticated Rack session by
+# hand. A real login records the canonical surface before the first protected
+# request; make those hand-seeded sessions equivalent while preserving an
+# explicitly supplied descriptor for tests exercising a non-canonical surface.
+module TryoutsCanonicalSessionSurface
+  def custom_request(verb, uri, params = {}, env = {}, &)
+    session = env['rack.session']
+    if session.is_a?(Hash) && session['authenticated'] == true &&
+        !session.key?(Onetime::SessionSurface::KEY)
+      session[Onetime::SessionSurface::KEY] = Onetime::SessionSurface::CANONICAL
+    end
+
+    super
+  end
+end
+
+# Require rack/test here rather than relying on the caller's load order. This
+# file is loaded once per process, and in a multi-file run the first file to
+# load it may not use rack/test at all. A `defined?` guard would then skip the
+# prepend for every later file, and their hand-seeded sessions would get 401
+# surface_mismatch.
+require 'rack/test'
+Rack::Test::Session.prepend(TryoutsCanonicalSessionSurface)
+
+def generate_random_email
+  # Generate a random username
+  username = (0...8).map { ('a'..'z').to_a[rand(26)] }.join
+  # Define a domain
+  domain = "onetimesecret.com"
+  # Combine to form an email address
+  "#{username}@#{domain}"
+end
+
+# Generate a unique test email with file context and entropy
+# @param prefix [String] Optional prefix to identify test context (e.g., "secrets", "auth")
+# @return [String] A unique email address for testing
+def generate_unique_test_email(prefix = "tryouts")
+  timestamp = Familia.now.to_i
+  entropy = SecureRandom.hex(4)
+  "#{prefix}+#{timestamp}+#{entropy}@onetimesecret.com"
+end
+
+# Mock StrategyResult for testing Logic classes
+# Logic::Base now expects a StrategyResult object instead of separate session/customer
+class MockStrategyResult
+  attr_reader :session, :user, :auth_method, :metadata
+
+  def initialize(session: nil, user: nil, auth_method: 'anonymous', metadata: {})
+    @session = session || {}
+    @user = user
+    @auth_method = auth_method
+    @metadata = metadata || {}
+  end
+
+  # Create an anonymous (unauthenticated) result
+  def self.anonymous(metadata: {})
+    new(
+      session: {},
+      user: nil,
+      auth_method: 'anonymous',
+      metadata: metadata
+    )
+  end
+
+  # Create an authenticated result with organization context
+  # Automatically creates a default organization if none exists for the customer
+  #
+  # @param customer [Onetime::Customer] Authenticated customer
+  # @param session [Object] Optional session object (default: MockSession.new)
+  # @param auth_method [String] Authentication method (default: 'session')
+  # @return [MockStrategyResult] Strategy result with organization context
+  def self.authenticated(customer, session: nil, auth_method: 'session')
+    session ||= MockSession.new
+
+    # Get or create organization for the customer
+    org = customer.organization_instances.to_a.first
+    unless org
+      display_name = "#{customer.email}'s Test Workspace"
+      org = Onetime::Organization.create!(display_name, customer, customer.email, is_default: true)
+    end
+
+    # Build metadata with organization context (same structure as OrganizationLoader)
+    org_context = {
+      organization: org,
+      organization_id: org.objid,
+      expires_at: Familia.now.to_i + 300,
+    }
+
+    new(
+      session: session,
+      user: customer,
+      auth_method: auth_method,
+      metadata: { organization_context: org_context }
+    )
+  end
+
+  # Check if the request has an authenticated user in session
+  def authenticated?
+    !user.nil?
+  end
+
+  # Check if authentication strategy just executed and succeeded
+  def auth_attempt_succeeded?
+    authenticated? && auth_method.to_s != 'anonymous'
+  end
+
+  # Check if the request is anonymous (no user in session)
+  def anonymous?
+    user.nil?
+  end
+
+  # Check if the user has a specific role
+  def has_role?(role)
+    return false unless authenticated?
+
+    # Try user model methods first, fall back to hash access for backward compatibility
+    if user.respond_to?(:role)
+      user.role.to_s == role.to_s
+    elsif user.respond_to?(:has_role?)
+      user.has_role?(role)
+    elsif user.is_a?(Hash)
+      user_role = user[:role] || user['role']
+      user_role.to_s == role.to_s
+    else
+      false
+    end
+  end
+
+  # Check if the user has a specific permission
+  def has_permission?(permission)
+    return false unless authenticated?
+
+    # Try user model methods first, fall back to hash access for backward compatibility
+    if user.respond_to?(:has_permission?)
+      user.has_permission?(permission)
+    elsif user.respond_to?(:permissions)
+      permissions = user.permissions || []
+      permissions = [permissions] unless permissions.is_a?(Array)
+      permissions.map(&:to_s).include?(permission.to_s)
+    elsif user.is_a?(Hash)
+      permissions = user[:permissions] || user['permissions'] || []
+      permissions = [permissions] unless permissions.is_a?(Array)
+      permissions.map(&:to_s).include?(permission.to_s)
+    else
+      false
+    end
+  end
+
+  # Check if the user has any of the specified roles
+  def has_any_role?(*roles)
+    roles.flatten.any? { |role| has_role?(role) }
+  end
+
+  # Check if the user has any of the specified permissions
+  def has_any_permission?(*permissions)
+    permissions.flatten.any? { |permission| has_permission?(permission) }
+  end
+
+  # Get user ID from various possible locations
+  def user_id
+    return nil unless authenticated?
+
+    # Try user model methods first, fall back to hash access and session
+    if user.respond_to?(:id)
+      user.id
+    elsif user.respond_to?(:user_id)
+      user.user_id
+    elsif user.is_a?(Hash)
+      user[:id] || user['id'] || user[:user_id] || user['user_id']
+    end || session[:user_id] || session['user_id']
+  end
+
+  # Get user name from various possible locations
+  def user_name
+    return nil unless authenticated?
+
+    # Try user model methods first, fall back to hash access
+    if user.respond_to?(:name)
+      user.name
+    elsif user.respond_to?(:username)
+      user.username
+    elsif user.is_a?(Hash)
+      user[:name] || user['name'] || user[:username] || user['username']
+    end
+  end
+
+  # Get session ID from various possible locations
+  def session_id
+    session[:id] || session['id'] || session[:session_id] || session['session_id']
+  end
+
+  # Get all user roles as an array
+  def roles
+    return [] unless authenticated?
+
+    roles_data = user[:roles] || user['roles']
+    if roles_data.is_a?(Array)
+      roles_data.map(&:to_s)
+    elsif roles_data
+      [roles_data.to_s]
+    else
+      role = user[:role] || user['role']
+      role ? [role.to_s] : []
+    end
+  end
+
+  # Get all user permissions as an array
+  def permissions
+    return [] unless authenticated?
+
+    perms = user[:permissions] || user['permissions'] || []
+    perms = [perms] unless perms.is_a?(Array)
+    perms.map(&:to_s)
+  end
+
+  # Create a string representation for debugging
+  def inspect
+    if authenticated?
+      "#<MockStrategyResult authenticated user=#{user_name || user_id} roles=#{roles} method=#{auth_method}>"
+    else
+      "#<MockStrategyResult anonymous method=#{auth_method}>"
+    end
+  end
+
+  # Get user context - a hash containing user-specific information and metadata
+  def user_context
+    if authenticated?
+      case auth_method
+      when 'session'
+        { user_id: user_id, session: session }
+      else
+        metadata
+      end
+    else
+      case auth_method
+      when 'anonymous'
+        {}
+      else
+        metadata
+      end
+    end
+  end
+
+  # Create a hash representation
+  def to_h
+    {
+      session: session,
+      user: user,
+      auth_method: auth_method,
+      metadata: metadata,
+      authenticated: authenticated?,
+      auth_attempt_succeeded: auth_attempt_succeeded?,
+      user_id: user_id,
+      user_name: user_name,
+      roles: roles,
+      permissions: permissions
+    }
+  end
+end
+
+# Legacy MockSession for backward compatibility
+# Use MockStrategyResult for new Logic tests
+class MockSession
+  def authenticated?
+    true
+  end
+
+  def short_identifier
+    "mock_short_identifier"
+  end
+
+  def id
+    @id ||= Struct.new(:public_id).new("mock_session_id")
+  end
+
+  def ipaddress
+    "mock_ipaddress"
+  end
+
+  def get_error_messages
+    []
+  end
+
+  def get_info_messages
+    []
+  end
+
+  def get_form_fields!
+    {}
+  end
+
+  def [](key)
+    @data ||= {}
+    @data[key]
+  end
+
+  def []=(key, value)
+    @data ||= {}
+    @data[key] = value
+  end
+
+  def clear
+    @data = {}
+  end
+
+  def empty?
+    (@data || {}).empty?
+  end
+end
+
+# Test Request Helpers
+#
+# Extends Rack::Request with Otto middleware methods for testing controllers
+# that depend on Otto extensions like req.locale
+module TestRequestHelpers
+  # Get locale from Otto middleware or fallback to default
+  #
+  # Mimics Onetime::Application::RequestHelpers#locale behavior
+  # @return [String] Locale code (e.g., 'en', 'es', 'fr')
+  def locale
+    env['otto.locale'] || OT.default_locale
+  end
+end
+
+# Disable billing by default for all Tryouts tests
+# This ensures billing_enabled? returns false, giving full standalone entitlements.
+# Tests that need billing enabled should use BillingTestHelpers.with_billing_enabled
+require_relative '../../apps/web/billing/lib/test_support/billing_helpers'
+BillingTestHelpers.disable_billing!
+
+# Clear any stale plan cache from previous test runs
+# Essential for test isolation - ensures quota checks don't fire unexpectedly
+# when billing tests populate the cache and subsequent tests inherit it.
+# See: https://github.com/onetimesecret/onetimesecret/issues/2228
+BillingTestHelpers.clear_plan_cache!
+
+# Print test harness banner showing billing and auth state
+# Mirrors the boot banner from lib/onetime/initializers/print_log_banner.rb
+# Uses $stdout.puts to bypass tryouts output capture (warn/stderr is suppressed)
+auth_mode = ENV.fetch('AUTHENTICATION_MODE', 'simple')
+billing_enabled = defined?(OT.billing_config) ? OT.billing_config.enabled? : false
+$stdout.puts "[Tryouts] auth:#{auth_mode} billing:#{billing_enabled}"

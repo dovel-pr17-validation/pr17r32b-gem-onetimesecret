@@ -1,0 +1,383 @@
+# frozen_string_literal: true
+
+# Regression for #3478. Run with full-sqlite or full-pg-agnostic, both of
+# which explicitly enable org SSO and register the OIDC and Entra routes.
+require_relative '../../spec_helper'
+require_relative '../../support/oauth_flow_helper'
+
+RSpec.describe 'OmniAuth Missing Email (issue #3478)', type: :integration do
+  include Rack::Test::Methods
+
+  before(:all) { boot_onetime_app }
+
+  before do
+    enable_platform_fallback
+    configure_allowed_domains(nil)
+  end
+
+  after { teardown_mock_auth }
+
+  def setup_entra_mock_auth(email:, provider: :oidc, uid: nil, raw_info: {})
+    enable_omniauth_test_mode
+    oid = uid || "oid-#{SecureRandom.uuid}"
+    OmniAuth.config.mock_auth[provider] = OmniAuth::AuthHash.new(
+      provider: provider.to_s,
+      uid: oid,
+      info: { email: email, name: 'No Email Claim User' },
+      credentials: { token: 'mock_access_token', expires: false },
+      extra: {
+        raw_info: {
+          sub: oid,
+          oid: oid,
+          tid: 'fabrikam-tenant-id',
+          preferred_username: 'no.email.claim@fabrikam.onmicrosoft.com',
+        }.merge(raw_info),
+      },
+    )
+  end
+
+  def post_sso_callback(provider = :oidc)
+    clear_body_headers
+    post "/auth/sso/#{provider}/callback"
+    expect(last_response.status).not_to eq(404),
+      "SSO route #{provider} must be registered; use full-sqlite or full-pg-agnostic"
+  end
+
+  # Provisioning boundary only: an HTTP redirect and SQL persistence do not
+  # establish successful application-session synchronization (#4726).
+  def expect_provisioned_account(email:, uid:, provider: 'oidc')
+    expect(last_response.status).to eq(302), last_response.body
+    expect(last_response.location.to_s).not_to include('auth_error=')
+    account = auth_db[:accounts].where(email: email).first
+    expect(account).not_to be_nil
+    # citext comparisons ignore case on PostgreSQL; compare the stored value too.
+    expect(account[:email]).to eq(email)
+    expect(auth_db[:account_identities].where(provider: provider, uid: uid).all)
+      .to contain_exactly(hash_including(account_id: account[:id]))
+    account
+  end
+
+  # Application-session boundary: the SQL account, its one Customer (reached
+  # by both the extid link and the case-folded email index), and the session
+  # SyncSession populates from that Customer.
+  def expect_created_account(email:, uid:, provider: 'oidc')
+    account  = expect_provisioned_account(email: email, uid: uid, provider: provider)
+    customer = Onetime::Customer.find_by_email(email)
+    expect(customer).not_to be_nil
+    expect(account[:external_id]).to eq(customer.extid)
+    expect(last_request.env['rack.session'].to_h)
+      .to include(
+        'authenticated' => true,
+        'account_id' => account[:id],
+        'external_id' => customer.extid,
+        'email' => email,
+      )
+    account
+  end
+
+  describe 'when the IdP returns no usable email' do
+    [
+      ['absent (nil)', nil],
+      ['empty string', ''],
+      ['spaces only', '   '],
+      ['tabs and newlines', "\t\n"],
+      ['non-breaking space', "\u00a0"],
+    ].each do |label, value|
+      it "redirects to missing_email for #{label}" do
+        setup_entra_mock_auth(email: value)
+        accounts_before = auth_db[:accounts].count
+        post_sso_callback
+        expect_auth_error_redirect('missing_email')
+        expect(auth_db[:accounts].count).to eq(accounts_before)
+      end
+    end
+
+    it 'handles an omitted email key without raising or creating an account' do
+      setup_mock_auth(email: nil)
+      expect { post_sso_callback }.not_to change { auth_db[:accounts].count }
+      expect_auth_error_redirect('missing_email')
+    end
+  end
+
+  describe 'structurally malformed emails from the IdP' do
+    [
+      ['missing @', 'noemail.fabrikam.onmicrosoft.com'],
+      ['empty local part', '@fabrikam.onmicrosoft.com'],
+      ['empty domain', 'noemail@'],
+      ['bare @', '@'],
+      ['multiple @', 'no@email@fabrikam.onmicrosoft.com'],
+      ['internal spaces', 'no email@fabrikam.onmicrosoft.com'],
+      ['dotless domain', 'noemail@fabrikam'],
+      ['comma', 'no,email@fabrikam.onmicrosoft.com'],
+      ['semicolon', 'noemail@fabrikam;onmicrosoft.com'],
+      ['comma in domain', 'noemail@fabrikam,onmicrosoft.com'],
+      ['semicolon in local part', 'no;email@fabrikam.onmicrosoft.com'],
+      ['space in domain', 'noemail@fabrikam.onmicrosoft com'],
+      ['internal newline in local part', "no\nemail@fabrikam.onmicrosoft.com"],
+      ['internal carriage return in domain', "noemail@fabrikam\r.onmicrosoft.com"],
+      ['array claim', ['noemail@fabrikam.onmicrosoft.com']],
+      ['object claim', { email: 'noemail@fabrikam.onmicrosoft.com' }],
+    ].each do |label, value|
+      it "redirects to invalid_email for #{label}" do
+        setup_entra_mock_auth(email: value)
+        expect { post_sso_callback }.not_to change { auth_db[:accounts].count }
+        expect_auth_error_redirect('invalid_email')
+      end
+    end
+  end
+
+  describe 'email source contract' do
+    [
+      { email: 'shadow@fabrikam.onmicrosoft.com' },
+      { preferred_username: 'no.email.claim@fabrikam.onmicrosoft.com' },
+      { upn: 'no.email.claim@fabrikam.onmicrosoft.com' },
+    ].each do |claims|
+      it "does not substitute raw_info #{claims.keys.first} for missing info.email" do
+        setup_entra_mock_auth(email: nil, raw_info: claims)
+        post_sso_callback
+        expect_auth_error_redirect('missing_email')
+      end
+    end
+  end
+
+  describe 'email-shaped values are accepted' do
+    # #4726: a mixed-case claim was persisted with the provider's casing, so
+    # session sync missed the case-folded Customer and the callback redirected
+    # without a session. The account now stores the normalized address.
+    it 'creates an account and successful session for the original uppercase #EXT# guest UPN' do
+      claim = 'alice_contoso.com#EXT#@fabrikam.onmicrosoft.com'
+      uid = "uppercase-guest-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: claim, uid: uid)
+      expect { post_sso_callback }.to change { auth_db[:accounts].count }.by(1)
+      expect_created_account(email: 'alice_contoso.com#ext#@fabrikam.onmicrosoft.com', uid: uid)
+    end
+
+    it 'creates an account and successful session for an uppercase email' do
+      local = "alice-#{SecureRandom.hex(6)}"
+      uid = "uppercase-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: "#{local.upcase}@CONTOSO.COM", uid: uid)
+      expect { post_sso_callback }.to change { auth_db[:accounts].count }.by(1)
+      expect_created_account(email: "#{local}@contoso.com", uid: uid)
+    end
+
+    it 'signs a mixed-case returning identity into the same account and Customer' do
+      local = "returning-#{SecureRandom.hex(6)}"
+      uid = "uppercase-returning-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: "#{local.upcase}@Contoso.com", uid: uid)
+      post_sso_callback
+      account = expect_created_account(email: "#{local}@contoso.com", uid: uid)
+
+      clear_cookies
+      setup_entra_mock_auth(email: "#{local}@CONTOSO.COM", uid: uid)
+      expect { post_sso_callback }.not_to change { auth_db[:accounts].count }
+      expect(expect_created_account(email: "#{local}@contoso.com", uid: uid)[:id]).to eq(account[:id])
+    end
+
+    it 'creates an account and successful session for a one-letter TLD' do
+      email = "alice-#{SecureRandom.hex(6)}@contoso.c"
+      uid = "short-tld-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: email, uid: uid)
+      expect { post_sso_callback }.to change { auth_db[:accounts].count }.by(1)
+      expect_created_account(email: email, uid: uid)
+    end
+
+    it 'creates an account and successful session for a normalized email-shaped Entra B2B guest UPN' do
+      email = "alice_#{SecureRandom.hex(6)}" + '_contoso.com#ext#@fabrikam.onmicrosoft.com'
+      uid = "guest-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: email, uid: uid)
+      expect { post_sso_callback }.to change { auth_db[:accounts].count }.by(1)
+      expect_created_account(email: email, uid: uid)
+    end
+
+    it 'creates an account with a whitespace-padded valid email trimmed before persistence' do
+      email = "alice-#{SecureRandom.hex(6)}@contoso.com"
+      uid = "padded-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: " \t#{email}\r\n ", uid: uid)
+      expect { post_sso_callback }.to change { auth_db[:accounts].count }.by(1)
+      expect_created_account(email: email, uid: uid)
+    end
+  end
+
+  # normalize_email case-folds, and 'straße' folds to 'strasse', a different
+  # address. SSO refuses such a claim rather than judge, match or store it
+  # under the folded form.
+  describe 'case folding' do
+    let(:local) { "user-#{SecureRandom.hex(6)}" }
+    let(:uid) { "fold-#{SecureRandom.uuid}" }
+
+    [nil, ['strasse.example.com']].each do |allowed|
+      it "refuses a claim case folding would rewrite (allowlist: #{allowed.inspect})" do
+        configure_allowed_domains(allowed)
+        setup_entra_mock_auth(email: "#{local}@straße.example.com", uid: uid)
+        expect { post_sso_callback }.not_to change { auth_db[:accounts].count }
+        expect_auth_error_redirect('invalid_email')
+      end
+    end
+
+    it 'does not locate an existing account by the folded address' do
+      owner_email = "#{local}@strasse.example.com"
+      owner_uid = "owner-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: owner_email, uid: owner_uid)
+      post_sso_callback
+      expect_created_account(email: owner_email, uid: owner_uid)
+
+      clear_cookies
+      setup_entra_mock_auth(email: "#{local}@straße.example.com", uid: uid)
+      expect { post_sso_callback }.not_to change { auth_db[:account_identities].count }
+      expect_auth_error_redirect('invalid_email')
+    end
+  end
+
+  describe 'canonical form' do
+    it 'persists a trimmed email rather than a Unicode-padded address' do
+      email = unique_test_email('unicode-padded')
+      uid = "unicode-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: "\u00a0#{email}\u2003", uid: uid)
+      expect { post_sso_callback }.to change { auth_db[:accounts].count }.by(1)
+      expect_created_account(email: email, uid: uid)
+    end
+
+    it 'persists an email trimmed of the NUL padding the gates strip' do
+      email = unique_test_email('nul-padded')
+      uid = "nul-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: "\0#{email}\0", uid: uid)
+      expect { post_sso_callback }.to change { auth_db[:accounts].count }.by(1)
+      expect_created_account(email: email, uid: uid)
+    end
+
+    it 'persists the NFC form the Customer index uses for a decomposed email' do
+      decomposed = "josé-#{SecureRandom.hex(6)}@example.com"
+      uid = "nfd-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: decomposed, uid: uid)
+      expect { post_sso_callback }.to change { auth_db[:accounts].count }.by(1)
+      expect_created_account(email: decomposed.unicode_normalize(:nfc), uid: uid)
+    end
+  end
+
+  describe 'linked platform identity' do
+    it 'signs in on a subsequent callback without an email claim or another account' do
+      email = unique_test_email('linked-noemail')
+      uid = "linked-#{SecureRandom.uuid}"
+      setup_mock_auth(email: email, uid: uid)
+      post_sso_callback
+      account = expect_created_account(email: email, uid: uid)
+
+      clear_cookies
+      setup_mock_auth(email: nil, uid: uid)
+      # Signup policy must not become a sign-in policy for a linked platform user.
+      configure_allowed_domains(['other.example.com'])
+      expect { post_sso_callback }.not_to change { auth_db[:accounts].count }
+      expect(last_response.status).to eq(302), last_response.body
+      expect(last_request.env['rack.session'].to_h)
+        .to include('authenticated' => true, 'account_id' => account[:id], 'email' => email)
+      expect(auth_db[:account_identities].where(provider: 'oidc', uid: uid).all)
+        .to contain_exactly(hash_including(account_id: account[:id]))
+    end
+  end
+
+  describe 'tenant email allowlist', :oauth_flow do
+    include_context 'domains enabled'
+
+    let(:host) { "email-#{SecureRandom.hex(6)}.tenant.example.com" }
+    let(:uid) { "tenant-#{SecureRandom.uuid}" }
+    let(:email) { unique_test_email('tenant-email') }
+    let(:tenant) { setup_oauth_test_domain(host) }
+
+    before do
+      tenant[:sso_config].allowed_domains = [email.split('@').last]
+      tenant[:sso_config].save
+    end
+
+    def tenant_callback(claim)
+      setup_mock_auth(email: claim, uid: uid)
+      clear_body_headers
+      header 'Host', host
+      post '/auth/sso/oidc'
+      expect(last_response.status).to eq(302), last_response.body
+      expect(last_request.env['rack.session']['omniauth_tenant_domain_id'])
+        .to eq(tenant[:domain].identifier)
+      post_sso_callback
+    end
+
+    [false, true].each do |returning|
+      context returning ? 'returning identity' : 'new identity' do
+        before do
+          next unless returning
+
+          tenant_callback(email)
+          expect_created_account(email: email, uid: uid)
+          clear_cookies
+        end
+
+        [
+          [nil, 'missing_email'],
+          ['', 'missing_email'],
+          [" \t\n", 'missing_email'],
+          ["\u00a0", 'missing_email'],
+          ['not-an-email', 'invalid_email'],
+          ['attacker@evil.com@example.com', 'invalid_email'],
+          [['user@example.com'], 'invalid_email'],
+          # Listed domain (unique_test_email's); 'straße' folds to 'strasse'.
+          ['straße@integration-test.example.com', 'invalid_email'],
+          ['user@disallowed.example.com', 'domain_not_allowed'],
+        ].each do |claim, error|
+          it "rejects #{claim.inspect} with #{error} without changing accounts or identities" do
+            accounts_before = auth_db[:accounts].all
+            identities_before = auth_db[:account_identities].all
+            tenant_callback(claim)
+            expect_auth_error_redirect(error)
+            expect(auth_db[:accounts].all).to eq(accounts_before)
+            expect(auth_db[:account_identities].all).to eq(identities_before)
+            expect(last_request.env['rack.session']['authenticated']).not_to be(true)
+          end
+        end
+      end
+    end
+
+    it 'denies a returning user after their domain is removed from the allowlist' do
+      tenant_callback(email)
+      account = expect_created_account(email: email, uid: uid)
+      clear_cookies
+      tenant[:sso_config].allowed_domains = ['another.example.com']
+      tenant[:sso_config].save
+      tenant_callback(email)
+      expect_auth_error_redirect('domain_not_allowed')
+      expect(auth_db[:account_identities].where(provider: 'oidc', uid: uid).all)
+        .to contain_exactly(hash_including(account_id: account[:id]))
+    end
+
+    it 'allows a linked returning user without email when no tenant allowlist is configured' do
+      tenant_callback(email)
+      account = expect_created_account(email: email, uid: uid)
+      clear_cookies
+      tenant[:sso_config].allowed_domains = []
+      tenant[:sso_config].save
+      tenant_callback(nil)
+      expect(last_response.status).to eq(302), last_response.body
+      expect(last_request.env['rack.session'].to_h)
+        .to include('authenticated' => true, 'account_id' => account[:id])
+    end
+  end
+
+  describe 'via the Entra provider route' do
+    [
+      [nil, 'missing_email'],
+      ['   ', 'missing_email'],
+      ['not-an-email', 'invalid_email'],
+    ].each do |email, error|
+      it "redirects to #{error} for #{email.inspect}" do
+        setup_entra_mock_auth(email: email, provider: :entra)
+        expect { post_sso_callback(:entra) }.not_to change { auth_db[:accounts].count }
+        expect_auth_error_redirect(error)
+      end
+    end
+
+    it 'creates an account with a padded Entra email trimmed before persistence' do
+      email = "entra-#{SecureRandom.hex(6)}@contoso.com"
+      uid = "entra-#{SecureRandom.uuid}"
+      setup_entra_mock_auth(email: "  #{email}  ", provider: :entra, uid: uid)
+      expect { post_sso_callback(:entra) }.to change { auth_db[:accounts].count }.by(1)
+      expect_created_account(email: email, uid: uid, provider: 'entra')
+    end
+  end
+end

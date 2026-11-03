@@ -1,0 +1,320 @@
+// src/tests/components/DomainHeader.spec.ts
+
+import { mount, RouterLinkStub } from '@vue/test-utils';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import DomainHeader from '@/apps/workspace/components/dashboard/DomainHeader.vue';
+import type { CustomDomain } from '@/schemas/shapes/v3';
+import {
+  OWNERSHIP_CHECKING_STRATEGIES,
+  setDomainValidationStrategy,
+} from '@tests/support/domainValidationStrategy';
+import { useDomainStatus } from '@/shared/composables/useDomainStatus';
+import { ref } from 'vue';
+
+// Control the install's domain validation strategy. Default to approximated so
+// the status-badge assertions hold; the dedicated block covers the others. The
+// real capability table is evaluated, not a boolean stub.
+vi.mock('@/utils/features', async (importOriginal) => {
+  const { featuresForStrategy } = await import('@tests/support/domainValidationStrategy');
+  return featuresForStrategy(await importOriginal<typeof import('@/utils/features')>());
+});
+
+// Use refs for reactive mocks that can change between tests
+const mockStatusIcon = ref('check-circle');
+const mockStatusColor = ref('text-emerald-600 dark:text-emerald-400');
+const mockDisplayStatus = ref('Active');
+const mockIsActive = ref(true);
+
+vi.mock('@/shared/composables/useDomainStatus', () => ({
+  useDomainStatus: vi.fn(() => ({
+    statusIcon: mockStatusIcon,
+    statusColor: mockStatusColor,
+    displayStatus: mockDisplayStatus,
+    isActive: mockIsActive,
+  })),
+}));
+
+vi.mock('vue-i18n', () => ({
+  useI18n: vi.fn(() => ({
+    t: vi.fn((key: string) => {
+      const translations: Record<string, string> = {
+        'web.domains.open_domain_in_new_tab': 'Open domain in new tab',
+        'web.domains.view_domain_verification_status': 'View domain verification status',
+      };
+      return translations[key] ?? key;
+    }),
+  })),
+}));
+
+describe('DomainHeader', () => {
+  const createMockDomain = (overrides: Partial<CustomDomain> = {}): CustomDomain => ({
+    domainid: 'domain-uuid-123',
+    extid: 'domain-123',
+    custid: 'cust-456',
+    display_domain: 'example.com',
+    base_domain: 'example.com',
+    subdomain: '',
+    trd: '',
+    tld: 'com',
+    sld: 'example',
+    is_apex: true,
+    txt_validation_host: '_onetime-challenge.example.com',
+    txt_validation_value: 'validation-value-123',
+    status: 'active',
+    verified: true,
+    resolving: true,
+    brand: null,
+    created: new Date(1700000000 * 1000),
+    updated: new Date(1700000000 * 1000),
+    vhost: {
+      status: 'ACTIVE',
+      last_monitored_unix: new Date(123 * 1000),
+    },
+    vhost_fetch_failed_at: null,
+    ...overrides,
+  });
+
+  const defaultProps = {
+    domain: null as CustomDomain | null,
+    hasUnsavedChanges: false,
+    orgid: 'org-123',
+  };
+
+  beforeEach(() => {
+    // Reset mock values to defaults
+    mockStatusIcon.value = 'check-circle';
+    mockStatusColor.value = 'text-emerald-600 dark:text-emerald-400';
+    mockDisplayStatus.value = 'Active';
+    mockIsActive.value = true;
+    // Default to approximated (status badge visible).
+    setDomainValidationStrategy('approximated');
+  });
+
+  function mountComponent(props: Partial<typeof defaultProps> = {}) {
+    return mount(DomainHeader, {
+      props: { ...defaultProps, ...props },
+      global: {
+        stubs: {
+          RouterLink: RouterLinkStub,
+          OIcon: {
+            template: '<span class="mock-icon" :class="$attrs.class" :data-name="name"></span>',
+            props: ['collection', 'name'],
+          },
+        },
+      },
+    });
+  }
+
+  describe('loading state', () => {
+    it('shows loading placeholder when domain is null', () => {
+      const wrapper = mountComponent({ domain: null });
+      expect(wrapper.find('.animate-pulse').exists()).toBe(true);
+      expect(wrapper.find('h1').exists()).toBe(false);
+    });
+
+    it('shows domain content when domain is provided', () => {
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain });
+      expect(wrapper.find('.animate-pulse').exists()).toBe(false);
+      expect(wrapper.find('h1').exists()).toBe(true);
+    });
+  });
+
+  describe('band width', () => {
+    // Consumers stick the header at the full width of the main column and
+    // inset their cards by a px-4 sm:px-6 lg:px-8 gutter; the band takes the
+    // same inset so its edges and bottom border end at the card edges.
+    it("insets the band by the consumers' content gutter", () => {
+      const wrapper = mountComponent({ domain: createMockDomain() });
+      expect(wrapper.classes()).toEqual(expect.arrayContaining(['mx-4', 'sm:mx-6', 'lg:mx-8']));
+    });
+  });
+
+  describe('domain display', () => {
+    it('displays the domain name', () => {
+      const domain = createMockDomain({ display_domain: 'test.example.com' });
+      const wrapper = mountComponent({ domain });
+      expect(wrapper.find('h1 span').text()).toBe('test.example.com');
+    });
+
+    it('displays status icon with name from composable', () => {
+      mockStatusIcon.value = 'help-circle';
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain });
+
+      const statusIcon = wrapper.find('[data-name="help-circle"]');
+      expect(statusIcon.exists()).toBe(true);
+    });
+
+    it('displays status text', () => {
+      mockDisplayStatus.value = 'Unverified';
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain });
+      expect(wrapper.text()).toContain('Unverified');
+    });
+  });
+
+  // The badge icons are decorative, so the text is what tells a failed status
+  // check ("could not tell") from an outstanding ownership check ("no"). These
+  // run the real composable against a domain record.
+  describe('badge text from the domain record', () => {
+    beforeEach(async () => {
+      const actual = await vi.importActual<
+        typeof import('@/shared/composables/useDomainStatus')
+      >('@/shared/composables/useDomainStatus');
+      vi.mocked(useDomainStatus).mockImplementationOnce(
+        actual.useDomainStatus as unknown as typeof useDomainStatus
+      );
+    });
+
+    const activeBlob = { status: 'ACTIVE_SSL', last_monitored_unix: new Date(123 * 1000) };
+
+    it('does not read active for an unverified domain whose status blob still reads active', () => {
+      const domain = createMockDomain({ verified: false, vhost: activeBlob });
+      const wrapper = mountComponent({ domain });
+
+      expect(wrapper.text()).toContain('web.domains.pending_verification');
+      expect(wrapper.text()).not.toContain('web.STATUS.active');
+      expect(wrapper.find('[data-name="alert-circle"]').exists()).toBe(true);
+    });
+
+    it('uses the same text for a resolving domain that has not passed its TXT check', () => {
+      const domain = createMockDomain({
+        verified: false,
+        vhost: { ...activeBlob, status: 'PENDING_SSL' },
+      });
+      const wrapper = mountComponent({ domain });
+
+      expect(wrapper.text()).toContain('web.domains.pending_verification');
+      expect(wrapper.text()).not.toContain('web.STATUS.unverified');
+    });
+
+    it('keeps "unverified" for a failed status check', () => {
+      const domain = createMockDomain({
+        vhost: activeBlob,
+        vhost_fetch_failed_at: Date.now() / 1000 - 60,
+      });
+      const wrapper = mountComponent({ domain });
+
+      expect(wrapper.text()).toContain('web.STATUS.unverified');
+      expect(wrapper.text()).not.toContain('web.domains.pending_verification');
+      expect(wrapper.find('[data-name="help-circle"]').exists()).toBe(true);
+    });
+  });
+
+  describe('external link', () => {
+    it('constructs correct URL without externalPath', () => {
+      const domain = createMockDomain({ display_domain: 'example.com' });
+      const wrapper = mountComponent({ domain });
+      const link = wrapper.find('a[target="_blank"]');
+      expect(link.attributes('href')).toBe('https://example.com');
+    });
+
+    it('constructs correct URL with externalPath prop', () => {
+      const domain = createMockDomain({ display_domain: 'example.com' });
+      const wrapper = mountComponent({ domain, externalPath: '/incoming' } as any);
+      const link = wrapper.find('a[target="_blank"]');
+      expect(link.attributes('href')).toBe('https://example.com/incoming');
+    });
+
+    // The external link is ALWAYS visible since e42617e ([#3383] "always
+    // show domain icon" — the showExternalLink computed and its v-show were
+    // removed). These cases pin that contract across the two conditions
+    // that previously hid it.
+
+    it('keeps external link visible when hasUnsavedChanges is true', () => {
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain, hasUnsavedChanges: true });
+      const link = wrapper.find('a[target="_blank"]');
+      expect(link.isVisible()).toBe(true);
+    });
+
+    it('shows external link when hasUnsavedChanges is false and domain is active', () => {
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain, hasUnsavedChanges: false, externalPath: '/incoming' } as any);
+      const link = wrapper.find('a[target="_blank"]');
+      expect(link.isVisible()).toBe(true);
+    });
+
+    it('keeps external link visible when the domain is not active', () => {
+      mockIsActive.value = false;
+      mockDisplayStatus.value = 'Pending';
+      mockStatusIcon.value = 'close-circle';
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain, hasUnsavedChanges: false });
+      const link = wrapper.find('a[target="_blank"]');
+      expect(link.isVisible()).toBe(true);
+    });
+  });
+
+  describe('verify route link', () => {
+    it('links to correct verify route', () => {
+      const domain = createMockDomain({ extid: 'domain-xyz' });
+      const wrapper = mountComponent({ domain, orgid: 'org-abc' });
+      const routerLink = wrapper.findComponent(RouterLinkStub);
+      expect(routerLink.props('to')).toBe('/org/org-abc/domains/domain-xyz/verify');
+    });
+  });
+
+  describe('validation strategy gating', () => {
+    it.each(OWNERSHIP_CHECKING_STRATEGIES)('shows the status badge under %s', (strategy) => {
+      setDomainValidationStrategy(strategy);
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain });
+
+      // Badge renders its status icon and a RouterLink to the verify page.
+      expect(wrapper.find('[data-name="check-circle"]').exists()).toBe(true);
+      expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(true);
+    });
+
+    it('hides the status badge under passthrough (no ownership check, no status)', () => {
+      setDomainValidationStrategy('passthrough');
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain });
+
+      // No status icon, no verify RouterLink — only the external-link anchor remains.
+      expect(wrapper.find('[data-name="check-circle"]').exists()).toBe(false);
+      expect(wrapper.findComponent(RouterLinkStub).exists()).toBe(false);
+      // The domain name + external link are still rendered.
+      expect(wrapper.find('h1').exists()).toBe(true);
+      expect(wrapper.find('a[target="_blank"]').exists()).toBe(true);
+    });
+  });
+
+  describe('statusColor integration', () => {
+    // Note: These tests verify the composable integration works by checking
+    // that useDomainStatus is called and its values are used in rendering.
+    // The actual color classes are tested in useDomainStatus.spec.ts.
+
+    it('uses statusColor from composable for icon styling', () => {
+      mockStatusColor.value = 'text-emerald-600 dark:text-emerald-400';
+      mockStatusIcon.value = 'check-circle';
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain });
+
+      // Verify the icon is rendered (composable integration works)
+      const icon = wrapper.find('[data-name="check-circle"]');
+      expect(icon.exists()).toBe(true);
+    });
+
+    it('uses different icon for stale status', () => {
+      mockStatusIcon.value = 'help-circle';
+      mockStatusColor.value = 'text-amber-500 dark:text-amber-400';
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain });
+
+      const icon = wrapper.find('[data-name="help-circle"]');
+      expect(icon.exists()).toBe(true);
+    });
+
+    it('uses close-circle icon for error status', () => {
+      mockStatusIcon.value = 'close-circle';
+      mockStatusColor.value = 'text-rose-600 dark:text-rose-500';
+      const domain = createMockDomain();
+      const wrapper = mountComponent({ domain });
+
+      const icon = wrapper.find('[data-name="close-circle"]');
+      expect(icon.exists()).toBe(true);
+    });
+  });
+});

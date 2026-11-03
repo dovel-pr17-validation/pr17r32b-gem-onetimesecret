@@ -1,0 +1,3839 @@
+# apps/api/domains/spec/integration/simple/domain_sso_config_spec.rb
+#
+# frozen_string_literal: true
+
+# =============================================================================
+# TEST TYPE: Integration Tests for Domain SSO Config API Endpoints
+# =============================================================================
+#
+# Issue: #2786 - Per-domain SSO configuration
+#
+# Tests the Domain SSO Config REST API endpoints:
+#   GET    /api/domains/:extid/sso
+#   PUT    /api/domains/:extid/sso
+#   PATCH  /api/domains/:extid/sso
+#   DELETE /api/domains/:extid/sso
+#   POST   /api/domains/:extid/sso/test
+#
+# These endpoints require:
+#   1. Authenticated user (session auth)
+#   2. ORGS_SSO_ENABLED feature flag
+#   3. User must be organization owner
+#   4. Organization must have manage_sso entitlement
+#
+# REQUIREMENTS:
+# - Valkey running on port 2163: pnpm run test:database:start
+# - AUTHENTICATION_MODE=simple (login_as creates a Valkey-backed Customer
+#   with a passphrase; full mode routes /auth/login through Rodauth, which
+#   has no matching account row, so every login 401s)
+#
+# RUN:
+#   RACK_ENV=test AUTHENTICATION_MODE=simple bundle exec rspec apps/api/domains/spec/integration/simple/domain_sso_config_spec.rb
+#
+# =============================================================================
+
+require_relative File.join(Onetime::HOME, 'spec', 'integration', 'integration_spec_helper')
+require 'climate_control'
+# SAML certificate fixtures (#4450): generated at runtime, nothing checked in.
+require_relative File.join(Onetime::HOME, 'apps', 'web', 'auth', 'spec', 'support', 'domain_sso_test_fixtures')
+
+RSpec.describe 'Domain SSO Config API', type: :integration do
+  include Rack::Test::Methods
+  include CsrfTestHelpers
+
+  # Use the full Rack::URLMap so requests traverse the complete middleware
+  # stack (including CSRF bypass for /api/* paths) exactly as in production.
+  def app
+    @rack_app ||= begin
+      Onetime::Application::Registry.reset!
+      Onetime::Application::Registry.prepare_application_registry
+      Onetime::Application::Registry.generate_rack_url_map
+    end
+  end
+
+  # ==========================================================================
+  # Test Fixture Setup
+  # ==========================================================================
+
+  before(:all) do
+    Onetime.boot! :test
+
+    # Configure encryption for CustomDomain::SsoConfig
+    key_v1 = 'test_encryption_key_32bytes_ok!!'
+    key_v2 = 'another_test_key_for_testing_!!'
+
+    Familia.configure do |config|
+      config.encryption_keys = {
+        v1: Base64.strict_encode64(key_v1),
+        v2: Base64.strict_encode64(key_v2),
+      }
+      config.current_key_version = :v1
+      config.encryption_personalization = 'SsoConfigIntgTst'
+    end
+  end
+
+  # Issuer save-time validation (SsrfProtection#valid_issuer_host?) resolves
+  # the issuer host and fails closed on empty resolution, so the fixture
+  # issuers below (auth.example.com, pkce-issuer.example.com — all NXDOMAIN)
+  # would be rejected with 422 on a machine with working DNS. Resolve them to
+  # a documentation-range public address instead: these tests are about the
+  # SSO config API's own semantics, and the SSRF rules themselves are covered
+  # in apps/api/domains/spec/logic/sso_config/ssrf_protection_spec.rb.
+  before do
+    allow(Resolv).to receive(:getaddresses).and_return(['203.0.113.10'])
+  end
+
+  let(:test_run_id) { SecureRandom.hex(8) }
+  let(:test_email) { "owner-#{test_run_id}@test.local" }
+  let(:test_password) { 'Test123!@#' }
+  let(:tenant_domain) { "secrets-#{test_run_id}.acme-corp.example.com" }
+
+  # Create owner customer
+  let!(:test_owner) do
+    customer = Onetime::Customer.new(email: test_email)
+    customer.update_passphrase(test_password)
+    customer.verified = 'true'
+    customer.role = 'customer'
+    customer.save
+    customer
+  end
+
+  # Create non-owner customer (for authorization tests)
+  let!(:test_non_owner) do
+    email = "nonowner-#{test_run_id}@test.local"
+    customer = Onetime::Customer.new(email: email)
+    customer.update_passphrase(test_password)
+    customer.verified = 'true'
+    customer.role = 'customer'
+    customer.save
+    customer
+  end
+
+  # Create organization owned by test_owner
+  # Note: In standalone/test mode (billing disabled), all orgs get
+  # STANDALONE_ENTITLEMENTS which includes manage_sso automatically.
+  # The entitlement denial test stubs org.can? to test that code path.
+  let!(:test_organization) do
+    Onetime::Organization.create!(
+      "Test Org #{test_run_id}",
+      test_owner,
+      "contact-#{test_run_id}@test.local",
+    )
+  end
+
+  # Create custom domain associated with organization
+  let!(:test_custom_domain) do
+    domain = Onetime::CustomDomain.new(
+      display_domain: tenant_domain,
+      org_id: test_organization.org_id,
+    )
+    # TXT-verified: tenant SSO (and its sign-in routes) needs a verified domain (#4517, #4579).
+    domain.verified = true
+    domain.save
+    Onetime::CustomDomain.display_domain_index.put(tenant_domain, domain.domainid)
+    domain
+  end
+
+  # Valid Entra ID config params
+  let(:valid_entra_params) do
+    {
+      provider_type: 'entra_id',
+      display_name: 'Test Entra ID',
+      client_id: 'test-client-id-12345',
+      client_secret: 'test-client-secret-abcdef',
+      tenant_id: '12345678-1234-1234-1234-123456789abc',
+      allowed_domains: ['acme-corp.example.com'],
+      enabled: true,
+    }
+  end
+
+  # Valid OIDC config params
+  let(:valid_oidc_params) do
+    {
+      provider_type: 'oidc',
+      display_name: 'Test OIDC Provider',
+      client_id: 'oidc-client-id',
+      client_secret: 'oidc-client-secret',
+      issuer: 'https://auth.example.com',
+      allowed_domains: ['example.com'],
+      enabled: true,
+    }
+  end
+
+  # Clean up after each test
+  after do
+    Onetime::CustomDomain::SsoConfig.delete_for_domain!(test_custom_domain.identifier) rescue nil
+    Onetime::CustomDomain.display_domain_index.remove(tenant_domain) rescue nil
+    test_custom_domain&.destroy! rescue nil
+    test_organization&.destroy! rescue nil
+    test_owner&.destroy! rescue nil
+    test_non_owner&.destroy! rescue nil
+  end
+
+  # ==========================================================================
+  # Helper Methods
+  # ==========================================================================
+
+  def enable_sso_feature_flag
+    real_conf = OT.conf.dup
+    real_conf['features'] = (real_conf['features'] || {}).merge(
+      'organizations' => ((real_conf.dig('features', 'organizations') || {}).merge(
+        'sso_enabled' => true
+      ))
+    )
+    allow(OT).to receive(:conf).and_return(real_conf)
+  end
+
+  def disable_sso_feature_flag
+    real_conf = OT.conf.dup
+    real_conf['features'] = (real_conf['features'] || {}).merge(
+      'organizations' => ((real_conf.dig('features', 'organizations') || {}).merge(
+        'sso_enabled' => false
+      ))
+    )
+    allow(OT).to receive(:conf).and_return(real_conf)
+  end
+
+  def api_path(domain_extid)
+    "/api/domains/#{domain_extid}/sso"
+  end
+
+  def test_connection_path(domain_extid)
+    "/api/domains/#{domain_extid}/sso/test"
+  end
+
+  def login_as(customer)
+    # Establish session by logging in via auth route
+    reset_csrf_token
+    csrf_post '/auth/login', {
+      login: customer.email,
+      password: test_password,
+    }
+
+    # Refresh CSRF token after login (session regeneration)
+    reset_csrf_token
+  end
+
+  def json_get(path)
+    header 'Accept', 'application/json'
+    header 'Content-Type', nil
+    get path
+  end
+
+  def json_body
+    JSON.parse(last_response.body)
+  end
+
+  def csrf_patch(path, params = {})
+    csrf_token = ensure_csrf_token
+
+    header 'Content-Type', 'application/json'
+    header 'Accept', 'application/json'
+    header 'X-CSRF-Token', csrf_token if csrf_token
+
+    patch path, JSON.generate(params.merge(shrimp: csrf_token))
+  end
+
+  # ==========================================================================
+  # PUT /api/domains/:extid/sso - Create/Replace SSO Config
+  # ==========================================================================
+
+  describe 'PUT /api/domains/:extid/sso' do
+    before do
+      enable_sso_feature_flag
+    end
+
+    context 'when authenticated as organization owner with entitlement' do
+      before do
+        login_as(test_owner)
+      end
+
+      context 'creating new SSO config' do
+        it 'creates Entra ID config and returns masked secret' do
+          csrf_put api_path(test_custom_domain.extid), valid_entra_params
+
+          expect(last_response.status).to eq(200)
+
+          body = json_body
+          expect(body).to have_key('record')
+          record = body['record']
+
+          expect(record['provider_type']).to eq('entra_id')
+          expect(record['display_name']).to eq('Test Entra ID')
+          expect(record['client_id']).to eq('test-client-id-12345')
+          expect(record['tenant_id']).to eq('12345678-1234-1234-1234-123456789abc')
+          expect(record['enabled']).to be true
+
+          # Secret should be masked
+          expect(record['client_secret_masked']).to match(/^••••••••.{4}$/)
+          expect(record).not_to have_key('client_secret')
+        end
+
+        it 'creates OIDC config with issuer' do
+          csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+
+          expect(last_response.status).to eq(200)
+
+          body = json_body
+          record = body['record']
+          expect(record['provider_type']).to eq('oidc')
+          expect(record['issuer']).to eq('https://auth.example.com')
+        end
+
+        it 'returns user_id in response' do
+          csrf_put api_path(test_custom_domain.extid), valid_entra_params
+
+          body = json_body
+          expect(body['user_id']).to eq(test_owner.extid)
+        end
+      end
+
+      context 'replacing existing SSO config' do
+        before do
+          # Create initial config
+          Onetime::CustomDomain::SsoConfig.create!(
+            domain_id: test_custom_domain.identifier,
+            provider_type: 'oidc',
+            client_id: 'old-client-id',
+            client_secret: 'old-secret',
+            issuer: 'https://old-issuer.com',
+            enabled: false,
+          )
+        end
+
+        it 'replaces all fields with PUT semantics' do
+          csrf_put api_path(test_custom_domain.extid), valid_entra_params
+
+          expect(last_response.status).to eq(200)
+
+          body = json_body
+          record = body['record']
+
+          # Provider should be replaced
+          expect(record['provider_type']).to eq('entra_id')
+          expect(record['tenant_id']).to eq('12345678-1234-1234-1234-123456789abc')
+
+          # Old OIDC-specific fields should be cleared
+          expect(record['issuer']).to be_empty.or be_nil
+        end
+
+        it 'clears a stored client_secret when an OIDC PUT omits it' do
+          params = valid_oidc_params.dup
+          params.delete(:client_secret)
+
+          csrf_put api_path(test_custom_domain.extid), params
+
+          expect(last_response.status).to eq(200)
+
+          # PUT is full replacement: an omitted client_secret is CLEARED, not
+          # preserved — legal only for OIDC (public client/PKCE); entra_id gets
+          # 422 (see 'returns 422 for missing client_secret on PUT'). PATCH is
+          # the secret-preserving verb; the frontend routes secretless saves
+          # there (sso.service.ts#saveConfigForDomain).
+          record = json_body['record']
+          expect(record['client_secret_masked']).to be_nil
+
+          # Persisted state agrees with the response
+          json_get api_path(test_custom_domain.extid)
+          expect(json_body['record']['client_secret_masked']).to be_nil
+        end
+      end
+
+      describe 'replacement audit log (#4778)' do
+        let(:audit_payloads) { [] }
+        let(:initial_params) do
+          valid_oidc_params.merge(enabled: false, token_endpoint_auth_method: 'client_secret_post')
+        end
+
+        before do
+          allow(OT).to receive(:info) do |msg, json|
+            audit_payloads << JSON.parse(json) if msg.start_with?('[DOMAIN_SSO_CHANGE] ')
+          end
+        end
+
+        def seed_audited_config(params)
+          csrf_put api_path(test_custom_domain.extid), params
+          expect(last_response.status).to eq(200), last_response.body
+          audit_payloads.clear
+        end
+
+        def replacement_changes
+          replacements = audit_payloads.select { |payload| payload['event'] == 'domain_sso_config_replaced' }
+          expect(replacements.size).to eq(1)
+          replacements.first.fetch('changes', {})
+        end
+
+        it 'records normalized safe-field values before replacement and retains the enabled event' do
+          seed_audited_config(initial_params)
+
+          csrf_put api_path(test_custom_domain.extid), initial_params.merge(
+            display_name: '  Acme  <b>Corp</b>  SSO ',
+            issuer: 'https://new-issuer.example.com',
+            token_endpoint_auth_method: ' client_secret_basic ',
+            allowed_domains: [' Example.COM ', 'Foo.com', '', 'example.com'],
+            enabled: 'true', enforce_sso_only: 'true', grant_org_scope: 'true',
+          )
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(replacement_changes).to eq(
+            'display_name' => { 'from' => initial_params[:display_name], 'to' => 'Acme Corp SSO' },
+            'issuer' => { 'from' => initial_params[:issuer], 'to' => 'https://new-issuer.example.com' },
+            'token_endpoint_auth_method' => { 'from' => 'client_secret_post', 'to' => 'client_secret_basic' },
+            'allowed_domains' => { 'from' => ['example.com'], 'to' => %w[example.com foo.com] },
+            'enabled' => { 'from' => false, 'to' => true },
+            'enforce_sso_only' => { 'from' => false, 'to' => true },
+            'grant_org_scope' => { 'from' => false, 'to' => true },
+          )
+          expect(audit_payloads.map { |payload| payload['event'] }).to contain_exactly(
+            'domain_sso_config_replaced', 'domain_sso_config_enabled',
+          )
+          json_get api_path(test_custom_domain.extid)
+          expect(json_body['record']).to include(
+            'display_name' => 'Acme Corp SSO', 'issuer' => 'https://new-issuer.example.com',
+            'token_endpoint_auth_method' => 'client_secret_basic',
+            'allowed_domains' => %w[example.com foo.com],
+            'enabled' => true, 'enforce_sso_only' => true, 'grant_org_scope' => true,
+          )
+        end
+
+        [
+          [' FOO.com ', 'Example.COM', '', 'example.com'],
+          ' FOO.com, Example.COM, example.com ',
+        ].each do |domains|
+          it "records no false deltas for a sanitized resend with #{domains.class} domains" do
+            original = initial_params.merge(display_name: 'Acme Corp SSO', allowed_domains: %w[example.com foo.com])
+            seed_audited_config(original)
+
+            csrf_put api_path(test_custom_domain.extid), original.merge(
+              provider_type: ' oidc ', display_name: '  Acme <b>Corp</b> SSO ',
+              issuer: ' https://auth.example.com ', token_endpoint_auth_method: ' client_secret_post ',
+              allowed_domains: domains, enabled: 'false', enforce_sso_only: 'false', grant_org_scope: 'false',
+            )
+
+            expect(last_response.status).to eq(200), last_response.body
+            expect(replacement_changes).to eq({})
+            expect(audit_payloads.map { |payload| payload['event'] }).to eq(['domain_sso_config_replaced'])
+            json_get api_path(test_custom_domain.extid)
+            expect(json_body['record']).to include(
+              'display_name' => 'Acme Corp SSO', 'issuer' => original[:issuer],
+              'token_endpoint_auth_method' => 'client_secret_post', 'enabled' => false,
+            )
+            expect(json_body['record']['allowed_domains']).to contain_exactly('example.com', 'foo.com')
+          end
+        end
+
+        it 'records omitted optional fields as resets and retains the disabled event' do
+          seed_audited_config(initial_params.merge(enabled: true, enforce_sso_only: true, grant_org_scope: true))
+
+          csrf_put api_path(test_custom_domain.extid), {
+            provider_type: 'oidc', client_id: initial_params[:client_id], issuer: initial_params[:issuer],
+          }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(replacement_changes).to eq(
+            'display_name' => { 'from' => initial_params[:display_name], 'to' => '' },
+            'token_endpoint_auth_method' => { 'from' => 'client_secret_post', 'to' => '' },
+            'allowed_domains' => { 'from' => ['example.com'], 'to' => [] },
+            'enabled' => { 'from' => true, 'to' => false },
+            'enforce_sso_only' => { 'from' => true, 'to' => false },
+            'grant_org_scope' => { 'from' => true, 'to' => false },
+          )
+          expect(audit_payloads.map { |payload| payload['event'] }).to contain_exactly(
+            'domain_sso_config_replaced', 'domain_sso_config_disabled',
+          )
+          json_get api_path(test_custom_domain.extid)
+          expect(json_body['record']).to include(
+            'token_endpoint_auth_method' => nil, 'allowed_domains' => [],
+            'enabled' => false, 'enforce_sso_only' => false, 'grant_org_scope' => false,
+            'client_secret_masked' => nil,
+          )
+        end
+
+        it 'records an OIDC to Entra switch with an omitted issuer and an ignored submitted auth method' do
+          seed_audited_config(initial_params)
+
+          csrf_put api_path(test_custom_domain.extid), initial_params.reject { |key, _| key == :issuer }.merge(
+            provider_type: 'entra_id', tenant_id: valid_entra_params[:tenant_id],
+            token_endpoint_auth_method: 'client_secret_basic',
+          )
+
+          expect(last_response.status).to eq(200), last_response.body
+          changes = replacement_changes
+          expect(changes).to include(
+            'provider_type' => { 'from' => 'oidc', 'to' => 'entra_id' },
+            'issuer' => { 'from' => initial_params[:issuer], 'to' => '' },
+            'token_endpoint_auth_method' => { 'from' => 'client_secret_post', 'to' => '' },
+          )
+          expect(changes.keys).to contain_exactly('provider_type', 'issuer', 'tenant_id', 'token_endpoint_auth_method')
+          expect(changes.fetch('tenant_id')['from'].to_s).to eq('')
+          expect(changes.fetch('tenant_id')['to']).to eq(valid_entra_params[:tenant_id])
+          json_get api_path(test_custom_domain.extid)
+          expect(json_body['record']['issuer'].to_s).to eq('')
+          expect(json_body['record']['token_endpoint_auth_method']).to be_nil
+        end
+
+        it 'records an Entra to OIDC switch with an omitted tenant_id' do
+          original = valid_entra_params.merge(enabled: false)
+          seed_audited_config(original)
+
+          csrf_put api_path(test_custom_domain.extid), original.reject { |key, _| key == :tenant_id }.merge(
+            provider_type: 'oidc', issuer: valid_oidc_params[:issuer],
+          )
+
+          expect(last_response.status).to eq(200), last_response.body
+          changes = replacement_changes
+          expect(changes.keys).to contain_exactly('provider_type', 'tenant_id', 'issuer')
+          expect(changes).to include(
+            'provider_type' => { 'from' => 'entra_id', 'to' => 'oidc' },
+            'tenant_id' => { 'from' => original[:tenant_id], 'to' => '' },
+          )
+          expect(changes.fetch('issuer')['from'].to_s).to eq('')
+          expect(changes.fetch('issuer')['to']).to eq(valid_oidc_params[:issuer])
+          json_get api_path(test_custom_domain.extid)
+          expect(json_body['record']['tenant_id'].to_s).to eq('')
+        end
+
+        it 'never includes old or new credential values in audit payloads when credentials rotate' do
+          seed_audited_config(initial_params)
+          credentials = { client_id: 'replacement-private-client-id', client_secret: 'replacement-private-client-secret' }
+
+          csrf_put api_path(test_custom_domain.extid), initial_params.merge(credentials)
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(replacement_changes).to eq({})
+          serialized = JSON.generate(audit_payloads)
+          [initial_params[:client_id], initial_params[:client_secret], *credentials.values].each do |value|
+            expect(serialized).not_to include(value)
+          end
+          stored = Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+          expect(stored.client_id.reveal { it }).to eq(credentials[:client_id])
+          expect(stored.client_secret.reveal { it }).to eq(credentials[:client_secret])
+        end
+
+        it 'emits creation and enabled events, but no replacement event for a new config' do
+          csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(audit_payloads.map { |payload| payload['event'] }).to contain_exactly(
+            'domain_sso_config_created', 'domain_sso_config_enabled',
+          )
+        end
+
+        it 'does not emit a replacement event or change stored state after failed validation' do
+          seed_audited_config(initial_params)
+          json_get api_path(test_custom_domain.extid)
+          original = json_body['record']
+
+          csrf_put api_path(test_custom_domain.extid), initial_params.merge(
+            display_name: 'Must not be saved', enabled: true, token_endpoint_auth_method: 'invalid-method',
+          )
+
+          expect(last_response.status).to eq(422), last_response.body
+          expect(json_body['field']).to eq('token_endpoint_auth_method')
+          expect(audit_payloads).to be_empty
+          json_get api_path(test_custom_domain.extid)
+          expect(json_body['record']).to eq(original)
+        end
+
+        context 'with a concurrent writer' do
+          include ConcurrentConfigWriterHelpers
+
+          let(:model) { Onetime::CustomDomain::SsoConfig }
+          let(:replacement_params) { initial_params.merge(display_name: 'Replacement SSO', enabled: true) }
+
+          def write_concurrently(**fields)
+            write_config_concurrently(model, test_custom_domain.identifier, **fields)
+          end
+
+          it 'records the delta from a write committed after the config was loaded' do
+            seed_audited_config(initial_params)
+            after_config_load(model) { write_concurrently(display_name: 'Concurrent SSO', enabled: 'true') }
+
+            csrf_put api_path(test_custom_domain.extid), replacement_params
+
+            expect(last_response.status).to eq(200), last_response.body
+            expect(replacement_changes).to eq('display_name' => { 'from' => 'Concurrent SSO', 'to' => 'Replacement SSO' })
+            # enabled was already true: no enabled event
+            expect(audit_payloads.map { |payload| payload['event'] }).to eq(['domain_sso_config_replaced'])
+          end
+
+          it 'records a field the concurrent write cleared as restored' do
+            seed_audited_config(initial_params)
+            # [] stores nil, which deletes the field from the hash
+            after_config_load(model) { write_concurrently(allowed_domains: []) }
+
+            csrf_put api_path(test_custom_domain.extid), initial_params
+
+            expect(last_response.status).to eq(200), last_response.body
+            expect(replacement_changes).to eq('allowed_domains' => { 'from' => [], 'to' => ['example.com'] })
+          end
+
+          it 're-reads and records the newer state when a write lands before the commit' do
+            seed_audited_config(initial_params)
+            after_watched_read(model, times: 1) { write_concurrently(display_name: 'Concurrent SSO', enabled: 'true') }
+
+            csrf_put api_path(test_custom_domain.extid), replacement_params
+
+            expect(last_response.status).to eq(200), last_response.body
+            expect(replacement_changes).to eq('display_name' => { 'from' => 'Concurrent SSO', 'to' => 'Replacement SSO' })
+            expect(audit_payloads.map { |payload| payload['event'] }).to eq(['domain_sso_config_replaced'])
+            json_get api_path(test_custom_domain.extid)
+            expect(json_body['record']).to include('display_name' => 'Replacement SSO', 'enabled' => true)
+          end
+
+          it 'refuses with a conflict and logs nothing when every attempt is overtaken' do
+            seed_audited_config(initial_params)
+            after_watched_read(model, times: 3) { |n| write_concurrently(display_name: "Concurrent SSO #{n}") }
+
+            csrf_put api_path(test_custom_domain.extid), replacement_params
+
+            expect(last_response.status).to eq(422), last_response.body
+            expect(json_body['error_type']).to eq('conflict')
+            expect(audit_payloads).to be_empty
+            json_get api_path(test_custom_domain.extid)
+            expect(json_body['record']).to include('display_name' => 'Concurrent SSO 3', 'enabled' => false)
+          end
+
+          it 'refuses with a conflict and does not recreate a config deleted after it was loaded' do
+            seed_audited_config(initial_params)
+            after_config_load(model) { as_concurrent_writer { model.delete_for_domain!(test_custom_domain.identifier) } }
+
+            csrf_put api_path(test_custom_domain.extid), replacement_params
+
+            expect(last_response.status).to eq(422), last_response.body
+            expect(json_body['error_type']).to eq('conflict')
+            expect(audit_payloads).to be_empty
+            expect(model.exists_for_domain?(test_custom_domain.identifier)).to be(false)
+          end
+
+          it 'refuses with a conflict and keeps the winner when a create races it' do
+            after_config_load(model) do
+              as_concurrent_writer do
+                model.create!(domain_id: test_custom_domain.identifier, **initial_params.merge(display_name: 'Concurrent SSO'))
+              end
+            end
+
+            csrf_put api_path(test_custom_domain.extid), replacement_params
+
+            expect(last_response.status).to eq(422), last_response.body
+            expect(json_body['error_type']).to eq('conflict')
+            expect(audit_payloads).to be_empty
+            expect(model.find_by_domain_id(test_custom_domain.identifier).display_name).to eq('Concurrent SSO')
+          end
+        end
+      end
+
+      context 'validation errors' do
+        it 'returns 422 for missing provider_type' do
+          params = valid_entra_params.dup
+          params.delete(:provider_type)
+
+          csrf_put api_path(test_custom_domain.extid), params
+
+          expect(last_response.status).to eq(422)
+          body = json_body
+          expect(body['error']).to include('Provider type')
+        end
+
+        it 'returns 422 for invalid provider_type' do
+          params = valid_entra_params.merge(provider_type: 'invalid_provider')
+
+          csrf_put api_path(test_custom_domain.extid), params
+
+          expect(last_response.status).to eq(422)
+          body = json_body
+          expect(body['error']).to include('Invalid provider type')
+        end
+
+        it 'returns 422 for missing client_id' do
+          params = valid_entra_params.dup
+          params.delete(:client_id)
+
+          csrf_put api_path(test_custom_domain.extid), params
+
+          expect(last_response.status).to eq(422)
+          body = json_body
+          expect(body['error']).to include('Client ID')
+        end
+
+        it 'returns 422 for missing client_secret on PUT' do
+          params = valid_entra_params.dup
+          params.delete(:client_secret)
+
+          csrf_put api_path(test_custom_domain.extid), params
+
+          expect(last_response.status).to eq(422)
+          body = json_body
+          expect(body['error']).to include('Client secret')
+        end
+
+        it 'returns 422 for missing tenant_id on Entra ID provider' do
+          params = valid_entra_params.dup
+          params.delete(:tenant_id)
+
+          csrf_put api_path(test_custom_domain.extid), params
+
+          expect(last_response.status).to eq(422)
+          body = json_body
+          expect(body['error']).to include('Tenant ID')
+        end
+
+        it 'returns 422 for missing issuer on OIDC provider' do
+          params = valid_oidc_params.dup
+          params.delete(:issuer)
+
+          csrf_put api_path(test_custom_domain.extid), params
+
+          expect(last_response.status).to eq(422)
+          body = json_body
+          expect(body['error']).to include('Issuer URL')
+        end
+
+        it 'returns 422 for non-HTTPS issuer URL' do
+          params = valid_oidc_params.merge(issuer: 'http://insecure.example.com')
+
+          csrf_put api_path(test_custom_domain.extid), params
+
+          expect(last_response.status).to eq(422)
+          body = json_body
+          expect(body['error']).to include('Issuer URL')
+        end
+      end
+    end
+
+    context 'authorization checks' do
+      it 'returns 401 for unauthenticated requests' do
+        # No login
+        header 'Accept', 'application/json'
+        header 'Content-Type', 'application/json'
+        put api_path(test_custom_domain.extid), JSON.generate(valid_entra_params)
+
+        expect(last_response.status).to eq(401)
+      end
+
+      it 'returns 422 when SSO feature flag is disabled' do
+        disable_sso_feature_flag
+        login_as(test_owner)
+
+        csrf_put api_path(test_custom_domain.extid), valid_entra_params
+
+        # Feature flag check uses raise_form_error → FormError → 422
+        expect(last_response.status).to eq(422)
+        body = json_body
+        expect(body['error']).to include('SSO is not enabled')
+      end
+
+      it 'returns 403 for non-member of organization' do
+        login_as(test_non_owner)
+
+        csrf_put api_path(test_custom_domain.extid), valid_entra_params
+
+        # Non-member check uses require_entitlement_in! → Onetime::Forbidden → 403
+        expect(last_response.status).to eq(403)
+        body = json_body
+        expect(body['error']).to include('member')
+      end
+
+      it 'returns 422 when organization lacks manage_sso entitlement' do
+        # In integration tests with billing disabled, all orgs get STANDALONE_ENTITLEMENTS.
+        # We stub can? on the specific org instance to test this code path.
+        # Note: This requires finding the org that will be loaded by the request.
+        allow_any_instance_of(Onetime::Organization).to receive(:can?).with('manage_sso').and_return(false)
+
+        login_as(test_owner)
+        csrf_put api_path(test_custom_domain.extid), valid_entra_params
+
+        # Entitlement check uses raise_form_error → FormError → 422
+        expect(last_response.status).to eq(422)
+        body = json_body
+        expect(body['error']).to include('manage_sso')
+      end
+
+      it 'returns 404 for non-existent domain' do
+        login_as(test_owner)
+        csrf_put api_path('nonexistent-domain-extid'), valid_entra_params
+
+        expect(last_response.status).to eq(404)
+        body = json_body
+        expect(body['error']).to include('Domain not found')
+      end
+    end
+  end
+
+  # ==========================================================================
+  # GET /api/domains/:extid/sso - Retrieve SSO Config
+  # ==========================================================================
+
+  describe 'GET /api/domains/:extid/sso' do
+    before do
+      enable_sso_feature_flag
+    end
+
+    context 'when SSO config exists' do
+      let!(:existing_config) do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'entra_id',
+          display_name: 'Existing Config',
+          client_id: 'existing-client-id',
+          client_secret: 'existing-secret-value',
+          tenant_id: 'existing-tenant-id',
+          allowed_domains: ['acme.com'],
+          enabled: true,
+        )
+      end
+
+      before do
+        login_as(test_owner)
+      end
+
+      it 'returns the SSO config with masked secret' do
+        json_get api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        expect(body).to have_key('record')
+        record = body['record']
+
+        expect(record['provider_type']).to eq('entra_id')
+        expect(record['display_name']).to eq('Existing Config')
+        expect(record['client_id']).to eq('existing-client-id')
+        expect(record['tenant_id']).to eq('existing-tenant-id')
+        expect(record['enabled']).to be true
+        expect(record['allowed_domains']).to eq(['acme.com'])
+
+        # Secret should be masked
+        expect(record['client_secret_masked']).to match(/^••••••••/)
+        expect(record).not_to have_key('client_secret')
+      end
+
+      it 'returns timestamps as integers' do
+        json_get api_path(test_custom_domain.extid)
+
+        body = json_body
+        record = body['record']
+
+        expect(record['created_at']).to be_a(Integer)
+        expect(record['updated_at']).to be_a(Integer)
+      end
+
+      it 'returns provider metadata flags' do
+        json_get api_path(test_custom_domain.extid)
+
+        body = json_body
+        record = body['record']
+
+        expect(record).to have_key('requires_domain_filter')
+        expect(record).to have_key('idp_controls_access')
+      end
+    end
+
+    context 'when SSO config does not exist' do
+      before do
+        login_as(test_owner)
+      end
+
+      it 'returns 404' do
+        json_get api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(404)
+        body = json_body
+        expect(body['error']).to include('SSO configuration not found')
+      end
+    end
+
+    context 'authorization checks' do
+      before do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'entra_id',
+          client_id: 'client-id',
+          client_secret: 'secret',
+          tenant_id: 'tenant-id',
+          enabled: true,
+        )
+      end
+
+      it 'returns 401 for unauthenticated requests' do
+        json_get api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(401)
+      end
+
+      it 'returns 403 for non-owner' do
+        login_as(test_non_owner)
+        json_get api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(403)
+      end
+    end
+  end
+
+  # ==========================================================================
+  # PATCH /api/domains/:extid/sso - Partial Update SSO Config
+  # ==========================================================================
+
+  describe 'PATCH /api/domains/:extid/sso' do
+    before do
+      enable_sso_feature_flag
+    end
+
+    let!(:existing_config) do
+      Onetime::CustomDomain::SsoConfig.create!(
+        domain_id: test_custom_domain.identifier,
+        provider_type: 'entra_id',
+        display_name: 'Original Name',
+        client_id: 'original-client-id',
+        client_secret: 'original-secret',
+        tenant_id: 'original-tenant-id',
+        allowed_domains: ['original.com'],
+        enabled: false,
+      )
+    end
+
+    context 'when authenticated as organization owner' do
+      before do
+        login_as(test_owner)
+      end
+
+      it 'updates only provided fields (PATCH semantics)' do
+        csrf_patch api_path(test_custom_domain.extid), {
+          display_name: 'Updated Name',
+          enabled: true,
+        }
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+
+        # Updated fields
+        expect(record['display_name']).to eq('Updated Name')
+        expect(record['enabled']).to be true
+
+        # Preserved fields
+        expect(record['provider_type']).to eq('entra_id')
+        expect(record['client_id']).to eq('original-client-id')
+        expect(record['tenant_id']).to eq('original-tenant-id')
+      end
+
+      it 'preserves client_secret when not provided' do
+        csrf_patch api_path(test_custom_domain.extid), {
+          display_name: 'Updated Again',
+        }
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+
+        # Secret should still be masked (meaning it was preserved)
+        expect(record['client_secret_masked']).to match(/^••••••••/)
+      end
+
+      it 'updates client_secret when provided' do
+        csrf_patch api_path(test_custom_domain.extid), {
+          client_secret: 'new-secret-value',
+        }
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+
+        # Secret should show new masked value
+        expect(record['client_secret_masked']).to eq('••••••••alue')
+      end
+
+      it 'clears allowed_domains when empty array provided' do
+        csrf_patch api_path(test_custom_domain.extid), {
+          allowed_domains: [],
+        }
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+        expect(record['allowed_domains']).to eq([])
+      end
+
+      it 'preserves allowed_domains when not provided' do
+        csrf_patch api_path(test_custom_domain.extid), {
+          display_name: 'Name Only Update',
+        }
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+        expect(record['allowed_domains']).to eq(['original.com'])
+      end
+
+      it 'clears tenant_id when switching to oidc' do
+        csrf_patch api_path(test_custom_domain.extid), {
+          provider_type: 'oidc',
+          issuer: 'https://auth.example.com',
+        }
+
+        expect(last_response.status).to eq(200)
+        record = json_body['record']
+        expect(record['provider_type']).to eq('oidc')
+        expect(record['issuer']).to eq('https://auth.example.com')
+
+        # Provider switch clears the outgoing provider's field — an oidc
+        # record must not carry the entra fixture's stale tenant_id.
+        expect(record['tenant_id'].to_s).to eq('')
+      end
+    end
+
+    context 'switching provider from a secretless OIDC config' do
+      before do
+        # Replace the entra_id fixture with an OIDC public-client config
+        # (PKCE) that has no stored client_secret to fall back to.
+        Onetime::CustomDomain::SsoConfig.delete_for_domain!(test_custom_domain.identifier)
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'oidc',
+          client_id: 'pkce-client-id',
+          issuer: 'https://pkce-issuer.example.com',
+          enabled: false,
+        )
+        login_as(test_owner)
+      end
+
+      # The public-client exemption: an ABSENT stored secret (as opposed to
+      # one that will not decrypt, below) stays optional on update.
+      it 'accepts a PATCH that omits the secret and keeps the record secretless' do
+        csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed PKCE' }
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_body['record']).to include(
+          'display_name' => 'Renamed PKCE', 'client_secret_masked' => nil, 'unreadable_fields' => [],
+        )
+      end
+
+      it 'returns 422 when switching to entra_id without a client_secret' do
+        # Neither the request nor the stored record has a secret — allowing
+        # this through would produce an entra_id config whose token exchange
+        # fails at the IdP.
+        csrf_patch api_path(test_custom_domain.extid), {
+          provider_type: 'entra_id',
+          tenant_id: '12345678-1234-1234-1234-123456789abc',
+        }
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['error']).to include('Client secret')
+
+        # Stored config is untouched
+        config = Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+        expect(config.provider_type).to eq('oidc')
+      end
+
+      it 'switches to entra_id when a client_secret is provided' do
+        csrf_patch api_path(test_custom_domain.extid), {
+          provider_type: 'entra_id',
+          tenant_id: '12345678-1234-1234-1234-123456789abc',
+          client_secret: 'switch-secret-value',
+        }
+
+        expect(last_response.status).to eq(200)
+        record = json_body['record']
+        expect(record['provider_type']).to eq('entra_id')
+        expect(record['client_secret_masked']).to eq('••••••••alue')
+
+        # Provider switch clears the outgoing provider's field — an entra_id
+        # record must not carry the oidc fixture's stale issuer.
+        expect(record['issuer'].to_s).to eq('')
+      end
+
+      it 'switches to entra_id without a request secret when one is stored' do
+        config = Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+        config.client_secret = 'stored-oidc-secret'
+        config.commit_fields
+
+        csrf_patch api_path(test_custom_domain.extid), {
+          provider_type: 'entra_id',
+          tenant_id: '12345678-1234-1234-1234-123456789abc',
+        }
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']['provider_type']).to eq('entra_id')
+      end
+    end
+
+    # A stored credential that will not decrypt (GET names it in
+    # unreadable_fields) is corrupt ciphertext, not "unset". PATCH preserves
+    # an omitted client_secret, so the OIDC public-client exemption must
+    # cover an ABSENT secret only — otherwise a blank save reports success
+    # on a record whose strategy can never be built.
+    context 'with a stored client_secret that cannot be decrypted' do
+      def current_config
+        Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+      end
+
+      # Ciphertext bound (AAD) to another domain: present, undecryptable here.
+      def swap_in_foreign(field, value)
+        other = Onetime::CustomDomain::SsoConfig.new(domain_id: "other-#{test_run_id}")
+        other.public_send(:"#{field}=", value)
+        Familia.dbclient.hset(current_config.dbkey, field.to_s, other.public_send(field).encrypted_value)
+      end
+
+      before { login_as(test_owner) }
+
+      context 'with an oidc record' do
+        before do
+          Onetime::CustomDomain::SsoConfig.delete_for_domain!(test_custom_domain.identifier)
+          Onetime::CustomDomain::SsoConfig.create!(
+            domain_id: test_custom_domain.identifier,
+            provider_type: 'oidc',
+            display_name: 'Original OIDC',
+            client_id: 'oidc-client-id',
+            client_secret: 'oidc-stored-secret',
+            issuer: 'https://auth.example.com',
+            enabled: true,
+          )
+          swap_in_foreign(:client_secret, 'foreign-secret')
+        end
+
+        it 'is reported by GET as unreadable (the precondition)' do
+          json_get api_path(test_custom_domain.extid)
+
+          expect(last_response.status).to eq(200)
+          expect(json_body['record']).to include('unreadable_fields' => ['client_secret'], 'client_secret_masked' => nil)
+        end
+
+        it 'refuses a PATCH that omits the secret, although oidc allows public clients' do
+          csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'missing', 'field' => 'client_secret')
+          expect(json_body['error']).to include('Client secret is required')
+          # Fail closed: nothing was written
+          expect(current_config.display_name).to eq('Original OIDC')
+        end
+
+        it 'accepts a bare disable without rewriting ciphertext' do
+          before = Familia.dbclient.hgetall(current_config.dbkey)
+          csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(json_body['record']).to include('enabled' => false, 'unreadable_fields' => ['client_secret'])
+          after = Familia.dbclient.hgetall(current_config.dbkey)
+          expect(after.except('enabled', 'updated')).to eq(before.except('enabled', 'updated'))
+          expect(current_config.enabled?).to be false
+        end
+
+        it 'accepts a PATCH that supplies a replacement secret, which then decrypts' do
+          csrf_patch api_path(test_custom_domain.extid), { client_secret: 'replacement-secret-value' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(json_body['record']).to include('unreadable_fields' => [], 'client_secret_masked' => '••••••••alue')
+          expect(current_config.client_secret.reveal { it }).to eq('replacement-secret-value')
+        end
+      end
+
+      context 'with an entra_id record' do
+        before { swap_in_foreign(:client_secret, 'foreign-secret') }
+
+        it 'refuses a PATCH that omits the secret' do
+          csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'missing', 'field' => 'client_secret')
+          expect(current_config.display_name).to eq('Original Name')
+        end
+      end
+    end
+
+    context 'narrow disable recovery' do
+      def recovery_config
+        Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+      end
+
+      def recovery_snapshot
+        Familia.dbclient.hgetall(recovery_config.dbkey)
+      end
+
+      %w[oidc entra_id saml].each do |provider|
+        context "with unreadable #{provider} credentials" do
+          let(:unreadable_fields) do
+            provider == 'saml' ? %w[idp_sso_service_url idp_entity_id idp_cert] : %w[client_id client_secret]
+          end
+
+          before do
+            Onetime::CustomDomain::SsoConfig.delete_for_domain!(test_custom_domain.identifier)
+            attributes = if provider == 'saml'
+              {
+                idp_sso_service_url: 'https://idp.example.com/sso',
+                idp_entity_id: 'https://idp.example.com/metadata',
+                idp_cert: DomainSsoTestFixtures.saml_cert_pem,
+              }
+            else
+              { client_id: 'client', client_secret: 'secret', issuer: 'https://auth.example.com', tenant_id: 'tenant' }
+            end
+            config = Onetime::CustomDomain::SsoConfig.create!(
+              **attributes, domain_id: test_custom_domain.identifier, provider_type: provider,
+              enabled: true, enforce_sso_only: true,
+            )
+            foreign = Onetime::CustomDomain::SsoConfig.new(domain_id: "foreign-#{test_run_id}")
+            unreadable_fields.each do |field|
+              foreign.public_send(:"#{field}=", 'foreign-value')
+              Familia.dbclient.hset(config.dbkey, field, foreign.public_send(field).encrypted_value)
+            end
+            login_as(test_owner)
+          end
+
+          it 'clears both flags, retains unreadable fields and all other stored values, and audits the disable' do
+            before = recovery_snapshot
+            expect_any_instance_of(DomainsAPI::Logic::SsoConfig::PatchSsoConfig)
+              .to receive(:log_sso_change_event).with(hash_including(event: :domain_sso_config_updated)).and_call_original
+            expect_any_instance_of(DomainsAPI::Logic::SsoConfig::PatchSsoConfig)
+              .to receive(:log_sso_change_event).with(hash_including(event: :domain_sso_config_disabled)).and_call_original
+
+            csrf_patch api_path(test_custom_domain.extid), { enabled: false, enforce_sso_only: false }
+
+            expect(last_response.status).to eq(200), last_response.body
+            expect(json_body['record']).to include('enabled' => false, 'enforce_sso_only' => false)
+            expect(json_body['record']['unreadable_fields']).to match_array(unreadable_fields)
+            expect(recovery_config.enabled?).to be false
+            expect(recovery_config.enforce_sso_only?).to be false
+            expect(recovery_snapshot.except('enabled', 'enforce_sso_only', 'updated'))
+              .to eq(before.except('enabled', 'enforce_sso_only', 'updated'))
+          end
+
+          it 'accepts a bare disable when enforcement is already off' do
+            config = recovery_config
+            config.enforce_sso_only = 'false'
+            config.commit_fields
+            before = recovery_snapshot
+
+            csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+
+            expect(last_response.status).to eq(200), last_response.body
+            expect(json_body['record']['unreadable_fields']).to match_array(unreadable_fields)
+            expect(recovery_config.enabled?).to be false
+            expect(recovery_snapshot.except('enabled', 'updated')).to eq(before.except('enabled', 'updated'))
+          end
+
+          [
+            { enabled: false },
+            { enabled: true, enforce_sso_only: false },
+            { enabled: 'false', enforce_sso_only: false },
+            { enabled: false, enforce_sso_only: 'false' },
+            { enabled: false, enforce_sso_only: true },
+            { enabled: false, enforce_sso_only: false, display_name: 'Renamed' },
+            { enabled: false, enforce_sso_only: false, client_secret: '' },
+            { enabled: false, enforce_sso_only: false, grant_org_scope: false },
+            { enabled: false, enforce_sso_only: false, unexpected: false },
+            { enabled: false, enforce_sso_only: false, idp_cert_fingerprint: 'fingerprint' },
+          ].each do |payload|
+            it "rejects #{payload.inspect} without writing" do
+              before = recovery_snapshot
+              csrf_patch api_path(test_custom_domain.extid), payload
+
+              expect(last_response.status).to eq(422), last_response.body
+              expect(recovery_snapshot).to eq(before)
+            end
+          end
+
+          it 'still requires authentication' do
+            clear_cookies
+            before = recovery_snapshot
+            csrf_patch api_path(test_custom_domain.extid), { enabled: false, enforce_sso_only: false }
+
+            expect(last_response.status).to eq(401)
+            expect(recovery_snapshot).to eq(before)
+          end
+
+          it 'still requires the SSO feature flag' do
+            disable_sso_feature_flag
+            before = recovery_snapshot
+            csrf_patch api_path(test_custom_domain.extid), { enabled: false, enforce_sso_only: false }
+
+            expect(last_response.status).to eq(422)
+            expect(json_body['error']).to include('Organization SSO is not enabled')
+            expect(recovery_snapshot).to eq(before)
+          end
+
+          it 'still requires ownership' do
+            clear_cookies
+            login_as(test_non_owner)
+            before = recovery_snapshot
+            csrf_patch api_path(test_custom_domain.extid), { enabled: false, enforce_sso_only: false }
+
+            expect(last_response.status).to eq(403)
+            expect(recovery_snapshot).to eq(before)
+          end
+
+          it 'still requires the manage_sso entitlement' do
+            allow_any_instance_of(Onetime::Organization).to receive(:can?).with('manage_sso').and_return(false)
+            before = recovery_snapshot
+            csrf_patch api_path(test_custom_domain.extid), { enabled: false, enforce_sso_only: false }
+
+            expect(last_response.status).to eq(422)
+            expect(json_body['error']).to include('manage_sso')
+            expect(recovery_snapshot).to eq(before)
+          end
+        end
+      end
+    end
+
+    context 'with a legacy stored provider type (pre-#3902)' do
+      before do
+        # Pre-#3902 records (google/github) predate model validation and
+        # cannot be created through any current API path — seed one by
+        # writing the field directly.
+        existing_config.provider_type = 'google'
+        existing_config.commit_fields
+        login_as(test_owner)
+      end
+
+      it 'returns 422 naming the stored legacy type, even for a bare disable' do
+        # The request never sent provider_type — the error must blame the
+        # stored record and point at the escape hatches, not claim the
+        # caller supplied an invalid field.
+        csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['error']).to include("'google'")
+        expect(json_body['error']).to include('no longer supported')
+
+        # Fail closed: the stored record is untouched
+        config = Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+        expect(config.provider_type).to eq('google')
+      end
+
+      it 'can still be deleted (the escape hatch)' do
+        csrf_delete api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(200)
+        expect(Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)).to be_nil
+      end
+
+      it 'can be replaced with a full PUT' do
+        csrf_put api_path(test_custom_domain.extid), {
+          provider_type: 'entra_id',
+          client_id: 'replacement-client-id',
+          client_secret: 'replacement-secret',
+          tenant_id: '12345678-1234-1234-1234-123456789abc',
+          enabled: false,
+        }
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']['provider_type']).to eq('entra_id')
+      end
+    end
+
+    context 'when no existing config' do
+      before do
+        # Remove the existing config
+        Onetime::CustomDomain::SsoConfig.delete_for_domain!(test_custom_domain.identifier)
+        login_as(test_owner)
+      end
+
+      it 'creates new config when providing all required fields' do
+        csrf_patch api_path(test_custom_domain.extid), valid_entra_params
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+        expect(record['provider_type']).to eq('entra_id')
+      end
+
+      it 'returns 422 when required fields missing for creation' do
+        csrf_patch api_path(test_custom_domain.extid), {
+          display_name: 'Incomplete Config',
+        }
+
+        expect(last_response.status).to eq(422)
+        body = json_body
+        expect(body['error']).to include('required')
+      end
+    end
+
+    # PATCH re-reads the record under WATCH (GuardedConfigWrites) and resolves,
+    # validates, writes and audits against it, not the one raise_concerns loaded.
+    context 'with a concurrent writer' do
+      include ConcurrentConfigWriterHelpers
+
+      let(:model) { Onetime::CustomDomain::SsoConfig }
+      let(:audit_payloads) { [] }
+
+      before do
+        login_as(test_owner)
+        allow(OT).to receive(:info) do |msg, json|
+          audit_payloads << JSON.parse(json) if msg.start_with?('[DOMAIN_SSO_CHANGE] ')
+        end
+      end
+
+      def write_concurrently(**fields)
+        write_config_concurrently(model, test_custom_domain.identifier, **fields)
+      end
+
+      def stored = model.find_by_domain_id(test_custom_domain.identifier)
+
+      def events = audit_payloads.map { |payload| payload['event'] }
+
+      it 'keeps a field written after the config was loaded' do
+        after_config_load(model) { write_concurrently(grant_org_scope: 'true') }
+
+        csrf_patch api_path(test_custom_domain.extid), { display_name: 'Updated Name' }
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect([stored.display_name, stored.grant_org_scope?]).to eq(['Updated Name', true])
+      end
+
+      it 'audits the changes from the record it replaced' do
+        after_config_load(model) { write_concurrently(display_name: 'Concurrent Name', enabled: 'true') }
+
+        csrf_patch api_path(test_custom_domain.extid), { display_name: 'Updated Name', enabled: true }
+
+        expect(last_response.status).to eq(200), last_response.body
+        update = audit_payloads.find { |payload| payload['event'] == 'domain_sso_config_updated' }
+        expect(update['changes']).to eq('display_name' => { 'from' => 'Concurrent Name', 'to' => 'Updated Name' })
+        # enabled was already true: no enabled event
+        expect(events).to eq(['domain_sso_config_updated'])
+      end
+
+      it 'validates against the record it replaced and keeps a concurrent disable' do
+        write_concurrently(enabled: 'true')
+        after_config_load(model) { write_concurrently(enabled: 'false') }
+
+        csrf_patch api_path(test_custom_domain.extid), { enforce_sso_only: true }
+
+        expect(last_response.status).to eq(422), last_response.body
+        expect(json_body['field']).to eq('enforce_sso_only')
+        expect([stored.enabled?, stored.enforce_sso_only?]).to eq([false, false])
+        expect(audit_payloads).to be_empty
+      end
+
+      it 'reads again when a write lands before the commit' do
+        after_watched_read(model, times: 1) { write_concurrently(grant_org_scope: 'true') }
+
+        csrf_patch api_path(test_custom_domain.extid), { display_name: 'Updated Name' }
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect([stored.display_name, stored.grant_org_scope?]).to eq(['Updated Name', true])
+      end
+
+      it 'refuses with a conflict and logs nothing when every attempt is overtaken' do
+        after_watched_read(model, times: 3) { |n| write_concurrently(display_name: "Concurrent Name #{n}") }
+
+        csrf_patch api_path(test_custom_domain.extid), { display_name: 'Updated Name' }
+
+        expect(last_response.status).to eq(422), last_response.body
+        expect(json_body['error_type']).to eq('conflict')
+        expect(stored.display_name).to eq('Concurrent Name 3')
+        expect(audit_payloads).to be_empty
+      end
+    end
+  end
+
+  # ==========================================================================
+  # DELETE /api/domains/:extid/sso - Delete SSO Config
+  # ==========================================================================
+
+  describe 'DELETE /api/domains/:extid/sso' do
+    before do
+      enable_sso_feature_flag
+    end
+
+    context 'when SSO config exists' do
+      before do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'entra_id',
+          client_id: 'delete-test-client',
+          client_secret: 'delete-test-secret',
+          tenant_id: 'delete-test-tenant',
+          enabled: true,
+        )
+        login_as(test_owner)
+      end
+
+      it 'F2: a replacement starts without history even when outcome cleanup raises' do
+        domain_id = test_custom_domain.identifier
+        old = Onetime::CustomDomain::SsoConfig.find_by_domain_id(domain_id)
+        outcome_class = Onetime::CustomDomain::SsoSigninOutcome
+        recorded = outcome_class.record_success!(domain_id, config: old)
+        expect(recorded).not_to be_nil
+        allow(outcome_class).to receive(:delete_for_domain!).and_raise(Redis::BaseConnectionError)
+
+        csrf_delete api_path(test_custom_domain.extid)
+        expect(last_response.status).to eq(200)
+        expect(outcome_class.load(domain_id)).not_to be_nil
+        replacement = Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: domain_id, client_id: 'replacement', issuer: 'https://idp.example.com',
+        )
+        expect(outcome_class.record_success!(domain_id, config: old)).to be_nil
+        json_get api_path(test_custom_domain.extid)
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']['last_sign_in']).to be_nil
+
+        outcome_class.record_failure!(domain_id, config: replacement, stage: 'provider', code: 'timeout')
+        json_get api_path(test_custom_domain.extid)
+        expect(json_body['record']['last_sign_in']).to include('result' => 'failed', 'succeeded_at' => nil)
+      ensure
+        recorded&.destroy!
+      end
+
+      it 'F2: delayed cleanup cannot erase a replacement outcome' do
+        domain_id = test_custom_domain.identifier
+        outcome_class = Onetime::CustomDomain::SsoSigninOutcome
+        recorded = nil
+        allow(outcome_class).to receive(:delete_for_domain!).and_wrap_original do |original, id, **kwargs|
+          replacement = Onetime::CustomDomain::SsoConfig.create!(
+            domain_id: id, client_id: 'replacement', issuer: 'https://idp.example.com',
+          )
+          recorded = outcome_class.record_success!(id, config: replacement)
+          original.call(id, **kwargs)
+        end
+
+        csrf_delete api_path(test_custom_domain.extid)
+        expect(last_response.status).to eq(200)
+        expect(recorded).not_to be_nil
+        expect(outcome_class.find_by_domain_id(domain_id).succeeded?).to be true
+      ensure
+        recorded&.destroy!
+      end
+
+      it 'deletes the SSO config and returns confirmation' do
+        domain_id = test_custom_domain.identifier
+        config = Onetime::CustomDomain::SsoConfig.find_by_domain_id(domain_id)
+        Onetime::CustomDomain::SsoSigninOutcome.record_success!(domain_id, config: config)
+        csrf_delete api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        expect(body['success']).to be true
+        expect(body['message']).to include('deleted')
+
+        # Verify deletion
+        config = Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+        expect(config).to be_nil
+        expect(Onetime::CustomDomain::SsoSigninOutcome.load(domain_id)).to be_nil
+      end
+    end
+
+    context 'when SSO config does not exist' do
+      before do
+        login_as(test_owner)
+      end
+
+      it 'returns 404' do
+        csrf_delete api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(404)
+        body = json_body
+        expect(body['error']).to include('SSO configuration not found')
+      end
+    end
+
+    context 'authorization checks' do
+      before do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'entra_id',
+          client_id: 'auth-test-client',
+          client_secret: 'auth-test-secret',
+          tenant_id: 'auth-test-tenant',
+          enabled: true,
+        )
+      end
+
+      it 'returns 403 for non-owner' do
+        login_as(test_non_owner)
+        csrf_delete api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(403)
+      end
+    end
+  end
+
+  # ==========================================================================
+  # POST /api/domains/:extid/sso/test - Test SSO Connection
+  # ==========================================================================
+
+  describe 'POST /api/domains/:extid/sso/test' do
+    before do
+      enable_sso_feature_flag
+    end
+
+    context 'with valid Entra ID config' do
+      before { login_as(test_owner) }
+
+      let(:entra_test_params) do
+        {
+          provider_type: 'entra_id',
+          client_id: 'test-client-id',
+          tenant_id: '12345678-1234-1234-1234-123456789abc',
+        }
+      end
+
+      it 'attempts connection test and returns result' do
+        stub_request(:get, "https://login.microsoftonline.com/12345678-1234-1234-1234-123456789abc/v2.0/.well-known/openid-configuration").to_return(status: 200, body: %Q({"issuer":"https://login.microsoftonline.com"}), headers: {"Content-Type" => "application/json"})
+
+        csrf_post test_connection_path(test_custom_domain.extid), entra_test_params
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        expect(body).to have_key('provider_type')
+        expect(body['provider_type']).to eq('entra_id')
+
+        # Result will include success/failure based on network connectivity
+        expect(body).to have_key('success')
+        expect(body).to have_key('message')
+      end
+    end
+
+    # Tenant SSO is OIDC/Entra-only (#3902): issuerless providers (google,
+    # github) resolve to the shared '' issuer sentinel and cannot satisfy
+    # (provider, issuer, uid) identity partitioning, so they are rejected
+    # at the provider_type gate.
+    context 'with removed issuerless provider types (#3902)' do
+      before { login_as(test_owner) }
+
+      it 'rejects google as an invalid provider type' do
+        csrf_post test_connection_path(test_custom_domain.extid), {
+          provider_type: 'google',
+          client_id: 'test-client.apps.googleusercontent.com',
+        }
+
+        expect(last_response.status).to eq(422)
+        body = json_body
+        expect(body['error']).to include('Invalid provider type')
+        expect(body['error']).to include('oidc, entra_id')
+      end
+
+      it 'rejects github as an invalid provider type' do
+        csrf_post test_connection_path(test_custom_domain.extid), {
+          provider_type: 'github',
+          client_id: 'Iv1.1234567890abcdef',
+        }
+
+        expect(last_response.status).to eq(422)
+        body = json_body
+        expect(body['error']).to include('Invalid provider type')
+        expect(body['error']).to include('oidc, entra_id')
+      end
+    end
+
+    context 'validation errors' do
+      before { login_as(test_owner) }
+
+      it 'returns 422 for missing provider_type' do
+        csrf_post test_connection_path(test_custom_domain.extid), {
+          client_id: 'some-client-id',
+        }
+
+        expect(last_response.status).to eq(422)
+        body = json_body
+        expect(body['error']).to include('Provider type')
+      end
+
+      it 'returns 422 for missing client_id' do
+        csrf_post test_connection_path(test_custom_domain.extid), {
+          provider_type: 'entra_id',
+          tenant_id: 'some-tenant',
+        }
+
+        expect(last_response.status).to eq(422)
+        body = json_body
+        expect(body['error']).to include('Client ID')
+      end
+
+      it 'returns 422 for missing tenant_id on Entra ID' do
+        csrf_post test_connection_path(test_custom_domain.extid), {
+          provider_type: 'entra_id',
+          client_id: 'some-client-id',
+        }
+
+        expect(last_response.status).to eq(422)
+        body = json_body
+        expect(body['error']).to include('Tenant ID')
+      end
+
+      it 'returns 422 for invalid tenant_id format on Entra ID' do
+        csrf_post test_connection_path(test_custom_domain.extid), {
+          provider_type: 'entra_id',
+          client_id: 'some-client-id',
+          tenant_id: 'not-a-uuid',
+        }
+
+        expect(last_response.status).to eq(422)
+        body = json_body
+        expect(body['error']).to include('UUID')
+      end
+
+      it 'returns 422 for missing issuer on OIDC' do
+        csrf_post test_connection_path(test_custom_domain.extid), {
+          provider_type: 'oidc',
+          client_id: 'some-client-id',
+        }
+
+        expect(last_response.status).to eq(422)
+        body = json_body
+        expect(body['error']).to include('Issuer URL')
+      end
+
+    end
+
+    context 'authorization checks' do
+      it 'returns 401 for unauthenticated requests' do
+        header 'Accept', 'application/json'
+        header 'Content-Type', 'application/json'
+        post test_connection_path(test_custom_domain.extid), JSON.generate({
+          provider_type: 'entra_id',
+          client_id: 'client',
+          tenant_id: '12345678-1234-1234-1234-123456789abc',
+        })
+
+        expect(last_response.status).to eq(401)
+      end
+
+      it 'returns 403 for non-member' do
+        login_as(test_non_owner)
+
+        csrf_post test_connection_path(test_custom_domain.extid), {
+          provider_type: 'entra_id',
+          client_id: 'client',
+          tenant_id: '12345678-1234-1234-1234-123456789abc',
+        }
+
+        # Non-member check uses require_entitlement_in! -> Onetime::Forbidden -> 403
+        expect(last_response.status).to eq(403)
+        body = json_body
+        expect(body['error']).to include('member')
+      end
+    end
+  end
+
+  # ==========================================================================
+  # enforce_sso_only Field Tests (Issue #3057)
+  # ==========================================================================
+
+  describe 'enforce_sso_only field' do
+    before do
+      enable_sso_feature_flag
+      login_as(test_owner)
+    end
+
+    describe 'PUT /api/domains/:extid/sso' do
+      it 'accepts enforce_sso_only in request and returns it in response' do
+        params = valid_entra_params.merge(enforce_sso_only: true)
+        csrf_put api_path(test_custom_domain.extid), params
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+        expect(record['enforce_sso_only']).to be true
+      end
+
+      it 'defaults enforce_sso_only to false when not provided' do
+        csrf_put api_path(test_custom_domain.extid), valid_entra_params
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+        expect(record['enforce_sso_only']).to be false
+      end
+    end
+
+    describe 'PATCH /api/domains/:extid/sso' do
+      let!(:existing_config) do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'entra_id',
+          display_name: 'Original Config',
+          client_id: 'original-client-id',
+          client_secret: 'original-secret',
+          tenant_id: 'original-tenant-id',
+          enabled: true,
+        )
+      end
+
+      it 'updates enforce_sso_only when provided' do
+        csrf_patch api_path(test_custom_domain.extid), {
+          enforce_sso_only: true,
+        }
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+        expect(record['enforce_sso_only']).to be true
+      end
+
+      it 'preserves enforce_sso_only when not provided in PATCH' do
+        # First set enforce_sso_only to true
+        existing_config.enforce_sso_only = 'true'
+        existing_config.save
+
+        # PATCH without enforce_sso_only
+        csrf_patch api_path(test_custom_domain.extid), {
+          display_name: 'Updated Name Only',
+        }
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+        expect(record['enforce_sso_only']).to be true
+        expect(record['display_name']).to eq('Updated Name Only')
+      end
+
+      it 'can disable enforce_sso_only via PATCH' do
+        # First set enforce_sso_only to true
+        existing_config.enforce_sso_only = 'true'
+        existing_config.save
+
+        # PATCH to disable it
+        csrf_patch api_path(test_custom_domain.extid), {
+          enforce_sso_only: false,
+        }
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+        expect(record['enforce_sso_only']).to be false
+      end
+    end
+
+    describe 'GET /api/domains/:extid/sso' do
+      it 'returns enforce_sso_only in response' do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'entra_id',
+          display_name: 'Test Config',
+          client_id: 'test-client-id',
+          client_secret: 'test-secret',
+          tenant_id: 'test-tenant-id',
+          enforce_sso_only: true,
+          enabled: true,
+        )
+
+        json_get api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        record = body['record']
+        expect(record).to have_key('enforce_sso_only')
+        expect(record['enforce_sso_only']).to be true
+      end
+    end
+  end
+
+  # ==========================================================================
+  # SAML provider type (#4450)
+  # ==========================================================================
+  #
+  # The JSON contract the frontend builds against:
+  #   request : provider_type 'saml' + idp_sso_service_url, idp_entity_id,
+  #             idp_cert (all required); no client_id / client_secret
+  #   response: the trio in plaintext, read-only sp_entity_id / acs_url,
+  #             unreadable_fields ([] when healthy), client_id null
+  #   errors  : 422 { error, error_type: 'missing'|'invalid', field }
+
+  describe 'SAML provider type' do
+    include DomainSsoTestFixtures
+
+    let(:saml_cert) { DomainSsoTestFixtures.saml_cert_pem }
+
+    let(:valid_saml_params) do
+      {
+        provider_type: 'saml',
+        display_name: 'Corp SAML',
+        idp_sso_service_url: 'https://idp.example.com/saml/sso',
+        idp_entity_id: 'https://idp.example.com/saml/metadata',
+        idp_cert: saml_cert,
+        allowed_domains: ['example.com'],
+        enabled: true,
+      }
+    end
+
+    def stored_config
+      Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+    end
+
+    # The install's session cookie, as the save path reads it. The test
+    # config ships same_site: lax with secure: false (Rack::Test speaks
+    # plain HTTP), and without Secure a saml config can never complete a
+    # sign-in, so the API refuses to save one
+    # (SamlFields#reject_incompatible_session_cookie!). Stubbed to a
+    # compatible pair here so the contract below is exercised; the refusal
+    # itself is pinned in 'under an incompatible session cookie'.
+    def stub_session_cookie(same_site:, secure:)
+      allow(Onetime).to receive(:session_config).and_wrap_original do |original|
+        original.call.merge('same_site' => same_site, 'secure' => secure)
+      end
+    end
+
+    before do
+      enable_sso_feature_flag
+      login_as(test_owner)
+      stub_session_cookie(same_site: 'none', secure: true)
+    end
+
+    # The install-wide SAML switch (#4604) is on for the whole block except
+    # the examples about the switch itself: with it off no saml config can be
+    # saved, so nothing else here would be reachable.
+    around do |example|
+      ClimateControl.modify(SAML_ENABLED: 'true') { example.run }
+    end
+
+    describe 'PUT provider-switch audit log (#4778)' do
+      let(:audit_payloads) { [] }
+
+      before do
+        allow(OT).to receive(:info) do |msg, json|
+          audit_payloads << JSON.parse(json) if msg.start_with?('[DOMAIN_SSO_CHANGE] ')
+        end
+      end
+
+      def saml_replacement_changes
+        replacements = audit_payloads.select { |payload| payload['event'] == 'domain_sso_config_replaced' }
+        expect(replacements.size).to eq(1)
+        replacements.first.fetch('changes', {})
+      end
+
+      %w[oidc entra_id].each do |provider|
+        it "audits actual #{provider} to SAML clears rather than ignored submitted OAuth values" do
+          original = (provider == 'oidc' ? valid_oidc_params : valid_entra_params).merge(
+            display_name: valid_saml_params[:display_name], allowed_domains: ['example.com'],
+          )
+          original[:token_endpoint_auth_method] = 'client_secret_post' if provider == 'oidc'
+          csrf_put api_path(test_custom_domain.extid), original
+          expect(last_response.status).to eq(200), last_response.body
+          audit_payloads.clear
+
+          ignored = {
+            client_id: 'ignored-oauth-client-id', client_secret: 'ignored-oauth-client-secret',
+            issuer: 'https://ignored-issuer.example.com', tenant_id: 'ignored-tenant-id',
+            token_endpoint_auth_method: 'client_secret_basic',
+          }
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(ignored)
+
+          expect(last_response.status).to eq(200), last_response.body
+          expected = { 'provider_type' => { 'from' => provider, 'to' => 'saml' } }
+          if provider == 'oidc'
+            expected['issuer'] = { 'from' => original[:issuer], 'to' => '' }
+            expected['token_endpoint_auth_method'] = { 'from' => 'client_secret_post', 'to' => '' }
+          else
+            expected['tenant_id'] = { 'from' => original[:tenant_id], 'to' => '' }
+          end
+          expect(saml_replacement_changes).to eq(expected)
+          expect(audit_payloads.map { |payload| payload['event'] }).to eq(['domain_sso_config_replaced'])
+          serialized = JSON.generate(audit_payloads)
+          [original[:client_id], original[:client_secret], *ignored.values, saml_cert].each do |value|
+            expect(serialized).not_to include(JSON.generate(value.strip))
+          end
+          expect(stored_config.issuer.to_s).to eq('')
+          expect(stored_config.tenant_id.to_s).to eq('')
+          expect(stored_config.token_endpoint_auth_method.to_s).to eq('')
+          expect(stored_config.client_id).to be_nil
+          expect(stored_config.client_secret).to be_nil
+        end
+
+        it "audits a SAML to #{provider} switch without logging cleared or ignored SAML values" do
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params
+          expect(last_response.status).to eq(200), last_response.body
+          audit_payloads.clear
+          replacement = (provider == 'oidc' ? valid_oidc_params : valid_entra_params).merge(
+            display_name: valid_saml_params[:display_name], allowed_domains: ['example.com'],
+            idp_sso_service_url: 'https://ignored-idp.example.com/sso',
+            idp_entity_id: 'ignored-saml-entity', idp_cert: 'ignored-saml-certificate',
+          )
+
+          csrf_put api_path(test_custom_domain.extid), replacement
+
+          expect(last_response.status).to eq(200), last_response.body
+          changes = saml_replacement_changes
+          field = provider == 'oidc' ? 'issuer' : 'tenant_id'
+          expect(changes.keys).to contain_exactly('provider_type', field)
+          expect(changes['provider_type']).to eq('from' => 'saml', 'to' => provider)
+          expect(changes.fetch(field)['from'].to_s).to eq('')
+          expect(changes.fetch(field)['to']).to eq(replacement[field.to_sym])
+          serialized = JSON.generate(audit_payloads)
+          %i[client_id client_secret idp_sso_service_url idp_entity_id idp_cert].each do |key|
+            expect(serialized).not_to include(replacement.fetch(key))
+          end
+          %i[idp_sso_service_url idp_entity_id idp_cert].each do |key|
+            expect(serialized).not_to include(JSON.generate(valid_saml_params.fetch(key).strip))
+            expect(stored_config.public_send(key)).to be_nil
+          end
+        end
+      end
+    end
+
+    # SAML_ENABLED off (#4604): the API refuses to introduce or edit a saml
+    # config (422 on provider_type, naming the operator's variable) while a
+    # tenant keeps the two ways out of its own saml config: a disable-only
+    # PATCH and DELETE. OIDC / Entra are untouched.
+    describe 'while SAML_ENABLED is off' do
+      def with_saml_off(&block)
+        ClimateControl.modify(SAML_ENABLED: nil, &block)
+      end
+
+      it 'refuses to create a saml config via PUT, on provider_type, naming SAML_ENABLED' do
+        with_saml_off { csrf_put api_path(test_custom_domain.extid), valid_saml_params }
+
+        expect(last_response.status).to eq(422)
+        expect(json_body).to include('error_type' => 'invalid', 'field' => 'provider_type')
+        expect(json_body['error']).to include('SAML_ENABLED', 'switched off')
+        expect(stored_config).to be_nil
+      end
+
+      it 'refuses SAML_ENABLED=false the same way' do
+        ClimateControl.modify(SAML_ENABLED: 'false') { csrf_put api_path(test_custom_domain.extid), valid_saml_params }
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['field']).to eq('provider_type')
+        expect(stored_config).to be_nil
+      end
+
+      it 'refuses before the trio is validated (a blank trio still fails on provider_type)' do
+        with_saml_off do
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(idp_cert: '', idp_entity_id: '')
+        end
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['field']).to eq('provider_type')
+      end
+
+      it 'refuses a PATCH that creates a saml config' do
+        with_saml_off { csrf_patch api_path(test_custom_domain.extid), valid_saml_params }
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['field']).to eq('provider_type')
+        expect(stored_config).to be_nil
+      end
+
+      # Not disable-only: there is no existing record to disable, so a
+      # "pre-staged, disabled" saml config is still an introduction.
+      it 'refuses a PATCH that creates a DISABLED saml config' do
+        with_saml_off { csrf_patch api_path(test_custom_domain.extid), { provider_type: 'saml', enabled: false } }
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['field']).to eq('provider_type')
+        expect(stored_config).to be_nil
+      end
+
+      it 'refuses a PATCH that switches an oidc config to saml, keeping the oidc record' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+        expect(last_response.status).to eq(200), last_response.body
+
+        with_saml_off { csrf_patch api_path(test_custom_domain.extid), valid_saml_params }
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['field']).to eq('provider_type')
+        expect(stored_config.provider_type).to eq('oidc')
+      end
+
+      it 'still accepts oidc via PUT and PATCH (the rule is saml-only)' do
+        with_saml_off do
+          csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+          expect(last_response.status).to eq(200), last_response.body
+          csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+          expect(last_response.status).to eq(200), last_response.body
+        end
+      end
+
+      context 'with a saml config saved while the switch was on' do
+        before do
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params
+          expect(last_response.status).to eq(200), last_response.body
+        end
+
+        it 'refuses every edit of the record, including a re-enable and a field rotation' do
+          with_saml_off do
+            csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+            expect(last_response.status).to eq(422), last_response.body
+            expect(json_body['field']).to eq('provider_type')
+
+            csrf_patch api_path(test_custom_domain.extid), { idp_entity_id: 'urn:example:rotated' }
+            expect(last_response.status).to eq(422), last_response.body
+
+            csrf_patch api_path(test_custom_domain.extid), { enabled: true }
+            expect(last_response.status).to eq(422), last_response.body
+
+            csrf_patch api_path(test_custom_domain.extid), { enabled: false, display_name: 'Renamed' }
+            expect(last_response.status).to eq(422), last_response.body
+          end
+
+          expect(stored_config.display_name).to eq('Corp SAML')
+          expect(stored_config.saml_trio[:idp_entity_id]).to eq('https://idp.example.com/saml/metadata')
+          expect(stored_config.enabled?).to be true
+        end
+
+        it 'accepts a disable-only PATCH, so the tenant can switch its own saml config off' do
+          with_saml_off { csrf_patch api_path(test_custom_domain.extid), { enabled: false } }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.enabled?).to be false
+        end
+
+        # The exemption's exact shape (PatchSsoConfig#disable_only_request?):
+        # enforce_sso_only may ride along only as false.
+        it 'accepts enabled: false with enforce_sso_only: false, and nothing wider' do
+          with_saml_off do
+            csrf_patch api_path(test_custom_domain.extid), { enabled: false, enforce_sso_only: false }
+            expect(last_response.status).to eq(200), last_response.body
+          end
+          expect(stored_config.enabled?).to be false
+        end
+
+        it 'refuses enabled: false with enforce_sso_only: true' do
+          with_saml_off do
+            csrf_patch api_path(test_custom_domain.extid), { enabled: false, enforce_sso_only: true }
+            expect(last_response.status).to eq(422), last_response.body
+          end
+          expect(stored_config.enabled?).to be true
+        end
+
+        it 'accepts DELETE' do
+          # The PUT above leaves a JSON Content-Type on the Rack::Test session;
+          # a body-less DELETE under it trips Rack::Parser (json_get clears it
+          # the same way).
+          header 'Content-Type', nil
+          with_saml_off { csrf_delete api_path(test_custom_domain.extid) }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config).to be_nil
+        end
+
+        it 'accepts a PUT that replaces it with an oidc config' do
+          with_saml_off { csrf_put api_path(test_custom_domain.extid), valid_oidc_params }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.provider_type).to eq('oidc')
+        end
+
+        it 'still serves the record on GET' do
+          with_saml_off { json_get api_path(test_custom_domain.extid) }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(json_body['record']).to include('provider_type' => 'saml')
+        end
+      end
+    end
+
+    describe 'SAML policy fields' do
+      let(:policy) { { name_id_format: 'omit', callback_origins: ['https://login.corp.example'] } }
+
+      it 'round trips encrypted policies, preserves PATCH omissions, and clears explicit empty origins' do
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(policy)
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_body['record']).to include(policy.transform_keys(&:to_s))
+        expect(stored_config.to_omniauth_options[:name_identifier_format]).to be_nil
+        expect(Familia.dbclient.hget(stored_config.dbkey, 'callback_origins_json')).not_to include('login.corp.example')
+        csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_body['record']).to include(policy.transform_keys(&:to_s))
+        csrf_patch api_path(test_custom_domain.extid), { callback_origins: [] }
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_config.callback_origins).to eq([])
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_config.saml_name_id_format).to eq(Onetime::SsoProvider::Saml::PERSISTENT_NAME_ID_FORMAT)
+      end
+
+      it 'reports corrupted policy ciphertext and allows explicit repair or disable' do
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(policy)
+        expect(last_response.status).to eq(200), last_response.body
+        config = stored_config
+        # Field-bound AAD prevents even a ciphertext from this same domain
+        # from being repurposed as another policy field.
+        encrypted_origins = Familia.dbclient.hget(config.dbkey, 'callback_origins_json')
+        Familia.dbclient.hset(config.dbkey, 'name_id_format', encrypted_origins)
+        json_get api_path(test_custom_domain.extid)
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_body['record']['unreadable_fields']).to include('name_id_format')
+        expect { stored_config.to_omniauth_options }.to raise_error(Onetime::Problem, /unreadable/)
+        csrf_patch api_path(test_custom_domain.extid), { display_name: 'Edit' }
+        expect(last_response.status).to eq(422), last_response.body
+        csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+        expect(last_response.status).to eq(200), last_response.body
+        csrf_patch api_path(test_custom_domain.extid), { name_id_format: 'omit' }
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_config.saml_name_id_format).to eq('omit')
+      end
+
+      it 'supports PATCH creation and clears policies on a provider switch' do
+        csrf_patch api_path(test_custom_domain.extid), valid_saml_params.merge(policy)
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_config.callback_origins).to eq(policy[:callback_origins])
+        csrf_patch api_path(test_custom_domain.extid), valid_oidc_params
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_config.callback_origins).to eq([])
+        csrf_patch api_path(test_custom_domain.extid), valid_saml_params
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_config.saml_name_id_format).to eq(Onetime::SsoProvider::Saml::PERSISTENT_NAME_ID_FORMAT)
+      end
+
+      it 'rejects invalid policies rather than ignoring or normalizing them' do
+        [{ name_id_format: nil }, { name_id_format: 'bad' }, { callback_origins: ['null'] }, { callback_origins: ['https://idp.example/path'] }].each do |invalid|
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(invalid)
+          expect(last_response.status).to eq(422), last_response.body
+          expect(json_body['field']).to eq(invalid.keys.first.to_s)
+        end
+      end
+
+      # Tenant records have no uid attribute, so a transient NameID would be
+      # refused on every sign-in (saml_transient_name_id); the policy is
+      # refused at save time instead, on PUT, PATCH-create and PATCH-update.
+      it 'rejects the transient NameID format on every write path' do
+        transient = { name_id_format: Onetime::SsoProvider::Saml::TRANSIENT_NAME_ID_FORMAT }
+
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(transient)
+        expect(last_response.status).to eq(422), last_response.body
+        expect(json_body).to include('field' => 'name_id_format', 'error_type' => 'invalid')
+        expect(json_body['error']).to match(/transient/i)
+        expect(stored_config).to be_nil
+
+        csrf_patch api_path(test_custom_domain.extid), valid_saml_params.merge(transient)
+        expect(last_response.status).to eq(422), last_response.body
+        expect(json_body['field']).to eq('name_id_format')
+        expect(stored_config).to be_nil
+
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+        expect(last_response.status).to eq(200), last_response.body
+        csrf_patch api_path(test_custom_domain.extid), transient
+        expect(last_response.status).to eq(422), last_response.body
+        expect(json_body['field']).to eq('name_id_format')
+        expect(stored_config.saml_name_id_format).to eq(Onetime::SsoProvider::Saml::PERSISTENT_NAME_ID_FORMAT)
+      end
+
+      # The NameID is the identity key for a tenant, so a format change
+      # makes every existing identity a stranger. The API has no warning
+      # channel in its response shape; the change is recorded at WARN.
+      describe 'changing the NameID format of an existing saml record' do
+        let(:email_format) { 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress' }
+        let(:warning) { '[DOMAIN_SSO_CHANGE] domain_sso_name_id_format_changed' }
+
+        before do
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params
+          expect(last_response.status).to eq(200), last_response.body
+          allow(OT).to receive(:lw).and_call_original
+        end
+
+        it 'warns on a PATCH that changes the effective format, naming whether the record was live' do
+          csrf_patch api_path(test_custom_domain.extid), { name_id_format: email_format }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.saml_name_id_format).to eq(email_format)
+          expect(OT).to have_received(:lw).with(warning, a_string_matching(/"was_enabled":true.*"identities_rekeyed":true/)).once
+        end
+
+        it 'warns on a PUT that omits the field and so restores persistent' do
+          csrf_patch api_path(test_custom_domain.extid), { name_id_format: email_format, enabled: false }
+          expect(last_response.status).to eq(200), last_response.body
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.saml_name_id_format).to eq(Onetime::SsoProvider::Saml::PERSISTENT_NAME_ID_FORMAT)
+          expect(OT).to have_received(:lw).with(warning, a_string_matching(/"was_enabled":false/)).once
+        end
+
+        it 'stays quiet when the format is unchanged, resent, or omitted on PATCH' do
+          csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+          csrf_patch api_path(test_custom_domain.extid), { name_id_format: Onetime::SsoProvider::Saml::PERSISTENT_NAME_ID_FORMAT }
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(OT).not_to have_received(:lw).with(warning, anything)
+        end
+      end
+
+      it 'requires owner authorization to add callback exceptions' do
+        clear_cookies
+        login_as(test_non_owner)
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(policy)
+        expect(last_response.status).to eq(403)
+        expect(stored_config).to be_nil
+      end
+
+      it 'rejects EC keys while permitting recovery of a legacy disabled record' do
+        key             = OpenSSL::PKey::EC.generate('prime256v1')
+        cert            = OpenSSL::X509::Certificate.new(saml_cert)
+        cert.public_key = key
+        cert.sign(key, OpenSSL::Digest.new('SHA256'))
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(idp_cert: cert.to_pem)
+        expect(last_response.status).to eq(422), last_response.body
+        expect(json_body['error']).to include('RSA public key')
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+        config          = stored_config
+        config.idp_cert = cert.to_pem
+        config.commit_fields
+        csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+        expect(last_response.status).to eq(200), last_response.body
+        csrf_patch api_path(test_custom_domain.extid), { display_name: 'Repairing' }
+        expect(last_response.status).to eq(200), last_response.body
+        csrf_patch api_path(test_custom_domain.extid), { enabled: true }
+        expect(last_response.status).to eq(422), last_response.body
+        csrf_patch api_path(test_custom_domain.extid), { idp_cert: saml_cert, enabled: true }
+        expect(last_response.status).to eq(200), last_response.body
+      end
+    end
+
+    describe 'under an incompatible session cookie' do
+      before { stub_session_cookie(same_site: 'strict', secure: true) }
+
+      it 'refuses to create a saml config via PUT, on provider_type, naming the settings' do
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+
+        expect(last_response.status).to eq(422)
+        expect(json_body).to include('error_type' => 'invalid', 'field' => 'provider_type')
+        expect(json_body['error']).to include("same_site is 'strict'", 'same_site: none or lax with secure: true', 'site.session')
+        expect(stored_config).to be_nil
+      end
+
+      it 'refuses SameSite=None without Secure too' do
+        stub_session_cookie(same_site: 'none', secure: false)
+
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['field']).to eq('provider_type')
+      end
+
+      it 'refuses a PATCH that switches an oidc config to saml' do
+        stub_session_cookie(same_site: 'none', secure: true)
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+        expect(last_response.status).to eq(200), last_response.body
+        stub_session_cookie(same_site: 'strict', secure: true)
+
+        csrf_patch api_path(test_custom_domain.extid), valid_saml_params
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['field']).to eq('provider_type')
+        expect(stored_config.provider_type).to eq('oidc')
+      end
+
+      it 'still accepts an oidc config (the rule is saml-only)' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+
+        expect(last_response.status).to eq(200), last_response.body
+      end
+
+      context 'with a saml config saved while the cookie was compatible' do
+        before do
+          stub_session_cookie(same_site: 'none', secure: true)
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params
+          expect(last_response.status).to eq(200), last_response.body
+          stub_session_cookie(same_site: 'strict', secure: true)
+        end
+
+        # An existing record must stay editable: the admin can disable it,
+        # rotate a field, or switch provider — never be stuck with it.
+        it 'can still be disabled via PATCH' do
+          csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.enabled?).to be false
+        end
+
+        it 'can still rotate a trio field via PATCH' do
+          csrf_patch api_path(test_custom_domain.extid), { idp_entity_id: 'urn:example:rotated' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.reveal_saml_field(:idp_entity_id)).to eq('urn:example:rotated')
+        end
+
+        it 'still accepts a PATCH that leaves an enabled record enabled' do
+          csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.enabled?).to be true
+          expect(stored_config.display_name).to eq('Renamed')
+        end
+
+        it 'still accepts editing a record that stays disabled' do
+          csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+          expect(last_response.status).to eq(200), last_response.body
+
+          csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.enabled?).to be false
+          expect(stored_config.display_name).to eq('Renamed')
+        end
+
+        # Re-enabling is an activation, not a repair: the persisted result
+        # would run under a cookie it cannot work with, every sign-in would
+        # fail, and (with enforce_sso_only) the tenant would be locked out
+        # while SSO stays advertised — the cookie rule is deliberately not a
+        # rung in tenant_sso_unavailable_reason.
+        it 'refuses to re-enable a disabled record via PATCH' do
+          csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+          expect(last_response.status).to eq(200), last_response.body
+
+          csrf_patch api_path(test_custom_domain.extid), { enabled: true }
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'invalid', 'field' => 'provider_type')
+          expect(json_body['error']).to include("same_site is 'strict'")
+          expect(stored_config.enabled?).to be false
+        end
+
+        it 'is refused on a full PUT replace (PUT re-introduces the config)' do
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(display_name: 'Replaced')
+
+          expect(last_response.status).to eq(422)
+          expect(json_body['field']).to eq('provider_type')
+        end
+      end
+    end
+
+    describe 'PUT' do
+      it 'creates a saml config without any client credential' do
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+
+        expect(last_response.status).to eq(200), last_response.body
+        record = json_body['record']
+
+        expect(record).to include(
+          'provider_type' => 'saml',
+          'idp_sso_service_url' => 'https://idp.example.com/saml/sso',
+          'idp_entity_id' => 'https://idp.example.com/saml/metadata',
+          'idp_cert' => saml_cert.strip,
+          'client_id' => nil,
+          'client_secret_masked' => nil,
+          'unreadable_fields' => [],
+          'requires_domain_filter' => true,
+          'idp_controls_access' => false,
+        )
+      end
+
+      it 'returns the SP identifiers the tenant hook will use at login' do
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+
+        base = "https://#{tenant_domain}/auth/sso/saml"
+        expect(json_body['record']).to include('sp_entity_id' => "#{base}/metadata", 'acs_url' => "#{base}/callback")
+      end
+
+      it 'stores the trio encrypted, and revealable after a fresh load' do
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+
+        config = stored_config
+        raw    = Familia.dbclient.hget(config.dbkey, 'idp_entity_id').to_s
+
+        expect(raw).not_to include('idp.example.com')
+        expect(config.saml_trio).to eq(
+          idp_sso_service_url: 'https://idp.example.com/saml/sso',
+          idp_entity_id: 'https://idp.example.com/saml/metadata',
+          idp_cert: saml_cert.strip,
+        )
+      end
+
+      it 'strips surrounding whitespace from the EntityID before it is stored' do
+        csrf_put api_path(test_custom_domain.extid),
+          valid_saml_params.merge(idp_entity_id: "  urn:example:idp\n")
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_config.reveal_saml_field(:idp_entity_id)).to eq('urn:example:idp')
+      end
+
+      it 'normalizes a certificate sent with CRLF line endings' do
+        csrf_put api_path(test_custom_domain.extid),
+          valid_saml_params.merge(idp_cert: saml_cert.gsub("\n", "\r\n"))
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_config.reveal_saml_field(:idp_cert)).to eq(saml_cert.strip)
+      end
+
+      it 'discards a client credential sent with a saml config' do
+        csrf_put api_path(test_custom_domain.extid),
+          valid_saml_params.merge(client_id: 'stray-client', client_secret: 'stray-secret', issuer: 'https://auth.example.com')
+
+        expect(last_response.status).to eq(200), last_response.body
+        config = stored_config
+        expect([config.client_id, config.client_secret, config.issuer.to_s]).to eq([nil, nil, ''])
+      end
+
+      {
+        'idp_sso_service_url' => 'IdP SSO service URL is required',
+        'idp_entity_id' => 'IdP EntityID is required',
+        'idp_cert' => 'IdP certificate is required',
+      }.each do |field, message|
+        it "returns 422 (missing) without #{field}" do
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params.except(field.to_sym)
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'missing', 'field' => field)
+          expect(json_body['error']).to include(message)
+        end
+      end
+
+      it 'returns 422 (invalid) for an http SSO service URL' do
+        csrf_put api_path(test_custom_domain.extid),
+          valid_saml_params.merge(idp_sso_service_url: 'http://idp.example.com/saml/sso')
+
+        expect(last_response.status).to eq(422)
+        expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_sso_service_url')
+      end
+
+      # Entra's tenant-neutral metadata publishes this template; no response
+      # Issuer can ever equal it.
+      it 'returns 422 (invalid) for a templated EntityID' do
+        csrf_put api_path(test_custom_domain.extid),
+          valid_saml_params.merge(idp_entity_id: 'https://sts.windows.net/{tenantid}/')
+
+        expect(last_response.status).to eq(422)
+        expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_entity_id')
+        expect(json_body['error']).to include('template placeholder')
+      end
+
+      # The server never fetches the SSO URL (the browser is redirected to
+      # it), so the OIDC issuer's SSRF host check does not apply: an IdP that
+      # only the user's browser can reach is a legitimate configuration.
+      it 'accepts an SSO service URL that resolves to a private address' do
+        allow(Resolv).to receive(:getaddresses).and_return(['10.0.0.5'])
+
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_config.reveal_saml_field(:idp_sso_service_url)).to eq('https://idp.example.com/saml/sso')
+      end
+
+      it 'accepts an SSO service URL on a private hostname' do
+        csrf_put api_path(test_custom_domain.extid),
+          valid_saml_params.merge(idp_sso_service_url: 'https://sso.corp.internal/saml/sso')
+
+        expect(last_response.status).to eq(200), last_response.body
+      end
+
+      # What the URL's origin IS admitted into is the domain's CSP form-action
+      # and HttpOrigin allowances (AuthConfig#origin_from_url is the funnel),
+      # so a host that would break the CSP directive is refused at save time.
+      {
+        'a trailing semicolon on the host' => 'https://idp.example.com;/saml/sso',
+        'a quote in the host' => %(https://idp.example.com'/saml/sso),
+        'userinfo' => 'https://user:secret@idp.example.com/saml/sso',
+        # Derives fine — but as 'https://idp.example.com' (otto strips one
+        # trailing dot), an origin the dotted-host IdP never POSTs from, so
+        # every callback would be refused by HttpOrigin. Refused at save.
+        'a trailing dot on the host' => 'https://idp.example.com./saml/sso',
+      }.each do |label, url|
+        it "returns 422 (invalid) for an SSO service URL with #{label}" do
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(idp_sso_service_url: url)
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_sso_service_url')
+          expect(last_response.body).not_to include('secret')
+        end
+      end
+
+      it 'stores only a URL whose derived origin the CSP layer will carry' do
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(Onetime.auth_config.tenant_idp_origin(stored_config)).to eq('https://idp.example.com')
+      end
+
+      it 'returns 422 (invalid) for a fingerprint in place of the certificate' do
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(idp_cert: 'AB:CD:EF:01:23:45')
+
+        expect(last_response.status).to eq(422)
+        expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_cert')
+      end
+
+      it 'returns 422 (invalid) for an expired certificate' do
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(idp_cert: expired_saml_cert_pem)
+
+        expect(last_response.status).to eq(422)
+        expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_cert')
+        expect(json_body['error']).to match(/expired on/)
+      end
+
+      # Fingerprint-only trust accepts whatever certificate the response
+      # embeds. Refused loudly, for every provider type, even alongside a
+      # valid certificate.
+      %w[idp_cert_fingerprint idp_cert_fingerprint_algorithm idp_cert_multi].each do |param|
+        it "refuses #{param} outright" do
+          csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(param => 'AB:CD:EF')
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'invalid', 'field' => param)
+          expect(stored_config).to be_nil
+        end
+      end
+
+      it 'refuses a fingerprint param on a non-saml config too' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params.merge(idp_cert_fingerprint: 'AB:CD')
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['field']).to eq('idp_cert_fingerprint')
+      end
+
+      it 'replacing oidc with saml drops the client credential and issuer' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+
+        expect(last_response.status).to eq(200), last_response.body
+        config = stored_config
+        expect(config.provider_type).to eq('saml')
+        expect([config.client_id, config.client_secret, config.issuer.to_s]).to eq([nil, nil, ''])
+      end
+
+      it 'replacing saml with oidc drops the SAML trust anchor' do
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+
+        expect(last_response.status).to eq(200), last_response.body
+        config = stored_config
+        expect(config.provider_type).to eq('oidc')
+        expect(Onetime::CustomDomain::SsoConfig::SAML_FIELDS.map { |name| config.public_send(name) }).to all(be_nil)
+      end
+
+      it 'never stores an unvalidated trio on a non-saml config' do
+        csrf_put api_path(test_custom_domain.extid),
+          valid_oidc_params.merge(idp_entity_id: 'urn:planted', idp_cert: 'not a cert', idp_sso_service_url: 'http://x')
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(Onetime::CustomDomain::SsoConfig::SAML_FIELDS.map { |name| stored_config.public_send(name) }).to all(be_nil)
+      end
+    end
+
+    describe 'PATCH' do
+      context 'with an existing saml config' do
+        before { csrf_put api_path(test_custom_domain.extid), valid_saml_params }
+
+        it 'preserves the trio on a partial update' do
+          csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(json_body['record']).to include(
+            'display_name' => 'Renamed',
+            'idp_entity_id' => 'https://idp.example.com/saml/metadata',
+            'idp_cert' => saml_cert.strip,
+          )
+        end
+
+        it 'replaces a single trio field' do
+          csrf_patch api_path(test_custom_domain.extid), { idp_entity_id: 'urn:example:rotated' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.saml_trio).to include(
+            idp_entity_id: 'urn:example:rotated',
+            idp_sso_service_url: 'https://idp.example.com/saml/sso',
+          )
+        end
+
+        it 'validates a newly supplied field (expired certificate refused)' do
+          csrf_patch api_path(test_custom_domain.extid), { idp_cert: expired_saml_cert_pem }
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_cert')
+          expect(stored_config.reveal_saml_field(:idp_cert)).to eq(saml_cert.strip)
+        end
+
+        # The reason expiry is not a MODEL invariant: an operator must be
+        # able to switch off a config whose certificate has since expired.
+        it 'can still disable a config whose stored certificate has expired' do
+          config          = stored_config
+          config.idp_cert = expired_saml_cert_pem
+          config.commit_fields
+
+          csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.enabled?).to be false
+        end
+
+        # The form does not send a bare { enabled: false }: it re-sends every
+        # stored field on save (useSsoConfig.ts providerFields), and GET hands
+        # it the stored PEM to re-send. A value equal to the stored one was
+        # accepted when it was stored, so it is not re-validated — otherwise
+        # the expiry rule above holds only for a hand-written PATCH.
+        it 'can disable via a form save that re-sends the stored, now-expired certificate' do
+          expired         = expired_saml_cert_pem
+          config          = stored_config
+          config.idp_cert = expired
+          config.commit_fields
+
+          csrf_patch api_path(test_custom_domain.extid), valid_saml_params.merge(idp_cert: expired, enabled: false)
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.enabled?).to be false
+          expect(stored_config.reveal_saml_field(:idp_cert)).to eq(expired.strip)
+        end
+
+        # A templated EntityID saved before Saml::ENTITY_ID_PLACEHOLDER was
+        # refused gets the expired certificate's treatment: the form save
+        # that switches it off goes through, any other edit does not.
+        context 'when the stored EntityID is a template' do
+          let(:template) { 'https://sts.windows.net/{tenantid}/' }
+
+          before do
+            config               = stored_config
+            config.idp_entity_id = template
+            config.commit_fields
+          end
+
+          it 'can disable via a form save that re-sends the stored EntityID' do
+            csrf_patch api_path(test_custom_domain.extid), valid_saml_params.merge(idp_entity_id: template, enabled: false)
+
+            expect(last_response.status).to eq(200), last_response.body
+            expect(stored_config.enabled?).to be false
+          end
+
+          it 'refuses an edit that leaves the config enabled' do
+            csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+
+            expect(last_response.status).to eq(422)
+            expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_entity_id')
+          end
+        end
+
+        it 'refuses to re-enable a disabled config whose unchanged certificate is expired' do
+          expired         = expired_saml_cert_pem
+          config          = stored_config
+          config.idp_cert = expired
+          config.enabled  = false
+          config.commit_fields
+
+          csrf_patch api_path(test_custom_domain.extid), valid_saml_params.merge(idp_cert: expired, enabled: true)
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_cert')
+          expect(stored_config.enabled?).to be false
+        end
+
+        it 'can edit a disabled config whose unchanged certificate is expired' do
+          expired         = expired_saml_cert_pem
+          config          = stored_config
+          config.idp_cert = expired
+          config.enabled  = false
+          config.commit_fields
+
+          csrf_patch api_path(test_custom_domain.extid),
+            valid_saml_params.merge(idp_cert: expired, enabled: false, display_name: 'Awaiting certificate rotation')
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.enabled?).to be false
+          expect(stored_config.display_name).to eq('Awaiting certificate rotation')
+        end
+
+        it 'still refuses a CHANGED expired certificate on that same save' do
+          config          = stored_config
+          config.idp_cert = expired_saml_cert_pem
+          config.commit_fields
+
+          csrf_patch api_path(test_custom_domain.extid),
+            valid_saml_params.merge(idp_cert: expired_saml_cert_pem, enabled: false)
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_cert')
+          expect(stored_config.enabled?).to be true
+        end
+
+        # The examples above all RESEND the trio, the way the form does. The
+        # trio may equally be left out of a PATCH (the stored values are
+        # preserved), and the enable/expiry rule must be a property of the
+        # EFFECTIVE values the result runs on, not of the request shape:
+        # an omitted field is validated exactly as a resent one whenever the
+        # persisted result is enabled. Before this was pinned a bare
+        # { enabled: true } re-enabled a record whose stored certificate had
+        # expired, because an omitted field skipped validation outright.
+        context 'when the trio is omitted from the PATCH' do
+          # expired_saml_cert_pem mints a new keypair per call, so the PEM
+          # is captured once here and returned for assertions.
+          def store_expired_cert(enabled:)
+            expired         = expired_saml_cert_pem
+            config          = stored_config
+            config.idp_cert = expired
+            config.enabled  = enabled
+            config.commit_fields
+            expired
+          end
+
+          it 'refuses a bare enabled=true on a disabled config whose stored certificate is expired' do
+            store_expired_cert(enabled: false)
+
+            csrf_patch api_path(test_custom_domain.extid), { enabled: true }
+
+            expect(last_response.status).to eq(422)
+            expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_cert')
+            expect(stored_config.enabled?).to be false
+          end
+
+          # Repair-and-enable in one request: the fresh certificate is the
+          # effective value, the omitted URL and EntityID are the stored,
+          # still-valid ones.
+          it 'enables a disabled config when the same PATCH supplies a fresh certificate' do
+            store_expired_cert(enabled: false)
+
+            csrf_patch api_path(test_custom_domain.extid), { enabled: true, idp_cert: saml_cert }
+
+            expect(last_response.status).to eq(200), last_response.body
+            config = stored_config
+            expect(config.enabled?).to be true
+            expect(config.reveal_saml_field(:idp_cert)).to eq(saml_cert.strip)
+            expect(config.saml_trio).to include(
+              idp_sso_service_url: 'https://idp.example.com/saml/sso',
+              idp_entity_id: 'https://idp.example.com/saml/metadata',
+            )
+          end
+
+          # No enabled param on an ENABLED record: the result stays enabled,
+          # so the stored certificate it would keep running on is re-checked.
+          it 'refuses an unrelated edit on an enabled config whose stored certificate is expired' do
+            store_expired_cert(enabled: true)
+
+            csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+
+            expect(last_response.status).to eq(422)
+            expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_cert')
+            expect(stored_config.display_name).to eq('Corp SAML')
+            expect(stored_config.enabled?).to be true
+          end
+
+          # No enabled param on a DISABLED record: the result stays disabled,
+          # so the expired stored certificate is left alone.
+          it 'allows an unrelated edit on a disabled config whose stored certificate is expired' do
+            expired = store_expired_cert(enabled: false)
+
+            csrf_patch api_path(test_custom_domain.extid), { display_name: 'Awaiting certificate rotation' }
+
+            expect(last_response.status).to eq(200), last_response.body
+            config = stored_config
+            expect(config.enabled?).to be false
+            expect(config.display_name).to eq('Awaiting certificate rotation')
+            # Preserved verbatim (no request value to normalize), hence no strip.
+            expect(config.reveal_saml_field(:idp_cert)).to eq(expired)
+          end
+
+          it 'allows disabling an enabled config with an expired stored certificate alongside an edit' do
+            store_expired_cert(enabled: true)
+
+            csrf_patch api_path(test_custom_domain.extid),
+              { enabled: false, display_name: 'Awaiting certificate rotation' }
+
+            expect(last_response.status).to eq(200), last_response.body
+            config = stored_config
+            expect(config.enabled?).to be false
+            expect(config.display_name).to eq('Awaiting certificate rotation')
+          end
+
+          # The body is JSON with types kept and there is no schema, so
+          # `enabled` may arrive as a string or as null. What PERSISTS is
+          # parse_boolean(enabled) when the key is non-null, else the stored
+          # flag. The expiry skip must follow that same persisted value —
+          # not the literal-false rule disable_only_request? uses for the
+          # credential-blind recovery path, which is deliberately stricter.
+          context 'when enabled is a string or JSON null' do
+            it 'disables an enabled config with a string "false" without re-validating the expired certificate' do
+              expired = store_expired_cert(enabled: true)
+
+              csrf_patch api_path(test_custom_domain.extid), { enabled: 'false' }
+
+              expect(last_response.status).to eq(200), last_response.body
+              config = stored_config
+              expect(config.enabled?).to be false
+              expect(config.reveal_saml_field(:idp_cert)).to eq(expired)
+            end
+
+            it 'edits a disabled config with a string "false" and stays disabled' do
+              store_expired_cert(enabled: false)
+
+              csrf_patch api_path(test_custom_domain.extid),
+                { enabled: 'false', display_name: 'Awaiting certificate rotation' }
+
+              expect(last_response.status).to eq(200), last_response.body
+              config = stored_config
+              expect(config.enabled?).to be false
+              expect(config.display_name).to eq('Awaiting certificate rotation')
+            end
+
+            # null is "not provided": the same outcome as omitting the key.
+            it 'edits a disabled config with enabled: null exactly as with the key omitted' do
+              expired = store_expired_cert(enabled: false)
+
+              csrf_patch api_path(test_custom_domain.extid),
+                { enabled: nil, display_name: 'Awaiting certificate rotation' }
+
+              expect(last_response.status).to eq(200), last_response.body
+              config = stored_config
+              expect(config.enabled?).to be false
+              expect(config.display_name).to eq('Awaiting certificate rotation')
+              expect(config.reveal_saml_field(:idp_cert)).to eq(expired)
+            end
+
+            ['true', 1].each do |truthy|
+              it "refuses enabled: #{truthy.inspect} on a disabled config whose stored certificate is expired" do
+                store_expired_cert(enabled: false)
+
+                csrf_patch api_path(test_custom_domain.extid), { enabled: truthy }
+
+                expect(last_response.status).to eq(422)
+                expect(json_body).to include('error_type' => 'invalid', 'field' => 'idp_cert')
+                expect(stored_config.enabled?).to be false
+              end
+            end
+          end
+        end
+
+        it 'requires a client_id when switching away to oidc' do
+          csrf_patch api_path(test_custom_domain.extid), { provider_type: 'oidc', issuer: 'https://auth.example.com' }
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'missing', 'field' => 'client_id')
+        end
+
+        it 'drops the trio when switching away to oidc' do
+          csrf_patch api_path(test_custom_domain.extid),
+            { provider_type: 'oidc', issuer: 'https://auth.example.com', client_id: 'oidc-client' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          config = stored_config
+          expect(config.provider_type).to eq('oidc')
+          expect(Onetime::CustomDomain::SsoConfig::SAML_FIELDS.map { |name| config.public_send(name) }).to all(be_nil)
+        end
+
+        # A saml record stores no issuer, so a switch to oidc has nothing to
+        # fall back on: the issuer must arrive with the request.
+        it 'rejects a switch to oidc that omits the issuer' do
+          csrf_patch api_path(test_custom_domain.extid), { provider_type: 'oidc', client_id: 'oidc-client' }
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'missing', 'field' => 'issuer')
+        end
+
+        it 'rejects a switch to oidc with an internal issuer host' do
+          csrf_patch api_path(test_custom_domain.extid),
+            { provider_type: 'oidc', client_id: 'oidc-client', issuer: 'https://sso.corp.internal/oidc' }
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'invalid', 'field' => 'issuer')
+          expect(stored_config.provider_type).to eq('saml')
+        end
+
+        # Records created before the create path cleared the OAuth-family
+        # fields can carry an issuer that no validator ever saw. Switching
+        # such a record to oidc must validate the stored value, not adopt it.
+        it 'validates a dormant stored issuer when switching to oidc without one' do
+          config        = stored_config
+          config.issuer = 'https://sso.corp.internal/oidc'
+          config.commit_fields
+
+          csrf_patch api_path(test_custom_domain.extid), { provider_type: 'oidc', client_id: 'oidc-client' }
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'invalid', 'field' => 'issuer')
+          expect(stored_config.provider_type).to eq('saml')
+        end
+
+        it 'refuses a fingerprint param' do
+          csrf_patch api_path(test_custom_domain.extid), { idp_cert_fingerprint: 'AB:CD' }
+
+          expect(last_response.status).to eq(422)
+          expect(json_body['field']).to eq('idp_cert_fingerprint')
+        end
+
+        # SamlFields#stored_saml_value: a stored value that will not decrypt
+        # (swapped in from another domain, corrupted, foreign key) counts as
+        # ABSENT, so a partial update cannot quietly preserve a trust anchor
+        # nobody can read; the admin must re-enter it. Fail closed — a
+        # rescue that answered true would leave every login refusing
+        # sso_not_configured with nothing on the form to say why.
+        context 'when a stored trio field cannot be decrypted' do
+          before do
+            other          = Onetime::CustomDomain::SsoConfig.new(domain_id: "other-#{test_run_id}")
+            other.idp_cert = saml_cert
+            Familia.dbclient.hset(stored_config.dbkey, 'idp_cert', other.idp_cert.encrypted_value)
+            allow(OT).to receive(:lw)
+          end
+
+          it 'refuses a partial update that would preserve it, naming the field' do
+            csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+
+            expect(last_response.status).to eq(422)
+            expect(json_body).to include('error_type' => 'missing', 'field' => 'idp_cert')
+            expect(stored_config.display_name).to eq('Corp SAML')
+          end
+
+          it 'accepts the update once the field is re-entered' do
+            csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed', idp_cert: saml_cert }
+
+            expect(last_response.status).to eq(200), last_response.body
+            expect(stored_config.display_name).to eq('Renamed')
+            expect(stored_config.reveal_saml_field(:idp_cert)).to eq(saml_cert.strip)
+          end
+        end
+      end
+
+      context 'with an existing oidc config' do
+        before { csrf_put api_path(test_custom_domain.extid), valid_oidc_params }
+
+        it 'requires the whole trio when switching to saml' do
+          csrf_patch api_path(test_custom_domain.extid),
+            { provider_type: 'saml', idp_entity_id: 'urn:example:idp', idp_cert: saml_cert }
+
+          expect(last_response.status).to eq(422)
+          expect(json_body).to include('error_type' => 'missing', 'field' => 'idp_sso_service_url')
+        end
+
+        it 'switches to saml and drops the client credential and issuer' do
+          csrf_patch api_path(test_custom_domain.extid), valid_saml_params.slice(
+            :provider_type, :idp_sso_service_url, :idp_entity_id, :idp_cert
+          )
+
+          expect(last_response.status).to eq(200), last_response.body
+          config = stored_config
+          expect(config.provider_type).to eq('saml')
+          expect([config.client_id, config.client_secret, config.issuer.to_s]).to eq([nil, nil, ''])
+        end
+      end
+
+      it 'creates a saml config when none exists' do
+        csrf_patch api_path(test_custom_domain.extid), valid_saml_params
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_body['record']['provider_type']).to eq('saml')
+      end
+
+      # Same end state as PUT: a saml record keeps none of the OAuth-family
+      # fields, so a stray issuer / tenant_id cannot lie dormant on it.
+      it 'stores no issuer or tenant_id on a PATCH-created saml config even when supplied' do
+        csrf_patch api_path(test_custom_domain.extid), valid_saml_params.merge(
+          client_id: 'stray-client', client_secret: 'stray-secret',
+          issuer: 'https://auth.example.com', tenant_id: 'stray-tenant'
+        )
+
+        expect(last_response.status).to eq(200), last_response.body
+        config = stored_config
+        expect(config.provider_type).to eq('saml')
+        expect([config.client_id, config.client_secret]).to eq([nil, nil])
+        expect([config.issuer.to_s, config.tenant_id.to_s]).to eq(['', ''])
+      end
+    end
+
+    describe 'GET' do
+      before { csrf_put api_path(test_custom_domain.extid), valid_saml_params }
+
+      # A swapped or corrupted AAD-bound trust anchor must surface as an
+      # error state, never as a quiet null that reads like "unset".
+      it 'names a field that cannot be decrypted in unreadable_fields' do
+        other = Onetime::CustomDomain::SsoConfig.new(domain_id: "other-#{test_run_id}")
+        other.idp_entity_id = 'https://evil-idp.example.net/metadata'
+        Familia.dbclient.hset(stored_config.dbkey, 'idp_entity_id', other.idp_entity_id.encrypted_value)
+        allow(OT).to receive(:lw)
+
+        json_get api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(200)
+        record = json_body['record']
+        expect(record['unreadable_fields']).to eq(['idp_entity_id'])
+        expect(record['idp_entity_id']).to be_nil
+        expect(record['idp_cert']).to eq(saml_cert.strip)
+        expect(OT).to have_received(:lw).with(/Failed to reveal encrypted field idp_entity_id for domain/)
+      end
+
+      it 'returns null SP identifiers for a non-saml config' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+
+        json_get api_path(test_custom_domain.extid)
+
+        expect(json_body['record']).to include('sp_entity_id' => nil, 'acs_url' => nil, 'unreadable_fields' => [])
+      end
+
+      # The credential fields go through the same error-state contract: a
+      # client_secret that will not decrypt must be reported, not served as
+      # a null the form reads as "unset" (and PATCH would then preserve).
+      context 'with an entra_id record whose credential ciphertext was swapped' do
+        before do
+          csrf_put api_path(test_custom_domain.extid), valid_entra_params
+          allow(OT).to receive(:lw)
+        end
+
+        def swap_in_foreign(field, value)
+          other = Onetime::CustomDomain::SsoConfig.new(domain_id: "other-#{test_run_id}")
+          other.public_send(:"#{field}=", value)
+          Familia.dbclient.hset(stored_config.dbkey, field.to_s, other.public_send(field).encrypted_value)
+        end
+
+        it 'names client_secret in unreadable_fields with a null mask' do
+          swap_in_foreign(:client_secret, 'foreign-secret')
+
+          json_get api_path(test_custom_domain.extid)
+
+          expect(last_response.status).to eq(200)
+          expect(json_body['record']).to include('unreadable_fields' => ['client_secret'], 'client_secret_masked' => nil)
+          expect(json_body['record']['client_id']).to eq('test-client-id-12345')
+        end
+
+        it 'names client_id in unreadable_fields with a null value' do
+          swap_in_foreign(:client_id, 'foreign-client')
+
+          json_get api_path(test_custom_domain.extid)
+
+          expect(last_response.status).to eq(200)
+          expect(json_body['record']).to include('unreadable_fields' => ['client_id'], 'client_id' => nil)
+          expect(json_body['record']['client_secret_masked']).to end_with('cdef')
+        end
+      end
+    end
+
+    # The SAML IdP metadata URL the trio was imported from
+    # (docs/specs/sso/saml-idp-metadata-consumption.md, section 4.5): saml
+    # only, optional, validated as a URL the server FETCHES (structure plus
+    # the SSRF host check) when new, never re-resolved when unchanged, and
+    # never a login input.
+    describe 'idp_metadata_url' do
+      let(:metadata_url) { 'https://meta.idp.example.com/federationmetadata.xml?appid=abc-123' }
+      let(:audit_payloads) { [] }
+
+      before do
+        allow(OT).to receive(:info) do |msg, json = nil|
+          audit_payloads << JSON.parse(json) if msg.to_s.start_with?('[DOMAIN_SSO_CHANGE] ') && json
+        end
+      end
+
+      def stored_metadata_url
+        stored_config.reveal_idp_metadata_url
+      end
+
+      def put_saml(extra = {})
+        csrf_put api_path(test_custom_domain.extid), valid_saml_params.merge(extra)
+      end
+
+      it 'is stored encrypted by PUT and served in plaintext by PUT and GET' do
+        put_saml(idp_metadata_url: "  #{metadata_url}  ")
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_body['record']['idp_metadata_url']).to eq(metadata_url)
+        expect(Familia.dbclient.hget(stored_config.dbkey, 'idp_metadata_url')).not_to include('meta.idp.example.com')
+
+        json_get api_path(test_custom_domain.extid)
+
+        expect(json_body['record']).to include('idp_metadata_url' => metadata_url, 'unreadable_fields' => [])
+      end
+
+      it 'is null on a saml record that never had one' do
+        put_saml
+
+        expect(json_body['record']).to include('idp_metadata_url' => nil)
+      end
+
+      it 'is stored by a PATCH that creates the saml config' do
+        csrf_patch api_path(test_custom_domain.extid), valid_saml_params.merge(idp_metadata_url: metadata_url)
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_metadata_url).to eq(metadata_url)
+      end
+
+      it 'is cleared by a PUT that omits it' do
+        put_saml(idp_metadata_url: metadata_url)
+        put_saml
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(stored_config.idp_metadata_url).to be_nil
+      end
+
+      describe 'PATCH on a saml record' do
+        before { put_saml(idp_metadata_url: metadata_url) }
+
+        it 'keeps it when the key is absent' do
+          csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(json_body['record']).to include('display_name' => 'Renamed', 'idp_metadata_url' => metadata_url)
+        end
+
+        ['', nil].each do |blank|
+          it "clears it when the key is present and #{blank.inspect}" do
+            csrf_patch api_path(test_custom_domain.extid), { idp_metadata_url: blank }
+
+            expect(last_response.status).to eq(200), last_response.body
+            expect(json_body['record']['idp_metadata_url']).to be_nil
+            expect(stored_config.idp_metadata_url).to be_nil
+          end
+        end
+
+        it 'replaces it with a new valid value' do
+          csrf_patch api_path(test_custom_domain.extid), { idp_metadata_url: 'https://other.idp.example.com/metadata' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_metadata_url).to eq('https://other.idp.example.com/metadata')
+        end
+
+        # The record keeps the trio it had; a login does not depend on it.
+        it 'leaves the trio and the login options untouched' do
+          csrf_patch api_path(test_custom_domain.extid), { idp_metadata_url: 'https://other.idp.example.com/metadata' }
+
+          expect(stored_config.saml_trio).to include(idp_entity_id: 'https://idp.example.com/saml/metadata')
+          expect(stored_config.to_omniauth_options.inspect).not_to include('other.idp.example.com')
+        end
+      end
+
+      describe 'on any other provider type' do
+        before { put_saml(idp_metadata_url: metadata_url) }
+
+        it 'is cleared by a PUT switching to oidc, even when sent' do
+          csrf_put api_path(test_custom_domain.extid), valid_oidc_params.merge(idp_metadata_url: metadata_url)
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(json_body['record']['idp_metadata_url']).to be_nil
+          expect(stored_config.idp_metadata_url).to be_nil
+        end
+
+        it 'is cleared by a PATCH switching to oidc, even when sent' do
+          csrf_patch api_path(test_custom_domain.extid), valid_oidc_params.merge(idp_metadata_url: metadata_url)
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.idp_metadata_url).to be_nil
+        end
+      end
+
+      describe 'validation of a new value' do
+        def expect_refused_on_field
+          expect(last_response.status).to eq(422), last_response.body
+          expect(json_body).to include('field' => 'idp_metadata_url', 'error_type' => 'invalid')
+          expect(json_body['error']).to start_with('IdP metadata URL')
+          expect(json_body['error']).not_to include('SSO service URL')
+        end
+
+        ['http://meta.idp.example.com/metadata', 'https://meta.idp.example.com/metadata#frag',
+         'https://user:pw@meta.idp.example.com/metadata'].each do |url|
+          it "refuses #{url} on PUT" do
+            put_saml(idp_metadata_url: url)
+
+            expect_refused_on_field
+            expect(stored_config).to be_nil
+          end
+        end
+
+        it 'refuses a host that resolves to a private address (SSRF), on PUT and PATCH' do
+          allow(Resolv).to receive(:getaddresses).with('internal.idp.example.com').and_return(['10.0.0.5'])
+          internal = 'https://internal.idp.example.com/metadata'
+
+          put_saml(idp_metadata_url: internal)
+          expect_refused_on_field
+          expect(json_body['error']).to include('public host')
+
+          put_saml
+          csrf_patch api_path(test_custom_domain.extid), { idp_metadata_url: internal }
+          expect_refused_on_field
+          expect(stored_config.idp_metadata_url).to be_nil
+        end
+
+        it 'refuses a private hostname without resolving it' do
+          put_saml(idp_metadata_url: 'https://idp.corp.internal/metadata')
+
+          expect_refused_on_field
+        end
+
+        # An unrelated edit must never re-resolve a stored URL: the value is
+        # accepted as it was accepted when saved.
+        it 'does not re-validate an unchanged stored value on PATCH or PUT' do
+          put_saml(idp_metadata_url: metadata_url)
+          expect(last_response.status).to eq(200), last_response.body
+          # From here on, resolving the stored host at all is a failure.
+          expect(Resolv).not_to receive(:getaddresses).with('meta.idp.example.com')
+
+          csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed', idp_metadata_url: metadata_url }
+          expect(last_response.status).to eq(200), last_response.body
+
+          put_saml(idp_metadata_url: metadata_url)
+          expect(last_response.status).to eq(200), last_response.body
+
+          expect(stored_metadata_url).to eq(metadata_url)
+        end
+      end
+
+      context 'when the stored value cannot be decrypted' do
+        before do
+          put_saml(idp_metadata_url: metadata_url)
+          other                  = Onetime::CustomDomain::SsoConfig.new(domain_id: "other-#{test_run_id}")
+          other.idp_metadata_url = 'https://evil.example.net/metadata'
+          Familia.dbclient.hset(stored_config.dbkey, 'idp_metadata_url', other.idp_metadata_url.encrypted_value)
+          allow(OT).to receive(:lw)
+        end
+
+        it 'names it in unreadable_fields with a null value' do
+          json_get api_path(test_custom_domain.extid)
+
+          expect(last_response.status).to eq(200)
+          expect(json_body['record']).to include('unreadable_fields' => ['idp_metadata_url'], 'idp_metadata_url' => nil)
+          expect(json_body['record']['idp_cert']).to eq(saml_cert.strip)
+        end
+
+        it 'never stops the login options from building' do
+          expect { stored_config.to_omniauth_options }.not_to raise_error
+        end
+
+        it 'refuses an unrelated edit, and accepts clearing it or a disable-only PATCH' do
+          csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+          expect(last_response.status).to eq(422), last_response.body
+          expect(json_body['error']).to include('idp_metadata_url cannot be read')
+
+          csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+          expect(last_response.status).to eq(200), last_response.body
+
+          csrf_patch api_path(test_custom_domain.extid), { idp_metadata_url: '' }
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_config.idp_metadata_url).to be_nil
+        end
+      end
+
+      # A SENSITIVE_FIELDS entry: logged as changed, never with its value.
+      it 'is audited as changed without its value' do
+        put_saml(idp_metadata_url: metadata_url)
+        csrf_patch api_path(test_custom_domain.extid), { idp_metadata_url: 'https://other.idp.example.com/metadata' }
+
+        expect(last_response.status).to eq(200), last_response.body
+        updated = audit_payloads.find { it['event'] == 'domain_sso_config_updated' }
+        expect(updated.fetch('changes')).to include('idp_metadata_url' => { 'changed' => true })
+        serialized = JSON.generate(audit_payloads)
+        expect(serialized).not_to include('meta.idp.example.com')
+        expect(serialized).not_to include('other.idp.example.com')
+      end
+    end
+
+    # The fetch endpoint end to end, through the routes and the full stack:
+    # the guard ladder, the SSRF-guarded fetcher (WebMock at the HTTP
+    # boundary, the guard's DNS seam stubbed) and the parser.
+    describe 'POST /sso/metadata' do
+      let(:metadata_url) { 'https://meta.idp.example.com/federationmetadata.xml?appid=abc-123' }
+
+      def metadata_path
+        "/api/domains/#{test_custom_domain.extid}/sso/metadata"
+      end
+
+      def metadata_xml
+        cert_base64 = saml_cert.lines.reject { it.start_with?('-----') }.join.delete("\n")
+        <<~XML
+          <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="https://idp.example.com/saml/metadata">
+            <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+              <md:KeyDescriptor use="signing"><ds:KeyInfo><ds:X509Data><ds:X509Certificate>#{cert_base64}</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor>
+              <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://idp.example.com/saml/sso"/>
+            </md:IDPSSODescriptor>
+          </md:EntityDescriptor>
+        XML
+      end
+
+      before do
+        allow(Onetime::Http::Guard).to receive(:resolve_addresses).and_return(['203.0.113.10'])
+      end
+
+      it 'fetches the document with the SAML metadata Accept header and returns the preview' do
+        stub_request(:get, metadata_url)
+          .with(headers: { 'Accept' => 'application/samlmetadata+xml, application/xml, text/xml' })
+          .to_return(status: 200, body: metadata_xml, headers: { 'Content-Type' => 'text/xml; charset=utf-8' })
+
+        csrf_post metadata_path, { metadata_url: metadata_url }
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_body).to include(
+          'success' => true,
+          'metadata_url' => metadata_url,
+          'idp_entity_id' => 'https://idp.example.com/saml/metadata',
+          'idp_sso_service_url' => 'https://idp.example.com/saml/sso',
+          'problems' => [],
+        )
+        expect(json_body['signing_certificates'].map { it['pem'] }).to eq([saml_cert.strip])
+        expect(stored_config).to be_nil
+      end
+
+      it 'answers a fetch failure with HTTP 200 and the failure envelope' do
+        stub_request(:get, metadata_url).to_return(status: 404, body: 'Not Found')
+
+        csrf_post metadata_path, { metadata_url: metadata_url }
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_body).to include('success' => false, 'metadata_url' => metadata_url)
+        expect(json_body['details']).to include('error_code' => 'metadata_not_found', 'http_status' => 404)
+      end
+
+      it 'refuses a blank metadata_url as a form error' do
+        csrf_post metadata_path, { metadata_url: '' }
+
+        expect(last_response.status).to eq(422), last_response.body
+        expect(json_body).to include('field' => 'metadata_url', 'error_type' => 'missing')
+      end
+
+      it 'refuses while SAML is switched off on the install' do
+        ClimateControl.modify(SAML_ENABLED: nil) { csrf_post metadata_path, { metadata_url: metadata_url } }
+
+        expect(last_response.status).to eq(422), last_response.body
+        expect(json_body['field']).to eq('provider_type')
+        expect(a_request(:get, metadata_url)).not_to have_been_made
+      end
+    end
+
+    describe 'POST /sso/test' do
+      it 'validates locally and reports the certificate expiry, without a client_id' do
+        allow(Net::HTTP).to receive(:new).and_call_original
+
+        csrf_post test_connection_path(test_custom_domain.extid), valid_saml_params
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_body).to include('success' => true, 'provider_type' => 'saml')
+        expect(json_body['details']).to include('idp_entity_id', 'certificate_not_after', 'certificate_expires_in_days')
+        expect(Net::HTTP).not_to have_received(:new)
+      end
+
+      it 'reports an expired certificate as a failed test, not a form error' do
+        csrf_post test_connection_path(test_custom_domain.extid), valid_saml_params.merge(idp_cert: expired_saml_cert_pem)
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_body['success']).to be false
+        expect(json_body['details']).to include('error_code' => 'certificate_expired', 'field' => 'idp_cert')
+      end
+
+      it 'returns 422 (missing) when a trio field is absent' do
+        csrf_post test_connection_path(test_custom_domain.extid), valid_saml_params.except(:idp_cert)
+
+        expect(last_response.status).to eq(422)
+        expect(json_body).to include('error_type' => 'missing', 'field' => 'idp_cert')
+      end
+
+      it 'refuses a fingerprint param' do
+        csrf_post test_connection_path(test_custom_domain.extid), valid_saml_params.merge(idp_cert_fingerprint: 'AB:CD')
+
+        expect(last_response.status).to eq(422)
+        expect(json_body['field']).to eq('idp_cert_fingerprint')
+      end
+    end
+  end
+
+  # ==========================================================================
+  # Response Serialization Tests
+  # ==========================================================================
+
+  describe 'response serialization' do
+    before do
+      enable_sso_feature_flag
+      login_as(test_owner)
+    end
+
+    let!(:config_with_all_fields) do
+      Onetime::CustomDomain::SsoConfig.create!(
+        domain_id: test_custom_domain.identifier,
+        provider_type: 'entra_id',
+        display_name: 'Full Config Test',
+        client_id: 'full-client-id',
+        client_secret: 'full-secret-value-here',
+        tenant_id: 'full-tenant-id',
+        allowed_domains: ['domain1.com', 'domain2.com'],
+        enabled: true,
+      )
+    end
+
+    it 'serializes all expected fields' do
+      json_get api_path(test_custom_domain.extid)
+
+      expect(last_response.status).to eq(200)
+
+      body = json_body
+      record = body['record']
+
+      expected_keys = %w[
+        domain_id
+        provider_type
+        display_name
+        enabled
+        enforce_sso_only
+        client_id
+        client_secret_masked
+        tenant_id
+        issuer
+        token_endpoint_auth_method
+        idp_sso_service_url
+        idp_entity_id
+        idp_cert
+        sp_entity_id
+        acs_url
+        unreadable_fields
+        allowed_domains
+        requires_domain_filter
+        idp_controls_access
+        created_at
+        updated_at
+      ]
+
+      expected_keys.each do |key|
+        expect(record).to have_key(key), "Expected record to have key '#{key}'"
+      end
+    end
+
+    it 'masks secrets correctly for various lengths' do
+      # Test short secret
+      config_with_all_fields.client_secret = 'ab'
+      config_with_all_fields.save
+
+      json_get api_path(test_custom_domain.extid)
+      body = json_body
+      record = body['record']
+
+      # Short secrets should still be masked
+      expect(record['client_secret_masked']).to eq('••••••••')
+    end
+
+    it 'returns JSON content type' do
+      json_get api_path(test_custom_domain.extid)
+
+      expect(last_response.content_type).to include('application/json')
+    end
+  end
+
+  # ==========================================================================
+  # token_endpoint_auth_method (#4764)
+  # ==========================================================================
+  #
+  # oidc only. PUT stores what was sent ('' = gem default) and clears it for
+  # every other provider type. PATCH goes by KEY PRESENCE: a blank clears it
+  # back to the default (unlike issuer, where blank keeps the stored value),
+  # an absent key keeps it. Serialized as nil when unset, never ''.
+
+  describe 'token_endpoint_auth_method' do
+    let(:invalid_message) do
+      'token_endpoint_auth_method must be one of: client_secret_basic, client_secret_post'
+    end
+
+    before do
+      enable_sso_feature_flag
+      login_as(test_owner)
+    end
+
+    describe 'PUT /api/domains/:extid/sso' do
+      it 'stores client_secret_post and serializes it back' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params.merge(token_endpoint_auth_method: 'client_secret_post')
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']['token_endpoint_auth_method']).to eq('client_secret_post')
+      end
+
+      it 'stores client_secret_basic' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params.merge(token_endpoint_auth_method: 'client_secret_basic')
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']['token_endpoint_auth_method']).to eq('client_secret_basic')
+      end
+
+      it 'serializes nil when the key is omitted' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']).to include('token_endpoint_auth_method' => nil)
+      end
+
+      it 'serializes nil for a blank value' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params.merge(token_endpoint_auth_method: '')
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']).to include('token_endpoint_auth_method' => nil)
+      end
+
+      it 'returns 422 naming the field for a value outside the list' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params.merge(token_endpoint_auth_method: 'private_key_jwt')
+
+        expect(last_response.status).to eq(422)
+        expect(json_body).to include('error' => invalid_message, 'field' => 'token_endpoint_auth_method', 'error_type' => 'invalid')
+        expect(Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)).to be_nil
+      end
+
+      it 'clears the field for a non-oidc provider instead of storing it' do
+        csrf_put api_path(test_custom_domain.extid), valid_entra_params.merge(token_endpoint_auth_method: 'client_secret_post')
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']).to include('provider_type' => 'entra_id', 'token_endpoint_auth_method' => nil)
+      end
+
+      it 'replaces a stored value with the gem default when the key is omitted (PUT is full replacement)' do
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params.merge(token_endpoint_auth_method: 'client_secret_post')
+        csrf_put api_path(test_custom_domain.extid), valid_oidc_params
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']).to include('token_endpoint_auth_method' => nil)
+      end
+    end
+
+    describe 'PATCH /api/domains/:extid/sso' do
+      before do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'oidc',
+          client_id: 'oidc-client-id',
+          client_secret: 'oidc-client-secret',
+          issuer: 'https://auth.example.com',
+          token_endpoint_auth_method: 'client_secret_post',
+          enabled: false,
+        )
+      end
+
+      it 'keeps the stored value when the key is absent' do
+        csrf_patch api_path(test_custom_domain.extid), { display_name: 'Renamed' }
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']).to include('display_name' => 'Renamed', 'token_endpoint_auth_method' => 'client_secret_post')
+      end
+
+      it 'clears the stored value back to the gem default when sent blank' do
+        csrf_patch api_path(test_custom_domain.extid), { token_endpoint_auth_method: '' }
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']).to include('token_endpoint_auth_method' => nil)
+        expect(Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier).token_endpoint_auth_method.to_s).to eq('')
+      end
+
+      it 'replaces the stored value' do
+        csrf_patch api_path(test_custom_domain.extid), { token_endpoint_auth_method: 'client_secret_basic' }
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']).to include('token_endpoint_auth_method' => 'client_secret_basic')
+      end
+
+      it 'returns 422 naming the field for a value outside the list and keeps the stored value' do
+        csrf_patch api_path(test_custom_domain.extid), { token_endpoint_auth_method: 'basic' }
+
+        expect(last_response.status).to eq(422)
+        expect(json_body).to include('error' => invalid_message, 'field' => 'token_endpoint_auth_method', 'error_type' => 'invalid')
+        expect(Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier).token_endpoint_auth_method)
+          .to eq('client_secret_post')
+      end
+
+      it 'clears the field on a switch to entra_id' do
+        csrf_patch api_path(test_custom_domain.extid), {
+          provider_type: 'entra_id',
+          client_secret: 'entra-secret',
+          tenant_id: '12345678-1234-1234-1234-123456789abc',
+        }
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']).to include('provider_type' => 'entra_id', 'token_endpoint_auth_method' => nil)
+      end
+
+      it 'is left alone by a disable-only PATCH' do
+        csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']).to include('enabled' => false, 'token_endpoint_auth_method' => 'client_secret_post')
+      end
+
+      # The audit diff is computed from the value the writer persists, not
+      # the raw request: normalize_token_endpoint_auth_method strips, so a
+      # whitespace-padded resend of the stored value is no change, while a
+      # blank (cleared) and a different method are.
+      describe 'audit log (domain_sso_config_updated)' do
+        let(:updated) { '[DOMAIN_SSO_CHANGE] domain_sso_config_updated' }
+        let(:audit_payloads) { [] }
+
+        before do
+          allow(OT).to receive(:info) do |msg, json|
+            audit_payloads << JSON.parse(json) if msg == updated
+          end
+        end
+
+        def stored_method
+          Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier).token_endpoint_auth_method.to_s
+        end
+
+        it 'records no change for a whitespace-padded resend of the stored value' do
+          csrf_patch api_path(test_custom_domain.extid), { token_endpoint_auth_method: ' client_secret_post ' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_method).to eq('client_secret_post')
+          expect(audit_payloads.size).to eq(1)
+          expect(audit_payloads.first.fetch('changes', {})).not_to have_key('token_endpoint_auth_method')
+        end
+
+        it 'records a change to blank when the field is cleared' do
+          csrf_patch api_path(test_custom_domain.extid), { token_endpoint_auth_method: '' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_method).to eq('')
+          expect(audit_payloads.size).to eq(1)
+          expect(audit_payloads.first['changes']).to include('token_endpoint_auth_method' => { 'from' => 'client_secret_post', 'to' => '' })
+        end
+
+        it 'records the old and new method when it is replaced' do
+          csrf_patch api_path(test_custom_domain.extid), { token_endpoint_auth_method: 'client_secret_basic' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_method).to eq('client_secret_basic')
+          expect(audit_payloads.size).to eq(1)
+          expect(audit_payloads.first['changes']).to include(
+            'token_endpoint_auth_method' => { 'from' => 'client_secret_post', 'to' => 'client_secret_basic' },
+          )
+        end
+
+        # A provider switch blanks the outgoing provider's fields without the
+        # request naming them. The delta must show those clears next to the
+        # provider_type change, not just the fields the request carried.
+        it 'records the method and issuer clears on a switch to entra_id that omits them' do
+          csrf_patch api_path(test_custom_domain.extid), {
+            provider_type: 'entra_id',
+            client_secret: 'entra-secret',
+            tenant_id: '12345678-1234-1234-1234-123456789abc',
+          }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(stored_method).to eq('')
+          expect(audit_payloads.size).to eq(1)
+          expect(audit_payloads.first['changes']).to include(
+            'provider_type'              => { 'from' => 'oidc', 'to' => 'entra_id' },
+            'token_endpoint_auth_method' => { 'from' => 'client_secret_post', 'to' => '' },
+            'issuer'                     => { 'from' => 'https://auth.example.com', 'to' => '' },
+          )
+        end
+
+        it 'records the tenant_id clear on a switch from entra_id to oidc that omits it' do
+          Onetime::CustomDomain::SsoConfig.delete_for_domain!(test_custom_domain.identifier)
+          Onetime::CustomDomain::SsoConfig.create!(
+            domain_id: test_custom_domain.identifier,
+            provider_type: 'entra_id',
+            client_id: 'entra-client-id',
+            client_secret: 'entra-client-secret',
+            tenant_id: '12345678-1234-1234-1234-123456789abc',
+            enabled: false,
+          )
+
+          csrf_patch api_path(test_custom_domain.extid), {
+            provider_type: 'oidc',
+            issuer: 'https://auth.example.com',
+          }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(audit_payloads.size).to eq(1)
+          changes = audit_payloads.first['changes']
+          expect(changes).to include(
+            'provider_type' => { 'from' => 'entra_id', 'to' => 'oidc' },
+            'tenant_id'     => { 'from' => '12345678-1234-1234-1234-123456789abc', 'to' => '' },
+          )
+          # The method was never set on the entra record, so a no-op "clear"
+          # of an already-blank field must not show up as a change.
+          expect(changes).not_to have_key('token_endpoint_auth_method')
+        end
+
+        # The other SAFE_FIELDS are audited from what the write path persists,
+        # not from the raw request, for the same reason as the method above.
+        it 'records display_name as sanitized, not as the request spelled it' do
+          csrf_patch api_path(test_custom_domain.extid), { display_name: '  Acme  <b>Corp</b>  SSO ' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          stored = Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+          expect(stored.display_name).to eq('Acme Corp SSO')
+          expect(audit_payloads.size).to eq(1)
+          change = audit_payloads.first.fetch('changes').fetch('display_name')
+          expect(change['from'].to_s).to eq('')
+          expect(change['to']).to eq('Acme Corp SSO')
+        end
+
+        it 'records no issuer change for a non-https issuer the write path ignores' do
+          csrf_patch api_path(test_custom_domain.extid), { issuer: 'http://auth.example.com' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          stored = Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+          expect(stored.issuer).to eq('https://auth.example.com')
+          expect(audit_payloads.size).to eq(1)
+          expect(audit_payloads.first.fetch('changes', {})).not_to have_key('issuer')
+        end
+
+        it 'records allowed_domains as the normalized list, not the raw string' do
+          csrf_patch api_path(test_custom_domain.extid), { allowed_domains: ' Example.COM, foo.com ' }
+
+          expect(last_response.status).to eq(200), last_response.body
+          stored = Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+          expect(stored.allowed_domains.to_a).to eq(%w[example.com foo.com])
+          expect(audit_payloads.size).to eq(1)
+          change = audit_payloads.first.fetch('changes').fetch('allowed_domains')
+          expect(change['to']).to eq(%w[example.com foo.com])
+        end
+
+        # The form sends a JSON array, which parse_allowed_domains passes
+        # through untouched; the model setter is what normalizes it.
+        it 'records allowed_domains as the setter stores an array, and no change for a resend in another form' do
+          csrf_patch api_path(test_custom_domain.extid), { allowed_domains: [' Example.COM ', 'Foo.com', '', 'example.com'] }
+
+          expect(last_response.status).to eq(200), last_response.body
+          stored = Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+          expect(stored.allowed_domains.to_a).to eq(%w[example.com foo.com])
+          expect(audit_payloads.size).to eq(1)
+          expect(audit_payloads.first.fetch('changes').fetch('allowed_domains')['to']).to eq(%w[example.com foo.com])
+
+          csrf_patch api_path(test_custom_domain.extid), { allowed_domains: ['EXAMPLE.com', ' foo.com', 'example.com'] }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(audit_payloads.size).to eq(2)
+          expect(audit_payloads.last.fetch('changes', {})).not_to have_key('allowed_domains')
+        end
+
+        it 'records a disable-only PATCH as the flag change alone' do
+          stored = Onetime::CustomDomain::SsoConfig.find_by_domain_id(test_custom_domain.identifier)
+          stored.enabled = 'true'
+          stored.save
+
+          csrf_patch api_path(test_custom_domain.extid), { enabled: false }
+
+          expect(last_response.status).to eq(200), last_response.body
+          expect(audit_payloads.size).to eq(1)
+          expect(audit_payloads.first.fetch('changes')).to eq('enabled' => { 'from' => true, 'to' => false })
+        end
+      end
+    end
+
+    describe 'GET /api/domains/:extid/sso' do
+      it 'returns the stored value' do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'oidc',
+          client_id: 'oidc-client-id',
+          client_secret: 'oidc-client-secret',
+          issuer: 'https://auth.example.com',
+          token_endpoint_auth_method: 'client_secret_basic',
+          enabled: true,
+        )
+
+        json_get api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['record']).to include('token_endpoint_auth_method' => 'client_secret_basic')
+      end
+    end
+  end
+
+  # ==========================================================================
+  # Model-level Validation (SsoConfig.create!)
+  # ==========================================================================
+
+  describe 'SsoConfig.create! validation' do
+    it 'raises Onetime::Problem when required provider fields are missing' do
+      expect do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          enabled: true,
+        )
+      end.to raise_error(Onetime::Problem, /client_id is required.*issuer is required/)
+    end
+
+    it 'raises Onetime::Problem for entra_id without a client_secret' do
+      expect do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'entra_id',
+          client_id: 'entra-client-id',
+          tenant_id: 'entra-tenant-id',
+        )
+      end.to raise_error(Onetime::Problem, /client_secret is required/)
+    end
+
+    it 'allows OIDC public clients without a client_secret' do
+      config = Onetime::CustomDomain::SsoConfig.create!(
+        domain_id: test_custom_domain.identifier,
+        provider_type: 'oidc',
+        client_id: 'pkce-client-id',
+        issuer: 'https://pkce-issuer.example.com',
+      )
+      expect(config.valid?).to be true
+    end
+  end
+end

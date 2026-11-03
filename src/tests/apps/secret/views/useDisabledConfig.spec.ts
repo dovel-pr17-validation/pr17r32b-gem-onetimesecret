@@ -1,0 +1,811 @@
+// src/tests/apps/secret/views/useDisabledConfig.spec.ts
+//
+// Unit tests for the disabled-homepage dispatcher composable. Covers:
+// - Auto-detection rules (branded vs unbranded vs canonical contexts)
+// - Tri-state operator overrides (null = auto, true/false = force)
+// - href derivation (recipient_intro from config, promo from siteHost)
+// - Variant id propagation and reactivity through Pinia
+//
+// The composable is the single composition root for the disabled-homepage
+// view, so any regression here ripples through every variant.
+
+import { useDisabledConfig } from '@/apps/secret/views/disabled/useDisabledConfig';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import { useProductIdentity } from '@/shared/stores/identityStore';
+import type { CornerStyle, FontFamily } from '@/shared/utils/brand-helpers';
+import { submitSsoLogin } from '@/shared/utils/sso';
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Identity store reads i18n during init (preReveal default copy); stub it.
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+}));
+
+// Spy on the SSO form-submit helper so onSsoLogin can be asserted without
+// navigating the jsdom window.
+vi.mock('@/shared/utils/sso', () => ({
+  submitSsoLogin: vi.fn(),
+}));
+
+interface SetupOptions {
+  // Identity / domain context
+  domainStrategy?: 'canonical' | 'custom' | 'subdomain' | 'invalid';
+  displayDomain?: string;
+  brandDescription?: string | null;
+  primaryColor?: string;
+  /** Brand font_family as saved in the raw domain_branding hash. Omitted =
+   *  key absent (operator never chose a font). */
+  fontFamily?: FontFamily;
+  /** Brand heading_font as saved in the raw hash. Omitted = key absent. */
+  headingFont?: FontFamily;
+  /** Brand corner_style as saved in the raw hash. Omitted = key absent. */
+  cornerStyle?: CornerStyle;
+  /** Brand border_radius (#3646) as saved in the raw hash. Omitted = absent. */
+  borderRadius?: string;
+  // Bootstrap config
+  siteHost?: string;
+  billingEnabled?: boolean;
+  authSignin?: boolean;
+  recipientIntroUrl?: string | null;
+  /** Per-domain disabled-homepage variant. Null/omitted means
+   *  "use the frontend DEFAULT_DISABLED_HOMEPAGE_VARIANT". */
+  homepageVariant?: 'v1' | 'minimal' | 'closed' | null;
+  /** Deployment-wide default variant for the CANONICAL site
+   *  (ui.homepage.disabled_variant, from the
+   *  DEFAULT_DISABLED_HOMEPAGE_VARIANT env var). */
+  siteDefaultVariant?: 'v1' | 'minimal' | 'closed' | null;
+  /** Deployment-wide default variant for CUSTOM DOMAINS
+   *  (ui.homepage.custom_disabled_variant, from the
+   *  DEFAULT_CUSTOM_DOMAIN_DISABLED_HOMEPAGE_VARIANT env var). */
+  customSiteDefaultVariant?: 'v1' | 'minimal' | 'closed' | null;
+  /** Tri-state operator overrides for the auto-detected affordances. */
+  disabledHomepage?: {
+    show_promo?: boolean | null;
+    show_what_is_this?: boolean | null;
+  };
+  // SSO one-click context
+  /** Configured SSO providers (features.sso.providers). */
+  ssoProviders?: Array<{ route_name: string; display_name: string }>;
+  /** Global SSO-only restriction (features.restrict_to === 'sso'). */
+  ssoOnly?: boolean;
+  /** Per-domain SSO enforcement (features.sso.enforce_sso_only). */
+  enforceSsoOnly?: boolean;
+  // Logo sources
+  /** Tenant-uploaded logo URL (bootstrap.domain_logo — the backend-computed
+   *  /imagine URL identityStore surfaces as logoUri). */
+  tenantLogo?: string | null;
+  /** Tenant dark-theme logo (BrandSettings.logo_dark_url on the identity
+   *  brand). Pairs with the tenant logo on the identity axis. Requires
+   *  brandDescription so the parsed brand object exists. */
+  tenantLogoDark?: string | null;
+  /** Install-wide light logo (brand.logo_url → bootstrap.brand_logo_url). */
+  installLogoUrl?: string | null;
+  /** Install-wide dark-theme logo (brand.logo_dark_url). */
+  installLogoDarkUrl?: string | null;
+  /** Operator alt text for the install logo (brand.logo_alt). */
+  installLogoAlt?: string | null;
+}
+
+/**
+ * Spin up Pinia and patch the two stores `useDisabledConfig` reads from.
+ * Returns the composable's bindings so tests can assert directly.
+ */
+function setup(opts: SetupOptions = {}) {
+  setActivePinia(createPinia());
+
+  // Raw per-domain branding payload (the sparse Redis hash). Carries only the
+  // keys the operator explicitly saved — useDisabledConfig reads set-ness from
+  // this raw payload, not from the parsed identity brand (whose schema
+  // defaults would make font/corners look chosen on every domain).
+  const rawBranding =
+    opts.fontFamily === undefined &&
+    opts.headingFont === undefined &&
+    opts.cornerStyle === undefined &&
+    opts.borderRadius === undefined
+      ? null
+      : {
+          ...(opts.fontFamily ? { font_family: opts.fontFamily } : {}),
+          ...(opts.headingFont ? { heading_font: opts.headingFont } : {}),
+          ...(opts.cornerStyle ? { corner_style: opts.cornerStyle } : {}),
+          ...(opts.borderRadius ? { border_radius: opts.borderRadius } : {}),
+        };
+
+  const bootstrap = useBootstrapStore();
+  bootstrap.$patch({
+    domain_branding: rawBranding,
+    domain_logo: opts.tenantLogo ?? null,
+    brand_logo_url: opts.installLogoUrl ?? undefined,
+    brand_logo_dark_url: opts.installLogoDarkUrl ?? undefined,
+    brand_logo_alt: opts.installLogoAlt ?? undefined,
+    site_host: opts.siteHost ?? 'onetimesecret.com',
+    billing_enabled: opts.billingEnabled ?? false,
+    authentication: {
+      ...bootstrap.authentication,
+      signin: opts.authSignin ?? true,
+    },
+    ui: {
+      ...bootstrap.ui,
+      homepage: {
+        ...(bootstrap.ui.homepage ?? { matching_cidrs: [], mode_header: 'O-Homepage-Mode' }),
+        disabled_variant: opts.siteDefaultVariant ?? null,
+        custom_disabled_variant: opts.customSiteDefaultVariant ?? null,
+        public_links: {
+          recipient_intro: opts.recipientIntroUrl ?? null,
+        },
+      },
+    },
+    disabled_homepage: {
+      show_promo: opts.disabledHomepage?.show_promo ?? null,
+      show_what_is_this: opts.disabledHomepage?.show_what_is_this ?? null,
+    },
+    // Specify features fully rather than spreading bootstrap.features: the
+    // store's `state: () => ({ ...DEFAULTS })` shallow-spread shares one
+    // features object across instances, and $patch's deep-merge would
+    // otherwise leak restrict_to/sso between tests.
+    features: {
+      restrict_to: opts.ssoOnly ? 'sso' : null,
+      sso:
+        opts.ssoProviders === undefined && opts.enforceSsoOnly === undefined
+          ? false
+          : {
+              enabled: true,
+              providers: opts.ssoProviders ?? [],
+              enforce_sso_only: opts.enforceSsoOnly ?? false,
+            },
+    },
+    homepage_config:
+      opts.homepageVariant === undefined
+        ? null
+        : {
+            domain_id: 'test-domain',
+            enabled: true,
+            signup_enabled: true,
+            signin_enabled: true,
+            disabled_homepage_variant: opts.homepageVariant,
+            created_at: null,
+            updated_at: null,
+          },
+  });
+
+  const identity = useProductIdentity();
+  identity.$patch({
+    domainStrategy: opts.domainStrategy ?? 'canonical',
+    displayDomain: opts.displayDomain ?? 'onetimesecret.com',
+    primaryColor: opts.primaryColor ?? '#dc4a22',
+    // logoUri is NOT set here: identityStore.logoUri is a computed derived
+    // from bootstrapStore.domain_logo, not writable state, so it can't be
+    // $patch'd — it's driven above via `tenantLogo` -> bootstrap.domain_logo.
+    siteHost: opts.siteHost ?? 'onetimesecret.com',
+    brand:
+      opts.brandDescription === undefined
+        ? null
+        : opts.brandDescription === null
+          ? null
+          : {
+              description: opts.brandDescription,
+              primary_color: opts.primaryColor ?? '#dc4a22',
+              button_text_light: true,
+              // Mirror the schema parse of rawBranding: font_family and
+              // corner_style fall back to their schema defaults when unsaved.
+              corner_style: opts.cornerStyle ?? 'rounded',
+              font_family: opts.fontFamily ?? 'sans',
+              heading_font: opts.headingFont ?? null,
+              border_radius: opts.borderRadius ?? null,
+              logo_dark_url: opts.tenantLogoDark ?? null,
+              instructions_pre_reveal: '',
+              instructions_post_reveal: '',
+              instructions_reveal: '',
+            },
+  });
+
+  return { config: useDisabledConfig(), bootstrap, identity };
+}
+
+describe('useDisabledConfig', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('variant selection', () => {
+    beforeEach(() => {
+      // Reset URL each test so ?variant overrides don't bleed across cases.
+      window.history.replaceState({}, '', '/');
+    });
+
+    it('falls back to the frontend default (closed) when no per-domain config', () => {
+      const { config } = setup();
+      expect(config.variant.value).toBe('closed');
+    });
+
+    it('falls back to the frontend default when homepage_config sets variant=null', () => {
+      // Null means "no per-domain override" — operator never opted in.
+      const { config } = setup({ homepageVariant: null });
+      expect(config.variant.value).toBe('closed');
+    });
+
+    it('respects the per-domain variant from homepage_config', () => {
+      const { config } = setup({ homepageVariant: 'v1' });
+      expect(config.variant.value).toBe('v1');
+    });
+
+    it('uses the deployment-wide ui.homepage.disabled_variant when no per-domain config', () => {
+      const { config } = setup({ siteDefaultVariant: 'minimal' });
+      expect(config.variant.value).toBe('minimal');
+    });
+
+    it('per-domain homepage_config wins over the deployment-wide default', () => {
+      const { config } = setup({ siteDefaultVariant: 'minimal', homepageVariant: 'v1' });
+      expect(config.variant.value).toBe('v1');
+    });
+
+    it('custom domains use ui.homepage.custom_disabled_variant, not the canonical default', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        siteDefaultVariant: 'minimal',
+        customSiteDefaultVariant: 'v1',
+      });
+      expect(config.variant.value).toBe('v1');
+    });
+
+    it('custom domains do NOT inherit the canonical disabled_variant (strict split)', () => {
+      // custom_disabled_variant is unset, so a custom domain goes straight to
+      // the frontend const — it must NOT fall back to the canonical 'minimal'.
+      const { config } = setup({
+        domainStrategy: 'custom',
+        siteDefaultVariant: 'minimal',
+        customSiteDefaultVariant: null,
+      });
+      expect(config.variant.value).toBe('closed');
+    });
+
+    it('the canonical site ignores custom_disabled_variant', () => {
+      const { config } = setup({
+        domainStrategy: 'canonical',
+        siteDefaultVariant: 'minimal',
+        customSiteDefaultVariant: 'v1',
+      });
+      expect(config.variant.value).toBe('minimal');
+    });
+
+    it('per-domain homepage_config wins over the custom-domain default', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        customSiteDefaultVariant: 'minimal',
+        homepageVariant: 'v1',
+      });
+      expect(config.variant.value).toBe('v1');
+    });
+
+    it('?variant override wins over the custom-domain default', () => {
+      window.history.replaceState({}, '', '/?variant=closed');
+      const { config } = setup({
+        domainStrategy: 'custom',
+        customSiteDefaultVariant: 'v1',
+      });
+      expect(config.variant.value).toBe('closed');
+    });
+
+    it('reacts when the domain strategy flips the deployment-wide tier', () => {
+      // Same site + custom defaults; flipping isCustom must swap which tier
+      // the resolution chain reads.
+      const { config, identity } = setup({
+        domainStrategy: 'canonical',
+        siteDefaultVariant: 'minimal',
+        customSiteDefaultVariant: 'v1',
+      });
+      expect(config.variant.value).toBe('minimal');
+
+      identity.$patch({ domainStrategy: 'custom' });
+      expect(config.variant.value).toBe('v1');
+    });
+
+    it('?variant override wins over the deployment-wide default', () => {
+      window.history.replaceState({}, '', '/?variant=v1');
+      const { config } = setup({ siteDefaultVariant: 'minimal' });
+      expect(config.variant.value).toBe('v1');
+    });
+
+    it('reacts when homepage_config mutates mid-session', () => {
+      const { config, bootstrap } = setup({ homepageVariant: 'v1' });
+      expect(config.variant.value).toBe('v1');
+
+      bootstrap.$patch({
+        homepage_config: {
+          ...bootstrap.homepage_config!,
+          disabled_homepage_variant: 'closed',
+        },
+      });
+      expect(config.variant.value).toBe('closed');
+    });
+
+    it('?variant URL override wins over homepage_config', () => {
+      window.history.replaceState({}, '', '/?variant=closed');
+      const { config } = setup({ homepageVariant: 'v1' });
+      expect(config.variant.value).toBe('closed');
+    });
+
+    it('?variant override falls through silently when the value is invalid', () => {
+      window.history.replaceState({}, '', '/?variant=banana');
+      const { config } = setup({ homepageVariant: 'minimal' });
+      expect(config.variant.value).toBe('minimal');
+    });
+
+    it('falls back to the default when homepage_config carries an empty-string variant', () => {
+      // A stored '' would slip past `??` (which only skips null/undefined) and
+      // reach the dispatcher as an unknown VARIANTS key → blank page. The
+      // schema validation must collapse it to the default instead.
+      const { config, bootstrap } = setup({ homepageVariant: 'v1' });
+      bootstrap.$patch({
+        homepage_config: {
+          ...bootstrap.homepage_config!,
+          disabled_homepage_variant: '' as unknown as 'closed',
+        },
+      });
+      expect(config.variant.value).toBe('closed');
+    });
+
+    it('falls back to the default when homepage_config carries an unrecognised variant', () => {
+      const { config, bootstrap } = setup({ homepageVariant: 'v1' });
+      bootstrap.$patch({
+        homepage_config: {
+          ...bootstrap.homepage_config!,
+          disabled_homepage_variant: 'legacy_v0' as unknown as 'closed',
+        },
+      });
+      expect(config.variant.value).toBe('closed');
+    });
+
+    it('?variant override is read at composable-call time, not reactively', () => {
+      // Intentional: a mid-session URL mutation doesn't flip the variant
+      // without re-mounting. Mirrors how operators use the override —
+      // pick a variant on page load, not while the page is open.
+      const { config } = setup({ homepageVariant: 'v1' });
+      expect(config.variant.value).toBe('v1');
+
+      window.history.replaceState({}, '', '/?variant=closed');
+      expect(config.variant.value).toBe('v1');
+    });
+  });
+
+  describe('one-click SSO', () => {
+    const oneProvider = [{ route_name: 'oidc', display_name: 'Okta' }];
+
+    it('is off by default (no SSO restriction)', () => {
+      const { config } = setup();
+      expect(config.props.ssoOneClick).toBe(false);
+      expect(config.props.ssoProviderName).toBeNull();
+    });
+
+    it('is on when SSO is the only method and a single provider is configured', () => {
+      const { config } = setup({ ssoOnly: true, ssoProviders: oneProvider });
+      expect(config.props.ssoOneClick).toBe(true);
+      expect(config.props.ssoProviderName).toBe('Okta');
+    });
+
+    it('is off with multiple providers (the chooser on /signin is still needed)', () => {
+      const { config } = setup({
+        ssoOnly: true,
+        ssoProviders: [
+          { route_name: 'oidc', display_name: 'Okta' },
+          { route_name: 'google', display_name: 'Google' },
+        ],
+      });
+      expect(config.props.ssoOneClick).toBe(false);
+    });
+
+    it('is off when a single provider exists but SSO is not the only method', () => {
+      // Other login methods remain, so /signin still offers a real choice.
+      const { config } = setup({ ssoProviders: oneProvider });
+      expect(config.props.ssoOneClick).toBe(false);
+    });
+
+    it('is on for a custom domain enforcing SSO with a single provider', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        enforceSsoOnly: true,
+        ssoProviders: oneProvider,
+      });
+      expect(config.props.ssoOneClick).toBe(true);
+    });
+
+    it('is off when sign-in is disabled, even with single-provider SSO-only', () => {
+      const { config } = setup({ authSignin: false, ssoOnly: true, ssoProviders: oneProvider });
+      expect(config.props.ssoOneClick).toBe(false);
+    });
+
+    it('onSsoLogin submits an SSO form for the single provider', () => {
+      const { config } = setup({ ssoOnly: true, ssoProviders: oneProvider });
+      config.props.onSsoLogin();
+      expect(submitSsoLogin).toHaveBeenCalledWith(expect.objectContaining({ routeName: 'oidc' }));
+    });
+
+    it('onSsoLogin is a no-op when not in one-click mode', () => {
+      const { config } = setup({ ssoProviders: oneProvider });
+      config.props.onSsoLogin();
+      expect(submitSsoLogin).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('isBranded auto-detection', () => {
+    it('is false on canonical', () => {
+      const { config } = setup({ domainStrategy: 'canonical' });
+      expect(config.props.isBranded).toBe(false);
+    });
+
+    it('is false on custom domain with no brand description', () => {
+      const { config } = setup({ domainStrategy: 'custom', brandDescription: null });
+      expect(config.props.isBranded).toBe(false);
+    });
+
+    it('is true on custom domain with brand description', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: 'Acme',
+      });
+      expect(config.props.isBranded).toBe(true);
+    });
+
+    it('is false when brand description is whitespace-only', () => {
+      // Reproduces the trim() guard in workspaceName + the truthy check on
+      // brand.description. A workspace with only spaces shouldn't be treated
+      // as branded.
+      const { config } = setup({ domainStrategy: 'custom', brandDescription: '   ' });
+      // isBranded technically true (description present) but workspaceName
+      // falls through to displayName. Documenting actual behaviour.
+      expect(config.props.isBranded).toBe(true);
+      expect(config.props.workspaceName).toBeTruthy();
+    });
+  });
+
+  describe('brand font and corner classes', () => {
+    it('delivers null classes on the canonical site (no brand payload)', () => {
+      const { config } = setup();
+      expect(config.props.fontFamilyClass).toBeNull();
+      expect(config.props.headingFontClass).toBeNull();
+      expect(config.props.cornerClass).toBeNull();
+    });
+
+    it('delivers null classes when the domain never saved font or corner keys', () => {
+      // The parsed identity brand carries the schema defaults ('sans' /
+      // 'rounded') here — set-ness must come from the raw payload, so the
+      // variants keep their own display defaults (font-brand, rounded-xl).
+      const { config } = setup({ domainStrategy: 'custom', brandDescription: 'Acme' });
+      expect(config.props.fontFamilyClass).toBeNull();
+      expect(config.props.headingFontClass).toBeNull();
+      expect(config.props.cornerClass).toBeNull();
+    });
+
+    it('maps a saved font_family to its utility class', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: 'Acme',
+        fontFamily: 'mono',
+      });
+      expect(config.props.fontFamilyClass).toBe('font-mono');
+    });
+
+    it('maps a saved heading_font to its utility class', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: 'Acme',
+        headingFont: 'serif',
+      });
+      expect(config.props.headingFontClass).toBe('font-serif');
+    });
+
+    it('backfills headingFontClass from font_family when heading_font is unsaved', () => {
+      // Mirrors the identityStore ladder: a domain that chose a body font
+      // expects its headings to follow.
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: 'Acme',
+        fontFamily: 'mono',
+      });
+      expect(config.props.headingFontClass).toBe('font-mono');
+    });
+
+    it('maps a saved corner_style to its utility class', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: 'Acme',
+        cornerStyle: 'square',
+      });
+      expect(config.props.cornerClass).toBe('rounded-none');
+    });
+
+    it('resolves a saved border_radius to rounded-brand, superseding corner_style', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: 'Acme',
+        cornerStyle: 'square',
+        borderRadius: 'md',
+      });
+      expect(config.props.cornerClass).toBe('rounded-brand');
+    });
+  });
+
+  describe('showPromo auto-detection', () => {
+    it('false on canonical (no domain to promote)', () => {
+      const { config } = setup({
+        domainStrategy: 'canonical',
+        billingEnabled: true,
+      });
+      expect(config.props.showPromo).toBe(false);
+    });
+
+    it('false on branded custom domain (already configured)', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: 'Acme',
+        billingEnabled: true,
+      });
+      expect(config.props.showPromo).toBe(false);
+    });
+
+    it('false when billing is disabled (self-hosted)', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: null,
+        billingEnabled: false,
+      });
+      expect(config.props.showPromo).toBe(false);
+    });
+
+    it('true on unbranded custom domain with billing enabled', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: null,
+        billingEnabled: true,
+      });
+      expect(config.props.showPromo).toBe(true);
+    });
+
+    it('false when siteHost is empty (href would be unresolvable)', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: null,
+        billingEnabled: true,
+        siteHost: '',
+      });
+      expect(config.props.showPromo).toBe(false);
+    });
+  });
+
+  describe('showWhatIsThis auto-detection', () => {
+    it('false when recipient_intro URL is not configured', () => {
+      const { config } = setup({ recipientIntroUrl: null });
+      expect(config.props.showWhatIsThis).toBe(false);
+    });
+
+    it('true when recipient_intro URL is configured', () => {
+      const { config } = setup({ recipientIntroUrl: 'https://example.com/about' });
+      expect(config.props.showWhatIsThis).toBe(true);
+    });
+
+    it('false when recipient_intro is whitespace-only', () => {
+      const { config } = setup({ recipientIntroUrl: '   ' });
+      expect(config.props.showWhatIsThis).toBe(false);
+    });
+  });
+
+  describe('operator overrides (tri-state)', () => {
+    it('show_promo=false forces hide even when auto would show', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: null,
+        billingEnabled: true,
+        disabledHomepage: { show_promo: false },
+      });
+      expect(config.props.showPromo).toBe(false);
+    });
+
+    it('show_promo=true forces show even when auto would hide (branded)', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: 'Acme',
+        billingEnabled: true,
+        disabledHomepage: { show_promo: true },
+      });
+      expect(config.props.showPromo).toBe(true);
+    });
+
+    it('show_promo=null falls through to auto-detection', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: null,
+        billingEnabled: true,
+        disabledHomepage: { show_promo: null },
+      });
+      expect(config.props.showPromo).toBe(true);
+    });
+
+    it('show_what_is_this=false forces hide even when URL is configured', () => {
+      const { config } = setup({
+        recipientIntroUrl: 'https://example.com/about',
+        disabledHomepage: { show_what_is_this: false },
+      });
+      expect(config.props.showWhatIsThis).toBe(false);
+    });
+
+    it('show_what_is_this=true cannot resurrect a missing URL', () => {
+      // Forcing the flag on without a configured destination would render
+      // a link with href=null. Suppress instead.
+      const { config } = setup({
+        recipientIntroUrl: null,
+        disabledHomepage: { show_what_is_this: true },
+      });
+      expect(config.props.showWhatIsThis).toBe(false);
+    });
+
+    it('empty siteHost suppresses a forced show_promo override', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        siteHost: '',
+        disabledHomepage: { show_promo: true },
+      });
+      expect(config.props.showPromo).toBe(false);
+    });
+  });
+
+  describe('href derivation', () => {
+    it('whatIsThisHref comes from the operator-configured URL', () => {
+      const { config } = setup({
+        recipientIntroUrl: 'https://example.com/about',
+      });
+      expect(config.props.whatIsThisHref).toBe('https://example.com/about');
+    });
+
+    it('whatIsThisHref is null when not configured', () => {
+      const { config } = setup({ recipientIntroUrl: null });
+      expect(config.props.whatIsThisHref).toBeNull();
+    });
+
+    it('promoHref still derives from siteHost (canonical pricing page)', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: null,
+        billingEnabled: true,
+        siteHost: 'onetime.example.com',
+      });
+      expect(config.props.promoHref).toBe('https://onetime.example.com/pricing');
+    });
+
+    it('promoHref is null when siteHost is empty', () => {
+      const { config } = setup({ siteHost: '' });
+      expect(config.props.promoHref).toBeNull();
+    });
+  });
+
+  describe('monogram initial', () => {
+    it('derives from brand description first letter, uppercased', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: 'acme',
+      });
+      expect(config.props.monogramInitial).toBe('A');
+    });
+
+    it('falls back to displayDomain when no brand', () => {
+      const { config } = setup({
+        domainStrategy: 'canonical',
+        displayDomain: 'zebra.example.com',
+      });
+      expect(config.props.monogramInitial).toBe('Z');
+    });
+  });
+
+  describe('logo resolution', () => {
+    const tenant = 'https://cdn.example.com/imagine/tenant.png';
+    const install = 'https://cdn.example.com/install-light.svg';
+    const installDark = 'https://cdn.example.com/install-dark.svg';
+
+    it('tenant logo wins over the install logo', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        tenantLogo: tenant,
+        installLogoUrl: install,
+        installLogoDarkUrl: installDark,
+        installLogoAlt: 'Acme Corp',
+      });
+      expect(config.props.logoUri).toBe(tenant);
+      // The install dark logo/alt must not leak onto a tenant logo. With no
+      // tenant dark URL set, the identity-axis dark source resolves to null.
+      expect(config.props.logoDarkUri).toBeNull();
+      expect(config.props.logoAlt).toBeNull();
+    });
+
+    it('renders the tenant dark logo when the tenant logo is showing', () => {
+      const tenantDark = 'https://cdn.example.com/imagine/tenant-dark.png';
+      const { config } = setup({
+        domainStrategy: 'custom',
+        brandDescription: 'Acme Corp',
+        tenantLogo: tenant,
+        tenantLogoDark: tenantDark,
+        // Install dark is also set to prove the tenant rung wins the axis.
+        installLogoUrl: install,
+        installLogoDarkUrl: installDark,
+      });
+      expect(config.props.logoUri).toBe(tenant);
+      expect(config.props.logoDarkUri).toBe(tenantDark);
+    });
+
+    it('falls back to the install logo on canonical when no tenant logo', () => {
+      const { config } = setup({
+        domainStrategy: 'canonical',
+        tenantLogo: null,
+        installLogoUrl: install,
+      });
+      expect(config.props.logoUri).toBe(install);
+    });
+
+    it('is null when neither logo is configured (monogram/keyhole path)', () => {
+      const { config } = setup({ tenantLogo: null });
+      expect(config.props.logoUri).toBeNull();
+      expect(config.props.logoDarkUri).toBeNull();
+      expect(config.props.logoAlt).toBeNull();
+    });
+
+    it('does not surface the install logo on a custom domain (identity-leak guard)', () => {
+      const { config } = setup({
+        domainStrategy: 'custom',
+        tenantLogo: null,
+        installLogoUrl: install,
+        installLogoDarkUrl: installDark,
+        installLogoAlt: 'Acme Corp',
+      });
+      expect(config.props.logoUri).toBeNull();
+      expect(config.props.logoDarkUri).toBeNull();
+      expect(config.props.logoAlt).toBeNull();
+    });
+
+    it('exposes operator alt text while the install logo is active', () => {
+      const { config } = setup({
+        installLogoUrl: install,
+        installLogoAlt: 'Acme Corp',
+      });
+      expect(config.props.logoAlt).toBe('Acme Corp');
+    });
+
+    it('alt is null when the install logo has no configured alt text', () => {
+      const { config } = setup({ installLogoUrl: install });
+      expect(config.props.logoAlt).toBeNull();
+    });
+
+    it('exposes the dark install logo alongside the light one', () => {
+      const { config } = setup({
+        installLogoUrl: install,
+        installLogoDarkUrl: installDark,
+      });
+      expect(config.props.logoDarkUri).toBe(installDark);
+    });
+
+    it('dark logo is null without a light install logo to pair with', () => {
+      const { config } = setup({ installLogoDarkUrl: installDark });
+      expect(config.props.logoUri).toBeNull();
+      expect(config.props.logoDarkUri).toBeNull();
+    });
+  });
+
+  describe('showSignin', () => {
+    it('mirrors authentication.signin', () => {
+      expect(setup({ authSignin: true }).config.props.showSignin).toBe(true);
+      expect(setup({ authSignin: false }).config.props.showSignin).toBe(false);
+    });
+  });
+
+  describe('props reactivity', () => {
+    it('re-reads when a store value changes', () => {
+      const { config, bootstrap } = setup({
+        domainStrategy: 'custom',
+        brandDescription: null,
+        billingEnabled: false,
+      });
+      expect(config.props.showPromo).toBe(false);
+
+      bootstrap.$patch({ billing_enabled: true });
+      // siteHost has the default, so flipping billing flips the promo
+      expect(config.props.showPromo).toBe(true);
+    });
+  });
+});

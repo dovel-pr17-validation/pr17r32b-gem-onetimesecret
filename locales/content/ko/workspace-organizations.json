@@ -1,0 +1,1414 @@
+{
+  "web.organizations.title": {
+    "text": "조직",
+    "source_hash": "2730183d"
+  },
+  "web.organizations.organization": {
+    "text": "워크스페이스",
+    "source_hash": "87bb59ba"
+  },
+  "web.organizations.organization_plural": {
+    "text": "조직",
+    "source_hash": "2730183d"
+  },
+  "web.organizations.organizations_description": {
+    "text": "조직 관리",
+    "source_hash": "dbaa4f92"
+  },
+  "web.organizations.my_organizations": {
+    "text": "워크스페이스",
+    "source_hash": "1377264b"
+  },
+  "web.organizations.manage_organizations": {
+    "text": "워크스페이스 관리",
+    "source_hash": "cc2d65f8"
+  },
+  "web.organizations.new_organization": {
+    "text": "새 조직",
+    "source_hash": "4876e647"
+  },
+  "web.organizations.no_organizations": {
+    "text": "아직 워크스페이스가 없습니다",
+    "source_hash": "97d0b117"
+  },
+  "web.organizations.no_organizations_description": {
+    "text": "워크스페이스는 통합 결제 및 관리 기능을 제공합니다. 첫 워크스페이스를 생성하여 시작하세요.",
+    "source_hash": "f09d4987"
+  },
+  "web.organizations.no_description": {
+    "text": "설명이 제공되지 않았습니다",
+    "source_hash": "41183d01"
+  },
+  "web.organizations.default": {
+    "text": "기본",
+    "source_hash": "21b111cb"
+  },
+  "web.organizations.create_organization": {
+    "text": "조직 생성",
+    "source_hash": "e27f4540"
+  },
+  "web.organizations.create_first_organization": {
+    "text": "첫 워크스페이스 생성",
+    "source_hash": "98a583b4"
+  },
+  "web.organizations.create_organization_description": {
+    "text": "새 워크스페이스 생성",
+    "source_hash": "6ac2b5fc"
+  },
+  "web.organizations.create": {
+    "text": "생성",
+    "source_hash": "4759498a"
+  },
+  "web.organizations.create_error": {
+    "text": "워크스페이스 생성에 실패했습니다",
+    "source_hash": "0a8d4fd6"
+  },
+  "web.organizations.organization_name": {
+    "text": "워크스페이스 이름",
+    "source_hash": "6fa5a5b1"
+  },
+  "web.organizations.organization_name_placeholder": {
+    "text": "예: Acme Corporation",
+    "source_hash": "ac1c804b"
+  },
+  "web.organizations.display_name": {
+    "text": "조직 이름",
+    "source_hash": "4cbd9073"
+  },
+  "web.organizations.description": {
+    "text": "설명",
+    "source_hash": "526e0087"
+  },
+  "web.organizations.description_placeholder": {
+    "text": "이 조직의 용도는 무엇인가요?",
+    "source_hash": "27d7edae"
+  },
+  "web.organizations.contact_email": {
+    "text": "결제 이메일",
+    "source_hash": "513332d3"
+  },
+  "web.organizations.contact_email_help": {
+    "text": "결제 및 관리 알림의 기본 연락처",
+    "source_hash": "ee81c03d"
+  },
+  "web.organizations.select_organization": {
+    "text": "워크스페이스 선택",
+    "source_hash": "70a8ce66"
+  },
+  "web.organizations.switcher_locked": {
+    "text": "이 페이지에서는 워크스페이스 전환을 사용할 수 없습니다",
+    "source_hash": "c34114ac"
+  },
+  "web.organizations.not_found": {
+    "text": "조직을 찾을 수 없습니다",
+    "source_hash": "00c50f7a"
+  },
+  "web.organizations.load_error": {
+    "text": "조직 로드 실패",
+    "source_hash": "6b5fa342"
+  },
+  "web.organizations.fetch_organization_error": {
+    "text": "조직 로드 실패",
+    "source_hash": "6b5fa342"
+  },
+  "web.organizations.fetch_organizations_error": {
+    "text": "조직 로드 실패",
+    "source_hash": "03b30208"
+  },
+  "web.organizations.organization_information": {
+    "text": "조직 정보",
+    "source_hash": "85274cee"
+  },
+  "web.organizations.created": {
+    "text": "생성됨",
+    "source_hash": "d70b9e24"
+  },
+  "web.organizations.last_updated": {
+    "text": "마지막 업데이트",
+    "source_hash": "048c7f2e"
+  },
+  "web.organizations.organization_settings": {
+    "text": "조직 설정",
+    "source_hash": "cc1d9e61"
+  },
+  "web.organizations.organization_settings_description": {
+    "text": "조직 이름과 설명 업데이트",
+    "source_hash": "2d8b5b2b"
+  },
+  "web.organizations.general_settings": {
+    "text": "일반 설정",
+    "source_hash": "de322f87"
+  },
+  "web.organizations.billing_settings": {
+    "text": "결제 및 구독",
+    "source_hash": "896913f0"
+  },
+  "web.organizations.save_changes": {
+    "text": "변경사항 저장",
+    "source_hash": "35322b5b"
+  },
+  "web.organizations.update_success": {
+    "text": "조직이 성공적으로 업데이트되었습니다",
+    "source_hash": "af39d0f3"
+  },
+  "web.organizations.update_error": {
+    "text": "조직 업데이트 실패",
+    "source_hash": "bc2b59b8"
+  },
+  "web.organizations.billing_email_updated": {
+    "text": "결제 이메일이 성공적으로 업데이트되었습니다",
+    "source_hash": "080a7f11"
+  },
+  "web.organizations.billing_email_managed_on_billing": {
+    "text": "결제 이메일은 결제 개요 페이지에서 변경할 수 있습니다",
+    "source_hash": "8a131415"
+  },
+  "web.organizations.billing_coming_soon": {
+    "text": "결제 통합 예정",
+    "source_hash": "d3e0ec75"
+  },
+  "web.organizations.billing_coming_soon_description": {
+    "text": "통합 결제 및 구독 관리는 향후 릴리스에서 제공될 예정입니다.",
+    "source_hash": "8836108f"
+  },
+  "web.organizations.about_title": {
+    "text": "조직 소개",
+    "source_hash": "2f3e2ad8"
+  },
+  "web.organizations.about_description": {
+    "text": "조직은 중앙 집중식 관리를 위해 통합 결제 및 관리를 제공합니다.",
+    "source_hash": "910f97a8"
+  },
+  "web.organizations.single_user_info_title": {
+    "text": "조직 관리",
+    "source_hash": "810a6c86"
+  },
+  "web.organizations.single_user_info_description": {
+    "text": "여기에서 회사 이름과 조직 세부정보를 업데이트하세요. 이 정보는 계정을 개인화하고 향후 브랜딩 기능에 사용될 수 있습니다.",
+    "source_hash": "96b2e4b5"
+  },
+  "web.organizations.getting_started_title": {
+    "text": "조직 시작하기",
+    "source_hash": "2871e738"
+  },
+  "web.organizations.getting_started_description": {
+    "text": "회사 정보를 관리하고 향후 브랜딩 기능을 준비하려면 첫 번째 조직을 만드세요.",
+    "source_hash": "0487f33a"
+  },
+  "web.organizations.page_description": {
+    "text": "조직 및 팀 멤버 관리",
+    "source_hash": "2d026be4"
+  },
+  "web.organizations.tabs.general": {
+    "text": "설정",
+    "source_hash": "74a883a0"
+  },
+  "web.organizations.tabs.company_branding": {
+    "text": "회사 브랜딩",
+    "source_hash": "7ecc5d35"
+  },
+  "web.organizations.tabs.members": {
+    "text": "구성원",
+    "source_hash": "1044a4c0"
+  },
+  "web.organizations.tabs.billing": {
+    "text": "결제",
+    "source_hash": "3ac8bbca"
+  },
+  "web.organizations.tabs.subscription": {
+    "text": "구독",
+    "source_hash": "4999c6c6"
+  },
+  "web.organizations.delete_organization": {
+    "text": "조직 삭제",
+    "source_hash": "54b2edc7"
+  },
+  "web.organizations.delete_organization_warning": {
+    "text": "조직이 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.",
+    "source_hash": "ab2d2c05"
+  },
+  "web.organizations.delete": {
+    "text": "삭제",
+    "source_hash": "e2d0a549"
+  },
+  "web.organizations.delete_organization_confirm_title": {
+    "text": "조직 삭제",
+    "source_hash": "54b2edc7"
+  },
+  "web.organizations.delete_organization_confirm_message": {
+    "text": "{name}을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+    "source_hash": "db7e1f9d"
+  },
+  "web.organizations.delete_error": {
+    "text": "조직 삭제 실패",
+    "source_hash": "a8e5bb28"
+  },
+  "web.organizations.members.title": {
+    "text": "멤버",
+    "source_hash": "1044a4c0"
+  },
+  "web.organizations.members.description": {
+    "text": "조직 멤버 및 역할 관리",
+    "source_hash": "1353774c"
+  },
+  "web.organizations.members.current_members": {
+    "text": "현재 멤버",
+    "source_hash": "cfc156ae"
+  },
+  "web.organizations.members.member": {
+    "text": "멤버",
+    "source_hash": "7c968fb7"
+  },
+  "web.organizations.members.member_singular": {
+    "text": "멤버",
+    "source_hash": "e31ab643"
+  },
+  "web.organizations.members.member_plural": {
+    "text": "멤버",
+    "source_hash": "17373ca1"
+  },
+  "web.organizations.members.name": {
+    "text": "이름",
+    "source_hash": "dcd1d522"
+  },
+  "web.organizations.members.email": {
+    "text": "이메일",
+    "source_hash": "969ccbd3"
+  },
+  "web.organizations.members.role": {
+    "text": "역할",
+    "source_hash": "14736a2e"
+  },
+  "web.organizations.members.joined": {
+    "text": "가입",
+    "source_hash": "69318b0c"
+  },
+  "web.organizations.members.actions": {
+    "text": "작업",
+    "source_hash": "ff8059dc"
+  },
+  "web.organizations.members.no_members": {
+    "text": "아직 멤버가 없습니다. 팀 멤버를 초대하여 시작하세요.",
+    "source_hash": "6cbc5271"
+  },
+  "web.organizations.members.no_members_description": {
+    "text": "이 조직에는 아직 멤버가 없습니다.",
+    "source_hash": "61dd2085"
+  },
+  "web.organizations.members.role_updated": {
+    "text": "멤버 역할이 성공적으로 업데이트되었습니다",
+    "source_hash": "d0d332c6"
+  },
+  "web.organizations.members.role_update_error": {
+    "text": "멤버 역할 업데이트 실패",
+    "source_hash": "17d5ca66"
+  },
+  "web.organizations.members.member_removed": {
+    "text": "멤버가 조직에서 제거되었습니다",
+    "source_hash": "210a187b"
+  },
+  "web.organizations.members.member_remove_error": {
+    "text": "멤버 제거 실패",
+    "source_hash": "1cff79b7"
+  },
+  "web.organizations.members.remove_member_title": {
+    "text": "멤버 제거",
+    "source_hash": "2b98b194"
+  },
+  "web.organizations.members.remove_member_confirm": {
+    "text": "{name}을(를) 이 조직에서 제거하시겠습니까?",
+    "source_hash": "36695d98"
+  },
+  "web.organizations.members.cannot_change_own_role": {
+    "text": "자신의 역할은 변경할 수 없습니다",
+    "source_hash": "0d874f75"
+  },
+  "web.organizations.members.cannot_remove_self": {
+    "text": "조직에서 자신을 제거할 수 없습니다",
+    "source_hash": "ab358307"
+  },
+  "web.organizations.members.cannot_remove_owner": {
+    "text": "조직 소유자는 제거할 수 없습니다",
+    "source_hash": "c92ed0f4"
+  },
+  "web.organizations.members.insufficient_permissions": {
+    "text": "멤버를 관리할 권한이 없습니다",
+    "source_hash": "d6239f33"
+  },
+  "web.organizations.members.roles.owner": {
+    "text": "소유자",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.organizations.members.roles.admin": {
+    "text": "관리자",
+    "source_hash": "c1c224b0"
+  },
+  "web.organizations.members.roles.member": {
+    "text": "멤버",
+    "source_hash": "7c968fb7"
+  },
+  "web.organizations.members.role_descriptions.owner": {
+    "text": "모든 조직 설정 및 멤버에 대한 전체 접근",
+    "source_hash": "d49381bf"
+  },
+  "web.organizations.members.role_descriptions.admin": {
+    "text": "멤버 및 대부분의 조직 설정 관리 가능",
+    "source_hash": "3d7ade92"
+  },
+  "web.organizations.members.role_descriptions.member": {
+    "text": "조직 리소스에 대한 기본 접근",
+    "source_hash": "0ddca91a"
+  },
+  "web.organizations.invitations.title": {
+    "text": "조직 초대",
+    "source_hash": "0289d92d"
+  },
+  "web.organizations.invitations.invite_member": {
+    "text": "멤버 초대",
+    "source_hash": "8e8a0b88"
+  },
+  "web.organizations.invitations.invite_new_member": {
+    "text": "새 멤버 초대",
+    "source_hash": "0bfb50ed"
+  },
+  "web.organizations.invitations.pending_invitations": {
+    "text": "대기 중인 초대",
+    "source_hash": "b327e8a8"
+  },
+  "web.organizations.invitations.no_pending_invitations": {
+    "text": "대기 중인 초대가 없습니다",
+    "source_hash": "275814da"
+  },
+  "web.organizations.invitations.email_address": {
+    "text": "이메일 주소",
+    "source_hash": "09bf25ef"
+  },
+  "web.organizations.invitations.email_placeholder": {
+    "text": "member{'@'}example.com",
+    "source_hash": "7fd425f7"
+  },
+  "web.organizations.invitations.role": {
+    "text": "역할",
+    "source_hash": "14736a2e"
+  },
+  "web.organizations.invitations.send_invite": {
+    "text": "초대 보내기",
+    "source_hash": "d076aa0f"
+  },
+  "web.organizations.invitations.invite_sent": {
+    "text": "초대가 성공적으로 전송되었습니다",
+    "source_hash": "81facbe6"
+  },
+  "web.organizations.invitations.invite_error": {
+    "text": "초대 전송 실패",
+    "source_hash": "cedbf507"
+  },
+  "web.organizations.invitations.resend": {
+    "text": "재전송",
+    "source_hash": "1f948437"
+  },
+  "web.organizations.invitations.revoke": {
+    "text": "취소",
+    "source_hash": "87e6d00b"
+  },
+  "web.organizations.invitations.resend_success": {
+    "text": "초대가 성공적으로 재전송되었습니다",
+    "source_hash": "099eb255"
+  },
+  "web.organizations.invitations.resend_error": {
+    "text": "초대 재전송 실패",
+    "source_hash": "82750487"
+  },
+  "web.organizations.invitations.revoke_success": {
+    "text": "초대가 성공적으로 취소되었습니다",
+    "source_hash": "4ce1262c"
+  },
+  "web.organizations.invitations.revoke_error": {
+    "text": "초대 취소 실패",
+    "source_hash": "9dbd2a60"
+  },
+  "web.organizations.invitations.invited_by": {
+    "text": "초대자",
+    "source_hash": "c7a6f156"
+  },
+  "web.organizations.invitations.invited_at": {
+    "text": "초대됨",
+    "source_hash": "63b17bec"
+  },
+  "web.organizations.invitations.expires_at": {
+    "text": "만료",
+    "source_hash": "f6725f3a"
+  },
+  "web.organizations.invitations.resent_count": {
+    "text": "{count}회 재전송됨",
+    "source_hash": "e71d1c6d"
+  },
+  "web.organizations.invitations.resent_count_plural": {
+    "text": "{count}회 재전송됨",
+    "source_hash": "e58d803d"
+  },
+  "web.organizations.invitations.status.pending": {
+    "text": "대기 중",
+    "source_hash": "331551b0"
+  },
+  "web.organizations.invitations.status.accepted": {
+    "text": "수락됨",
+    "source_hash": "a00fb0c5"
+  },
+  "web.organizations.invitations.status.declined": {
+    "text": "거절됨",
+    "source_hash": "dce083a2"
+  },
+  "web.organizations.invitations.status.expired": {
+    "text": "만료됨",
+    "source_hash": "424a2551"
+  },
+  "web.organizations.invitations.status.revoked": {
+    "text": "취소됨",
+    "source_hash": "f6f738d0"
+  },
+  "web.organizations.invitations.roles.member": {
+    "text": "팀 구성원",
+    "source_hash": "d4e55dfa"
+  },
+  "web.organizations.invitations.roles.admin": {
+    "text": "관리자",
+    "source_hash": "c1c224b0"
+  },
+  "web.organizations.invitations.accept_invitation": {
+    "text": "초대 수락",
+    "source_hash": "ce7cfeaf"
+  },
+  "web.organizations.invitations.decline_invitation": {
+    "text": "초대 거절",
+    "source_hash": "f6e06ada"
+  },
+  "web.organizations.invitations.invitation_details": {
+    "text": "초대 세부정보",
+    "source_hash": "59936259"
+  },
+  "web.organizations.invitations.you_are_invited": {
+    "text": "참여 초대를 받았습니다:",
+    "source_hash": "60e635c6"
+  },
+  "web.organizations.invitations.invited_as": {
+    "text": "다음 역할로 초대되었습니다:",
+    "source_hash": "f9809eae"
+  },
+  "web.organizations.invitations.accept_success": {
+    "text": "초대가 성공적으로 수락되었습니다",
+    "source_hash": "7eb6b234"
+  },
+  "web.organizations.invitations.accept_error": {
+    "text": "초대 수락 실패",
+    "source_hash": "3ecc8b0f"
+  },
+  "web.organizations.invitations.decline_success": {
+    "text": "초대가 거절되었습니다",
+    "source_hash": "31bffdcb"
+  },
+  "web.organizations.invitations.decline_error": {
+    "text": "초대 거절 실패",
+    "source_hash": "2bccbd56"
+  },
+  "web.organizations.invitations.expired_message": {
+    "text": "이 초대는 만료되었습니다",
+    "source_hash": "b72770d7"
+  },
+  "web.organizations.invitations.invalid_token": {
+    "text": "유효하지 않거나 만료된 초대",
+    "source_hash": "6c0fc3de"
+  },
+  "web.organizations.invitations.must_sign_in": {
+    "text": "이 초대를 수락하려면 로그인해 주세요",
+    "source_hash": "469fc705"
+  },
+  "web.organizations.invitations.loading_invitation": {
+    "text": "초대 세부정보 로딩 중",
+    "source_hash": "58884885"
+  },
+  "web.organizations.invitations.upgrade_to_invite": {
+    "text": "팀 멤버를 초대하려면 요금제를 업그레이드하세요",
+    "source_hash": "5e3f8df8"
+  },
+  "web.organizations.invitations.upgrade_prompt": {
+    "text": "구성원 초대에는 유료 요금제가 필요합니다. 조직에 협업자를 추가하려면 업그레이드하세요.",
+    "source_hash": "47d0eeab"
+  },
+  "web.organizations.paid_badge": {
+    "text": "Pro",
+    "source_hash": "957b0b87"
+  },
+  "web.organizations.early_supporter_badge": {
+    "text": "초기 서포터",
+    "source_hash": "e67d2ef8"
+  },
+  "web.organizations.member_count": {
+    "text": "{count}명 멤버 | {count}명 멤버",
+    "source_hash": "f652af0c"
+  },
+  "web.organizations.domain_count": {
+    "text": "{count}개 도메인 | {count}개 도메인",
+    "source_hash": "09f52efa"
+  },
+  "web.organizations.tabs.domains": {
+    "text": "도메인",
+    "source_hash": "ced67718"
+  },
+  "web.organizations.invitations.email_mismatch_title": {
+    "text": "다른 계정으로 로그인됨",
+    "source_hash": "6516362a"
+  },
+  "web.organizations.invitations.email_mismatch_body": {
+    "text": "이 초대는 {invitedEmail} 대상입니다. 현재 {currentEmail}(으)로 로그인되어 있습니다.",
+    "source_hash": "78a6f301"
+  },
+  "web.organizations.invitations.continue_as_invited_email": {
+    "text": "{email}(으)로 계속",
+    "source_hash": "ccf9745d"
+  },
+  "web.organizations.invitations.expires_in_days": {
+    "text": "{days}일 남음",
+    "source_hash": "50ff6f2b"
+  },
+  "web.organizations.invitations.expires_in_hours": {
+    "text": "{hours}시간 남음",
+    "source_hash": "ff56d105"
+  },
+  "web.organizations.invitations.expires_soon": {
+    "text": "곧 만료",
+    "source_hash": "a5dcfef9"
+  },
+  "web.organizations.sso.title": {
+    "text": "Single Sign-On (SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.organizations.sso.description": {
+    "text": "조직 구성원이 조직의 ID 공급자로 로그인할 수 있도록 SSO를 설정합니다",
+    "source_hash": "464f0a8b"
+  },
+  "web.organizations.sso.provider_type": {
+    "text": "공급자 유형",
+    "source_hash": "bdfbb1ec"
+  },
+  "web.organizations.sso.provider_type_description": {
+    "text": "조직의 ID 공급자를 선택하세요",
+    "source_hash": "e81325a6"
+  },
+  "web.organizations.sso.display_name": {
+    "text": "표시 이름",
+    "source_hash": "18d67c99"
+  },
+  "web.organizations.sso.display_name_hint": {
+    "text": "로그인 시 사용자에게 표시되는 친숙한 이름",
+    "source_hash": "a83f1fba"
+  },
+  "web.organizations.sso.display_name_placeholder": {
+    "text": "예: Acme Corp SSO",
+    "source_hash": "43c655c5"
+  },
+  "web.organizations.sso.client_id": {
+    "text": "클라이언트 ID",
+    "source_hash": "8726db01"
+  },
+  "web.organizations.sso.client_id_placeholder": {
+    "text": "OAuth 클라이언트 ID",
+    "source_hash": "830723da"
+  },
+  "web.organizations.sso.client_secret": {
+    "text": "클라이언트 시크릿",
+    "source_hash": "ae21cf6d"
+  },
+  "web.organizations.sso.client_secret_placeholder": {
+    "text": "OAuth 클라이언트 시크릿",
+    "source_hash": "14e4a8c8"
+  },
+  "web.organizations.sso.client_secret_update_hint": {
+    "text": "기존 시크릿을 유지하려면 비워 두세요",
+    "source_hash": "98bc3b40"
+  },
+  "web.organizations.sso.tenant_id": {
+    "text": "테넌트 ID",
+    "source_hash": "de1f5fff"
+  },
+  "web.organizations.sso.tenant_id_hint": {
+    "text": "Azure AD / Entra ID 테넌트 식별자",
+    "source_hash": "3c5b707a"
+  },
+  "web.organizations.sso.tenant_id_placeholder": {
+    "text": "예: 12345678-1234-1234-1234-123456789abc",
+    "source_hash": "1a166316"
+  },
+  "web.organizations.sso.issuer": {
+    "text": "발급자 URL",
+    "source_hash": "4d03ba8a"
+  },
+  "web.organizations.sso.issuer_hint": {
+    "text": "ID 공급자의 OIDC 검색 URL",
+    "source_hash": "6102d81b"
+  },
+  "web.organizations.sso.issuer_placeholder": {
+    "text": "예: https://login.example.com",
+    "source_hash": "9a638e9c"
+  },
+  "web.organizations.sso.allowed_domains": {
+    "text": "허용된 이메일 도메인",
+    "source_hash": "0295ad71"
+  },
+  "web.organizations.sso.allowed_domains_hint": {
+    "text": "이 도메인의 이메일 주소를 가진 사용자만 로그인할 수 있습니다. 모든 도메인을 허용하려면 비워 두세요.",
+    "source_hash": "1775e874"
+  },
+  "web.organizations.sso.domain_placeholder": {
+    "text": "예: acme.com",
+    "source_hash": "e4420764"
+  },
+  "web.organizations.sso.invalid_domain": {
+    "text": "유효한 도메인을 입력하세요 (예: example.com)",
+    "source_hash": "16807983"
+  },
+  "web.organizations.sso.domain_exists": {
+    "text": "이 도메인은 이미 목록에 있습니다",
+    "source_hash": "3fccb721"
+  },
+  "web.organizations.sso.remove_domain": {
+    "text": "{domain} 제거",
+    "source_hash": "ae708a1d"
+  },
+  "web.organizations.sso.delete_config": {
+    "text": "설정 삭제",
+    "source_hash": "9ac1ac7b"
+  },
+  "web.organizations.sso.delete_confirm": {
+    "text": "정말 삭제하시겠습니까? 조직의 SSO가 비활성화됩니다.",
+    "source_hash": "5b3f5b9d"
+  },
+  "web.organizations.sso.load_error": {
+    "text": "SSO 설정을 불러오는 데 실패했습니다",
+    "source_hash": "75cb73f6"
+  },
+  "web.organizations.sso.save_error": {
+    "text": "SSO 설정을 저장하는 데 실패했습니다",
+    "source_hash": "99ef145b"
+  },
+  "web.organizations.sso.create_success": {
+    "text": "SSO 설정이 성공적으로 생성되었습니다",
+    "source_hash": "531c7d92"
+  },
+  "web.organizations.sso.update_success": {
+    "text": "SSO 설정이 성공적으로 업데이트되었습니다",
+    "source_hash": "d98d8e83"
+  },
+  "web.organizations.sso.delete_success": {
+    "text": "SSO 설정이 성공적으로 삭제되었습니다",
+    "source_hash": "55f5d4f5"
+  },
+  "web.organizations.sso.delete_error": {
+    "text": "SSO 설정을 삭제하는 데 실패했습니다",
+    "source_hash": "4a960fe4"
+  },
+  "web.organizations.sso.test_connection": {
+    "text": "연결 테스트",
+    "source_hash": "c02977b0"
+  },
+  "web.organizations.sso.test_connection_hint": {
+    "text": "ID 공급자에 연결 가능한지 확인합니다 (자격 증명은 검증하지 않음)",
+    "source_hash": "22a23b68"
+  },
+  "web.organizations.sso.test_button": {
+    "text": "연결 테스트",
+    "source_hash": "c02977b0"
+  },
+  "web.organizations.sso.testing": {
+    "text": "테스트 중...",
+    "source_hash": "6c02a284"
+  },
+  "web.organizations.sso.test_error": {
+    "text": "연결 테스트에 실패했습니다",
+    "source_hash": "c1d1f310"
+  },
+  "web.organizations.sso.auth_endpoint": {
+    "text": "인증 엔드포인트",
+    "source_hash": "b42b956f"
+  },
+  "web.organizations.sso.missing_fields": {
+    "text": "누락된 필드",
+    "source_hash": "757df777"
+  },
+  "web.organizations.sso.status_enabled": {
+    "text": "활성화됨",
+    "source_hash": "92c1cdfd"
+  },
+  "web.organizations.sso.status_configured": {
+    "text": "설정됨",
+    "source_hash": "84aebc69"
+  },
+  "web.organizations.sso.domain_sso_title": {
+    "text": "도메인 SSO",
+    "source_hash": "13161464"
+  },
+  "web.organizations.sso.domain_sso_description": {
+    "text": "확인된 각 도메인에 대해 SSO를 설정합니다",
+    "source_hash": "af5b799e"
+  },
+  "web.organizations.sso.provider_type_locked_hint": {
+    "text": "공급자를 변경하려면 먼저 이 설정을 삭제하세요",
+    "source_hash": "0a1027ff"
+  },
+  "web.organizations.sso.status_not_configured": {
+    "text": "설정되지 않음",
+    "source_hash": "bbea960e"
+  },
+  "api.organizations.errors.not_found": {
+    "text": "조직을 찾을 수 없습니다: %{extid}",
+    "source_hash": "c8d058eb"
+  },
+  "api.organizations.errors.owner_required": {
+    "text": "조직 소유자만 이 작업을 수행할 수 있습니다",
+    "source_hash": "5a729e94"
+  },
+  "api.organizations.errors.admin_required": {
+    "text": "조직 소유자와 관리자만 이 작업을 수행할 수 있습니다",
+    "source_hash": "cd9e8c0e"
+  },
+  "api.organizations.errors.member_required": {
+    "text": "이 작업을 수행하려면 조직 멤버여야 합니다",
+    "source_hash": "f66f4a60"
+  },
+  "api.organizations.invitations.errors.create_admin_required": {
+    "text": "조직 소유자와 관리자만 초대를 생성할 수 있습니다",
+    "source_hash": "777d150d"
+  },
+  "api.organizations.invitations.errors.resend_admin_required": {
+    "text": "조직 소유자와 관리자만 초대를 다시 보낼 수 있습니다",
+    "source_hash": "6a857d59"
+  },
+  "api.organizations.invitations.errors.view_admin_required": {
+    "text": "조직 소유자와 관리자만 초대를 볼 수 있습니다",
+    "source_hash": "42f5878b"
+  },
+  "api.organizations.invitations.errors.revoke_admin_required": {
+    "text": "조직 소유자와 관리자만 초대를 취소할 수 있습니다",
+    "source_hash": "52f73c8a"
+  },
+  "api.organizations.invitations.errors.email_required": {
+    "text": "이메일이 필요합니다",
+    "source_hash": "aae92911"
+  },
+  "api.organizations.invitations.errors.email_invalid": {
+    "text": "잘못된 이메일 형식입니다",
+    "source_hash": "0bcecf66"
+  },
+  "api.organizations.invitations.errors.role_invalid": {
+    "text": "역할은 멤버 또는 관리자여야 합니다",
+    "source_hash": "650ea5f6"
+  },
+  "api.organizations.invitations.errors.cannot_invite_owner": {
+    "text": "소유자로 초대할 수 없습니다",
+    "source_hash": "e6581025"
+  },
+  "api.organizations.invitations.errors.already_member": {
+    "text": "사용자는 이미 이 조직의 멤버입니다",
+    "source_hash": "8eb45780"
+  },
+  "api.organizations.invitations.errors.already_pending": {
+    "text": "이 이메일에 대한 초대가 이미 대기 중입니다",
+    "source_hash": "7f5e3093"
+  },
+  "api.organizations.invitations.errors.not_found": {
+    "text": "초대를 찾을 수 없습니다",
+    "source_hash": "775ba9eb"
+  },
+  "api.organizations.invitations.errors.cannot_resend_non_pending": {
+    "text": "대기 중인 초대만 다시 보낼 수 있습니다",
+    "source_hash": "b7578b3e"
+  },
+  "api.organizations.invitations.errors.cannot_revoke_non_pending": {
+    "text": "대기 중인 초대만 취소할 수 있습니다",
+    "source_hash": "732b78a6"
+  },
+  "api.organizations.invitations.errors.resend_limit_reached": {
+    "text": "최대 재전송 한도(%{max})에 도달했습니다",
+    "source_hash": "8dc96729"
+  },
+  "api.organizations.invitations.errors.accept_token_required": {
+    "text": "토큰이 필요합니다",
+    "source_hash": "6c718161"
+  },
+  "api.organizations.invitations.errors.accept_organization_gone": {
+    "text": "조직이 더 이상 존재하지 않습니다",
+    "source_hash": "a5df7d22"
+  },
+  "api.organizations.invitations.errors.accept_expired": {
+    "text": "초대가 만료되었습니다",
+    "source_hash": "7186297b"
+  },
+  "api.organizations.invitations.errors.accept_email_mismatch": {
+    "text": "이메일 주소가 초대와 일치하지 않습니다",
+    "source_hash": "11026f46"
+  },
+  "api.organizations.invitations.errors.accept_already_member": {
+    "text": "이미 이 조직의 멤버입니다",
+    "source_hash": "f56ad547"
+  },
+  "web.organizations.entitlements_title": {
+    "text": "조직 권한",
+    "source_hash": "36054d4f"
+  },
+  "web.organizations.page_description_short": {
+    "text": "워크스페이스를 보고 구성하세요",
+    "source_hash": "524fcb9a"
+  },
+  "web.organizations.delete_organization_remove_domains_first": {
+    "text": "이 조직을 삭제하기 전에 모든 사용자 정의 도메인을 제거하세요.",
+    "source_hash": "44678715"
+  },
+  "web.organizations.default_org_delete_notice_title": {
+    "text": "이 조직 삭제",
+    "source_hash": "9191d915"
+  },
+  "web.organizations.default_org_delete_notice_before": {
+    "text": "이것은 기본 조직이며 대시보드에서 제거할 수 없습니다. 삭제하려면 다음을 통해 문의해 주세요:",
+    "source_hash": "e203607d"
+  },
+  "web.organizations.default_org_delete_notice_link": {
+    "text": "피드백 양식",
+    "source_hash": "94645a9e"
+  },
+  "web.organizations.default_org_delete_notice_after": {
+    "text": ".",
+    "source_hash": "cdb4ee2a"
+  },
+  "web.organizations.leave_organization": {
+    "text": "이 조직 나가기",
+    "source_hash": "d534cff9"
+  },
+  "web.organizations.leave_organization_warning": {
+    "text": "이 조직과 해당 리소스에 대한 접근 권한을 잃게 됩니다.",
+    "source_hash": "e9daab07"
+  },
+  "web.organizations.leave_organization_confirm_title": {
+    "text": "조직 나가기",
+    "source_hash": "ec8314da"
+  },
+  "web.organizations.leave_organization_confirm_message": {
+    "text": "정말 {name}에서 나가시겠습니까? 다시 참여하려면 새 초대가 필요합니다.",
+    "source_hash": "e21c5fec"
+  },
+  "web.organizations.leave_organization_success": {
+    "text": "조직에서 나갔습니다.",
+    "source_hash": "fc803eb3"
+  },
+  "web.organizations.leave_error": {
+    "text": "조직 나가기에 실패했습니다",
+    "source_hash": "6cb6af43"
+  },
+  "web.organizations.organizations": {
+    "text": "조직",
+    "source_hash": "2730183d"
+  },
+  "web.organizations.invitations.invited_by_inline": {
+    "text": "{email}님이",
+    "source_hash": "969a7050"
+  },
+  "web.organizations.invitations.invited_as_inline": {
+    "text": "{role} 역할로",
+    "source_hash": "ff9e9b18"
+  },
+  "web.organizations.invitations.back_to_home": {
+    "text": "홈으로 돌아가기",
+    "source_hash": "76c5505f"
+  },
+  "web.organizations.invitations.email_locked_hint": {
+    "text": "이 초대는 이 이메일 주소로 전송되었습니다",
+    "source_hash": "2cff7075"
+  },
+  "web.organizations.invitations.signup_continue": {
+    "text": "계속",
+    "source_hash": "31fbef16"
+  },
+  "web.organizations.invitations.signin_continue": {
+    "text": "로그인",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.organizations.invitations.confirm_join_below": {
+    "text": "거의 다 됐습니다 — 아래에서 확인하여 조직에 참여하세요.",
+    "source_hash": "2d14f9b0"
+  },
+  "web.organizations.invitations.go_to_organizations": {
+    "text": "조직으로 이동",
+    "source_hash": "2afa38a3"
+  },
+  "web.organizations.invitations.already_member": {
+    "text": "이미 이 조직의 멤버입니다",
+    "source_hash": "f56ad547"
+  },
+  "web.organizations.invitations.join_organization": {
+    "text": "{orgName} 참여",
+    "source_hash": "1aea9194"
+  },
+  "web.organizations.invitations.sign_in_to_join": {
+    "text": "{orgName}에 참여하려면 로그인",
+    "source_hash": "f94ed8b4"
+  },
+  "web.organizations.invitations.decline": {
+    "text": "거절",
+    "source_hash": "a2d285b3"
+  },
+  "web.organizations.members.pending_suffix": {
+    "text": "(대기 중 {count}명)",
+    "source_hash": "c13f787f"
+  },
+  "web.organizations.sso.view_discovery_document": {
+    "text": "디스커버리 문서 보기",
+    "source_hash": "513bda60"
+  },
+  "web.organizations.sso.callback_url": {
+    "text": "콜백 URL",
+    "source_hash": "dc297ae9"
+  },
+  "web.organizations.sso.callback_url_hint": {
+    "text": "이 URL을 ID 공급자의 허용된 리디렉션 URI에 추가하세요",
+    "source_hash": "65d55683"
+  },
+  "web.organizations.sso.enforce_sso_only": {
+    "text": "SSO 전용 적용",
+    "source_hash": "b3a3f694"
+  },
+  "web.organizations.sso.enforce_sso_only_hint": {
+    "text": "이 도메인의 모든 로그인에 SSO를 요구합니다. 활성화하면 비밀번호 기반 인증이 비활성화됩니다.",
+    "source_hash": "19432210"
+  },
+  "web.organizations.sso.grant_org_scope": {
+    "text": "조직 전체 접근 권한 부여",
+    "source_hash": "2070cef2"
+  },
+  "web.organizations.sso.grant_org_scope_hint": {
+    "text": "이 도메인의 SSO를 통해 참여하는 신규 멤버에게 모든 조직 도메인에 대한 접근 권한이 부여됩니다. 기존 멤버는 영향을 받지 않습니다. 비활성화(기본값)하면 신규 멤버는 이 도메인에만 접근할 수 있습니다.",
+    "source_hash": "2ac9f345"
+  },
+  "web.organizations.sso.no_domains": {
+    "text": "확인된 도메인 없음",
+    "source_hash": "8a7fbb76"
+  },
+  "web.organizations.sso.no_domains_description": {
+    "text": "SSO를 구성하기 전에 도메인을 추가하고 확인하세요.",
+    "source_hash": "e825d13a"
+  },
+  "web.organizations.tabs.team": {
+    "text": "팀",
+    "source_hash": "5985039f"
+  },
+  "web.organizations.tabs.sso": {
+    "text": "SSO",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.organizations.create_workspace": {
+    "text": "워크스페이스 생성",
+    "source_hash": "c63c14cf"
+  },
+  "web.organizations.organization_id": {
+    "text": "조직 ID",
+    "source_hash": "1f466322"
+  },
+  "web.organizations.organization_id_hint": {
+    "text": "지원팀에 문의하거나 이 조직에 API 요청 범위를 지정할 때 이 ID를 사용하세요. 로그인 자격 증명이 아닙니다.",
+    "source_hash": "29549b3a"
+  },
+  "web.organizations.audit.title": {
+    "text": "비밀 메시지 활동",
+    "source_hash": "6d6d41f3"
+  },
+  "web.organizations.audit.description": {
+    "text": "이 조직에 기록된 비밀 메시지 생성 및 접근 이벤트의 감사 추적입니다.",
+    "source_hash": "553c564b"
+  },
+  "web.organizations.audit.country_unknown": {
+    "text": "알 수 없음",
+    "source_hash": "b764cdc0"
+  },
+  "web.organizations.audit.empty_title": {
+    "text": "아직 활동이 없습니다",
+    "source_hash": "0a12b92c"
+  },
+  "web.organizations.audit.empty_description": {
+    "text": "팀이 비밀 메시지를 공유하면 비밀 메시지 생성 및 접근 이벤트가 여기에 표시됩니다.",
+    "source_hash": "62fb14c2"
+  },
+  "web.organizations.audit.capped_notice": {
+    "text": "최신 {max}개의 이벤트만 보존됩니다. 오래된 활동은 삭제되었습니다.",
+    "source_hash": "da7901e2"
+  },
+  "web.organizations.audit.collection_paused_notice": {
+    "text": "이벤트 수집이 일시 중지되었습니다. 새로운 비밀 메시지 활동이 기록되지 않습니다.",
+    "source_hash": "cb09d147"
+  },
+  "web.organizations.audit.load_error": {
+    "text": "비밀 메시지 활동을 불러올 수 없습니다.",
+    "source_hash": "52fde814"
+  },
+  "web.organizations.audit.contract_mismatch": {
+    "text": "서버에서 반환한 활동 데이터를 읽을 수 없습니다. 추적이 비어 있지 않습니다 — 지금은 표시할 수 없습니다.",
+    "source_hash": "db0d007a"
+  },
+  "web.organizations.audit.retry": {
+    "text": "다시 시도",
+    "source_hash": "d8b8392e"
+  },
+  "web.organizations.audit.showing_range": {
+    "text": "{total} 중 {from}–{to} 표시",
+    "source_hash": "c329279d"
+  },
+  "web.organizations.audit.upgrade_prompt": {
+    "text": "비밀 메시지 활동에는 감사 로그가 포함된 플랜이 필요합니다. 이 조직에서 누가 비밀 메시지를 생성, 조회, 공개했는지 확인하려면 업그레이드하세요.",
+    "source_hash": "453649ce"
+  },
+  "web.organizations.audit.role_required": {
+    "text": "비밀 메시지 활동은 조직 소유자 및 관리자에게 제공됩니다.",
+    "source_hash": "e066ec63"
+  },
+  "web.organizations.audit.actors.creator": {
+    "text": "생성자",
+    "source_hash": "88447b83"
+  },
+  "web.organizations.audit.actors.authenticated_other": {
+    "text": "다른 로그인한 사용자",
+    "source_hash": "ee45aa5a"
+  },
+  "web.organizations.audit.actors.anonymous": {
+    "text": "익명",
+    "source_hash": "e7a8aa2d"
+  },
+  "web.organizations.audit.actors.system": {
+    "text": "시스템",
+    "source_hash": "6725e7bb"
+  },
+  "web.organizations.audit.actors.unknown": {
+    "text": "알 수 없음",
+    "source_hash": "b764cdc0"
+  },
+  "web.organizations.audit.columns.event": {
+    "text": "이벤트",
+    "source_hash": "4e1f49a9"
+  },
+  "web.organizations.audit.columns.secret": {
+    "text": "비밀 메시지",
+    "source_hash": "7e32a729"
+  },
+  "web.organizations.audit.columns.actor": {
+    "text": "사용자",
+    "source_hash": "449995c4"
+  },
+  "web.organizations.audit.columns.country": {
+    "text": "국가",
+    "source_hash": "701d021d"
+  },
+  "web.organizations.audit.columns.when": {
+    "text": "시간",
+    "source_hash": "cf9c7aa2"
+  },
+  "web.organizations.audit.kinds.created": {
+    "text": "비밀 메시지 생성됨",
+    "source_hash": "e4a1e1fd"
+  },
+  "web.organizations.audit.kinds.status_get": {
+    "text": "링크 상태 확인됨",
+    "source_hash": "0753f60e"
+  },
+  "web.organizations.audit.kinds.secret_get": {
+    "text": "비밀 메시지 링크 열림",
+    "source_hash": "e271e060"
+  },
+  "web.organizations.audit.kinds.previewed": {
+    "text": "생성자가 미리보기함",
+    "source_hash": "639fc1e2"
+  },
+  "web.organizations.audit.kinds.creator_status_get": {
+    "text": "생성자가 상태 확인함",
+    "source_hash": "7e4b5de5"
+  },
+  "web.organizations.audit.kinds.receipt_viewed": {
+    "text": "수신 확인 조회됨",
+    "source_hash": "a417ead4"
+  },
+  "web.organizations.audit.kinds.revealed": {
+    "text": "비밀 메시지 공개됨",
+    "source_hash": "aff2c84d"
+  },
+  "web.organizations.audit.kinds.burned": {
+    "text": "비밀 메시지 소각됨",
+    "source_hash": "5ac68dc6"
+  },
+  "web.organizations.audit.kinds.expired": {
+    "text": "비밀 메시지 만료됨",
+    "source_hash": "c127dab6"
+  },
+  "web.organizations.audit.kinds.orphaned": {
+    "text": "비밀 메시지 고아됨",
+    "source_hash": "23fe1a47"
+  },
+  "web.organizations.audit.kinds.reveal_failed_undecryptable": {
+    "text": "공개 실패 (복호화 불가)",
+    "source_hash": "d5616abf"
+  },
+  "web.organizations.tabs.activity": {
+    "text": "활동",
+    "source_hash": "38da1505"
+  },
+  "web.organizations.invitations.restricted_host_title": {
+    "text": "여기서는 다른 로그인 방법이 필요합니다",
+    "source_hash": "d761ad30"
+  },
+  "web.organizations.invitations.restricted_host_body": {
+    "text": "이 사이트에서는 {method}(으)로만 로그인할 수 있으므로 비밀번호로는 여기서 계정을 만들 수 없습니다. {method}은(는) 이 페이지에서 완료할 수 있는 방법이 아닙니다.",
+    "source_hash": "6ac146d4"
+  },
+  "web.organizations.invitations.restricted_host_unknown_body": {
+    "text": "이 사이트는 특정 로그인 방법 하나만 허용하며, 그 방법은 이 페이지에서 제공할 수 없습니다. 비밀번호로는 여기서 계정을 만들 수 없습니다.",
+    "source_hash": "e24d59a9"
+  },
+  "web.organizations.invitations.restricted_sso_body": {
+    "text": "이 사이트는 Single Sign-On을 사용합니다. 계속하려면 조직의 공급자로 로그인하세요 — 그러면 계정이 생성되고 로그인됩니다.",
+    "source_hash": "e942d04b"
+  },
+  "web.organizations.invitations.restricted_sso_cta": {
+    "text": "로그인 계속하기",
+    "source_hash": "d398cd0a"
+  },
+  "web.organizations.invitations.restricted_use_email_link": {
+    "text": "대신 초대 이메일의 링크를 열어 기본 사이트에서 수락하세요.",
+    "source_hash": "73bf298f"
+  },
+  "web.organizations.invitations.invitation_stays_pending": {
+    "text": "초대는 여전히 유효합니다 — 사용된 것은 없으며, 로그인한 후에 수락하실 수 있습니다.",
+    "source_hash": "f4d00be1"
+  },
+  "web.organizations.invitations.signin_unavailable_title": {
+    "text": "이 사이트에서는 로그인을 사용할 수 없습니다",
+    "source_hash": "c56bce2b"
+  },
+  "web.organizations.invitations.signin_unavailable_body": {
+    "text": "이 사이트는 여기서 작동하지 않는 {method}(으)로 제한되어 있어 현재 로그인할 방법이 없습니다.",
+    "source_hash": "62c01601"
+  },
+  "web.organizations.invitations.signin_unavailable_unknown_body": {
+    "text": "이 사이트는 여기서 작동하지 않는 로그인 방법으로 제한되어 있어 현재 로그인할 방법이 없습니다.",
+    "source_hash": "1f61e456"
+  },
+  "web.organizations.invitations.signin_unavailable_conflict_body": {
+    "text": "이 사이트의 로그인 설정이 사이트 전체 제한({method})과 충돌하여 어느 쪽도 적용되지 않으며, 현재 로그인할 방법이 없습니다.",
+    "source_hash": "54cdfd61"
+  },
+  "web.organizations.delete_organization_cancel_subscription_first": {
+    "text": "이 조직을 삭제하기 전에 조직의 구독을 취소하세요.",
+    "source_hash": "f0c54eca"
+  },
+  "web.organizations.sso.idp_sso_service_url": {
+    "text": "IdP SSO 서비스 URL",
+    "source_hash": "0b33b1ac"
+  },
+  "web.organizations.sso.idp_sso_service_url_hint": {
+    "text": "ID 공급자가 SAML Single Sign-On용으로 게시하는 HTTPS 엔드포인트",
+    "source_hash": "bc6fdfd9"
+  },
+  "web.organizations.sso.idp_sso_service_url_placeholder": {
+    "text": "https://idp.example.com/sso/saml",
+    "source_hash": "513d0586"
+  },
+  "web.organizations.sso.idp_entity_id": {
+    "text": "IdP Entity ID",
+    "source_hash": "14a4ab8b"
+  },
+  "web.organizations.sso.idp_entity_id_hint": {
+    "text": "ID 공급자의 메타데이터에 게시된 그대로의 발급자 식별자",
+    "source_hash": "c3d8320b"
+  },
+  "web.organizations.sso.idp_entity_id_placeholder": {
+    "text": "https://idp.example.com/metadata",
+    "source_hash": "0c46d14d"
+  },
+  "web.organizations.sso.idp_cert": {
+    "text": "IdP 서명 인증서",
+    "source_hash": "c84000cd"
+  },
+  "web.organizations.sso.idp_cert_hint": {
+    "text": "ID 공급자가 어설션 서명에 사용하는 X.509 인증서(PEM)입니다. 인증서는 하나만 입력할 수 있으며, 지문(fingerprint)은 허용되지 않습니다.",
+    "source_hash": "b5e157f5"
+  },
+  "web.organizations.sso.idp_cert_placeholder": {
+    "text": "-----BEGIN CERTIFICATE-----",
+    "source_hash": "ddddb6cb"
+  },
+  "web.organizations.sso.sp_details": {
+    "text": "서비스 공급자 정보",
+    "source_hash": "4b6617d2"
+  },
+  "web.organizations.sso.sp_details_hint": {
+    "text": "이 값을 ID 공급자에 등록하세요",
+    "source_hash": "784e9410"
+  },
+  "web.organizations.sso.sp_details_preview_hint": {
+    "text": "기본 로그인 경로를 기준으로 한 미리보기입니다. 이 구성을 저장한 다음, ID 공급자에 등록하기 전에 여기에서 이 값을 확인하세요.",
+    "source_hash": "fd9d3001"
+  },
+  "web.organizations.sso.domain_unverified_notice": {
+    "text": "도메인이 확인될 때까지 이 도메인에서는 Single Sign-On이 꺼져 있습니다. 확인을 거쳐도 아래 값은 변경되지 않습니다.",
+    "source_hash": "4b56ea4b"
+  },
+  "web.organizations.sso.sp_entity_id": {
+    "text": "SP Entity ID (메타데이터 URL)",
+    "source_hash": "59bc544c"
+  },
+  "web.organizations.sso.acs_url": {
+    "text": "Assertion Consumer Service URL",
+    "source_hash": "5dacfb65"
+  },
+  "web.organizations.sso.unreadable_field": {
+    "text": "저장된 값을 읽을 수 없습니다. 계속하려면 다시 입력하세요.",
+    "source_hash": "ca3b5fcc"
+  },
+  "web.organizations.sso.unreadable_fields_alert": {
+    "text": "일부 저장된 값을 읽을 수 없어 다시 입력해야 합니다: {fields}",
+    "source_hash": "e9fa9d16"
+  },
+  "web.organizations.sso.idp_cert_expired_alert": {
+    "text": "ID 공급자 인증서가 {date}에 만료되었습니다. 유효한 인증서를 저장할 때까지 이 연결을 통한 로그인은 실패합니다.",
+    "source_hash": "527fb721"
+  },
+  "web.organizations.sso.idp_cert_expiring_notice": {
+    "text": "ID 공급자 인증서가 {date}에 만료됩니다. 로그인이 계속 작동하도록 그 전에 인증서를 교체하세요.",
+    "source_hash": "ccaf6ca7"
+  },
+  "web.organizations.sso.test_connection_hint_saml": {
+    "text": "SSO URL, Entity ID 및 인증서를 로컬에서 확인합니다 (ID 공급자에 연결하지 않음)",
+    "source_hash": "1dad3945"
+  },
+  "web.organizations.sso.configured_issuer": {
+    "text": "구성된 발급자",
+    "source_hash": "6b307b7f"
+  },
+  "web.organizations.sso.discovery_issuer": {
+    "text": "검색된 발급자",
+    "source_hash": "9d74f978"
+  },
+  "web.organizations.sso.issuer_mismatch_hint": {
+    "text": "OIDC 발급자 식별자는 후행 슬래시를 포함하여 정확히 일치해야 합니다. 발급자 URL을 위에 표시된 검색된 값으로 설정하세요.",
+    "source_hash": "ec144c88"
+  },
+  "web.organizations.sso.certificate_subject": {
+    "text": "인증서 주체",
+    "source_hash": "d7816b16"
+  },
+  "web.organizations.sso.certificate_expires": {
+    "text": "인증서 만료일",
+    "source_hash": "1e73119d"
+  },
+  "web.organizations.sso.certificate_expires_in_days": {
+    "text": "{n}일 후 | {n}일 후",
+    "source_hash": "df98ca65"
+  },
+  "web.organizations.sso.certificate_valid_from": {
+    "text": "인증서 유효 시작일",
+    "source_hash": "b13d3f30"
+  },
+  "web.organizations.sso.client_secret_looks_like_secret_id": {
+    "text": "입력한 내용이 '비밀 ID'인 것 같습니다. Entra에는 시크릿의 '값'이 필요하며, 이 값은 시크릿을 만들 때 한 번만 표시됩니다.",
+    "source_hash": "168681cf"
+  },
+  "web.organizations.sso.diagnostics_title": {
+    "text": "저장된 설정 확인",
+    "source_hash": "5c68357a"
+  },
+  "web.organizations.sso.diagnostics_hint": {
+    "text": "이 도메인에 저장된 내용을 확인하고 (Microsoft Entra ID의 경우 저장된 클라이언트 시크릿 포함) 각 계층의 결과를 개별적으로 보고합니다. 전체 로그인 과정을 테스트하지는 않습니다.",
+    "source_hash": "42505faa"
+  },
+  "web.organizations.sso.last_sign_in_none": {
+    "text": "이 도메인을 통한 로그인이 아직 기록되지 않았습니다.",
+    "source_hash": "7f9d0f23"
+  },
+  "web.organizations.sso.last_sign_in_succeeded": {
+    "text": "이 도메인을 통한 마지막 로그인은 {when}에 완료되었습니다.",
+    "source_hash": "9a125080"
+  },
+  "web.organizations.sso.last_sign_in_failed": {
+    "text": "이 도메인을 통한 마지막 로그인은 {when}에 {stage} 실패했습니다 ({code}).",
+    "source_hash": "be81f392"
+  },
+  "web.organizations.sso.last_sign_in_last_success": {
+    "text": "마지막으로 완료된 로그인은 {when}에 있었습니다.",
+    "source_hash": "34e63e57"
+  },
+  "web.organizations.sso.last_sign_in_stage_setup": {
+    "text": "ID 공급자에 연결하기 전에",
+    "source_hash": "5a1b6839"
+  },
+  "web.organizations.sso.last_sign_in_stage_provider": {
+    "text": "ID 공급자에서",
+    "source_hash": "40394567"
+  },
+  "web.organizations.sso.last_sign_in_stage_callback": {
+    "text": "ID 공급자가 사용자를 돌려보낸 시점에",
+    "source_hash": "2ab78fc4"
+  },
+  "web.organizations.sso.last_sign_in_stage_account": {
+    "text": "사용자를 계정과 대조하는 중에",
+    "source_hash": "1ebbb776"
+  },
+  "web.organizations.sso.diagnostics_button": {
+    "text": "저장된 설정 확인",
+    "source_hash": "5c68357a"
+  },
+  "web.organizations.sso.diagnostics_running": {
+    "text": "확인 중...",
+    "source_hash": "2e5f79bb"
+  },
+  "web.organizations.sso.diagnostics_checked_at": {
+    "text": "확인 시각",
+    "source_hash": "0efd92a3"
+  },
+  "web.organizations.sso.diagnostics_check_stored_configuration": {
+    "text": "저장된 설정",
+    "source_hash": "a988b06a"
+  },
+  "web.organizations.sso.diagnostics_check_discovery": {
+    "text": "ID 공급자 검색",
+    "source_hash": "b5f90082"
+  },
+  "web.organizations.sso.diagnostics_check_certificate": {
+    "text": "서명 인증서",
+    "source_hash": "cc00e050"
+  },
+  "web.organizations.sso.diagnostics_check_credential": {
+    "text": "클라이언트 시크릿",
+    "source_hash": "4aded5fa"
+  },
+  "web.organizations.sso.diagnostics_status_passed": {
+    "text": "통과",
+    "source_hash": "436fe71b"
+  },
+  "web.organizations.sso.diagnostics_status_failed": {
+    "text": "실패",
+    "source_hash": "031a8f0f"
+  },
+  "web.organizations.sso.diagnostics_status_inconclusive": {
+    "text": "판정 불가",
+    "source_hash": "9141583b"
+  },
+  "web.organizations.sso.diagnostics_status_unsupported": {
+    "text": "사용할 수 없음",
+    "source_hash": "67a926f7"
+  },
+  "web.organizations.sso.diagnostics_status_skipped": {
+    "text": "건너뜀",
+    "source_hash": "12698ce1"
+  },
+  "web.organizations.sso.diagnostics_aadsts_code": {
+    "text": "Microsoft 오류 코드",
+    "source_hash": "dc8f7060"
+  },
+  "web.organizations.sso.diagnostics_errors": {
+    "text": "문제",
+    "source_hash": "a7b182f8"
+  }
+}

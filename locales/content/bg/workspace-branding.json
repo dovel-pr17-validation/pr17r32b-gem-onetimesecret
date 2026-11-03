@@ -1,0 +1,462 @@
+{
+  "web.branding.color_picker": {
+    "text": "Избор на цвят",
+    "source_hash": "ba42602c"
+  },
+  "web.branding.current_label_modelvalue_click_to_cycle_through_options": {
+    "text": "Текущ {0}: {1}. Кликнете, за да преминете през опциите.",
+    "source_hash": "84bf49e6"
+  },
+  "web.branding.use_setting": {
+    "text": "Използвай настройка",
+    "source_hash": "8a18d118"
+  },
+  "web.branding.font_family": {
+    "text": "Шрифт",
+    "source_hash": "f81339da"
+  },
+  "web.branding.corner_style": {
+    "text": "Стил на ъглите",
+    "source_hash": "fcb3ecdf"
+  },
+  "web.branding.brand_color": {
+    "text": "Цвят на марката",
+    "source_hash": "db3183e3"
+  },
+  "web.branding.preview_of_the_secret_link_page_for_recipients": {
+    "text": "Преглед на изгледа на получателя при достъп до вашата сигурна връзка",
+    "source_hash": "199c165f"
+  },
+  "web.branding.preview_and_customize": {
+    "text": "Персонализиране и преглед",
+    "source_hash": "fc68a28c"
+  },
+  "web.branding.switch_to_safari_browser_view": {
+    "text": "Превключи към изглед на Safari браузър",
+    "source_hash": "6e0fe791"
+  },
+  "web.branding.microsoft_edge": {
+    "text": "Microsoft Edge",
+    "source_hash": "951e7f89"
+  },
+  "web.branding.maximize_window": {
+    "text": "Максимизирай прозореца",
+    "source_hash": "45d23969"
+  },
+  "web.branding.minimize_window": {
+    "text": "Минимизирай прозореца",
+    "source_hash": "5cd54386"
+  },
+  "web.branding.switch_to_edge_browser_view": {
+    "text": "Превключи към изглед на Edge браузър",
+    "source_hash": "a8fcd82d"
+  },
+  "web.branding.charactercount_500_characters": {
+    "text": "{0}/500 символа",
+    "source_hash": "e36598ef"
+  },
+  "web.branding.example_pre_reveal_instructions": {
+    "text": "напр. Използвайте телефона си, за да сканирате QR кода",
+    "source_hash": "9cf0caf8"
+  },
+  "web.branding.example_post_reveal_instructions": {
+    "text": "напр. Свържете се с onboarding{'@'}example.com при въпроси",
+    "source_hash": "71749811"
+  },
+  "web.branding.these_instructions_will_be_shown_to_recipients_before": {
+    "text": "Тези инструкции ще бъдат показани на получателите, преди да разкрият тайното съдържание",
+    "source_hash": "9d5a6334"
+  },
+  "web.branding.these_instructions_will_be_shown_to_recipients_after": {
+    "text": "Тези инструкции ще бъдат показани на получателите, след като разкрият тайната",
+    "source_hash": "9f82bd94"
+  },
+  "web.branding.pre_reveal_instructions": {
+    "text": "Инструкции преди разкриване",
+    "source_hash": "a299422e"
+  },
+  "web.branding.post_reveal_instructions": {
+    "text": "Инструкции след разкриване",
+    "source_hash": "72ecc23a"
+  },
+  "web.branding.instructions": {
+    "text": "Инструкции",
+    "source_hash": "934652dc"
+  },
+  "web.branding.logo_controls": {
+    "text": "Контроли за лого",
+    "source_hash": "43e9a2d7"
+  },
+  "web.branding.click_to_upload_a_logo_with_recommendation": {
+    "text": "Щракнете, за да управлявате логото си. Препоръчителен размер: 128x128 пиксела. Максимален размер на файла: 1MB. Поддържани формати: PNG, JPG, SVG",
+    "source_hash": "7bb92395"
+  },
+  "web.branding.upload_logo": {
+    "text": "Качи лого",
+    "source_hash": "c3330082"
+  },
+  "web.branding.loading_preview": {
+    "text": "Зареждане на преглед...",
+    "source_hash": "c02130fa"
+  },
+  "web.branding.preview_how_recipients_will_see_your_secrets": {
+    "text": "Прегледайте как получателите ще виждат вашите тайни, като тествате бутона \"Преглед на тайната\"",
+    "source_hash": "3b58a297"
+  },
+  "web.branding.eye_icon": {
+    "text": "Икона око",
+    "source_hash": "7f605d3c"
+  },
+  "web.branding.click_the_preview_image_below_to_update_your_logo": {
+    "text": "Кликнете върху изображението за преглед по-долу, за да актуализирате логото си (препоръчителен минимален размер 128x128 пиксела, макс. 1MB)",
+    "source_hash": "77a19049"
+  },
+  "web.branding.image_icon": {
+    "text": "Икона изображение",
+    "source_hash": "b0d64fcf"
+  },
+  "web.branding.use_the_controls_above_to_customize_brand_details": {
+    "text": "Използвайте контролите по-горе, за да персонализирате цвета на марката, стиловете и инструкциите за получателя",
+    "source_hash": "d6287134"
+  },
+  "web.branding.customization_icon": {
+    "text": "Икона за персонализиране",
+    "source_hash": "bde04d31"
+  },
+  "web.branding.you_have_unsaved_changes_are_you_sure": {
+    "text": "Имате незапазени промени. Сигурни ли сте?",
+    "source_hash": "184b6a83"
+  },
+  "web.branding.failed_to_load_brand_settings": {
+    "text": "Неуспешно зареждане на настройките за марката",
+    "source_hash": "a7a1575e"
+  },
+  "web.branding.this_is_an_interactive_preview_o": {
+    "text": "Това е интерактивен преглед на това как получателите ще видят защитените ви съобщения. Можете да: - Персонализирате цветове и шрифтове с контролите по-горе - Качите лого (препоръчват се минимум 128x128 пиксела, максимум 1MB) - Тествате прегледа с бутона \"Виж тайната\"",
+    "source_hash": "3d8b2c0d"
+  },
+  "web.branding.this_is_an_interactive_preview_of_how_recipients": {
+    "text": "Това е интерактивен преглед на това как получателите ще виждат вашите сигурни съобщения. Можете да: - Персонализирате цветове и шрифтове, използвайки контролите по-горе - Качите лого (препоръчителен минимален размер 128x128 пиксела, макс. 1MB) - Тествате прегледа, използвайки бутона \"Преглед на тайната\"",
+    "source_hash": "3d8b2c0d"
+  },
+  "web.branding.default_logo_icon": {
+    "text": "Японски йероглиф '秘' (himitsu), означаващ 'тайна' или 'поверително'",
+    "source_hash": "1e04ba2e"
+  },
+  "web.branding.powered_by_onetime_secret": {
+    "text": "Предоставено от {product_name}",
+    "source_hash": "1f393117"
+  },
+  "web.branding.low_contrast_warning": {
+    "text": "Нисък контраст",
+    "source_hash": "2d6e7516"
+  },
+  "web.branding.contrast_ratio_label": {
+    "text": "Съотношение на контраста",
+    "source_hash": "d521a5be"
+  },
+  "web.branding.heading_logo": {
+    "text": "{0} Лого",
+    "source_hash": "3a3c98ed"
+  },
+  "web.branding.edge": {
+    "text": "Edge",
+    "source_hash": "0f82fe72"
+  },
+  "web.branding.switch_to_edge_preview": {
+    "text": "Превключи към Edge преглед",
+    "source_hash": "83883d84"
+  },
+  "web.branding.safari": {
+    "text": "Safari",
+    "source_hash": "5f033039"
+  },
+  "web.branding.switch_to_safari_preview": {
+    "text": "Превключи към Safari преглед",
+    "source_hash": "f24ac447"
+  },
+  "web.branding.upgrade_to_customize": {
+    "text": "Надградете плана си, за да персонализирате брандирането за този домейн.",
+    "source_hash": "9077bf79"
+  },
+  "web.branding.saved_successfully": {
+    "text": "Настройките за марката са запазени успешно",
+    "source_hash": "9960c252"
+  },
+  "web.branding.keyhole_logo_icon": {
+    "text": "Икона на ключалка, символизираща сигурно, поверително споделяне",
+    "source_hash": "c868ac60"
+  },
+  "web.branding.secondary_color": {
+    "text": "Вторичен цвят",
+    "source_hash": "1f4728f6"
+  },
+  "web.branding.background_color": {
+    "text": "Цвят на фона",
+    "source_hash": "b48bc969"
+  },
+  "web.branding.text_color": {
+    "text": "Цвят на текста",
+    "source_hash": "2ea23234"
+  },
+  "web.branding.border_radius": {
+    "text": "Радиус на ъглите",
+    "source_hash": "e758d7db"
+  },
+  "web.branding.heading_font": {
+    "text": "Шрифт на заглавията",
+    "source_hash": "6b5d30dc"
+  },
+  "web.branding.theme_presets": {
+    "text": "Готови теми",
+    "source_hash": "931eeb74"
+  },
+  "web.branding.logo": {
+    "text": "Лого",
+    "source_hash": "d707dc2f"
+  },
+  "web.branding.replace_logo": {
+    "text": "Замяна",
+    "source_hash": "95e15439"
+  },
+  "web.branding.logo_field_hint": {
+    "text": "Прегледайте, преди промените ви да влязат в сила.",
+    "source_hash": "e9e222fc"
+  },
+  "web.branding.logo_modal_title": {
+    "text": "Лого на домейна",
+    "source_hash": "5260dda5"
+  },
+  "web.branding.logo_modal_hint": {
+    "text": "PNG, JPG или SVG. Препоръчително 128x128px, до 1MB.",
+    "source_hash": "75d00802"
+  },
+  "web.branding.logo_modal_save": {
+    "text": "Запазване на логото",
+    "source_hash": "8b028a6f"
+  },
+  "web.branding.remove_logo": {
+    "text": "Премахване на логото",
+    "source_hash": "f1c1afa4"
+  },
+  "web.branding.image_upload_choose": {
+    "text": "Изберете изображение",
+    "source_hash": "ceed9fd5"
+  },
+  "web.branding.image_upload_drag_hint": {
+    "text": "или плъзнете и пуснете",
+    "source_hash": "6613b73c"
+  },
+  "web.branding.image_invalid_type": {
+    "text": "Този тип файл не се поддържа. Моля, изберете изображение.",
+    "source_hash": "50e18866"
+  },
+  "web.branding.image_too_large": {
+    "text": "Изображението е твърде голямо. Максималният размер е {max}.",
+    "source_hash": "b50b55e2"
+  },
+  "web.branding.image_will_be_removed": {
+    "text": "Това лого ще бъде премахнато, когато запазите.",
+    "source_hash": "d94fa99a"
+  },
+  "web.branding.image_upload_failed": {
+    "text": "Нещо се обърка. Моля, опитайте отново.",
+    "source_hash": "3ccd9d65"
+  },
+  "web.branding.undo": {
+    "text": "Отмяна",
+    "source_hash": "a8283ade"
+  },
+  "web.branding.low_contrast_text_bg_warning": {
+    "text": "Нисък контраст текст/фон",
+    "source_hash": "1c676370"
+  },
+  "web.branding.path_simple": {
+    "text": "Опростен",
+    "source_hash": "3fee95da"
+  },
+  "web.branding.path_match": {
+    "text": "Съответствие на моя сайт",
+    "source_hash": "776679cf"
+  },
+  "web.branding.path_advanced": {
+    "text": "Разширен",
+    "source_hash": "9f088dbe"
+  },
+  "web.branding.path_simple_tag": {
+    "text": "Основите на вашата марка.",
+    "source_hash": "7c9c0cca"
+  },
+  "web.branding.path_match_tag": {
+    "text": "Копирайте настройки от съществуващ сайт.",
+    "source_hash": "e4b0d1cd"
+  },
+  "web.branding.path_advanced_tag": {
+    "text": "Създайте свой собствен Tailwind v4 CSS.",
+    "source_hash": "2405bb6d"
+  },
+  "web.branding.badge_default": {
+    "text": "По подразбиране",
+    "source_hash": "21b111cb"
+  },
+  "web.branding.badge_coming_soon": {
+    "text": "Очаквайте скоро",
+    "source_hash": "4f7d6401"
+  },
+  "web.branding.your_brand": {
+    "text": "Вашата марка",
+    "source_hash": "406265d3"
+  },
+  "web.branding.your_brand_subtitle": {
+    "text": "Няколко бързи избора — ние поемаме останалото.",
+    "source_hash": "dbc8ec33"
+  },
+  "web.branding.corners": {
+    "text": "Ъгли",
+    "source_hash": "1d3cc47e"
+  },
+  "web.branding.more_options": {
+    "text": "Още опции",
+    "source_hash": "bc79cdff"
+  },
+  "web.branding.paths_carryover_hint": {
+    "text": "Това е преглед на живо — вашите промени няма да бъдат видими за посетителите, докато не щракнете Актуализиране.",
+    "source_hash": "9a34df71"
+  },
+  "web.branding.coming_soon_match_blurb": {
+    "text": "Насочете ни към уебсайта си и ние ще прочетем неговите цветове и шрифтове, след което ще запълним разликата с едно щракване.",
+    "source_hash": "42c34cc1"
+  },
+  "web.branding.coming_soon_advanced_blurb": {
+    "text": "Редактирайте директно токените на Tailwind v4 {'@'}theme или поставете свой собствен стилов лист.",
+    "source_hash": "5a8473f5"
+  },
+  "web.branding.preview_recipient_page": {
+    "text": "Страница на получателя",
+    "source_hash": "de8aa19f"
+  },
+  "web.branding.preview_badge": {
+    "text": "Преглед",
+    "source_hash": "324b134f"
+  },
+  "web.branding.preview_homepage_enabled": {
+    "text": "Начална страница · активирана",
+    "source_hash": "2edd85f1"
+  },
+  "web.branding.preview_homepage_disabled": {
+    "text": "Начална страница · деактивирана",
+    "source_hash": "15d87050"
+  },
+  "web.branding.preview_live": {
+    "text": "Преглед на живо",
+    "source_hash": "f65ddc1f"
+  },
+  "web.branding.tile_share_secret": {
+    "text": "Споделете тайна",
+    "source_hash": "5384461b"
+  },
+  "web.branding.tile_create_link": {
+    "text": "Създаване на тайна връзка",
+    "source_hash": "610fd42e"
+  },
+  "web.branding.tile_delivery_only": {
+    "text": "Само доставка на защитени съобщения",
+    "source_hash": "dc24dec2"
+  },
+  "web.branding.tile_no_create": {
+    "text": "Посетителите не могат да създават тайни тук.",
+    "source_hash": "17361d81"
+  },
+  "web.branding.recipient_page_content": {
+    "text": "Съдържание на страницата на получателя",
+    "source_hash": "937733bd"
+  },
+  "web.branding.recipient_page_content_hint": {
+    "text": "Език и инструкции за разкриване, показвани на получателите на този домейн.",
+    "source_hash": "04162b70"
+  },
+  "web.branding.tab_brand": {
+    "text": "Марка",
+    "source_hash": "090ed431"
+  },
+  "web.branding.tab_delivery": {
+    "text": "Доставка",
+    "source_hash": "52bfe584"
+  },
+  "web.branding.delivery_language": {
+    "text": "Език",
+    "source_hash": "a4fe6526"
+  },
+  "web.branding.delivery_language_hint": {
+    "text": "По подразбиране за страниците на получателите и имейлите на този домейн. Получателите могат да сменят езика на страницата.",
+    "source_hash": "bfbc5599"
+  },
+  "web.branding.delivery_reveal_instructions": {
+    "text": "Инструкции за разкриване",
+    "source_hash": "7e1331f7"
+  },
+  "web.branding.delivery_reveal_instructions_hint": {
+    "text": "Показва се на страницата на получателя. Оставете празно, за да използвате вградения текст на избрания език.",
+    "source_hash": "51b9811d"
+  },
+  "web.branding.delivery_before_reveal": {
+    "text": "Преди разкриване",
+    "source_hash": "5ce82b01"
+  },
+  "web.branding.delivery_after_reveal": {
+    "text": "След разкриване",
+    "source_hash": "d5bfe7fd"
+  },
+  "web.branding.favicon": {
+    "text": "Икона",
+    "source_hash": "42955289"
+  },
+  "web.branding.refresh_favicon": {
+    "text": "Опресняване на икона от домейна",
+    "source_hash": "7cc3d5dc"
+  },
+  "web.branding.refresh_favicon_hint": {
+    "text": "Извличане на иконата от вашия домейн отново. Новата икона ще се появи скоро.",
+    "source_hash": "ee007e44"
+  },
+  "web.branding.refresh_favicon_queued": {
+    "text": "Опресняване на иконата — новата икона ще се появи скоро.",
+    "source_hash": "6bf38e6e"
+  },
+  "web.branding.refresh_favicon_user_upload_hint": {
+    "text": "Качили сте персонализирана икона, така че извлечена икона няма да я замени.",
+    "source_hash": "c22e1ed6"
+  },
+  "web.branding.upload_favicon": {
+    "text": "Качване на икона",
+    "source_hash": "ceda39cb"
+  },
+  "web.branding.replace_favicon": {
+    "text": "Замяна",
+    "source_hash": "95e15439"
+  },
+  "web.branding.remove_favicon": {
+    "text": "Премахване на икона",
+    "source_hash": "03693698"
+  },
+  "web.branding.favicon_field_hint": {
+    "text": "ICO, PNG или SVG. Качването замества извлечената икона.",
+    "source_hash": "dfa0bfcb"
+  },
+  "web.branding.favicon_preview_alt": {
+    "text": "Икона на домейн",
+    "source_hash": "db7dca40"
+  },
+  "web.branding.favicon_modal_title": {
+    "text": "Икона на домейн",
+    "source_hash": "db7dca40"
+  },
+  "web.branding.favicon_modal_hint": {
+    "text": "ICO, PNG или SVG. До 256KB. Замества автоматично извлечената икона.",
+    "source_hash": "c9eafc83"
+  },
+  "web.branding.favicon_modal_save": {
+    "text": "Запазване на икона",
+    "source_hash": "c8a1566c"
+  }
+}

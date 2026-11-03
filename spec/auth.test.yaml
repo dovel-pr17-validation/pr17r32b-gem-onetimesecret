@@ -1,0 +1,62 @@
+# spec/auth.test.yaml
+#
+# Authentication Configuration for OneTimeSecret - TEST ENVIRONMENT
+# Controls the authentication mode and related settings
+---
+# Authentication mode: 'simple' (Redis-only) or 'full' (requires SQL db)
+# Defaults to 'simple' unless AUTHENTICATION_MODE env var is set
+mode: <%= ENV.fetch('AUTHENTICATION_MODE', 'simple') %>
+
+# Simple mode settings (Redis-only authentication)
+simple:
+  password_hash_cost: 12
+  session_timeout: 86400 # 24 hours
+
+# Full mode settings (Rodauth-based application)
+full:
+  # Database connection for Full mode
+  # Uses in-memory SQLite for tests to avoid file persistence issues
+  # An exported-but-empty AUTH_DATABASE_URL is truthy in Ruby; treat it as
+  # unset so a lane/direnv that blanks the var still gets in-memory SQLite
+  # instead of a schemeless URL reaching Sequel.connect.
+  database_url: "<%= ENV['AUTH_DATABASE_URL'].to_s.strip.empty? ? 'sqlite::memory:' : ENV['AUTH_DATABASE_URL'] %>"
+  database_url_migrations: <%= ENV['AUTH_DATABASE_URL_MIGRATIONS'].to_s.strip.empty? ? nil : ENV['AUTH_DATABASE_URL_MIGRATIONS'] %>
+
+  # Explicitly nil to prevent defaults layer from injecting ARGON2_SECRET
+  # pepper into test hashes. Direct Argon2 verification in tests (e.g.
+  # password_migration_spec) does not supply a pepper, so hashing must
+  # also omit it.
+  argon2_secret:
+
+  # Optional Rodauth features (matches auth.defaults.yaml format)
+  # For tests, lockout/password_requirements/sessions enabled by default; others disabled
+  features:
+    lockout: true
+    password_requirements: true
+    active_sessions: true
+    remember_me: true
+    # Env-driven, default false, like email_auth below: only the full-mfa
+    # lane exports it, so every other lane signs up already-verified accounts.
+    verify_account: <%= ENV['AUTH_VERIFY_ACCOUNT_ENABLED'] == 'true' %>
+    mfa: false
+    # Env-driven, default false: only the full-mfa lane exports it
+    # (tests/lanes/full-mfa/env), so magic links stay off everywhere else.
+    email_auth: <%= ENV['AUTH_EMAIL_AUTH_ENABLED'] == 'true' %>
+    webauthn: false
+    sso: <%= ENV['AUTH_SSO_ENABLED'] == 'true' %>
+
+  # Restrict login page to a single auth method.
+  # Values: password, email_auth, webauthn, sso (or blank for all)
+  restrict_to:
+
+  # SSO configuration section
+  sso:
+    sso_display_name: ''
+
+  # Security settings
+  security:
+    password_minimum_length: 8
+    max_invalid_logins: 5
+    lockout_expiration: 3600 # 1 hour
+    session_expire_after: 86400 # 24 hours
+    require_email_confirmation: false # Set to true when email is configured

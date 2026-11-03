@@ -1,0 +1,421 @@
+# apps/web/billing/spec/support/billing_spec_helper.rb
+#
+# frozen_string_literal: true
+
+#
+# Minimal test helpers for billing specs.
+# Timecop time manipulation and retry delay tracking only.
+#
+# Stripe API testing uses VCR to record/replay real API calls.
+# Record cassettes with: STRIPE_API_KEY=sk_test_xxx rake vcr:billing:record
+
+# IMPORTANT: Set test environment BEFORE loading anything
+# These must be set before OT.boot! reads config files
+#
+# PROCESS-WIDE REACH. Every default below is `||=`, so it only fills a gap the
+# caller left — but the gap it fills belongs to the whole rspec process, not to
+# the billing tree. That is invisible while `rake spec:fast` gives each app
+# spec tree its own process and becomes load-bearing the moment the trees share
+# one: whichever tree loads this file first decides the environment for all of
+# them, and the OT.boot! below then bakes the result into a booted app.
+#
+# The lanes and CI both set these explicitly (tests/lanes/base.env pins
+# REDIS_URL and RACK_ENV; tests/lanes/unit/env pins AUTHENTICATION_MODE=simple),
+# so the `||=` is inert there and this file changes nothing. A bare local
+# `bundle exec rake spec:fast` is the divergence: nothing pins the values, so
+# these defaults win and the process runs in full mode against sqlite::memory:.
+ENV['STRIPE_API_KEY'] ||= 'sk_test_mock'
+ENV['REDIS_URL'] ||= 'redis://127.0.0.1:2163/0'
+ENV['RACK_ENV']   ||= 'test'
+
+# Use SQLite for auth database in billing tests
+# Stripe data is stored in Redis, not the auth DB, so we don't need PostgreSQL
+ENV['AUTHENTICATION_MODE'] ||= 'full'
+ENV['AUTH_DATABASE_URL'] ||= 'sqlite::memory:'
+
+require 'spec_helper'
+require 'openssl'
+require 'stripe'
+
+# Load Stripe testing infrastructure (VCR for recording/replaying real API calls)
+require_relative 'vcr_setup'
+
+# Load StripeMockFactory for creating Stripe API mock objects
+require_relative 'stripe_mock_factory'
+
+# Load shared RSpec contexts for billing tests
+Dir[File.join(__dir__, 'shared_contexts', '*.rb')].sort.each { |f| require f }
+
+# Load billing models (includes WebhookSyncFlag needed by webhook handlers)
+require_relative '../../models'
+
+# Load apply_subscription_to_org explicitly. WithOrganizationBilling only
+# requires it at boot time when billing_config.enabled? is true, which
+# depends on the user's local etc/billing.yaml. Tests stub billing as
+# enabled after boot, so the operation must be loaded unconditionally here.
+require_relative '../../operations/apply_subscription_to_org'
+
+# NOTE: Billing config is mocked in before(:each) blocks.
+# Tests should not depend on etc/billing.yaml existing.
+
+# Run full boot process for billing integration tests
+# This initializes Familia, locales, billing config, and sets ready flag
+OT.boot! unless OT.ready?
+
+# Set Stripe.api_key for tests that call Stripe SDK directly
+# STRIPE_API_KEY takes precedence (for real API/VCR recording)
+Stripe.api_key = ENV['STRIPE_API_KEY'] || OT.billing_config.stripe_key
+
+module BillingSpecHelper
+  # Mock billing config for tests
+  # When STRIPE_API_KEY is set (recording mode), use the real key
+  # Otherwise use a mock key for cassette playback
+  def mock_billing_config!
+    allow(OT.billing_config).to receive(:enabled?).and_return(true)
+
+    # Use real API key for recording, mock key for playback
+    stripe_key = ENV['STRIPE_API_KEY'] || 'sk_test_mock'
+    allow(OT.billing_config).to receive(:stripe_key).and_return(stripe_key)
+  end
+
+  # Mock region configuration for plan lookups
+  # Tests need a valid region (e.g., 'EU') to match cached Stripe plans
+  def mock_region!(region = 'EU')
+    # Override the detect_region method on all billing controllers (if loaded)
+    # CLI-only specs don't load controllers, so skip gracefully
+    return unless defined?(Billing::Controllers::Base)
+
+    allow_any_instance_of(Billing::Controllers::Base).to receive(:region).and_return(region)
+  end
+
+  # Mock sleep to prevent delays and track calls
+  def mock_sleep!
+    @sleep_delays = []
+    allow_any_instance_of(Object).to receive(:sleep) do |_, delay|
+      @sleep_delays << delay if delay.is_a?(Numeric)
+    end
+  end
+
+  # Freeze time for time-sensitive tests using Timecop
+  def freeze_time(time = Time.now)
+    Timecop.freeze(time)
+    time
+  end
+
+  # Travel to a specific time
+  def travel_to(time)
+    Timecop.travel(time)
+  end
+
+  # Travel forward in time by a duration
+  def travel(duration)
+    Timecop.travel(duration)
+  end
+
+  # Get tracked sleep delays for retry testing
+  def sleep_delays
+    @sleep_delays || []
+  end
+
+  # Verify retry delays match expected pattern
+  def expect_retry_delays(*expected_delays)
+    expect(sleep_delays).to eq(expected_delays)
+  end
+
+  # Verify exponential backoff pattern
+  def expect_exponential_backoff(base: 2, count: 3)
+    expected = (1..count).map { |i| base * (2**i) }
+    expect(sleep_delays).to eq(expected)
+  end
+
+  # Verify linear backoff pattern
+  def expect_linear_backoff(base: 2, count: 3)
+    expected = (1..count).map { |i| base * i }
+    expect(sleep_delays).to eq(expected)
+  end
+
+  # Stub catalog lookups for test price IDs
+  #
+  # With catalog-first design, Billing::PlanValidator.resolve_plan_id raises
+  # CatalogMissError when price_id isn't in the catalog. This helper stubs
+  # Billing::Plan.find_by_stripe_price_id to return mock plans for common
+  # test price IDs (price_test, price_test_mock, etc).
+  #
+  # Also stubs valid_plan_id? to accept common test plan IDs like
+  # 'identity_plus_v1' used in federation metadata.
+  #
+  # Call this in before(:each) blocks for tests that process subscriptions.
+  #
+  def stub_test_plan_catalog!
+    # Mock entitlements set and limits hash for materialization
+    mock_entitlements = double('entitlements_set')
+    allow(mock_entitlements).to receive(:to_a).and_return(%w[secret:create secret:read secret:burn api:access])
+    allow(mock_entitlements).to receive(:each).and_yield('secret:create').and_yield('secret:read').and_yield('secret:burn').and_yield('api:access')
+
+    mock_limits = double('limits_hash')
+    allow(mock_limits).to receive(:hgetall).and_return({ 'secrets_per_day' => '100', 'ttl_max' => '604800' })
+
+    # Mirror of mock_limits.hgetall in the parsed shape (string -> Integer/Float)
+    mock_limits_hash = { 'secrets_per_day' => 100, 'ttl_max' => 604_800 }
+
+    # Mock prices hash (new schema: prices keyed by interval)
+    mock_prices = double('prices_hash')
+    allow(mock_prices).to receive(:hgetall).and_return({
+      'month' => { 'stripe_price_id' => 'price_test', 'amount' => '1900' }.to_json,
+    })
+
+    # Create a mock plan that responds to plan_id and materialization methods
+    # NOTE: plan_id uses family-keyed format (no interval suffix)
+    # NOTE: stripe_price_id/interval/amount moved to nested prices hash
+    mock_price_data = { 'stripe_price_id' => 'price_test', 'amount' => '1200', 'currency' => 'cad' }
+    mock_prices_hash = { 'month' => mock_price_data, 'year' => mock_price_data }
+
+    mock_plan = instance_double(
+      Billing::Plan,
+      plan_id: 'test_plan_v1',
+      name: 'Test Plan',
+      stripe_product_id: 'prod_test',
+      tier: 'single_team',
+      currency: 'cad',
+      entitlements: mock_entitlements,
+      limits: mock_limits,
+      limits_hash: mock_limits_hash,
+      prices: mock_prices,
+      prices_hash: mock_prices_hash,
+      available_intervals: %w[month year],
+    )
+    allow(mock_plan).to receive(:destroy!).and_return(true)
+    allow(mock_plan).to receive(:exists?).and_return(true)
+    allow(mock_plan).to receive(:price_for) { |interval| mock_prices_hash[interval.to_s] }
+
+    # Mock plan for federation metadata validation
+    # Entitlements/limits mirror billing.test.yaml's identity_plus_v1 so
+    # specs that check named entitlements (e.g., api_access) resolve to true.
+    identity_plus_entitlements_list = %w[
+      create_secrets view_receipt api_access custom_domains
+      extended_default_expiration custom_branding homepage_secrets
+      incoming_secrets custom_mail_sender manage_org
+    ]
+    identity_plus_entitlements = double('identity_plus_entitlements_set')
+    allow(identity_plus_entitlements).to receive(:to_a).and_return(identity_plus_entitlements_list)
+    allow(identity_plus_entitlements).to receive(:member?) { |ent| identity_plus_entitlements_list.include?(ent.to_s) }
+    allow(identity_plus_entitlements).to receive(:include?) { |ent| identity_plus_entitlements_list.include?(ent.to_s) }
+    allow(identity_plus_entitlements).to receive(:each) do |&blk|
+      identity_plus_entitlements_list.each(&blk)
+    end
+
+    identity_plus_limits_hash = {
+      'teams.max' => 0,
+      'organizations.max' => 10,
+      'total_members_per_org.max' => 10,
+      'custom_domains.max' => Float::INFINITY,
+      'secret_lifetime.max' => 2_592_000,
+    }
+    identity_plus_limits = double('identity_plus_limits')
+    allow(identity_plus_limits).to receive(:hgetall).and_return(
+      identity_plus_limits_hash.transform_values { |v| v == Float::INFINITY ? 'unlimited' : v.to_s },
+    )
+
+    identity_plus_plan = instance_double(
+      Billing::Plan,
+      plan_id: 'identity_plus_v1',
+      name: 'Identity Plus',
+      tier: 'single_team',
+      currency: 'cad',
+      entitlements: identity_plus_entitlements,
+      limits: identity_plus_limits,
+      limits_hash: identity_plus_limits_hash,
+      prices: mock_prices,
+      prices_hash: mock_prices_hash,
+      available_intervals: %w[month year],
+    )
+    allow(identity_plus_plan).to receive(:destroy!).and_return(true)
+    allow(identity_plus_plan).to receive(:exists?).and_return(true)
+    allow(identity_plus_plan).to receive(:price_for) { |interval| mock_prices_hash[interval.to_s] }
+
+    # Stub find_by_stripe_price_id to return mock plan for test price IDs
+    allow(Billing::Plan).to receive(:find_by_stripe_price_id).and_call_original
+    allow(Billing::Plan).to receive(:find_by_stripe_price_id)
+      .with('price_test')
+      .and_return(mock_plan)
+    allow(Billing::Plan).to receive(:find_by_stripe_price_id)
+      .with('price_test_mock')
+      .and_return(mock_plan)
+    allow(Billing::Plan).to receive(:find_by_stripe_price_id)
+      .with(satisfy { |id| id&.start_with?('price_test_') })
+      .and_return(mock_plan)
+
+    # Stub Plan.load for plan IDs used in materialization and validation.
+    # These mocks support READS only (for ApplySubscriptionToOrg etc).
+    # Tests that need to WRITE plans (ConfigLoader.load_all_from_config) should
+    # reset this stub via: allow(Billing::Plan).to receive(:load).and_call_original
+    allow(Billing::Plan).to receive(:load).and_call_original
+    allow(Billing::Plan).to receive(:load)
+      .with('test_plan_v1')
+      .and_return(mock_plan)
+    allow(Billing::Plan).to receive(:load)
+      .with('identity_plus_v1')
+      .and_return(identity_plus_plan)
+  end
+
+  # Generate valid Stripe webhook signature
+  #
+  # Uses Stripe's official signature generation algorithm.
+  # This creates a real signature that will pass Stripe.Webhook.construct_event validation.
+  #
+  # @param payload [String] Raw webhook payload
+  # @param secret [String] Webhook signing secret
+  # @param timestamp [Integer] Unix timestamp (defaults to current time)
+  # @return [String] Stripe-Signature header value
+  #
+  def generate_stripe_signature(payload:, secret:, timestamp: nil)
+    timestamp ||= Time.now.to_i
+
+    # Stripe signature format: t={timestamp},v1={signature}
+    # Signature is HMAC-SHA256 of "{timestamp}.{payload}"
+    signed_payload = "#{timestamp}.#{payload}"
+    signature      = OpenSSL::HMAC.hexdigest('SHA256', secret, signed_payload)
+
+    "t=#{timestamp},v1=#{signature}"
+  end
+end
+
+RSpec.configure do |config|
+  # Files these includes and hooks own.
+  #
+  # Every filter below keys on a GENERIC metadata key — type: :billing,
+  # :controller, :cli, :integration, and the bare :billing/:integration symbol
+  # tags. Those keys are not billing's: spec/cli/**/*_spec.rb is type: :cli, and
+  # 17 spec files outside this tree declare type: :integration. That is harmless
+  # while `rake spec:fast` gives each app spec tree its own rspec process, and
+  # wrong the moment the trees share one — the VCR around-hook would wrap other
+  # trees' examples in cassettes, mock_sleep! would stub Object#sleep for them,
+  # and the flushdb hooks would run twice per example. RSpec ANDs filters, so
+  # pairing each generic key with a path filter keeps every hook on the examples
+  # it was written for.
+  #
+  # Filter on :file_path rather than a define_derived_metadata tag: RSpec sets
+  # :file_path on every example from its own source location, so this holds no
+  # matter when this file loads, whereas a derived-metadata rule only reaches
+  # groups defined after the rule is registered — and several app spec files
+  # never require their tree's helper at all.
+  #
+  # The second and third alternatives are deliberately not in this tree.
+  # spec/unit/onetime/jobs/scheduled/plan_cache_refresh_job_spec.rb and
+  # spec/unit/onetime/jobs/scheduled/maintenance/entitlement_materialize_job_spec.rb
+  # require this helper on purpose and are tagged type: :billing; they run in
+  # the unit process, where nothing else here is loaded, and must keep the
+  # billing setup they have today.
+  billing_spec_files = %r{
+    /apps/web/billing/spec/
+    |
+    /spec/unit/onetime/jobs/scheduled/plan_cache_refresh_job_spec\.rb\z
+    |
+    /spec/unit/onetime/jobs/scheduled/maintenance/entitlement_materialize_job_spec\.rb\z
+  }x
+
+  # Include BillingSpecHelper for both `type:` metadata and symbol tags
+  # e.g., `type: :integration` AND `:integration` symbol tag
+  config.include BillingSpecHelper, type: :billing, file_path: billing_spec_files
+  config.include BillingSpecHelper, type: :controller, file_path: billing_spec_files
+  config.include BillingSpecHelper, type: :integration, file_path: billing_spec_files
+  config.include BillingSpecHelper, type: :cli, file_path: billing_spec_files
+  # Symbol tag matching (for RSpec.describe 'Name', :integration do)
+  config.include BillingSpecHelper, billing: true, file_path: billing_spec_files
+  config.include BillingSpecHelper, integration: true, file_path: billing_spec_files
+  config.include BillingSpecHelper, billing_cli: true, file_path: billing_spec_files
+
+  # Include StripeMockFactory for Stripe API mock objects
+  config.include StripeMockFactory, type: :billing, file_path: billing_spec_files
+  config.include StripeMockFactory, type: :controller, file_path: billing_spec_files
+  config.include StripeMockFactory, type: :integration, file_path: billing_spec_files
+  config.include StripeMockFactory, billing: true, file_path: billing_spec_files
+  config.include StripeMockFactory, integration: true, file_path: billing_spec_files
+
+  # Build VCR cassette name from example metadata
+  # Returns hierarchical path: Class/_method/test_description
+  def vcr_cassette_name(example)
+    # e.g., "Billing::StripeClient" -> "Billing_StripeClient"
+    # Falls back to top-level description when described_class is nil
+    # (happens when RSpec.describe uses a string instead of a class)
+    class_name = example.metadata[:described_class]&.to_s ||
+                 example.example_group.top_level_description
+    class_name = class_name&.gsub('::', '_')&.gsub(/\s+/, '_') || 'Unknown'
+
+    # e.g., "#delete" -> "_delete"
+    method_desc = example.metadata[:example_group][:description] rescue nil
+    method_name = method_desc&.gsub(/^#/, '_')&.gsub(/\s+.*/, '') || '_unknown'
+
+    # e.g., "deletes regular resources" -> "deletes_regular_resources"
+    test_desc = example.metadata[:description]
+      .gsub(/[^\w\s\-]/, '')
+      .gsub(/\s+/, '_')
+
+    "#{class_name}/#{method_name}/#{test_desc}"
+  end
+
+  # VCR: Wrap ALL billing tests in cassettes automatically
+  # No need to tag individual tests with :vcr
+  #
+  # stripe_sandbox_api examples replay their committed cassettes like every
+  # other billing example. In CI the record mode is :none and WebMock blocks
+  # the network (vcr_setup.rb), so a missing or stale cassette fails the
+  # example with VCR's unhandled-request error instead of skipping it.
+  %i[billing cli controller integration].each do |test_type|
+    config.around(:each, type: test_type, file_path: billing_spec_files) do |example|
+      VCR.use_cassette(vcr_cassette_name(example)) do
+        example.run
+      end
+    end
+  end
+
+  # Symbol tag :integration also gets VCR wrapping
+  config.around(:each, :integration, file_path: billing_spec_files) do |example|
+    VCR.use_cassette(vcr_cassette_name(example)) do
+      example.run
+    end
+  end
+
+  # Billing tests use REAL Redis on port 2163 (not FakeRedis)
+  # Supports both `type: :billing` and `:billing` symbol tag patterns
+  billing_setup = lambda do |_example|
+    mock_billing_config!
+    mock_sleep!
+    stub_test_plan_catalog!
+    Familia.dbclient.flushdb
+  end
+
+  billing_cleanup = ->(_example = nil) { Familia.dbclient.flushdb }
+
+  config.before(:each, type: :billing, file_path: billing_spec_files, &billing_setup)
+  config.before(:each, :billing, file_path: billing_spec_files, &billing_setup)
+  config.after(:each, type: :billing, file_path: billing_spec_files, &billing_cleanup)
+  config.after(:each, :billing, file_path: billing_spec_files, &billing_cleanup)
+
+  config.before(:each, type: :cli, file_path: billing_spec_files) do
+    mock_billing_config!
+    mock_sleep!
+  end
+
+  config.before(:each, type: :controller, file_path: billing_spec_files) do
+    @sleep_delays = []
+    mock_billing_config!
+  end
+
+  # Integration tests: both `type: :integration` and `:integration` symbol tag
+  # get the same setup. Using a shared proc for consistency.
+  integration_setup = lambda do |_example|
+    @sleep_delays = []
+    mock_billing_config!
+    stub_test_plan_catalog!
+    Familia.dbclient.flushdb
+  end
+
+  config.before(:each, type: :integration, file_path: billing_spec_files, &integration_setup)
+  config.before(:each, :integration, file_path: billing_spec_files, &integration_setup)
+
+  # Cleanup for both integration tag patterns
+  integration_cleanup = ->(_example = nil) { Familia.dbclient.flushdb }
+  config.after(:each, type: :integration, file_path: billing_spec_files, &integration_cleanup)
+  config.after(:each, :integration, file_path: billing_spec_files, &integration_cleanup)
+end

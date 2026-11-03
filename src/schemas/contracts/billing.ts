@@ -1,0 +1,278 @@
+// src/schemas/contracts/billing.ts
+// @see src/tests/types/billing-helpers.spec.ts - Test fixtures for billing types
+// @see src/tests/services/billing.service.spec.ts - Integration tests
+
+/**
+ * Billing Zod schemas and derived types - Contract definitions
+ *
+ * Pure definitions with no transforms. Schemas with runtime transforms
+ * (timestamp → Date) remain in shapes/account/billing.ts.
+ */
+
+import { isAllowedBillingPortalUrl, isAllowedCheckoutUrl } from '@/utils/redirect';
+import { z } from 'zod';
+
+import { BillingTierSchema, CanonicalPlanIdSchema } from './config/billing';
+
+/**
+ * Security (M-9): checkout URLs are navigated to via `window.location`, so the
+ * schema layer host-allowlists them as defence-in-depth. The load-bearing check
+ * remains the assignment-site guard in PlanSelector.vue (isAllowedCheckoutUrl).
+ * The allowlisted origins are the static baseline (`checkout.stripe.com`), the
+ * current app origin (same-origin), and this deployment's Stripe custom-domain
+ * Checkout host, configured at runtime from the bootstrap `checkout_host` field
+ * (see setAllowedCheckoutHost in @/utils/redirect).
+ */
+const checkoutUrlSchema = z
+  .url()
+  .refine((value) => isAllowedCheckoutUrl(value), {
+    message: 'checkout_url host is not allowlisted',
+  });
+
+/**
+ * Plan type schema
+ *
+ * Reuses the authoritative billing tier enum from the catalog config
+ * schema so runtime subscription state and the catalog stay in lockstep.
+ */
+export const planTypeSchema = BillingTierSchema;
+
+export type PlanType = z.infer<typeof planTypeSchema>;
+
+/**
+ * Subscription status schema
+ */
+export const subscriptionStatusSchema = z.enum(['active', 'inactive', 'past_due', 'canceled']);
+
+export type SubscriptionStatus = z.infer<typeof subscriptionStatusSchema>;
+
+/**
+ * Invoice status schema
+ */
+export const invoiceStatusSchema = z.enum([
+  'draft',
+  'open',
+  'paid',
+  'uncollectible',
+  'void',
+  // Legacy/mapped statuses used in UI
+  'pending',
+  'failed',
+]);
+
+export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>;
+
+/**
+ * Billing interval schema
+ */
+export const billingIntervalSchema = z.enum(['month', 'year']);
+
+export type BillingInterval = z.infer<typeof billingIntervalSchema>;
+
+/**
+ * Subscription contract schema
+ *
+ * Wire format for subscription data from API.
+ * Timestamps are Unix epoch seconds (numbers).
+ */
+export const subscriptionContractSchema = z.object({
+  id: z.string(),
+  org_id: z.string(),
+  plan_type: planTypeSchema,
+  status: subscriptionStatusSchema,
+  teams_limit: z.number(),
+  teams_used: z.number(),
+  total_members_per_org_limit: z.number(),
+  billing_interval: billingIntervalSchema,
+  current_period_start: z.number(),
+  current_period_end: z.number(),
+  cancel_at_period_end: z.boolean(),
+  created_at: z.number(),
+  updated_at: z.number(),
+});
+
+export type SubscriptionContract = z.infer<typeof subscriptionContractSchema>;
+
+/**
+ * Invoice contract schema
+ *
+ * Wire format for invoice data from API.
+ * Timestamps are Unix epoch seconds (numbers).
+ */
+export const invoiceContractSchema = z.object({
+  id: z.string(),
+  org_id: z.string(),
+  amount: z.number(),
+  currency: z.string(),
+  status: invoiceStatusSchema,
+  invoice_date: z.number(),
+  due_date: z.number(),
+  paid_date: z.number().optional(),
+  invoice_url: z.url().optional(),
+  download_url: z.url().optional(),
+});
+
+export type InvoiceContract = z.infer<typeof invoiceContractSchema>;
+
+/**
+ * Payment method card schema
+ */
+export const paymentMethodCardSchema = z.object({
+  brand: z.string(),
+  last4: z.string(),
+  exp_month: z.number(),
+  exp_year: z.number(),
+});
+
+export type PaymentMethodCard = z.infer<typeof paymentMethodCardSchema>;
+
+/**
+ * Payment method schema
+ *
+ * Validates payment method data from API responses.
+ */
+export const paymentMethodSchema = z.object({
+  id: z.string(),
+  type: z.literal('card'),
+  card: paymentMethodCardSchema.optional(),
+  is_default: z.boolean(),
+});
+
+export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
+
+/**
+ * Checkout session response (POST /billing/api/org/:extid/checkout)
+ *
+ * Wire format for a newly created Stripe Checkout session. `checkout_url` is
+ * host-allowlisted (see checkoutUrlSchema / M-9) because it is navigated to via
+ * `window.location`.
+ */
+export const checkoutSessionResponseSchema = z.object({
+  checkout_url: checkoutUrlSchema,
+  session_id: z.string(),
+});
+
+export type CheckoutSessionResponse = z.infer<typeof checkoutSessionResponseSchema>;
+
+/**
+ * Customer portal session response (POST /billing/api/org/:extid/portal)
+ *
+ * `portal_url` is host-allowlisted for the same reason as `checkout_url`
+ * (M-9): it is navigated to via `window.location`. The load-bearing check is
+ * the assignment-site guard in BillingOverview.vue (isAllowedBillingPortalUrl).
+ */
+export const portalSessionResponseSchema = z.object({
+  portal_url: z.url().refine((value) => isAllowedBillingPortalUrl(value), {
+    message: 'portal_url host is not allowlisted',
+  }),
+});
+
+export type PortalSessionResponse = z.infer<typeof portalSessionResponseSchema>;
+
+/**
+ * Currency migration schemas
+ *
+ * Used when a customer tries to subscribe to a plan in a different currency
+ * than their existing Stripe subscription.
+ */
+
+/** Warnings about potential issues during currency migration */
+export const currencyMigrationWarningsSchema = z.object({
+  has_credit_balance: z.boolean(),
+  credit_balance_amount: z.number(),
+  has_pending_invoice_items: z.boolean(),
+  has_incompatible_coupons: z.boolean(),
+});
+
+export type CurrencyMigrationWarnings = z.infer<typeof currencyMigrationWarningsSchema>;
+
+/** 409 currency conflict error response from checkout endpoint */
+export const currencyConflictErrorSchema = z.object({
+  error: z.literal(true),
+  code: z.literal('currency_conflict'),
+  message: z.string().optional(),
+  details: z.object({
+    existing_currency: z.string(),
+    requested_currency: z.string(),
+    current_plan: z
+      .object({
+        name: z.string(),
+        price_formatted: z.string(),
+        current_period_end: z.number(),
+      })
+      .nullable(),
+    requested_plan: z
+      .object({
+        name: z.string(),
+        price_formatted: z.string(),
+        price_id: z.string(),
+      })
+      .nullable(),
+    warnings: currencyMigrationWarningsSchema,
+  }),
+});
+
+export type CurrencyConflictError = z.infer<typeof currencyConflictErrorSchema>;
+
+/** Migration mode */
+export const migrationModeSchema = z.enum(['graceful', 'immediate']);
+
+export type MigrationMode = z.infer<typeof migrationModeSchema>;
+
+/** Request body for POST /api/org/:extid/migrate-currency */
+export const migrateCurrencyRequestSchema = z.object({
+  mode: migrationModeSchema,
+  new_price_id: z.string(),
+});
+
+export type MigrateCurrencyRequest = z.infer<typeof migrateCurrencyRequestSchema>;
+
+/** Graceful migration response */
+export const gracefulMigrationResponseSchema = z.object({
+  success: z.literal(true),
+  migration: z.object({
+    mode: z.literal('graceful'),
+    cancel_at: z.number(),
+  }),
+});
+
+/** Immediate migration response */
+export const immediateMigrationResponseSchema = z.object({
+  success: z.literal(true),
+  migration: z.object({
+    mode: z.literal('immediate'),
+    checkout_url: checkoutUrlSchema,
+    refund_amount: z.number(),
+    refund_formatted: z.string(),
+    /**
+     * True when the prorated refund (Stripe credit note) could not be issued.
+     * The old subscription is already cancelled at this point, so the customer
+     * must still complete checkout — but the UI must surface the failure
+     * instead of silently redirecting. Defaults to false so responses from
+     * older backends that omit the flag still parse.
+     */
+    refund_failed: z.boolean().default(false),
+  }),
+});
+
+/** Union response for migrate-currency endpoint. Discriminate on migration.mode at runtime. */
+export const migrateCurrencyResponseSchema = z.union([
+  gracefulMigrationResponseSchema,
+  immediateMigrationResponseSchema,
+]);
+
+export type GracefulMigrationResponse = z.infer<typeof gracefulMigrationResponseSchema>;
+export type ImmediateMigrationResponse = z.infer<typeof immediateMigrationResponseSchema>;
+export type MigrateCurrencyResponse = z.infer<typeof migrateCurrencyResponseSchema>;
+
+/** Pending migration state on subscription status */
+export const pendingMigrationSchema = z.object({
+  target_price_id: z.string(),
+  target_plan_name: z.string(),
+  target_currency: z.string(),
+  target_plan_id: CanonicalPlanIdSchema,
+  target_interval: z.enum(['month', 'year']).optional(),
+  effective_after: z.number(),
+});
+
+export type PendingMigration = z.infer<typeof pendingMigrationSchema>;

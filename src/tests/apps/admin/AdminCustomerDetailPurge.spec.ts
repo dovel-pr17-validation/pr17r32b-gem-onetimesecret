@@ -1,0 +1,648 @@
+// src/tests/apps/admin/AdminCustomerDetailPurge.spec.ts
+
+import { flushPromises, mount, VueWrapper } from '@vue/test-utils';
+import { AxiosError } from 'axios';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/**
+ * Detail-page purge gate: the typed-confirmation token is the account's EMAIL.
+ *
+ * Split out of AdminCustomerDetail.spec.ts (which still asserts the previous
+ * public-id token in its `purge — typed-confirmation gate` block; those three
+ * assertions need the email instead). Suspend is covered here too, as the
+ * regression guard that ONLY purge moved to the email token.
+ */
+
+/** Build a real AxiosError so the shared classifier extracts `data.error`. */
+function axiosError(status: number, data: unknown, message = 'Request failed'): AxiosError {
+  const err = new AxiosError(message);
+  err.response = { status, data, statusText: '', headers: {}, config: {} as never };
+  return err;
+}
+
+const mockApi = {
+  get: vi.fn(),
+  post: vi.fn(),
+  delete: vi.fn(),
+};
+vi.mock('@/shared/composables/useApi', () => ({ useApi: () => mockApi }));
+
+const pushMock = vi.fn();
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: pushMock }),
+  useRoute: () => ({ params: { id: 'ur_alice' } }),
+  isNavigationFailure: () => false,
+  NavigationFailureType: {},
+}));
+
+const showMock = vi.fn();
+vi.mock('@/shared/stores/notificationsStore', () => ({
+  useNotificationsStore: () => ({ show: showMock }),
+}));
+
+vi.mock('@/utils/format', () => ({
+  formatDisplayDateTime: (d: Date) => `DT:${d.toISOString()}`,
+}));
+
+vi.mock('@/shared/components/icons/OIcon.vue', () => ({
+  default: {
+    name: 'OIcon',
+    template: '<span class="o-icon" :data-name="name" />',
+    props: ['collection', 'name', 'class', 'size', 'aria-label'],
+  },
+}));
+
+vi.mock('@headlessui/vue', () => ({
+  Dialog: {
+    name: 'Dialog',
+    template: '<div role="dialog" @close="$emit(\'close\')"><slot /></div>',
+    props: ['class'],
+    emits: ['close'],
+  },
+  DialogPanel: {
+    name: 'DialogPanel',
+    template: '<div class="dialog-panel" :data-testid="$attrs[\'data-testid\']"><slot /></div>',
+    props: ['class'],
+  },
+  DialogTitle: { name: 'DialogTitle', template: '<h3><slot /></h3>', props: ['as', 'class'] },
+  TransitionRoot: {
+    name: 'TransitionRoot',
+    template: '<div v-if="show"><slot /></div>',
+    props: ['as', 'show'],
+  },
+  TransitionChild: { name: 'TransitionChild', template: '<div><slot /></div>', props: ['as'] },
+}));
+
+import {
+  __resetColonelElevationState,
+  useColonelElevation,
+} from '@/apps/admin/composables/useColonelElevation';
+import AdminCustomerDetail from '@/apps/admin/views/AdminCustomerDetail.vue';
+import { createTestI18n } from '@tests/setup';
+import { startElevated } from '@tests/apps/admin/support/elevation';
+
+const i18n = createTestI18n();
+
+const PUBLIC_ID = 'ur_alice';
+const EMAIL = 'alice@example.com';
+
+function detailPayload(overrides: { verified?: boolean } = {}) {
+  return {
+    shrimp: '',
+    record: {
+      extid: PUBLIC_ID,
+      email: EMAIL,
+      role: 'customer',
+      verified: overrides.verified ?? false,
+      suspended: false,
+      suspended_at: null,
+      suspended_by: null,
+      suspended_reason: null,
+      created: 1700000000,
+      updated: 1700000100,
+      last_login: 1700000200,
+      planid: 'basic',
+      locale: 'en',
+    },
+    details: {
+      secrets: { count: 0, items: [] },
+      receipts: { count: 0, items: [] },
+      organizations: [],
+      billing: {
+        enabled: false,
+        plan_id: 'basic',
+        organization: null,
+        stripe: {
+          available: false,
+          reason: 'Billing is not configured',
+          customer_id: null,
+          dashboard_url: null,
+          subscription: null,
+          latest_invoice: null,
+        },
+      },
+      stats: { secrets_created: 0, secrets_shared: 0, emails_sent: 0 },
+    },
+  };
+}
+
+function mutationAck() {
+  return { shrimp: '', record: { user_id: 'objid', extid: PUBLIC_ID }, details: { message: 'ok' } };
+}
+
+function purgeLifecycleAck(status: 'success' | 'refused' | 'partial') {
+  const lifecycle = {
+    status,
+    deleted: status === 'success',
+    extid: PUBLIC_ID,
+    custid: 'objid',
+    blockers:
+      status === 'success'
+        ? []
+        : [
+            {
+              code: 'has_domains',
+              org_id: 'on_blocked',
+              remediation: 'Remove or transfer every custom domain, then retry.',
+            },
+          ],
+    actions:
+      status === 'partial'
+        ? [{ type: 'remove_membership', org_id: 'on_shared', status: 'success' }]
+        : [],
+    planned_actions: [{ type: 'delete_organization', org_id: 'on_blocked' }],
+    stage: status === 'partial' ? 'post_cleanup_revalidation' : 'preflight',
+    completed_stages: status === 'partial' ? ['remove_membership'] : [],
+  };
+  return {
+    shrimp: '',
+    record: { user_id: 'objid', extid: PUBLIC_ID, deleted: status === 'success' },
+    details: { message: `purge ${status}`, ...lifecycle },
+  };
+}
+
+const mountView = () =>
+  mount(AdminCustomerDetail, {
+    props: { id: PUBLIC_ID },
+    global: { plugins: [i18n], stubs: { AdminCustomerSessionsSection: true } },
+  });
+
+const dialogInput = (w: VueWrapper) => w.find('#admin-confirm-input');
+const dialogSubmit = (w: VueWrapper) => w.find('[data-testid="admin-confirm-submit"]');
+
+describe('AdminCustomerDetail — purge gate (typed email) + verification state', () => {
+  let wrapper: VueWrapper;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // The step-up window is module-level singleton state (#4327); reset it to
+    // a LIVE window so the purge opener shows its dialog straight away. The
+    // pre-prompt examples below start unelevated instead.
+    startElevated();
+  });
+  afterEach(() => wrapper?.unmount());
+
+  async function mountLoaded(overrides: { verified?: boolean } = {}): Promise<void> {
+    mockApi.get.mockResolvedValue({ data: detailPayload(overrides) });
+    wrapper = mountView();
+    await flushPromises();
+  }
+
+  it('gates purge behind the EXACT email — the public id does not unlock it', async () => {
+    await mountLoaded();
+
+    await wrapper.find('[data-testid="purge-button"]').trigger('click');
+    await flushPromises();
+
+    expect(dialogInput(wrapper).exists()).toBe(true);
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeDefined();
+
+    await dialogInput(wrapper).setValue(PUBLIC_ID);
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeDefined();
+
+    await dialogInput(wrapper).setValue(EMAIL.toUpperCase());
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeDefined();
+
+    await dialogInput(wrapper).setValue(EMAIL);
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeUndefined();
+  });
+
+  it('DELETEs, toasts and routes back to the list on confirm', async () => {
+    await mountLoaded();
+    mockApi.delete.mockResolvedValue({ data: mutationAck() });
+
+    await wrapper.find('[data-testid="purge-button"]').trigger('click');
+    await dialogInput(wrapper).setValue(EMAIL);
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    // The typed email is also what the server is gated on (#4326) — sent as a
+    // HEADER, so the address never enters the URL, a log, or browser history.
+    expect(mockApi.delete).toHaveBeenCalledWith(`/api/colonel/users/${PUBLIC_ID}`, {
+      headers: { 'X-OTS-Confirm': encodeURIComponent(EMAIL) },
+    });
+    expect(showMock).toHaveBeenCalledWith('web.admin.customers.actions.purge.success', 'success');
+    expect(pushMock).toHaveBeenCalledWith({ name: 'AdminCustomers' });
+  });
+
+  it('accepts the lifecycle success payload returned in details', async () => {
+    await mountLoaded();
+    mockApi.delete.mockResolvedValue({ data: purgeLifecycleAck('success') });
+
+    await wrapper.find('[data-testid="purge-button"]').trigger('click');
+    await dialogInput(wrapper).setValue(EMAIL);
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(showMock).toHaveBeenCalledWith('web.admin.customers.actions.purge.success', 'success');
+    expect(pushMock).toHaveBeenCalledWith({ name: 'AdminCustomers' });
+  });
+
+  it('keeps a failed purge in the dialog: no navigation, no toast', async () => {
+    await mountLoaded();
+    mockApi.delete.mockRejectedValue(axiosError(422, { error: 'Cannot purge anonymous user' }));
+
+    await wrapper.find('[data-testid="purge-button"]').trigger('click');
+    await dialogInput(wrapper).setValue(EMAIL);
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="admin-confirm-dialog"]').text()).toContain(
+      'Cannot purge anonymous user'
+    );
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(showMock).not.toHaveBeenCalled();
+  });
+
+  it('treats a 2xx refused lifecycle result as failure and renders remediation', async () => {
+    await mountLoaded();
+    mockApi.delete.mockResolvedValue({ data: purgeLifecycleAck('refused') });
+
+    await wrapper.find('[data-testid="purge-button"]').trigger('click');
+    await dialogInput(wrapper).setValue(EMAIL);
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    const dialog = wrapper.find('[data-testid="admin-confirm-dialog"]').text();
+    expect(dialog).toContain('has domains');
+    expect(dialog).toContain('on_blocked');
+    expect(dialog).toContain('Remove or transfer every custom domain');
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(showMock).not.toHaveBeenCalled();
+  });
+
+  it('never reports or navigates on a partial lifecycle result', async () => {
+    await mountLoaded();
+    mockApi.delete.mockResolvedValue({ data: purgeLifecycleAck('partial') });
+
+    await wrapper.find('[data-testid="purge-button"]').trigger('click');
+    await dialogInput(wrapper).setValue(EMAIL);
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    const dialog = wrapper.find('[data-testid="admin-confirm-dialog"]').text();
+    expect(dialog).toContain('post_cleanup_revalidation');
+    expect(dialog).toContain('remove membership');
+    expect(dialog).toContain('remove_membership');
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(showMock).not.toHaveBeenCalled();
+  });
+
+  it('renders lifecycle blockers supplied in a structured non-2xx refusal', async () => {
+    await mountLoaded();
+    const refused = purgeLifecycleAck('refused').details;
+    mockApi.delete.mockRejectedValue(
+      axiosError(422, {
+        error: 'Purge refused. Resolve the reported blockers and retry.',
+        error_type: 'conflict',
+        details: refused,
+      })
+    );
+
+    await wrapper.find('[data-testid="purge-button"]').trigger('click');
+    await dialogInput(wrapper).setValue(EMAIL);
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    const dialog = wrapper.find('[data-testid="admin-confirm-dialog"]').text();
+    expect(dialog).toContain('has domains');
+    expect(dialog).toContain('on_blocked');
+    expect(dialog).toContain('Remove or transfer every custom domain');
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(showMock).not.toHaveBeenCalled();
+  });
+
+  // #4326 moved SUSPEND onto the same email token: the server gates all four
+  // danger verbs on the account identifier, and a dialog that asked for the
+  // public id while sending the email would be two gates disagreeing.
+  it('puts SUSPEND on the email token too, not the public id', async () => {
+    await mountLoaded();
+    mockApi.post.mockResolvedValue({ data: mutationAck() });
+
+    await wrapper.find('[data-testid="suspend-button"]').trigger('click');
+    await flushPromises();
+
+    await dialogInput(wrapper).setValue(PUBLIC_ID);
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeDefined();
+
+    await dialogInput(wrapper).setValue(EMAIL);
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeUndefined();
+
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    expect(mockApi.post).toHaveBeenCalledWith(
+      `/api/colonel/users/${PUBLIC_ID}/suspend`,
+      {},
+      { headers: { 'X-OTS-Confirm': encodeURIComponent(EMAIL) } }
+    );
+  });
+
+  it('states the verification badge both ways and offers only the matching verb', async () => {
+    await mountLoaded({ verified: false });
+    expect(wrapper.find('[data-testid="unverified-badge"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="verified-badge"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="verify-button"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="unverify-button"]').exists()).toBe(false);
+
+    wrapper.unmount();
+
+    await mountLoaded({ verified: true });
+    expect(wrapper.find('[data-testid="verified-badge"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="unverified-badge"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="unverify-button"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="verify-button"]').exists()).toBe(false);
+  });
+
+  it('refreshes the record after verify instead of navigating away', async () => {
+    await mountLoaded({ verified: false });
+    mockApi.post.mockResolvedValue({ data: mutationAck() });
+    // The refreshed read reports the new state — the badge must follow it.
+    mockApi.get.mockResolvedValue({ data: detailPayload({ verified: true }) });
+
+    await wrapper.find('[data-testid="verify-button"]').trigger('click');
+    await flushPromises();
+    // Reversible action: one-click confirm, no typed gate.
+    expect(dialogInput(wrapper).exists()).toBe(false);
+
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+
+    // Verify is the restorative arm: un-gated, so no confirmation header.
+    expect(mockApi.post).toHaveBeenCalledWith(
+      `/api/colonel/users/${PUBLIC_ID}/verify`,
+      {},
+      undefined
+    );
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="verified-badge"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="unverify-button"]').exists()).toBe(true);
+  });
+
+  // ---- Step-up (sudo) window (#4327): elevate BEFORE the dialog -------------
+  //
+  // Purge is tier 1. The operator proves the credential first and fills in the
+  // typed email and reason once, afterwards. Prompting only on the 403 closed
+  // the dialog under them, lost the reason, and left them unsure whether the
+  // purge had run.
+  describe('the purge opener elevates before the dialog', () => {
+    beforeEach(() => {
+      // Unelevated, step-up enabled: the default state of a fresh console.
+      __resetColonelElevationState();
+    });
+
+    const purgeDialogOpen = (w: VueWrapper) => dialogInput(w).exists();
+
+    it('opens the sudo prompt first and the purge dialog only once it resolves', async () => {
+      await mountLoaded();
+      mockApi.delete.mockResolvedValue({ data: mutationAck() });
+
+      await wrapper.find('[data-testid="purge-button"]').trigger('click');
+      await flushPromises();
+
+      const elevation = useColonelElevation();
+      expect(elevation.promptOpen.value).toBe(true);
+      expect(purgeDialogOpen(wrapper)).toBe(false);
+      expect(mockApi.delete).not.toHaveBeenCalled();
+
+      elevation.resolvePrompt(true);
+      await flushPromises();
+
+      expect(elevation.promptOpen.value).toBe(false);
+      expect(purgeDialogOpen(wrapper)).toBe(true);
+    });
+
+    it('keeps the reason typed after elevating and sends it on the one DELETE', async () => {
+      await mountLoaded();
+      mockApi.delete.mockResolvedValue({ data: mutationAck() });
+
+      await wrapper.find('[data-testid="purge-button"]').trigger('click');
+      await flushPromises();
+      useColonelElevation().resolvePrompt(true);
+      await flushPromises();
+
+      await dialogInput(wrapper).setValue(EMAIL);
+      await wrapper.find('[data-testid="admin-confirm-reason"]').setValue('Ticket 1234');
+      await wrapper.find('form').trigger('submit');
+      await flushPromises();
+
+      expect(mockApi.delete).toHaveBeenCalledTimes(1);
+      expect(mockApi.delete).toHaveBeenCalledWith(`/api/colonel/users/${PUBLIC_ID}`, {
+        headers: { 'X-OTS-Confirm': encodeURIComponent(EMAIL) },
+        params: { reason: 'Ticket 1234' },
+      });
+      expect(showMock).toHaveBeenCalledWith('web.admin.customers.actions.purge.success', 'success');
+    });
+
+    it('opens nothing and reports nothing when the operator cancels the prompt', async () => {
+      await mountLoaded();
+
+      await wrapper.find('[data-testid="purge-button"]').trigger('click');
+      await flushPromises();
+      useColonelElevation().resolvePrompt(false);
+      await flushPromises();
+
+      expect(purgeDialogOpen(wrapper)).toBe(false);
+      expect(wrapper.find('[data-testid="admin-confirm-dialog"]').exists()).toBe(false);
+      expect(mockApi.delete).not.toHaveBeenCalled();
+      expect(showMock).not.toHaveBeenCalled();
+    });
+
+    it('opens the dialog straight away when step-up is disabled by config', async () => {
+      await mountLoaded();
+      useColonelElevation().enabled.value = false;
+
+      await wrapper.find('[data-testid="purge-button"]').trigger('click');
+      await flushPromises();
+
+      expect(useColonelElevation().promptOpen.value).toBe(false);
+      expect(purgeDialogOpen(wrapper)).toBe(true);
+    });
+
+    // Suspend is tier 2: confirmation only, never a sudo prompt.
+    it('does not prompt before a tier-2 verb (suspend)', async () => {
+      await mountLoaded();
+
+      await wrapper.find('[data-testid="suspend-button"]').trigger('click');
+      await flushPromises();
+
+      expect(useColonelElevation().promptOpen.value).toBe(false);
+      expect(dialogInput(wrapper).exists()).toBe(true);
+    });
+  });
+
+  // ---- Step-up (sudo) window (#4327): the fallback loop ---------------------
+  //
+  // The window was live when the dialog opened but lapsed server-side before
+  // submit. The loop is: attempt -> 403 elevation_required -> prompt -> the
+  // operator acts -> retry ONCE. The retry must never fire without that
+  // gesture; an automatic elevate-and-retry would put a colonel session alone
+  // back in charge of a destructive verb, which is what this issue exists to
+  // stop. The 403 overrules the local countdown, which still reads live here.
+  describe('a 403 elevation_required opens the sudo prompt', () => {
+    async function submitPurge(): Promise<void> {
+      await wrapper.find('[data-testid="purge-button"]').trigger('click');
+      await dialogInput(wrapper).setValue(EMAIL);
+      await wrapper.find('form').trigger('submit');
+      await flushPromises();
+    }
+
+    it('opens the prompt and does NOT retry until the operator acts', async () => {
+      await mountLoaded();
+      mockApi.delete.mockRejectedValue(
+        axiosError(403, {
+          error: 'Step-up authentication required',
+          error_code: 'elevation_required',
+        })
+      );
+
+      await submitPurge();
+
+      const elevation = useColonelElevation();
+      expect(elevation.promptOpen.value).toBe(true);
+      // One attempt so far. The retry is still waiting on the operator.
+      expect(mockApi.delete).toHaveBeenCalledTimes(1);
+      expect(pushMock).not.toHaveBeenCalled();
+
+      // The operator elevates; the prompt resolves and the verb is retried once.
+      mockApi.delete.mockResolvedValue({ data: mutationAck() });
+      elevation.resolvePrompt(true);
+      await flushPromises();
+
+      expect(mockApi.delete).toHaveBeenCalledTimes(2);
+      expect(showMock).toHaveBeenCalledWith('web.admin.customers.actions.purge.success', 'success');
+    });
+
+    it('keeps the dialog and its reason through the prompt, and retries with the same reason', async () => {
+      await mountLoaded();
+      mockApi.delete.mockRejectedValueOnce(
+        axiosError(403, {
+          error: 'Step-up authentication required',
+          error_code: 'elevation_required',
+        })
+      );
+      mockApi.delete.mockResolvedValueOnce({ data: mutationAck() });
+
+      await wrapper.find('[data-testid="purge-button"]').trigger('click');
+      await dialogInput(wrapper).setValue(EMAIL);
+      await wrapper.find('[data-testid="admin-confirm-reason"]').setValue('Ticket 1234');
+      await wrapper.find('form').trigger('submit');
+      await flushPromises();
+
+      const elevation = useColonelElevation();
+      expect(elevation.promptOpen.value).toBe(true);
+      // The dialog behind the prompt still holds what the operator typed.
+      expect(
+        (wrapper.find('[data-testid="admin-confirm-reason"]').element as HTMLTextAreaElement).value
+      ).toBe('Ticket 1234');
+
+      elevation.resolvePrompt(true);
+      await flushPromises();
+
+      expect(mockApi.delete).toHaveBeenCalledTimes(2);
+      expect(mockApi.delete).toHaveBeenLastCalledWith(`/api/colonel/users/${PUBLIC_ID}`, {
+        headers: { 'X-OTS-Confirm': encodeURIComponent(EMAIL) },
+        params: { reason: 'Ticket 1234' },
+      });
+    });
+
+    it('surfaces the original error and retries nothing when the operator cancels', async () => {
+      await mountLoaded();
+      mockApi.delete.mockRejectedValue(
+        axiosError(403, {
+          error: 'Step-up authentication required',
+          error_code: 'elevation_required',
+        })
+      );
+
+      await submitPurge();
+
+      const elevation = useColonelElevation();
+      elevation.resolvePrompt(false);
+      await flushPromises();
+
+      expect(mockApi.delete).toHaveBeenCalledTimes(1);
+      expect(wrapper.find('[data-testid="admin-confirm-dialog"]').text()).toContain(
+        'Step-up authentication required'
+      );
+      expect(pushMock).not.toHaveBeenCalled();
+      expect(showMock).not.toHaveBeenCalled();
+    });
+
+    it('leaves a confirmation_required failure alone — no sudo prompt for that', async () => {
+      await mountLoaded();
+      mockApi.delete.mockRejectedValue(
+        axiosError(403, { error: 'Confirmation required', error_code: 'confirmation_required' })
+      );
+
+      await submitPurge();
+
+      expect(useColonelElevation().promptOpen.value).toBe(false);
+      expect(mockApi.delete).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ---- Rate limiting (#4329) ------------------------------------------------
+  //
+  // The 429 reaches the dialog with no frontend change (the classifier renders
+  // any 4xx `error` string verbatim); what the composable adds is the wait and
+  // the recovery path, neither of which the server message can carry on its own.
+  describe('a 429 from the colonel limiter', () => {
+    async function submitPurge(): Promise<void> {
+      await wrapper.find('[data-testid="purge-button"]').trigger('click');
+      await dialogInput(wrapper).setValue(EMAIL);
+      await wrapper.find('form').trigger('submit');
+      await flushPromises();
+    }
+
+    const throttled = (retryAfter?: number) =>
+      axiosError(429, {
+        error: 'Too many destructive admin actions. This is a safety limit; try again shortly.',
+        error_type: 'LimitExceeded',
+        max_attempts: 10,
+        ...(retryAfter === undefined ? {} : { retry_after: retryAfter }),
+      });
+
+    it('keeps the server message and adds the wait plus the recovery hint', async () => {
+      await mountLoaded();
+      mockApi.delete.mockRejectedValue(throttled(900));
+
+      await submitPurge();
+
+      const dialog = wrapper.find('[data-testid="admin-confirm-dialog"]').text();
+      expect(dialog).toContain('Too many destructive admin actions');
+      expect(dialog).toContain('web.admin.errors.rateLimited');
+      expect(dialog).toContain('web.admin.errors.rateLimitedRecovery');
+      // Nothing happened but the refusal: no toast, no navigation, no retry.
+      expect(mockApi.delete).toHaveBeenCalledTimes(1);
+      expect(pushMock).not.toHaveBeenCalled();
+      expect(showMock).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the server message alone when there is no retry_after', async () => {
+      await mountLoaded();
+      mockApi.delete.mockRejectedValue(throttled());
+
+      await submitPurge();
+
+      const dialog = wrapper.find('[data-testid="admin-confirm-dialog"]').text();
+      expect(dialog).toContain('Too many destructive admin actions');
+      // …rateLimitedRecovery still appears (the operator can always clear it),
+      // so the negative match has to exclude the wait key specifically.
+      expect(dialog).not.toMatch(/rateLimited(?!Recovery)/);
+    });
+
+    // A 429 is not an authorization failure: prompting for a password would
+    // teach operators to re-authenticate at a throttle, and the retry would be
+    // refused anyway.
+    it('never opens the sudo prompt and never retries', async () => {
+      await mountLoaded();
+      mockApi.delete.mockRejectedValue(throttled(60));
+
+      await submitPurge();
+
+      expect(useColonelElevation().promptOpen.value).toBe(false);
+      expect(mockApi.delete).toHaveBeenCalledTimes(1);
+    });
+  });
+});

@@ -1,0 +1,586 @@
+# shellcheck shell=bash
+# tools/setup/lib.sh
+#
+# Shared spine for tools/setup/setup.sh (the lanes behind bin/setup) and
+# tools/setup/new-worktree.sh. Sourced, not executed. setup.sh runs under
+# `set -euo pipefail`; new-worktree.sh leaves out -e because it must always
+# exit 0.
+#
+# Bash 3.2 compatible on purpose: macOS ships 3.2, and the old
+# install-dev.sh hard-failed there over a single associative array (DX-15).
+# No `declare -A`, no `${var,,}`, no readarray in this file.
+
+# --- Output helpers ----------------------------------------------------
+
+has()    { command -v "$1" &>/dev/null; }
+red()    { [[ -t 1 ]] && echo -e "\033[0;31m$1\033[0m" || echo "$1"; }
+green()  { [[ -t 1 ]] && echo -e "\033[0;32m$1\033[0m" || echo "$1"; }
+yellow() { [[ -t 1 ]] && echo -e "\033[0;33m$1\033[0m" || echo "$1"; }
+info()   { green "▶ $1"; }
+warn()   { yellow "▶ $1"; }
+err()    { red "▶ $1" >&2; }
+die()    { err "$1"; exit 1; }
+trim()   { tr -d '[:space:]'; }
+
+# --- Version gates -----------------------------------------------------
+
+version_from() { [[ -f "$1" ]] && trim < "$1" || echo ""; }
+
+# Exact-match: bundler enforces the exact version in .ruby-version
+# (Gemfile: `ruby file: '.ruby-version'`), so the early gate must agree —
+# a floor-compare would pass 3.4.10 only for bundler to reject it. (NF-5)
+check_version_exact() {
+  local name="$1" cmd="$2" file="$3" extractor="$4"
+  local required actual
+
+  required=$(version_from "$file")
+  if [[ -z "$required" ]]; then
+    has "$cmd" || die "$name not found ($(basename "$file") missing — cannot determine required version)"
+    local detected
+    detected=$(eval "$extractor")
+    warn "$name $detected detected but no $(basename "$file") to pin against — version not verified"
+    return 0
+  fi
+
+  has "$cmd" || die "$name not found (need exactly $required — see $(basename "$file"))"
+
+  actual=$(eval "$extractor")
+  if [[ "$actual" != "$required" ]]; then
+    die "$name version mismatch: have $actual, need exactly $required ($(basename "$file"); bundler enforces the same). Install it with e.g. 'rbenv install $required' or 'mise use ruby@$required'."
+  fi
+
+  info "$name $actual"
+}
+
+check_version_major() {
+  local name="$1" cmd="$2" file="$3" extractor="$4"
+  local required actual_full actual
+
+  required=$(version_from "$file" | sed 's/^v//' | cut -d. -f1)
+  if [[ -z "$required" ]]; then
+    has "$cmd" || die "$name not found ($(basename "$file") missing — cannot determine required version)"
+    local detected
+    detected=$(eval "$extractor" | sed 's/^v//')
+    warn "$name $detected detected but no $(basename "$file") to pin against — version not verified"
+    return 0
+  fi
+
+  has "$cmd" || die "$name not found (need $required+)"
+
+  actual_full=$(eval "$extractor" | sed 's/^v//')
+  actual=$(echo "$actual_full" | cut -d. -f1)
+  [[ "$actual" -ge "$required" ]] || die "$name too old: have $actual, need $required+"
+
+  info "$name $actual_full"
+}
+
+# --- Generic connectivity probes (doctor v2, BM-05) ---------------------
+#
+# Service availability is decided by CONNECTIVITY, never by whether a client
+# CLI happens to be installed locally — remote/containerized services must
+# read as up (BM-05).
+
+# tcp_probe HOST PORT [TIMEOUT] — plain TCP connect via /dev/tcp.
+# `timeout` guards against filtered hosts that hang the connect; when the
+# binary is absent (stock macOS) we connect directly — localhost probes,
+# the common case, fail fast anyway.
+tcp_probe() {
+  local host="$1" port="$2" t="${3:-5}"
+  if has timeout; then
+    timeout "$t" bash -c 'exec 3<>"/dev/tcp/$0/$1"' "$host" "$port" 2>/dev/null
+  else
+    ( exec 3<>"/dev/tcp/$host/$port" ) 2>/dev/null
+  fi
+}
+
+# url_host_port URL DEFAULT_PORT — strip scheme/userinfo/path, print "host port".
+url_host_port() {
+  local url="$1" default_port="$2" clean host port
+  clean="${url#*://}"
+  [[ "$clean" == *@* ]] && clean="${clean#*@}"
+  clean="${clean%%/*}"
+  clean="${clean%%\?*}"
+  host="${clean%%:*}"
+  if [[ "$clean" == *:* ]]; then
+    port="${clean#*:}"
+  else
+    port=""
+  fi
+  echo "${host:-127.0.0.1}" "${port:-$default_port}"
+}
+
+# dotenv_get VAR — value of VAR from .env (first match wins, like install.sh's
+# historical sed), empty when absent. Comments and quotes stripped.
+dotenv_get() {
+  [[ -f .env ]] || return 0
+  sed -n -E "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*[\"']?([^\"'#[:space:]]*)[\"']?[[:space:]]*(#.*)?$/\1/p" .env 2>/dev/null | head -1
+}
+
+# env_or_dotenv VAR — process environment wins, .env is the fallback.
+env_or_dotenv() {
+  local name="$1" val
+  val="${!name:-}"
+  [[ -z "$val" ]] && val="$(dotenv_get "$name")"
+  echo "$val"
+}
+
+# --- Datastore discovery and probes ------------------------------------
+#
+# The app and the test config speak plain redis://, and Valkey is
+# wire-compatible, so valkey-* and redis-* binaries are interchangeable.
+# Honor explicit VALKEY_SERVER/VALKEY_CLI overrides first; the package.json
+# database scripts read the same two variables.
+
+datastore_discover() {
+  VALKEY_CLI="${VALKEY_CLI:-$(command -v valkey-cli    || command -v redis-cli    || true)}"
+  VALKEY_SERVER="${VALKEY_SERVER:-$(command -v valkey-server || command -v redis-server || true)}"
+  export VALKEY_CLI VALKEY_SERVER
+}
+
+redis_url() {
+  # Resolve VALKEY_URL -> REDIS_URL -> .env -> default (matches entrypoint.sh)
+  local url="${VALKEY_URL:-${REDIS_URL:-}}"
+  if [[ -z "$url" && -f .env ]]; then
+    url=$(sed -n -E "s/^[[:space:]]*(VALKEY_URL|REDIS_URL)[[:space:]]*=[[:space:]]*[\"']?([^\"'#[:space:]]*)[\"']?[[:space:]]*(#.*)?$/\2/p" .env 2>/dev/null | head -1)
+  fi
+  echo "${url:-redis://127.0.0.1:6379}"
+}
+
+redis_host_port() {
+  url_host_port "$(redis_url)" 6379
+}
+
+redis_reachable() {
+  local rhost rport
+  read -r rhost rport < <(redis_host_port)
+  if has valkey-cli && valkey-cli -h "$rhost" -p "$rport" ping &>/dev/null; then return 0; fi
+  if has redis-cli  && redis-cli  -h "$rhost" -p "$rport" ping &>/dev/null; then return 0; fi
+  # CLI-free fallback: plain TCP connect (confirms the port is open)
+  (exec 3<>"/dev/tcp/$rhost/$rport") 2>/dev/null && { exec 3>&- 3<&-; return 0; }
+  return 1
+}
+
+# --- Config seeding -----------------------------------------------------
+#
+# etc/defaults/*.defaults.<ext> are templates; the app reads etc/*.<ext>.
+# Seed any that are missing so config resolves on a clean checkout. Skips
+# anything already present — including symlinks into OTS_DEV_CONFIG, which
+# the dev lane creates before calling this.
+
+seed_configs() {
+  local file target
+  for file in etc/defaults/*.defaults.*; do
+    [[ -f "$file" ]] || continue
+    target="etc/$(basename "$file" | sed 's/\.defaults//')"
+    if [[ -e "$target" || -L "$target" ]]; then
+      echo "OK:   $target exists"
+    else
+      cp "$file" "$target"
+      echo "Copy: $target (from $(basename "$file"))"
+    fi
+  done
+
+  # Puma config comes from etc/examples/, not etc/defaults/
+  if [[ ! -e "etc/puma.rb" && -f "etc/examples/puma.example.rb" ]]; then
+    [[ -L "etc/puma.rb" ]] && rm "etc/puma.rb"
+    cp etc/examples/puma.example.rb etc/puma.rb
+    echo "Copy: etc/puma.rb (from etc/examples/puma.example.rb)"
+  fi
+}
+
+# --- Dependencies -------------------------------------------------------
+
+# Installs are FROZEN whenever a committed lockfile exists: setup must never
+# rewrite Gemfile.lock / pnpm-lock.yaml (the fresh-clone CI lane fails on any
+# tracked-file drift, lockfiles included). Updating a lockfile is a deliberate
+# act — run the package manager directly, commit the result.
+
+install_gems() {
+  has bundle || gem install bundler
+
+  if bundle check &>/dev/null; then
+    echo "OK:   Ruby gems already installed"
+    return 0
+  fi
+
+  if [[ -f Gemfile.lock ]]; then
+    info "Installing Ruby gems (bundle install, frozen lockfile)..."
+    BUNDLE_FROZEN=true bundle install --retry 3 ||
+      die "bundle install failed in frozen mode. If you changed the Gemfile, run 'bundle install' yourself to update Gemfile.lock, commit it, then re-run bin/setup."
+  else
+    info "Fresh clone, generating lockfile (bundle install)..."
+    bundle install --retry 3
+    warn "Generated Gemfile.lock - consider committing"
+  fi
+}
+
+install_node() {
+  if [[ ! -f package.json ]]; then
+    warn "No package.json — skipping node packages"
+    return 0
+  fi
+  has pnpm || die "pnpm not found — install it first: https://pnpm.io/installation"
+  if [[ -f pnpm-lock.yaml ]]; then
+    info "Installing Node dependencies (pnpm install --frozen-lockfile)..."
+    pnpm install --frozen-lockfile ||
+      die "pnpm install failed with a frozen lockfile. If you changed package.json, run 'pnpm install' yourself to update pnpm-lock.yaml, commit it, then re-run bin/setup."
+  else
+    info "Installing Node dependencies (pnpm install)..."
+    pnpm install
+  fi
+  check_native_bindings
+}
+
+# --- Native bindings ----------------------------------------------------
+#
+# The frontend build loads platform-specific native bindings: vite loads
+# rolldown's, @tailwindcss/vite loads oxide's, and both reach a lightningcss.
+# Each binding is an optional dependency, and pnpm treats a failed download
+# of one as non-fatal: the install reports success, and `pnpm run build`
+# fails minutes later with "Cannot find native binding". Loading them right
+# after the install fails setup instead, while the download warnings are
+# still on screen.
+#
+# Each entry is a chain: "a>b" resolves b from a's install location, which
+# is how the build reaches a transitive dependency under pnpm's strict
+# layout. Every package in a chain is a regular (not optional) dependency of
+# the one before it, the first of the checkout itself; the binding is what
+# the last one loads. A chain whose first package is declared but not
+# installed (a production install skips devDependencies) is skipped: nothing
+# gets built there.
+#
+# A chain that no longer matches the dependency graph is a stale entry, not
+# a failed download: its first package is gone from package.json, or a later
+# one no longer resolves from its parent. A dependency update that does this
+# fails fresh-clone CI with a message that says to update this list.
+NATIVE_BINDING_PROBES="vite @tailwindcss/vite vite>lightningcss @tailwindcss/vite>@tailwindcss/node>lightningcss"
+
+# Prints "kind<TAB>problem<TAB>chains" once per distinct problem (empty =
+# all load). kind is "binding" or "stale". For "binding", the problem names
+# the missing platform package when the error's cause chain carries one, and
+# is the error's first line otherwise; @tailwindcss/vite imports vite, so a
+# missing rolldown binding is one problem with two chains. Exits non-zero
+# only when the probe itself cannot run.
+native_binding_failures() {
+  # shellcheck disable=SC2086  # deliberate word-split of the probe list
+  node --no-warnings --input-type=module -e '
+    import { readFileSync } from "node:fs";
+    import { createRequire } from "node:module";
+    import { pathToFileURL } from "node:url";
+    const platform = process.platform + "-" + process.arch;
+    const manifest = JSON.parse(readFileSync("package.json", "utf8"));
+    const declared = new Set(Object.keys({
+      ...manifest.dependencies, ...manifest.devDependencies, ...manifest.optionalDependencies,
+    }));
+    const failures = new Map();
+    const report = (kind, problem, names) => {
+      const key = kind + "\t" + problem;
+      failures.set(key, (failures.get(key) || []).concat(names.join(" > ")));
+    };
+    for (const chain of process.argv.slice(1)) {
+      const names = chain.split(">");
+      if (!declared.has(names[0])) {
+        report("stale", names[0] + " is not a dependency in package.json", names);
+        continue;
+      }
+      let url;
+      try {
+        url = import.meta.resolve(names[0]);
+      } catch (error) {
+        if (error.code === "ERR_MODULE_NOT_FOUND") continue;
+        throw error;
+      }
+      let stale = "";
+      for (let i = 1; i < names.length && !stale; i++) {
+        try {
+          url = pathToFileURL(createRequire(url).resolve(names[i])).href;
+        } catch (error) {
+          if (error.code !== "MODULE_NOT_FOUND") throw error;
+          stale = names[i] + " does not resolve from " + names[i - 1];
+        }
+      }
+      if (stale) {
+        report("stale", stale, names);
+        continue;
+      }
+      try {
+        await import(url);
+      } catch (error) {
+        const missing = [];
+        for (let e = error; e; e = e.cause) {
+          const m = /Cannot find module \x27([^\x27.][^\x27]*)\x27/.exec(String(e.message));
+          if (m && m[1].includes(platform)) missing.push(m[1]);
+        }
+        report("binding", missing.length ? missing.join(", ") : String(error.message).split("\n")[0], names);
+      }
+    }
+    for (const [key, chains] of failures) console.log(key + "\t" + chains.join(", "));
+  ' $NATIVE_BINDING_PROBES
+}
+
+check_native_bindings() {
+  if ! has node; then
+    warn "node not found — native bindings for the frontend build not checked"
+    return 0
+  fi
+
+  local failures kind problem chains
+  failures=$(native_binding_failures) ||
+    die "The native binding check could not run (node $(node -v)); see the error above."
+  if [[ -z "$failures" ]]; then
+    echo "OK:   Native bindings for the frontend build load"
+    return 0
+  fi
+
+  if grep -q "^binding" <<< "$failures"; then
+    err "pnpm install succeeded, but a native binding the frontend build needs does not load:"
+    while IFS=$'\t' read -r kind problem chains; do
+      if [[ "$kind" == "binding" ]]; then err "  ${problem}   (loading ${chains})"; fi
+    done <<< "$failures"
+    err "pnpm treats a failed download of an optional dependency as non-fatal, so look"
+    err "for \"GET ... error\" warnings in the pnpm install output above."
+    err "Fix: rm -rf node_modules, then re-run bin/setup (in CI, re-run the job). A plain 'pnpm install' reports \"Already up to date\" and leaves the binding missing."
+  fi
+  if grep -q "^stale" <<< "$failures"; then
+    err "NATIVE_BINDING_PROBES in tools/setup/lib.sh no longer matches the dependency graph:"
+    while IFS=$'\t' read -r kind problem chains; do
+      if [[ "$kind" == "stale" ]]; then err "  ${problem}   (probe ${chains})"; fi
+    done <<< "$failures"
+    err "Fix: update the list to the packages the build now loads its native bindings through."
+  fi
+  exit 1
+}
+
+# --- Playwright browsers (test lane only) --------------------------------
+#
+# tests/browser/saml_callback.mjs drives real chromium/firefox/webkit via
+# @playwright/test, and CI installs that trio before running it (ci.yml).
+# The dev lane never does this: the binaries are hundreds of MB and only
+# the browser spec needs them. Skip with OTS_SETUP_SKIP_BROWSERS=1.
+#
+# Only the engine list is ours; where the binaries live and which revision
+# each engine expects is the package's manifest, so the presence probe asks
+# @playwright/test for executablePath() exactly as the harness does.
+PLAYWRIGHT_BROWSERS="chromium firefox webkit"
+
+# Prints the engines whose binary is absent (empty = all present). Exit 1
+# when the probe itself cannot run (no node, no node_modules).
+playwright_missing_browsers() {
+  has node || return 1
+  [[ -d node_modules/@playwright/test ]] || return 1
+  node --input-type=module -e '
+    import { chromium, firefox, webkit } from "@playwright/test";
+    import { existsSync } from "node:fs";
+    const engines = { chromium, firefox, webkit };
+    console.log(Object.keys(engines).filter((n) => !existsSync(engines[n].executablePath())).join(" "));
+  ' 2>/dev/null
+}
+
+install_playwright_browsers() {
+  if [[ -n "${OTS_SETUP_SKIP_BROWSERS:-}" ]]; then
+    echo "Skip: OTS_SETUP_SKIP_BROWSERS set — Playwright browsers not installed (tests/browser will not run)"
+    return 0
+  fi
+
+  local missing
+  if missing=$(playwright_missing_browsers) && [[ -z "$missing" ]]; then
+    echo "OK:   Playwright browsers present ($PLAYWRIGHT_BROWSERS)"
+    return 0
+  fi
+
+  # No --with-deps: that path runs sudo/apt, which setup never does.
+  info "Installing Playwright browsers (pnpm exec playwright install $PLAYWRIGHT_BROWSERS)..."
+  # shellcheck disable=SC2086  # deliberate word-split of the engine list
+  if pnpm exec playwright install $PLAYWRIGHT_BROWSERS; then
+    echo "OK:   Playwright browsers installed"
+  else
+    warn "Playwright browser install failed — tests/browser/saml_callback_spec.rb will not run."
+    warn "  Retry: pnpm playwright:install   (or skip: OTS_SETUP_SKIP_BROWSERS=1)"
+  fi
+  if [[ "$(uname -s)" == "Linux" ]]; then
+    echo "Note: the browsers may need OS packages on Linux. Run it yourself if launches fail:"
+    echo "      pnpm exec playwright install-deps   (uses sudo/apt; setup never does)"
+  fi
+}
+
+# --- Generated artifacts ------------------------------------------------
+#
+# Schemas and locales are backend inputs, not frontend build output: the
+# Ruby side reads generated/schemas/**/*.schema.json and the compiled locale
+# JSON at runtime, and the RSpec fast suite asserts on the schemas (TR-01).
+# They are normally a side-effect of `pnpm run build`, which setup
+# deliberately never runs, so generate them explicitly.
+
+generate_artifacts() {
+  echo "Generating merged locale files (pnpm run locales:sync)..."
+  if pnpm run locales:sync; then
+    echo "OK:   Locales generated in generated/locales/"
+  else
+    warn "Locale generation failed (pnpm run locales:sync) — continuing."
+    warn "  It needs python3; some i18n-dependent code and tests will fail until it succeeds."
+  fi
+
+  echo "Generating JSON schemas (pnpm run schemas:json:generate)..."
+  if pnpm run schemas:json:generate; then
+    echo "OK:   JSON schemas generated"
+  else
+    warn "Schema generation failed (pnpm run schemas:json:generate) — some specs may fail."
+  fi
+}
+
+# --- Secrets ------------------------------------------------------------
+
+ensure_secrets() {
+  if grep -qE '^SECRET=.+' .env 2>/dev/null && ! grep -qE '^SECRET=CHANGEME' .env 2>/dev/null; then
+    echo "OK:   SECRET already set in .env"
+  else
+    echo "SECRET is empty or CHANGEME — generating secrets (rake ots:secrets)..."
+    bundle exec rake ots:secrets || warn "rake ots:secrets failed — set SECRET manually in .env"
+  fi
+}
+
+# --- direnv / .envrc ----------------------------------------------------
+#
+# One canonical .envrc, shared by every lane. Mode is controlled by the
+# .test-mode marker file: `bin/setup --test` creates it, `bin/setup`
+# (dev) removes it.
+#
+# The file carries a rev stamp (`# ots-envrc-rev: N`). Bump ENVRC_REV
+# whenever the template below changes: generate_envrc regenerates stale
+# files (backing up the old one to .envrc.bak) and `bin/setup --doctor`
+# flags a mismatch. A rev-current file is left alone so local
+# customisations survive re-runs.
+
+ENVRC_REV=3
+
+# envrc_rev_of FILE — the rev stamp of an .envrc, empty if unstamped.
+envrc_rev_of() {
+  sed -n 's/^# ots-envrc-rev: *//p' "${1:-.envrc}" 2>/dev/null | head -1
+}
+
+generate_envrc() {
+  if [[ -f ".envrc" ]]; then
+    if [[ "$(envrc_rev_of .envrc)" == "$ENVRC_REV" ]]; then
+      echo "OK:   .envrc current (rev $ENVRC_REV)"
+      return 0
+    fi
+    mv ".envrc" ".envrc.bak"
+    echo "Note: .envrc was stale (older rev or pre-rev) — regenerating."
+    echo "      Previous file kept at .envrc.bak; re-apply any local customisations."
+  else
+    echo "Creating .envrc..."
+  fi
+
+  # Unquoted heredoc so ENVRC_REV expands — keep the body free of other $/backticks.
+  cat > ".envrc" << ENVRC
+# .envrc — generated by bin/setup
+# ots-envrc-rev: ${ENVRC_REV}
+#
+# direnv loads this automatically when you cd into the checkout.
+# Mode is controlled by the .test-mode file:
+#   bin/setup --test  creates it  → test mode
+#   bin/setup         removes it  → dev mode
+
+source_up_if_exists
+
+# Explicit watch list: dotenv_if_exists also watches, but only the files the
+# active branch touches. Watching all of them (existing or not) means edits —
+# including through the .env symlink — and file creation both trigger a reload.
+watch_file .test-mode .env .env.local .env.test .env.test.example
+
+if [ -f .test-mode ]; then
+  export OTS_ENV_LOADED=test
+  echo "direnv: TEST MODE (.test-mode) active - RACK_ENV=test. Exit: bin/setup" >&2
+  dotenv_if_exists .env.test
+else
+  export OTS_ENV_LOADED=dev
+  export RACK_ENV=development
+
+  # source_up_if_exists can inherit a TEST MODE environment from a parent
+  # checkout (worktrees live under the main checkout; if it has .test-mode,
+  # its .env.test is already exported here). Keys that .env does not also
+  # define survive into dev mode — e.g. PGPORT=2154 retargets a port-less
+  # AUTH_DATABASE_URL (...@authdb/...) at the test Postgres, which has no
+  # ots_* roles; ENABLE_*/HMAC_SECRET/STDOUT_SYNC leak the same way. Clear
+  # every key the test env file declares before loading .env. A dev-only
+  # checkout has no .env.test, so fall back to the tracked example.
+  for _ots_env_file in .env.test .env.test.example; do
+    if [ -f "\$_ots_env_file" ]; then
+      for _ots_var in \$(sed -nE 's/^(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=.*/\2/p' "\$_ots_env_file"); do
+        unset "\$_ots_var"
+      done
+      break
+    fi
+  done
+  unset _ots_env_file _ots_var
+
+  dotenv_if_exists
+
+  # .env.local overrides happen last if the file exists. And only in dev mode.
+  #
+  # Because each dotenv call just exports variables into the same sub-shell, the order
+  # you write them determines precedence — later calls override earlier ones. So
+  # .env.local values would win over .env values in the above setup.
+  #
+  dotenv_if_exists .env.local
+fi
+ENVRC
+  echo "Created: .envrc (rev $ENVRC_REV)"
+}
+
+# --- New-worktree setup (opt-in) ----------------------------------------
+#
+# tools/setup/new-worktree.sh runs from the post-checkout hook and sets
+# up each worktree `git worktree add` creates, once a clone opts in with
+# `git config ots.worktreeSetup true`.
+#
+# Only the clone's own config counts. A global or system setting would
+# turn the hook on in every clone that installs it, including one kept for
+# reviewing untrusted branches. The setting lives in the common git dir,
+# so every worktree of the clone sees it.
+
+worktree_setup_enabled() {
+  [[ "$(git config --local --type=bool --get ots.worktreeSetup 2>/dev/null)" == "true" ]]
+}
+
+# worktree_name DIR — the directory's name, or its parent's when the
+# directory is a nested worktree: one named after the main checkout, or
+# after its own grandparent, which is how the worktrees/<repo>/<name>/<repo>
+# layout looks whatever the main checkout is called
+# (worktrees/onetimesecret/dev-api/onetimesecret is "dev-api").
+worktree_name() {
+  local dir="$1" name main
+  name="$(basename "$dir")"
+  main="$(dirname "$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir)")"
+  if [[ "$name" == "$(basename "$main")" || "$name" == "$(basename "$(dirname "$(dirname "$dir")")")" ]]; then
+    basename "$(dirname "$dir")"
+  else
+    echo "$name"
+  fi
+}
+
+# worktree_setup_lane DIR — the bin/setup lane for a new worktree:
+# --dev when its name starts with "dev", --test otherwise.
+worktree_setup_lane() {
+  case "$(worktree_name "$1")" in
+    dev*) echo "--dev" ;;
+    *)    echo "--test" ;;
+  esac
+}
+
+# --- Misc shared state --------------------------------------------------
+
+auth_mode() {
+  # Read from env or .env file, defaulting to simple
+  local mode
+  mode="$(env_or_dotenv AUTHENTICATION_MODE)"
+  echo "${mode:-simple}"
+}
+
+is_initialized() {
+  bundle exec bin/ots install check 2>/dev/null
+}
+
+require_checkout_root() {
+  [[ -f "Gemfile" ]] || die "Run this from an OTS checkout root"
+}

@@ -1,0 +1,74 @@
+# How to triage "can't login / can't create account"
+
+## Start here
+
+```bash
+bin/ots customers diagnose <email|extid|account-id>   # --json, --full, --audit-limit N
+```
+
+Or Colonel → customer detail → **Account Diagnostics** panel
+(`GET /api/colonel/users/:user_id/diagnostics`). No SSH needed.
+
+One call covers account state, lockout/login failures, verification and reset
+keys, MFA, active sessions, the Rodauth auth audit log, and the login rate
+limiter. Findings name the blocking condition (`locked_out`, `rate_limited`,
+`unverified`, `verification_stale`, `email_drift`, `no_password`, `sso_only`,
+`orphaned_auth_account`, `suspended`, `authdb_unavailable`,
+`evidence_incomplete`, `workspace_collision_*`, blocked/incomplete organization
+context, `not_found`). An
+identifier with no customer is still probed against the authdb — by email,
+extid, or numeric account id — so orphans and "not in this region" come back as
+findings, not 404s. Exit code 1 = nothing found; loop it across regions.
+
+`authdb_unavailable` outranks everything else: the auth database did not answer,
+so no account state could be read and existence is unknown. Stop triaging the
+account and go look at the database — while it is unreachable every password
+login fails. It is NOT the same as simple auth mode (no authdb by design), which
+reports no finding at all.
+
+`evidence_incomplete` means the diagnosis is PARTIAL: at least one source — the
+customer record, a Rodauth sidecar table, or the login rate limiter — did not
+answer, so every condition not flagged is unproven rather than ruled out. The
+finding lists each unreadable section with the error it returned; that reason is
+what tells you which datastore to look at. Sections degrade one at a time, so
+this fires while everything else still reads clean (a dropped or ungranted
+table, a statement timeout, a Valkey WRONGTYPE on one limiter key). States where
+nothing is actually wrong do NOT raise it: simple auth mode, no accounts row to
+read, a whole-authdb failure (that is `authdb_unavailable`), and an identifier
+with no address to rate-limit (an orphan looked up by extid or account id).
+
+## Failure buckets
+
+1. **Account state** — unverified, closed, locked out, Customer↔auth drift. → diagnose. An SSO user whose colonel/admin role has no effect is Redis-side drift that diagnose does not see → [sso-accounts-unverified.md](./sso-accounts-unverified.md)
+2. **Rate limiting** — Valkey limiters block before Rodauth sees the attempt. → diagnose
+3. **Email delivery** — verification/reset email never sent, bounced, suppressed.
+4. **Surface config** — custom domain with signin/signup default-OFF (v0.26.2 regression) or `restrict_to: 'sso'`; a `restrict_to` whose method is unavailable on that host, which fails closed to "sign-in unavailable" rather than re-offering the other methods (ADR-034#degradation-is-fail-closed); wrong region.
+5. **Client-side** — CSP blocking form-action (#3848/#3836; custom-domain SSO button dead → [tenant-sso-csp-form-action.md](./tenant-sso-csp-form-action.md)), cookie dropped behind TLS proxy (#3837), JS errors.
+6. **Policy rejection** — password requirements, MFA/webauthn failures.
+
+## When diagnose is clean
+
+Clean means an EMPTY findings list and organization-context evidence that is
+not blocked or incomplete. A result carrying `evidence_incomplete`, an
+unavailable organization-context section, or a workspace collision is NOT
+clean: the required reads did not complete or default-workspace provisioning is
+known to fail. Clear those sources and re-run before working this table —
+otherwise you are here on the strength of evidence that was never collected.
+
+For an ownerless default workspace or occupied contact-email index, follow
+[ownerless-workspace-email-index-collision.md](./ownerless-workspace-email-index-collision.md).
+Do not attach retained workspace data to a recreated account based only on a
+matching email address. An `account_provisioning_failed` finding is a latched
+409 that only `ots customers doctor --repair` (on evidence) or a resolved
+collision releases; a 503 `AccountProvisioningUnavailable` from the same
+surface is NOT latched and retries on the next request — see the
+"Provisioning latch (409) versus temporary unavailability (503)" section of
+that runbook.
+
+| Question                             | Tool                                                                                      |
+| :----------------------------------- | :---------------------------------------------------------------------------------------- |
+| Which surface/region? Custom domain? | Ask the user. Custom domain → check SigninConfig first                                    |
+| Did the verification email go out?   | Colonel email provider status/rates; `ots email test/validate`. No per-recipient send log |
+| Client-side failure?                 | Sentry, filtered to /auth routes by time (email is scrubbed)                              |
+| Index integrity?                     | `ots customers doctor <email>`                                                            |
+| SSO user's system role not effective? | `ots customers doctor <email>` → [sso-accounts-unverified.md](./sso-accounts-unverified.md) |

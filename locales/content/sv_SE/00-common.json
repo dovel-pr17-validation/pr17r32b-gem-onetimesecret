@@ -1,0 +1,1551 @@
+{
+  "web.COMMON.broadcast": {
+    "text": "Sändning",
+    "skip": true,
+    "note": "empty source"
+  },
+  "web.COMMON.tagline": {
+    "text": "Säkra länkar som bara fungerar en gång",
+    "source_hash": "9da7aece"
+  },
+  "web.COMMON.powered_by": {
+    "text": "Drivs av",
+    "source_hash": "fdc5d2e9"
+  },
+  "web.COMMON.website_url": {
+    "text": "https://onetimesecret.com/sv",
+    "source_hash": "440f5303"
+  },
+  "web.COMMON.button_generate_secret_short": {
+    "text": "Generera lösenord",
+    "source_hash": "fdcbfcc7"
+  },
+  "web.COMMON.generate_password_disabled": {
+    "text": "Generera lösenord är inaktiverat när formuläret är giltigt",
+    "source_hash": "dc0e2b8c"
+  },
+  "web.COMMON.email_placeholder": {
+    "text": "t.ex. tom{'@'}myspace.com",
+    "source_hash": "f2350739"
+  },
+  "web.COMMON.password_placeholder": {
+    "text": "Ange ditt lösenord",
+    "source_hash": "c06bf967"
+  },
+  "web.COMMON.custom_domains_title": {
+    "text": "Anpassade domäner",
+    "source_hash": "6170ab94"
+  },
+  "web.COMMON.custom_domains_description": {
+    "text": "Stärk relationer och bygg förtroende med dina egna varumärkta hemliga länkar.",
+    "source_hash": "71fddc05"
+  },
+  "web.COMMON.get_started_button": {
+    "text": "Kom igång",
+    "source_hash": "983f3110"
+  },
+  "web.COMMON.confirm_password_placeholder": {
+    "text": "Bekräfta ditt lösenord",
+    "source_hash": "bfd8c343"
+  },
+  "web.COMMON.header_settings": {
+    "text": "Inställningar",
+    "source_hash": "74a883a0"
+  },
+  "web.COMMON.submit_with": {
+    "text": "Skicka",
+    "source_hash": "155f816c"
+  },
+  "web.COMMON.submitting": {
+    "text": "Skickar...",
+    "source_hash": "64115d5b"
+  },
+  "web.COMMON.processing": {
+    "text": "Bearbetar...",
+    "source_hash": "f40a853e"
+  },
+  "web.COMMON.description": {
+    "text": "Håll känslig information borta från dina chattloggar och e-post. Dela en hemlig länk som bara är tillgänglig en gång.",
+    "source_hash": "4c895f85"
+  },
+  "web.COMMON.incorrect_passphrase": {
+    "text": "Felaktig lösenfras",
+    "source_hash": "a55f9636"
+  },
+  "web.COMMON.keywords": {
+    "text": "hemlighet,lösenordsgenerator,dela en hemlighet,engångs",
+    "source_hash": "52728258"
+  },
+  "web.COMMON.button_create_secret": {
+    "text": "Skapa en hemlig länk",
+    "source_hash": "a3e07632"
+  },
+  "web.COMMON.button_generate_secret": {
+    "text": "Eller generera ett slumpmässigt lösenord",
+    "source_hash": "8c1c764b"
+  },
+  "web.COMMON.secret_privacy_options": {
+    "text": "Integritetsalternativ",
+    "source_hash": "643a6921"
+  },
+  "web.COMMON.secret_passphrase": {
+    "text": "Lösenfras",
+    "source_hash": "e7611f05"
+  },
+  "web.COMMON.secret_passphrase_hint": {
+    "text": "Ett ord eller en fras som är svår att gissa",
+    "source_hash": "29d0cf13"
+  },
+  "web.COMMON.secret_recipient_address": {
+    "text": "Mottagaradress",
+    "source_hash": "f6f6311d"
+  },
+  "web.COMMON.secret_placeholder": {
+    "text": "Hemligt innehåll skrivs här...",
+    "source_hash": "54630bab"
+  },
+  "web.COMMON.header_create_account": {
+    "text": "Skapa konto",
+    "source_hash": "0dffe234"
+  },
+  "web.COMMON.about": {
+    "text": "Om",
+    "source_hash": "4efca0d1"
+  },
+  "web.COMMON.header_sign_in": {
+    "text": "Logga in",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.COMMON.header_dashboard": {
+    "text": "Konto",
+    "source_hash": "7e1b0d56"
+  },
+  "web.COMMON.header_logout": {
+    "text": "Logga ut",
+    "source_hash": "d0527e4b"
+  },
+  "web.COMMON.secret": {
+    "text": "Hemlighet | Hemligheter",
+    "source_hash": "c7ebd045"
+  },
+  "web.COMMON.recent": {
+    "text": "Senaste",
+    "source_hash": "690dbe9d"
+  },
+  "web.COMMON.not_set": {
+    "text": "Ej inställt",
+    "source_hash": "4895f731"
+  },
+  "web.COMMON.word_edit": {
+    "text": "Redigera",
+    "source_hash": "464c4ffd"
+  },
+  "web.COMMON.word_save": {
+    "text": "Spara",
+    "source_hash": "1509f561"
+  },
+  "web.COMMON.burn": {
+    "text": "Radera permanent",
+    "source_hash": "926c5b43"
+  },
+  "web.COMMON.burned": {
+    "text": "Raderad permanent",
+    "source_hash": "6d747b33"
+  },
+  "web.COMMON.expires_in": {
+    "text": "Går ut om",
+    "source_hash": "de996752"
+  },
+  "web.COMMON.burn_this_secret": {
+    "text": "Radera denna hemlighet permanent",
+    "source_hash": "ffff30e8"
+  },
+  "web.COMMON.burn_this_secret_hint": {
+    "text": "Permanent radering kommer att ta bort hemligheten innan den har lästs (klicka för att bekräfta)",
+    "source_hash": "c6a8b145"
+  },
+  "web.COMMON.burn_this_secret_confirm_hint": {
+    "text": "Permanent radering kan inte ångras",
+    "source_hash": "ab774967"
+  },
+  "web.COMMON.msg_check_email": {
+    "text": "Kontrollera din e-post",
+    "source_hash": "77322879"
+  },
+  "web.COMMON.click_to_continue": {
+    "text": "Klicka för att visa →",
+    "source_hash": "41658f99"
+  },
+  "web.COMMON.click_to_verify": {
+    "text": "Fortsätt för att verifiera ditt konto:",
+    "source_hash": "954d6fc9"
+  },
+  "web.COMMON.error_secret": {
+    "text": "Du angav inget att dela",
+    "source_hash": "9ac6488f"
+  },
+  "web.COMMON.error_passphrase": {
+    "text": "Dubbelkolla den lösenfrasen",
+    "source_hash": "b582f3a6"
+  },
+  "web.COMMON.enter_passphrase_here": {
+    "text": "Ange lösenfrasen här",
+    "source_hash": "ee855dad"
+  },
+  "web.COMMON.view_secret": {
+    "text": "Visa hemlighet",
+    "source_hash": "01835e7c"
+  },
+  "web.COMMON.careful_only_see_once": {
+    "text": "Var försiktig: vi visar den bara en gång.",
+    "source_hash": "d29e2820"
+  },
+  "web.COMMON.warning": {
+    "text": "Varning",
+    "source_hash": "e981ddae"
+  },
+  "web.COMMON.oops": {
+    "text": "Hoppsan!",
+    "source_hash": "8344947a"
+  },
+  "web.COMMON.error": {
+    "text": "Fel",
+    "source_hash": "54a0e8c1"
+  },
+  "web.COMMON.unexpected_error": {
+    "text": "Ett oväntat fel uppstod. Vänligen försök igen.",
+    "source_hash": "e198269c"
+  },
+  "web.COMMON.secret_was_truncated": {
+    "text": "Meddelandet blev avkortat",
+    "source_hash": "1d1730d4"
+  },
+  "web.COMMON.signup_for_more": {
+    "text": "Registrera dig för mer",
+    "source_hash": "cc1421d0"
+  },
+  "web.COMMON.login_to_your_account": {
+    "text": "Logga in på ditt konto",
+    "source_hash": "62f1fe13"
+  },
+  "web.COMMON.sent_to": {
+    "text": "Skickad till:",
+    "source_hash": "e79c8bcb"
+  },
+  "web.COMMON.field_email": {
+    "text": "E-post",
+    "source_hash": "969ccbd3"
+  },
+  "web.COMMON.field_password": {
+    "text": "Lösenord",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.COMMON.field_password2": {
+    "text": "Bekräfta lösenord",
+    "source_hash": "c292210c"
+  },
+  "web.COMMON.button_create_account": {
+    "text": "Skapa konto",
+    "source_hash": "0dffe234"
+  },
+  "web.COMMON.share_a_secret": {
+    "text": "Dela en hemlighet",
+    "source_hash": "5384461b"
+  },
+  "web.COMMON.title_home": {
+    "text": "Hem",
+    "source_hash": "3a786953"
+  },
+  "web.COMMON.word_none": {
+    "text": "Ingen",
+    "source_hash": "dc937b59"
+  },
+  "web.COMMON.word_burned": {
+    "text": "raderad permanent",
+    "source_hash": "2f79ea62"
+  },
+  "web.COMMON.word_received": {
+    "text": "mottagen",
+    "source_hash": "318c5ad5"
+  },
+  "web.COMMON.word_confirm": {
+    "text": "Bekräfta",
+    "source_hash": "eebdd24a"
+  },
+  "web.COMMON.word_cancel": {
+    "text": "Avbryt",
+    "source_hash": "19766ed6"
+  },
+  "web.COMMON.word_continue": {
+    "text": "Fortsätt",
+    "source_hash": "31fbef16"
+  },
+  "web.COMMON.word_done": {
+    "text": "Klar",
+    "source_hash": "11a6767d"
+  },
+  "web.COMMON.back": {
+    "text": "Tillbaka",
+    "source_hash": "76900f1b"
+  },
+  "web.COMMON.feedback_text": {
+    "text": "Dela dina tankar, idéer eller erfarenheter...",
+    "source_hash": "6bd0351a"
+  },
+  "web.COMMON.button_send_feedback": {
+    "text": "Skicka återkoppling",
+    "source_hash": "84195de9"
+  },
+  "web.COMMON.verification_sent_to": {
+    "text": "En verifiering skickades till",
+    "source_hash": "62da29c0"
+  },
+  "web.COMMON.autoverified_success": {
+    "text": "Konto skapat. Vänligen logga in.",
+    "source_hash": "fd3610bf"
+  },
+  "web.COMMON.signup_success_generic": {
+    "text": "Om ett konto med denna e-postadress finns kommer du att få ett verifieringsmeddelande.",
+    "source_hash": "f596cdd0"
+  },
+  "web.COMMON.burn_this_secret_aria": {
+    "text": "Radera denna hemlighet permanent",
+    "source_hash": "0a7afc29"
+  },
+  "web.COMMON.burn_confirmation_title": {
+    "text": "Vänligen bekräfta",
+    "source_hash": "dcd78dfb"
+  },
+  "web.COMMON.burn_confirmation_message": {
+    "text": "Är du säker på att du vill radera denna hemlighet permanent? Denna åtgärd kan inte ångras.",
+    "source_hash": "5dde5dd9"
+  },
+  "web.COMMON.confirm_burn": {
+    "text": "Ja, radera denna hemlighet permanent",
+    "source_hash": "6e5b02a7"
+  },
+  "web.COMMON.burn_security_notice": {
+    "text": "Permanent radering kommer att ta bort hemligheten innan den har mottagits.",
+    "source_hash": "b4c8bbc3"
+  },
+  "web.COMMON.share_link_securely": {
+    "text": "Dela denna länk separat från andra uppgifter av säkerhetsskäl.",
+    "source_hash": "c46e6204"
+  },
+  "web.COMMON.copied_to_clipboard": {
+    "text": "Kopierat till urklipp",
+    "source_hash": "d37078fe"
+  },
+  "web.COMMON.button_create_incoming": {
+    "text": "Skapa inkommande",
+    "source_hash": "5bb95106"
+  },
+  "web.COMMON.faq_title": {
+    "text": "Vanliga frågor",
+    "source_hash": "bd7394ac"
+  },
+  "web.COMMON.verification_not_valid": {
+    "text": "Verifieringen är inte giltig",
+    "source_hash": "abf07ced"
+  },
+  "web.COMMON.verification_already_logged_in": {
+    "text": "Kan inte verifiera ett konto när du redan är inloggad",
+    "source_hash": "f0a17c5f"
+  },
+  "web.COMMON.show_password": {
+    "text": "Visa lösenord",
+    "source_hash": "6aeaa6a5"
+  },
+  "web.COMMON.hide_password": {
+    "text": "Dölj lösenord",
+    "source_hash": "a60a56c5"
+  },
+  "web.COMMON.minimum_8_characters": {
+    "text": "Lösenordet måste vara minst 8 tecken",
+    "source_hash": "e3b8d09d"
+  },
+  "web.COMMON.password_requirements": {
+    "text": "Lösenordet måste vara minst 8 tecken långt",
+    "source_hash": "e5054833"
+  },
+  "web.COMMON.passwords_do_not_match": {
+    "text": "Lösenorden matchar inte",
+    "source_hash": "b6eb82cd"
+  },
+  "web.COMMON.form_field_required": {
+    "text": "Detta fält är obligatoriskt",
+    "source_hash": "6876f12e"
+  },
+  "web.COMMON.form_processing": {
+    "text": "Bearbetar din förfrågan",
+    "source_hash": "a512a73b"
+  },
+  "web.COMMON.remember_me_description": {
+    "text": "Håll mig inloggad i 30 dagar",
+    "source_hash": "6e069c11"
+  },
+  "web.COMMON.redirecting": {
+    "text": "Omdirigerar...",
+    "source_hash": "cd23991b"
+  },
+  "web.COMMON.continue": {
+    "text": "Fortsätt",
+    "source_hash": "31fbef16"
+  },
+  "web.COMMON.are_you_sure": {
+    "text": "Är du säker?",
+    "source_hash": "f0762c4f"
+  },
+  "web.COMMON.caution_zone": {
+    "text": "Zon för noggrant övervägande",
+    "source_hash": "fe27a3a8"
+  },
+  "web.COMMON.user_menu": {
+    "text": "Användarmeny",
+    "source_hash": "6fa25be1"
+  },
+  "web.COMMON.security": {
+    "text": "Säkerhet",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.COMMON.manage": {
+    "text": "Hantera",
+    "source_hash": "5a234448"
+  },
+  "web.COMMON.loading": {
+    "text": "Laddar...",
+    "source_hash": "47d2a515"
+  },
+  "web.COMMON.save_changes": {
+    "text": "Spara ändringar",
+    "source_hash": "35322b5b"
+  },
+  "web.COMMON.saving": {
+    "text": "Sparar...",
+    "source_hash": "dc85af8f"
+  },
+  "web.COMMON.adding_ellipses": {
+    "text": "Lägger till",
+    "source_hash": "0a6691ef"
+  },
+  "web.COMMON.e_g_example": {
+    "text": "t.ex.",
+    "source_hash": "a79b4bf9"
+  },
+  "web.COMMON.example_placeholder": {
+    "text": "t.ex. {example}",
+    "source_hash": "cc921aaa"
+  },
+  "web.COMMON.status": {
+    "text": "Status",
+    "source_hash": "920e413c"
+  },
+  "web.COMMON.escape": {
+    "text": "Escape",
+    "source_hash": "037c9684"
+  },
+  "web.COMMON.active": {
+    "text": "Aktiv",
+    "source_hash": "92340695"
+  },
+  "web.COMMON.preview": {
+    "text": "Förhandsgranskning",
+    "source_hash": "324b134f"
+  },
+  "web.COMMON.remove": {
+    "text": "Ta bort",
+    "source_hash": "c3812fc4"
+  },
+  "web.COMMON.press_esc_to_close": {
+    "text": "Tryck ESC för att stänga",
+    "source_hash": "5aa83883"
+  },
+  "web.COMMON.enter": {
+    "text": "Enter",
+    "source_hash": "dc8659db"
+  },
+  "web.COMMON.important": {
+    "text": "Viktigt",
+    "source_hash": "ddca9a57"
+  },
+  "web.COMMON.language": {
+    "text": "Språk",
+    "source_hash": "a4fe6526"
+  },
+  "web.COMMON.theme": {
+    "text": "Tema",
+    "source_hash": "efb52e71"
+  },
+  "web.COMMON.appearance": {
+    "text": "Utseende",
+    "source_hash": "3907fa7f"
+  },
+  "web.COMMON.done": {
+    "text": "Klar",
+    "source_hash": "11a6767d"
+  },
+  "web.COMMON.end": {
+    "text": "Slut",
+    "source_hash": "f4db1e48"
+  },
+  "web.COMMON.general": {
+    "text": "Allmänt",
+    "source_hash": "c910d474"
+  },
+  "web.COMMON.note": {
+    "text": "Notera",
+    "source_hash": "d8da2c49"
+  },
+  "web.COMMON.monthly": {
+    "text": "Månadsvis",
+    "source_hash": "9b11f6b7"
+  },
+  "web.COMMON.yearly": {
+    "text": "Årlig",
+    "source_hash": "6e69b59e"
+  },
+  "web.COMMON.go_on_then": {
+    "text": "Fortsätt då.",
+    "source_hash": "fb697cc7"
+  },
+  "web.COMMON.loading_ellipses": {
+    "text": "Laddar...",
+    "source_hash": "47d2a515"
+  },
+  "web.COMMON.not_received": {
+    "text": "EJ MOTTAGEN",
+    "source_hash": "d84ee92c"
+  },
+  "web.COMMON.confirm_password": {
+    "text": "Bekräfta lösenord",
+    "source_hash": "5ac265f3"
+  },
+  "web.COMMON.new_password": {
+    "text": "Nytt lösenord",
+    "source_hash": "3dd9df44"
+  },
+  "web.COMMON.email_address": {
+    "text": "E-postadress",
+    "source_hash": "f2488fd4"
+  },
+  "web.COMMON.switch": {
+    "text": "byt",
+    "source_hash": "78b49fb2"
+  },
+  "web.COMMON.features": {
+    "text": "Funktioner",
+    "source_hash": "5697d03d"
+  },
+  "web.COMMON.not_found": {
+    "text": "Hittades inte",
+    "source_hash": "0019dfc4"
+  },
+  "web.COMMON.emoji_x": {
+    "text": "❌",
+    "source_hash": "2b2966a5"
+  },
+  "web.COMMON.emoji_checkmark": {
+    "text": "✅",
+    "source_hash": "1d456424"
+  },
+  "web.COMMON.supported": {
+    "text": "Stöds",
+    "source_hash": "c1658000"
+  },
+  "web.COMMON.version": {
+    "text": "Version",
+    "source_hash": "dd167905"
+  },
+  "web.COMMON.other": {
+    "text": "Annat",
+    "source_hash": "f97e9da0"
+  },
+  "web.COMMON.min_width_1024px": {
+    "text": "(min-width: 1024px)",
+    "source_hash": "c8a306d0"
+  },
+  "web.COMMON.ctrl_enter": {
+    "text": "Ctrl + Enter",
+    "source_hash": "78192e6e"
+  },
+  "web.COMMON.enter_0": {
+    "text": "⌘ + Enter",
+    "source_hash": "558acbab"
+  },
+  "web.COMMON.mac": {
+    "text": "Mac",
+    "source_hash": "8b3795aa"
+  },
+  "web.COMMON.email_address_copied_to_clipboard": {
+    "text": "E-postadress kopierad till urklipp!",
+    "source_hash": "23238b4e"
+  },
+  "web.COMMON.value": {
+    "text": "Värde",
+    "source_hash": "8e37953d"
+  },
+  "web.COMMON.host": {
+    "text": "Värd",
+    "source_hash": "4a823118"
+  },
+  "web.COMMON.type": {
+    "text": "Typ",
+    "source_hash": "baaddf70"
+  },
+  "web.COMMON.previous": {
+    "text": "Föregående",
+    "source_hash": "a57b08a4"
+  },
+  "web.COMMON.next": {
+    "text": "Nästa",
+    "source_hash": "1ff57a29"
+  },
+  "web.COMMON.password_strength": {
+    "text": "Lösenordsstyrka:",
+    "source_hash": "663d6499"
+  },
+  "web.COMMON.great": {
+    "text": "Utmärkt",
+    "source_hash": "c8cc1c7b"
+  },
+  "web.COMMON.pretty_good": {
+    "text": "Ganska bra",
+    "source_hash": "521a41b6"
+  },
+  "web.COMMON.fair": {
+    "text": "Acceptabel",
+    "source_hash": "f7b19afc"
+  },
+  "web.COMMON.meh": {
+    "text": "Sådär",
+    "source_hash": "8b0d6190"
+  },
+  "web.COMMON.not_great": {
+    "text": "Inte bra",
+    "source_hash": "00561207"
+  },
+  "web.COMMON.open_options": {
+    "text": "Öppna alternativ",
+    "source_hash": "3dc08503"
+  },
+  "web.COMMON.inactive": {
+    "text": "Inaktiv",
+    "source_hash": "ac7c949f"
+  },
+  "web.COMMON.an_error_occurred": {
+    "text": "Ett fel uppstod",
+    "source_hash": "ddf785b7"
+  },
+  "web.COMMON.copy_secret_to_clipboard": {
+    "text": "Kopiera hemlighet till urklipp",
+    "source_hash": "a2ceff6d"
+  },
+  "web.COMMON.secret_copied_to_clipboard": {
+    "text": "Hemlighet kopierad till urklipp",
+    "source_hash": "da84ff02"
+  },
+  "web.COMMON.double_check_that_passphrase": {
+    "text": "Dubbelkolla den lösenfrasen",
+    "source_hash": "b582f3a6"
+  },
+  "web.COMMON.press_copy_button_below": {
+    "text": "Tryck på kopieringsknappen nedan.",
+    "source_hash": "77fcf6fb"
+  },
+  "web.COMMON.external_link": {
+    "text": "Extern länk",
+    "source_hash": "be6f6527"
+  },
+  "web.LABELS.view_toggle.show": {
+    "text": "Visa",
+    "source_hash": "0df6f1ca"
+  },
+  "web.LABELS.view_toggle.hide": {
+    "text": "Dölj",
+    "source_hash": "ac20a57b"
+  },
+  "web.LABELS.view_toggle.show_more": {
+    "text": "Visa mer",
+    "source_hash": "ba8a80fd"
+  },
+  "web.LABELS.view_toggle.show_less": {
+    "text": "Visa mindre",
+    "source_hash": "0264d7b0"
+  },
+  "web.LABELS.enable": {
+    "text": "Aktivera",
+    "source_hash": "5342e09f"
+  },
+  "web.LABELS.disable": {
+    "text": "Inaktivera",
+    "source_hash": "b7e3e4aa"
+  },
+  "web.LABELS.stats": {
+    "text": "Statistik",
+    "source_hash": "b4a73657"
+  },
+  "web.LABELS.timeline": {
+    "text": "Tidslinje",
+    "source_hash": "9dcff98e"
+  },
+  "web.LABELS.lifespan": {
+    "text": "Livslängd",
+    "source_hash": "58994285"
+  },
+  "web.LABELS.expiration_time": {
+    "text": "Utgångstid",
+    "source_hash": "c5db84a8"
+  },
+  "web.LABELS.secret_ttl": {
+    "text": "Går ut om",
+    "source_hash": "de996752"
+  },
+  "web.LABELS.close": {
+    "text": "Stäng",
+    "source_hash": "7d9eb7ac"
+  },
+  "web.LABELS.loading": {
+    "text": "Laddar...",
+    "source_hash": "47d2a515"
+  },
+  "web.LABELS.cancel": {
+    "text": "Avbryt",
+    "source_hash": "19766ed6"
+  },
+  "web.LABELS.saving": {
+    "text": "Sparar...",
+    "source_hash": "dc85af8f"
+  },
+  "web.LABELS.saved": {
+    "text": "Sparad",
+    "source_hash": "b5c120b3"
+  },
+  "web.LABELS.save": {
+    "text": "Spara",
+    "source_hash": "1509f561"
+  },
+  "web.LABELS.save_all": {
+    "text": "Spara alla",
+    "source_hash": "d3c54e39"
+  },
+  "web.LABELS.details": {
+    "text": "Detaljer",
+    "source_hash": "45989de4"
+  },
+  "web.LABELS.encrypted": {
+    "text": "Krypterad",
+    "source_hash": "f45aef6e"
+  },
+  "web.LABELS.secret_status": {
+    "text": "Hemlighetens status",
+    "source_hash": "57330d93"
+  },
+  "web.LABELS.need_help": {
+    "text": "Behöver du hjälp?",
+    "source_hash": "c225cdfb"
+  },
+  "web.LABELS.create_new_secret": {
+    "text": "Skapa ny hemlighet",
+    "source_hash": "311d266c"
+  },
+  "web.LABELS.actions": {
+    "text": "Åtgärder",
+    "source_hash": "ff8059dc"
+  },
+  "web.LABELS.no_passphrase": {
+    "text": "Ingen lösenfras krävs",
+    "source_hash": "6b43174d"
+  },
+  "web.LABELS.copy_to_clipboard": {
+    "text": "Kopiera till urklipp",
+    "source_hash": "b749e205"
+  },
+  "web.LABELS.receipts": {
+    "text": "Kvitton",
+    "source_hash": "60a627df"
+  },
+  "web.LABELS.share": {
+    "text": "Dela",
+    "source_hash": "29887a5f"
+  },
+  "web.LABELS.secret_link": {
+    "text": "Hemlig länk",
+    "source_hash": "a02fb1cd"
+  },
+  "web.LABELS.dismiss": {
+    "text": "Avfärda",
+    "source_hash": "48845bff"
+  },
+  "web.LABELS.security_details": {
+    "text": "Säkerhetsdetaljer",
+    "source_hash": "96d2098c"
+  },
+  "web.LABELS.items_count": {
+    "text": "{count} objekt",
+    "source_hash": "63e0dea7"
+  },
+  "web.LABELS.recipients_count": {
+    "text": "{count} mottagare",
+    "source_hash": "48187543"
+  },
+  "web.LABELS.view": {
+    "text": "Visa",
+    "source_hash": "dcc839a4"
+  },
+  "web.LABELS.views": {
+    "text": "Visningar",
+    "source_hash": "69c40459"
+  },
+  "web.LABELS.times_viewed": {
+    "text": "gånger visad",
+    "source_hash": "73758343"
+  },
+  "web.LABELS.view_progress": {
+    "text": "Visa förlopp",
+    "source_hash": "6c072c1f"
+  },
+  "web.LABELS.help_section": {
+    "text": "Hjälpavsnitt",
+    "source_hash": "614e14f0"
+  },
+  "web.LABELS.passphrase_protected": {
+    "text": "Skyddad med lösenfras",
+    "source_hash": "a52b9edf"
+  },
+  "web.LABELS.feedback_received": {
+    "text": "Återkoppling mottagen.",
+    "source_hash": "3fa595ef"
+  },
+  "web.LABELS.sending_ellipses": {
+    "text": "Skickar...",
+    "source_hash": "286a3af7"
+  },
+  "web.LABELS.title_recent_secrets": {
+    "text": "Senaste hemligheter",
+    "source_hash": "0b907f8b"
+  },
+  "web.LABELS.pricing": {
+    "text": "Prissättning",
+    "source_hash": "dfe95783"
+  },
+  "web.LABELS.refresh": {
+    "text": "Uppdatera",
+    "source_hash": "0e916101"
+  },
+  "web.LABELS.reload": {
+    "text": "Ladda om",
+    "source_hash": "bdc090ec"
+  },
+  "web.LABELS.filter": {
+    "text": "Filtrera",
+    "source_hash": "638e249f"
+  },
+  "web.LABELS.clear": {
+    "text": "Rensa",
+    "source_hash": "83b12c22"
+  },
+  "web.LABELS.caption_recent_secrets": {
+    "text": "Hemliga länkar skapade under denna session",
+    "source_hash": "6c7ceab8"
+  },
+  "web.LABELS.create_link_short": {
+    "text": "Skapa länk",
+    "source_hash": "cac74fdb"
+  },
+  "web.LABELS.create_link": {
+    "text": "Skapa hemlig länk",
+    "source_hash": "a30a47b9"
+  },
+  "web.LABELS.create_request_short": {
+    "text": "Skapa förfrågan",
+    "source_hash": "71a0bd40"
+  },
+  "web.LABELS.create_request": {
+    "text": "Skapa förfrågningslänk",
+    "source_hash": "190463dc"
+  },
+  "web.LABELS.related_settings": {
+    "text": "Relaterade inställningar",
+    "source_hash": "68574b20"
+  },
+  "web.LABELS.benefits": {
+    "text": "Fördelar",
+    "context": "Section header for listing benefits",
+    "source_hash": "d5b67bc9"
+  },
+  "web.LABELS.creating_links_for": {
+    "text": "Skapar länkar för",
+    "source_hash": "57db069e"
+  },
+  "web.LABELS.scope_indicator": {
+    "text": "Skapar hemligheter i {domain}",
+    "source_hash": "3bbed96b"
+  },
+  "web.STATUS.new": {
+    "text": "Ny",
+    "source_hash": "18fdd549"
+  },
+  "web.STATUS.unread": {
+    "text": "Oläst",
+    "source_hash": "1b9f384c"
+  },
+  "web.STATUS.viewed": {
+    "text": "Länk öppnad",
+    "source_hash": "66844573"
+  },
+  "web.STATUS.received": {
+    "text": "Mottagen",
+    "source_hash": "49f19bee"
+  },
+  "web.STATUS.previewed": {
+    "text": "Förhandsgranskad",
+    "source_hash": "3d391a9b"
+  },
+  "web.STATUS.revealed": {
+    "text": "Avslöjad",
+    "source_hash": "17376ee4"
+  },
+  "web.STATUS.burned": {
+    "text": "Raderad permanent",
+    "source_hash": "6d747b33"
+  },
+  "web.STATUS.destroyed": {
+    "text": "Förstörd",
+    "source_hash": "ff49630c"
+  },
+  "web.STATUS.expiring_soon": {
+    "text": "Går ut snart",
+    "source_hash": "0259442c"
+  },
+  "web.STATUS.created": {
+    "text": "Skapad",
+    "source_hash": "d70b9e24"
+  },
+  "web.STATUS.expires": {
+    "text": "Går ut",
+    "source_hash": "f6725f3a"
+  },
+  "web.STATUS.expired": {
+    "text": "Utgången",
+    "source_hash": "424a2551"
+  },
+  "web.STATUS.orphaned": {
+    "text": "Övergiven",
+    "source_hash": "8d827807"
+  },
+  "web.STATUS.secured": {
+    "text": "Säkrad",
+    "source_hash": "b0cbaa5b"
+  },
+  "web.STATUS.securing": {
+    "text": "Säkrar",
+    "source_hash": "37c84053"
+  },
+  "web.STATUS.copied": {
+    "text": "Kopierad",
+    "source_hash": "8d525e5f"
+  },
+  "web.STATUS.time_remaining": {
+    "text": "Återstående tid",
+    "source_hash": "9e65f559"
+  },
+  "web.STATUS.new_description": {
+    "text": "Hemlig länk har skapats och ännu inte visats",
+    "source_hash": "447c4445"
+  },
+  "web.STATUS.unread_description": {
+    "text": "Hemlig länk har skapats och har inte visats",
+    "source_hash": "83b9a0ca"
+  },
+  "web.STATUS.viewed_description": {
+    "text": "Hemlig länk har öppnats och är redo att visas",
+    "source_hash": "f392af12"
+  },
+  "web.STATUS.received_description": {
+    "text": "Hemligheten har avslöjats för mottagaren",
+    "source_hash": "ceb756b4"
+  },
+  "web.STATUS.previewed_description": {
+    "text": "Hemlig länk har öppnats och är redo att avslöjas",
+    "source_hash": "cc7d1e92"
+  },
+  "web.STATUS.revealed_description": {
+    "text": "Hemligt innehåll har avslöjats för mottagaren",
+    "source_hash": "39b32f80"
+  },
+  "web.STATUS.burned_description": {
+    "text": "Hemligheten raderades manuellt permanent innan den visades",
+    "source_hash": "e7aa1ec1"
+  },
+  "web.STATUS.destroyed_description": {
+    "text": "Hemligheten har förstörts permanent",
+    "source_hash": "9bcb9949"
+  },
+  "web.STATUS.expiring_soon_description": {
+    "text": "Hemligheten går ut snart",
+    "source_hash": "e182e8f4"
+  },
+  "web.STATUS.orphaned_description": {
+    "text": "Hemligheten har övergivits och kommer snart att förstöras",
+    "source_hash": "49b87422"
+  },
+  "web.STATUS.expired_description": {
+    "text": "Hemligheten har gått ut innan den visades",
+    "source_hash": "f527de55"
+  },
+  "web.STATUS.success": {
+    "text": "Lyckades",
+    "source_hash": "c88a0b90"
+  },
+  "web.STATUS.delivered": {
+    "text": "Levererad",
+    "source_hash": "90611565"
+  },
+  "web.STATUS.dns_incorrect": {
+    "text": "DNS felaktig",
+    "source_hash": "7848d601"
+  },
+  "web.STATUS.active": {
+    "text": "Aktiv",
+    "source_hash": "92340695"
+  },
+  "web.STATUS.inactive": {
+    "text": "Inaktiv",
+    "source_hash": "ac7c949f"
+  },
+  "web.FEATURES.unlimited_views": {
+    "text": "Obegränsat antal visningar",
+    "source_hash": "3f6859b0"
+  },
+  "web.FEATURES.custom_domain_protected": {
+    "text": "Varumärkning med betrodd domän",
+    "source_hash": "5e39b05c"
+  },
+  "web.FEATURES.encrypted_in_transit": {
+    "text": "Krypterad under överföring och vid lagring",
+    "source_hash": "314c7974"
+  },
+  "web.UNITS.ttl.duration": {
+    "text": "{count} {unit}",
+    "source_hash": "e6c9e0e6"
+  },
+  "web.UNITS.ttl.time.day": {
+    "text": "dag | dagar",
+    "source_hash": "6ac0d345"
+  },
+  "web.UNITS.ttl.time.hour": {
+    "text": "timme | timmar",
+    "source_hash": "f4fef91b"
+  },
+  "web.UNITS.ttl.time.minute": {
+    "text": "minut | minuter",
+    "source_hash": "08d71a9f"
+  },
+  "web.UNITS.ttl.time.second": {
+    "text": "sekund | sekunder",
+    "source_hash": "e655e068"
+  },
+  "web.UNITS.ttl.noOptionsAvailable": {
+    "text": "---",
+    "source_hash": "cb3f91d5"
+  },
+  "web.UNITS.ttl_remaining.duration": {
+    "text": "{count} {unit} kvar",
+    "source_hash": "18f6c6e8"
+  },
+  "web.UNITS.ttl_remaining.time.day": {
+    "text": "dag kvar | dagar kvar",
+    "source_hash": "6702855e"
+  },
+  "web.UNITS.ttl_remaining.time.hour": {
+    "text": "timme kvar | timmar kvar",
+    "source_hash": "2eaebd6f"
+  },
+  "web.UNITS.ttl_remaining.time.minute": {
+    "text": "minut kvar | minuter kvar",
+    "source_hash": "26c80140"
+  },
+  "web.UNITS.ttl_remaining.time.second": {
+    "text": "sekund kvar | sekunder kvar",
+    "source_hash": "01159ce3"
+  },
+  "web.UNITS.ttl_remaining.noOptionsAvailable": {
+    "text": "---",
+    "source_hash": "cb3f91d5"
+  },
+  "web.UNITS.limited_views": {
+    "text": "{count} visningsgräns",
+    "source_hash": "8db0e228"
+  },
+  "web.UNITS.days_remaining": {
+    "text": "{count} dagar kvar",
+    "source_hash": "398e4024"
+  },
+  "web.UNITS.hours_remaining": {
+    "text": "{count} timmar kvar",
+    "source_hash": "717b6d58"
+  },
+  "web.UNITS.minutes_remaining": {
+    "text": "{count} minuter kvar",
+    "source_hash": "d322f4c5"
+  },
+  "web.TITLES.incoming": {
+    "text": "Inkommande hemligheter",
+    "source_hash": "883dbca9"
+  },
+  "web.TITLES.feedback": {
+    "text": "Återkoppling",
+    "source_hash": "aac77df3"
+  },
+  "web.TITLES.help": {
+    "text": "Hjälp",
+    "source_hash": "b79cac92"
+  },
+  "web.TITLES.signin": {
+    "text": "Logga in",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.TITLES.signup": {
+    "text": "Skapa konto",
+    "source_hash": "0dffe234"
+  },
+  "web.TITLES.forgot_password": {
+    "text": "Glömt lösenord",
+    "source_hash": "fdfd41de"
+  },
+  "web.TITLES.reset_password": {
+    "text": "Återställ lösenord",
+    "source_hash": "4e70f1fd"
+  },
+  "web.TITLES.logout": {
+    "text": "Loggar ut",
+    "source_hash": "afbce8a6"
+  },
+  "web.TITLES.verify_account": {
+    "text": "Verifiera konto",
+    "source_hash": "2f3ea760"
+  },
+  "web.TITLES.mfa_verify": {
+    "text": "Tvåfaktorsautentisering",
+    "source_hash": "bc074b60"
+  },
+  "web.TITLES.email_login": {
+    "text": "E-postinloggning",
+    "source_hash": "c316e3d7"
+  },
+  "web.TITLES.accept_invitation": {
+    "text": "Acceptera inbjudan",
+    "source_hash": "ce7cfeaf"
+  },
+  "web.TITLES.secret": {
+    "text": "Hemlighet",
+    "source_hash": "7e32a729"
+  },
+  "web.TITLES.metadata": {
+    "text": "Hemlighetsdetaljer",
+    "source_hash": "c11bd410"
+  },
+  "web.TITLES.receipt": {
+    "text": "Hemlighetskvitto",
+    "source_hash": "fe0c79e9"
+  },
+  "web.TITLES.burn_secret": {
+    "text": "Radera hemlighet permanent",
+    "source_hash": "28785b83"
+  },
+  "web.TITLES.dashboard": {
+    "text": "Instrumentpanel",
+    "source_hash": "67b69646"
+  },
+  "web.TITLES.recent": {
+    "text": "Senaste hemligheter",
+    "source_hash": "0b907f8b"
+  },
+  "web.TITLES.domains": {
+    "text": "Anpassade domäner",
+    "source_hash": "6170ab94"
+  },
+  "web.TITLES.domain_add": {
+    "text": "Lägg till domän",
+    "source_hash": "0f09df73"
+  },
+  "web.TITLES.domain_verify": {
+    "text": "Verifiera domän",
+    "source_hash": "b416f537"
+  },
+  "web.TITLES.domain_brand": {
+    "text": "Varumärkesdomän",
+    "source_hash": "35e4dfbe"
+  },
+  "web.TITLES.account": {
+    "text": "Konto",
+    "source_hash": "7e1b0d56"
+  },
+  "web.TITLES.data_region": {
+    "text": "Dataregion",
+    "source_hash": "a1c6039f"
+  },
+  "web.TITLES.current_region": {
+    "text": "Nuvarande region",
+    "source_hash": "b92e254d"
+  },
+  "web.TITLES.available_regions": {
+    "text": "Tillgängliga regioner",
+    "source_hash": "ee788590"
+  },
+  "web.TITLES.why_data_sovereignty": {
+    "text": "Varför datasuveränitet är viktigt",
+    "source_hash": "67de6cf7"
+  },
+  "web.TITLES.profile_settings": {
+    "text": "Profilinställningar",
+    "source_hash": "4f1063c9"
+  },
+  "web.TITLES.preferences_settings": {
+    "text": "Inställningar",
+    "source_hash": "66962f72"
+  },
+  "web.TITLES.privacy_settings": {
+    "text": "Integritet",
+    "source_hash": "54a57c31"
+  },
+  "web.TITLES.notification_settings": {
+    "text": "Aviseringar",
+    "source_hash": "78801183"
+  },
+  "web.TITLES.change_email": {
+    "text": "Ändra e-post",
+    "source_hash": "18c3f2d5"
+  },
+  "web.TITLES.confirm_email_change": {
+    "text": "Bekräfta e-poständring",
+    "source_hash": "c2736949"
+  },
+  "web.TITLES.security_overview": {
+    "text": "Säkerhet",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.TITLES.change_password": {
+    "text": "Ändra lösenord",
+    "source_hash": "a949f462"
+  },
+  "web.TITLES.mfa_settings": {
+    "text": "Tvåfaktorsautentisering",
+    "source_hash": "bc074b60"
+  },
+  "web.TITLES.active_sessions": {
+    "text": "Aktiva sessioner",
+    "source_hash": "b58fa4e0"
+  },
+  "web.TITLES.recovery_codes": {
+    "text": "Återställningskoder",
+    "source_hash": "579c7f4e"
+  },
+  "web.TITLES.passkeys": {
+    "text": "Nycklar",
+    "context": "Page title for passkey management",
+    "source_hash": "c87ccdb4"
+  },
+  "web.TITLES.api_settings": {
+    "text": "API-inställningar",
+    "source_hash": "6c2a9675"
+  },
+  "web.TITLES.advanced_settings": {
+    "text": "Avancerade inställningar",
+    "source_hash": "22d4f608"
+  },
+  "web.TITLES.system_settings": {
+    "text": "Systeminställningar",
+    "source_hash": "1f87f883"
+  },
+  "web.TITLES.not_found": {
+    "text": "Sidan hittades inte",
+    "source_hash": "cb2f00d1"
+  },
+  "web.TITLES.organizations_settings": {
+    "text": "Arbetsytor",
+    "source_hash": "1377264b"
+  },
+  "web.TITLES.organization_settings": {
+    "text": "Organisationsinställningar",
+    "source_hash": "cc1d9e61"
+  },
+  "web.TITLES.pricing": {
+    "text": "Prissättning",
+    "source_hash": "dfe95783"
+  },
+  "web.ARIA.focus_is_now_in_the_main_text_area": {
+    "text": "Fokus är nu i huvudtextområdet",
+    "source_hash": "e00dd260"
+  },
+  "web.INSTRUCTION.sharing_instructions": {
+    "text": "Delningsinstruktioner",
+    "source_hash": "1a450046"
+  },
+  "web.INSTRUCTION.share_link_instruction": {
+    "text": "Dela länken med den avsedda mottagaren",
+    "source_hash": "43bdee1d"
+  },
+  "web.INSTRUCTION.share_passphrase_instruction": {
+    "text": "Dela lösenfrasen separat via en säker kanal",
+    "source_hash": "c348d386"
+  },
+  "web.INSTRUCTION.secure_channel_instruction": {
+    "text": "Använd en annan säker kanal för att dela känslig information",
+    "source_hash": "fc78d9cb"
+  },
+  "web.INSTRUCTION.phishing_warning": {
+    "text": "Kontrollera alltid att du är på den officiella {product_name}-webbplatsen. Bedragare skapar ibland falska webbplatser som ser exakt ut som {product_name} för att stjäla dina hemligheter. För att undvika nätfiskeattacker, kontrollera regionens domän i adressfältet innan du skapar nya länkar.",
+    "source_hash": "2e3b856e"
+  },
+  "web.pricing.title": {
+    "text": "Enkel, transparent prissättning",
+    "source_hash": "97e283c7"
+  },
+  "web.pricing.subtitle": {
+    "text": "Välj den plan som passar dina behov. Alla planer inkluderar obegränsad hemlighetsdelning och integritetsfokuserad design.",
+    "source_hash": "9204dff4"
+  },
+  "web.pricing.get_started_free": {
+    "text": "Kom igång gratis",
+    "source_hash": "6bb5a4a7"
+  },
+  "web.pricing.start_trial": {
+    "text": "Kom igång",
+    "source_hash": "983f3110"
+  },
+  "web.pricing.already_have_account": {
+    "text": "Har du redan ett konto?",
+    "source_hash": "e77fea93"
+  },
+  "web.pricing.sign_in": {
+    "text": "Logga in",
+    "source_hash": "bfd402b2"
+  },
+  "web.pricing.recommended_for_you": {
+    "text": "Rekommenderat för dig",
+    "source_hash": "00093fbd"
+  },
+  "web.COMMON.received": {
+    "text": "Mottagen",
+    "source_hash": "49f19bee"
+  },
+  "web.LABELS.add_note": {
+    "text": "Lägg till anteckning...",
+    "source_hash": "32738894"
+  },
+  "web.LABELS.edit_note": {
+    "text": "Redigera anteckning",
+    "source_hash": "299e604c"
+  },
+  "web.LABELS.add_memo": {
+    "text": "Lägg till memo...",
+    "source_hash": "02384c53"
+  },
+  "web.LABELS.edit_memo": {
+    "text": "Redigera memo",
+    "source_hash": "0ec1a5db"
+  },
+  "web.pricing.free_tier_description": {
+    "text": "Skapa och dela hemligheter med grundläggande funktioner. Inget kreditkort krävs.",
+    "source_hash": "3a4f2bc0"
+  },
+  "web.COMMON.enter_password_to_continue": {
+    "text": "Ange ditt lösenord för att fortsätta",
+    "context": "Prompt for password confirmation modal",
+    "source_hash": "09055357"
+  },
+  "web.COMMON.password_required_for_action": {
+    "text": "Ditt lösenord krävs för att slutföra denna åtgärd",
+    "context": "Description for password confirmation modal",
+    "source_hash": "cc078766"
+  },
+  "api.errors.unexpected_error": {
+    "text": "Ett oväntat fel inträffade",
+    "context": "Generic error message for unhandled exceptions in API",
+    "source_hash": "6615bf1c"
+  },
+  "api.errors.service_unavailable": {
+    "text": "Tjänsten är tillfälligt otillgänglig. Försök igen om en stund.",
+    "context": "Error message when database connection fails",
+    "source_hash": "343ccdcb"
+  },
+  "api.errors.request_processing_error": {
+    "text": "Det gick inte att behandla din begäran just nu",
+    "context": "Error message for recoverable server errors",
+    "source_hash": "fb961f3f"
+  },
+  "web.COMMON.upgrade_description": {
+    "text": "Uppgradera för att låsa upp fler funktioner",
+    "context": "Description shown for free plan users encouraging upgrade",
+    "source_hash": "783f174c"
+  },
+  "api.errors.authentication_required": {
+    "text": "Autentisering krävs",
+    "source_hash": "0fcfb12d"
+  },
+  "api.errors.sso_only_action_blocked": {
+    "text": "Den här åtgärden är inte tillgänglig i läget med endast SSO",
+    "source_hash": "9bc26394"
+  },
+  "web.COMMON.configure": {
+    "text": "Konfigurera",
+    "source_hash": "6defafa2"
+  },
+  "web.COMMON.copy_to_clipboard": {
+    "text": "Kopiera till urklipp",
+    "source_hash": "b749e205"
+  },
+  "web.COMMON.add": {
+    "text": "Lägg till",
+    "source_hash": "9fd728c6"
+  },
+  "web.COMMON.enabled": {
+    "text": "Aktiverad",
+    "source_hash": "92c1cdfd"
+  },
+  "web.COMMON.disabled": {
+    "text": "Inaktiverad",
+    "source_hash": "75081b59"
+  },
+  "web.COMMON.yes_delete": {
+    "text": "Ja, ta bort",
+    "source_hash": "7b05a8e3"
+  },
+  "web.COMMON.error_code": {
+    "text": "Felkod",
+    "source_hash": "46832415"
+  },
+  "web.COMMON.http_status": {
+    "text": "HTTP-status",
+    "source_hash": "b2a629f2"
+  },
+  "web.COMMON.details": {
+    "text": "Detaljer",
+    "source_hash": "45989de4"
+  },
+  "web.COMMON.field_confirm_password": {
+    "text": "Bekräfta lösenord",
+    "source_hash": "c292210c"
+  },
+  "web.COMMON.passwords_must_match": {
+    "text": "Lösenorden måste matcha",
+    "source_hash": "0c060bd4"
+  },
+  "web.COMMON.and": {
+    "text": "och",
+    "source_hash": "6201111b"
+  },
+  "web.COMMON.or": {
+    "text": "eller",
+    "source_hash": "7175517a"
+  },
+  "web.COMMON.copied": {
+    "text": "Kopierad",
+    "source_hash": "8d525e5f"
+  },
+  "web.COMMON.copy": {
+    "text": "Kopiera",
+    "source_hash": "e21f935f"
+  },
+  "web.COMMON.copy_email": {
+    "text": "Kopiera e-postadress",
+    "source_hash": "61b94846"
+  },
+  "web.COMMON.copy_id": {
+    "text": "Kopiera konto-ID",
+    "source_hash": "fd493ffd"
+  },
+  "web.COMMON.org_id_tooltip": {
+    "text": "Din organisations unika identifierare",
+    "source_hash": "c8c08d29"
+  },
+  "web.COMMON.success": {
+    "text": "Lyckades",
+    "source_hash": "c88a0b90"
+  },
+  "web.COMMON.need_help": {
+    "text": "Behöver du hjälp",
+    "source_hash": "4ca0ca38"
+  },
+  "web.COMMON.open_help_dialog": {
+    "text": "Öppna hjälpdialogruta",
+    "source_hash": "55cd1515"
+  },
+  "web.COMMON.focus_is_now_in_the_main_text_area": {
+    "text": "Fokus är nu i huvudtextområdet",
+    "source_hash": "e00dd260"
+  },
+  "web.LABELS.show_passphrase": {
+    "text": "Visa lösenfras",
+    "source_hash": "76880d38"
+  },
+  "web.LABELS.hide_passphrase": {
+    "text": "Dölj lösenfras",
+    "source_hash": "8ecdc98c"
+  },
+  "web.LABELS.copy_icon": {
+    "text": "Kopiera-ikon",
+    "source_hash": "d1a5fc0c"
+  },
+  "web.LABELS.copied_icon": {
+    "text": "Kopierad-ikon",
+    "source_hash": "90a4b4f1"
+  },
+  "web.STATUS.unverified": {
+    "text": "Overifierad",
+    "source_hash": "33c8e8de"
+  },
+  "web.TITLES.domain_detail": {
+    "text": "Domäninställningar",
+    "source_hash": "e24f338d"
+  },
+  "web.TITLES.domain_signin": {
+    "text": "Inloggningskonfiguration",
+    "source_hash": "2da38c03"
+  },
+  "web.TITLES.domain_signup": {
+    "text": "Validering av domänregistrering",
+    "source_hash": "c8ce809a"
+  },
+  "web.TITLES.domain_email": {
+    "text": "E-postkonfiguration",
+    "source_hash": "6f38aa51"
+  },
+  "web.TITLES.domain_incoming": {
+    "text": "Inkommande hemligheter",
+    "source_hash": "883dbca9"
+  },
+  "web.LABELS.update": {
+    "text": "Uppdatera",
+    "source_hash": "c1c1009d"
+  },
+  "web.LABELS.updating": {
+    "text": "Uppdaterar ...",
+    "source_hash": "0a4e0b71"
+  },
+  "web.TITLES.check_email": {
+    "text": "Kontrollera din e-post",
+    "source_hash": "0e5fc27d"
+  },
+  "web.TITLES.domain_dns": {
+    "text": "DNS-konfiguration",
+    "source_hash": "6c63df31"
+  },
+  "web.TITLES.connected_identities": {
+    "text": "Anslutna identiteter",
+    "source_hash": "e132c4d9"
+  },
+  "web.COMMON.field": {
+    "text": "Fält",
+    "source_hash": "f45fc1df"
+  },
+  "web.COMMON.unknown": {
+    "text": "Okänd",
+    "source_hash": "b764cdc0"
+  },
+  "web.STATUS.pending_ssl": {
+    "text": "Certifikat väntar",
+    "source_hash": "dd34f305"
+  }
+}

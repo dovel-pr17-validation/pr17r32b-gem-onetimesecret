@@ -1,0 +1,237 @@
+# spec/unit/onetime/errors_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+# Unit tests for the i18n shape on Forbidden subclasses.
+#
+# Both LimitExceeded and GuestRoutesDisabled inherit error_key/args storage
+# from Forbidden so that Onetime::Application::ErrorResolver can localize
+# their messages at the HTTP edge. These tests are constructor-only — they
+# don't exercise the resolver, only that the carriers propagate through
+# initialize/to_h correctly.
+#
+# Mirrors the pattern used for EntitlementRequired (see
+# spec/unit/onetime/logic/require_entitlement_spec.rb for context).
+
+RSpec.describe Onetime::AccountProvisioningFailed do
+  it 'serializes only the stable non-sensitive provisioning state' do
+    error = described_class.new(
+      code: 'default_workspace_collision',
+      classification: 'retained_data',
+      failed_at: '1700000000.5',
+    )
+
+    expect(error.to_h).to eq(
+      error: described_class::DEFAULT_MESSAGE,
+      error_type: 'AccountProvisioningFailed',
+      code: 'default_workspace_collision',
+      classification: 'retained_data',
+      failed_at: 1_700_000_000.5,
+    )
+  end
+end
+
+RSpec.describe Onetime::AccountProvisioningUnavailable do
+  it 'serializes a bounded reason and retry_after, never the collision evidence' do
+    collision = double('collision', classification: :unreadable)
+    error     = described_class.new(reason: 'collision_unreadable', collision: collision)
+
+    expect(error.collision).to be(collision)
+    expect(error.to_h).to eq(
+      error: described_class::DEFAULT_MESSAGE,
+      error_type: 'AccountProvisioningUnavailable',
+      reason: :collision_unreadable,
+      retry_after: described_class::RETRY_AFTER,
+    )
+  end
+end
+
+RSpec.describe Onetime::TemporarilyUnavailable do
+  it 'is a Problem with a default message, a bounded reason and retry_after' do
+    error = described_class.new(reason: 'concurrent_write')
+
+    expect([error.is_a?(Onetime::Problem), error.to_h]).to eq(
+      [
+        true,
+        {
+          error: described_class::DEFAULT_MESSAGE,
+          error_type: 'TemporarilyUnavailable',
+          reason: :concurrent_write,
+          retry_after: described_class::RETRY_AFTER,
+        },
+      ],
+    )
+  end
+end
+
+RSpec.describe Onetime::LimitExceeded do
+  describe '#initialize' do
+    it 'defaults to legacy message when none provided' do
+      error = described_class.new
+      expect(error.message).to eq('Rate limit exceeded')
+    end
+
+    it 'defaults error_key to nil so legacy callers stay untouched' do
+      error = described_class.new
+      expect(error.error_key).to be_nil
+    end
+
+    it 'defaults args to an empty hash' do
+      error = described_class.new
+      expect(error.args).to eq({})
+    end
+
+    it 'stores error_key when supplied' do
+      error = described_class.new(error_key: 'api.limits.errors.too_many_attempts')
+      expect(error.error_key).to eq('api.limits.errors.too_many_attempts')
+    end
+
+    it 'stores args when supplied' do
+      error = described_class.new(args: { max: 5 })
+      expect(error.args).to eq({ max: 5 })
+    end
+
+    it 'still accepts and stores rate-limit metadata' do
+      error = described_class.new('blocked', retry_after: 60, attempts: 6, max_attempts: 5)
+      expect(error.retry_after).to eq(60)
+      expect(error.attempts).to eq(6)
+      expect(error.max_attempts).to eq(5)
+    end
+  end
+
+  describe '#to_h' do
+    it 'includes error_key when present' do
+      error = described_class.new(error_key: 'api.limits.errors.too_many_attempts')
+      expect(error.to_h).to include(error_key: 'api.limits.errors.too_many_attempts')
+    end
+
+    it 'omits error_key when nil' do
+      error = described_class.new
+      expect(error.to_h).not_to have_key(:error_key)
+    end
+
+    it 'preserves pre-existing fields alongside error_key' do
+      error = described_class.new(
+        'blocked',
+        retry_after: 60, attempts: 6, max_attempts: 5,
+        error_key: 'api.limits.errors.too_many_attempts',
+      )
+      expect(error.to_h).to eq(
+        error: 'blocked',
+        error_type: 'LimitExceeded',
+        retry_after: 60,
+        attempts: 6,
+        max_attempts: 5,
+        error_key: 'api.limits.errors.too_many_attempts',
+      )
+    end
+  end
+end
+
+RSpec.describe Onetime::GuestRoutesDisabled do
+  describe '#initialize' do
+    it 'defaults to legacy message when none provided' do
+      error = described_class.new
+      expect(error.message).to eq('Guest API access is disabled')
+    end
+
+    it 'defaults error_key to nil so legacy callers stay untouched' do
+      error = described_class.new
+      expect(error.error_key).to be_nil
+    end
+
+    it 'defaults args to an empty hash' do
+      error = described_class.new
+      expect(error.args).to eq({})
+    end
+
+    it 'stores error_key when supplied' do
+      error = described_class.new(error_key: 'api.guest.errors.routes_disabled')
+      expect(error.error_key).to eq('api.guest.errors.routes_disabled')
+    end
+
+    it 'stores args when supplied' do
+      error = described_class.new(args: { feature: 'create' })
+      expect(error.args).to eq({ feature: 'create' })
+    end
+
+    it 'still accepts and stores the error code' do
+      error = described_class.new('nope', code: 'CUSTOM_CODE')
+      expect(error.code).to eq('CUSTOM_CODE')
+    end
+  end
+
+  describe '#to_h' do
+    it 'includes error_key when present' do
+      error = described_class.new(error_key: 'api.guest.errors.routes_disabled')
+      expect(error.to_h).to include(error_key: 'api.guest.errors.routes_disabled')
+    end
+
+    it 'omits error_key when nil' do
+      error = described_class.new
+      expect(error.to_h).not_to have_key(:error_key)
+    end
+
+    it 'preserves pre-existing fields alongside error_key' do
+      error = described_class.new(
+        'nope',
+        code: 'CUSTOM_CODE',
+        error_key: 'api.guest.errors.routes_disabled',
+      )
+      expect(error.to_h).to eq(
+        error: 'nope',
+        error_type: 'GuestRoutesDisabled',
+        code: 'CUSTOM_CODE',
+        error_key: 'api.guest.errors.routes_disabled',
+      )
+    end
+  end
+end
+
+# The attr_accessor :message on Onetime::Problem and Onetime::Forbidden
+# shadows the standard Exception#message method, but Exception#to_s reads
+# from a C-level internal slot that the accessor doesn't touch. Without
+# the to_s override on those base classes, ErrorResolver.resolve!'s
+# `error.message = I18n.t(...)` mutation would update #message but leave
+# #to_s returning the constructor-time string — and loggers / middleware
+# that fall through to #to_s would see the un-localized text.
+#
+# These specs lock down the override on one subclass per base — the
+# behavior is inherited, so testing every leaf class is overkill.
+RSpec.describe 'Onetime error #to_s tracks @message mutation' do
+  describe Onetime::Forbidden do
+    it 'returns the mutated @message via to_s, not the constructor-time string' do
+      error = described_class.new('original')
+      error.message = 'localized'
+      expect(error.to_s).to eq('localized')
+    end
+
+    it 'falls back to the constructor-time message when @message is nil' do
+      error = described_class.new('untouched')
+      expect(error.to_s).to eq('untouched')
+    end
+  end
+
+  describe Onetime::FormError do
+    it 'serializes optional structured details without changing legacy payloads' do
+      legacy = described_class.new('legacy')
+      error  = described_class.new('blocked', details: { status: :refused, blockers: [{ code: :billing_state }] })
+
+      expect(legacy.to_h).not_to have_key(:details)
+      expect(error.to_h[:details]).to eq(status: :refused, blockers: [{ code: :billing_state }])
+    end
+
+    it 'returns the mutated @message via to_s, not the constructor-time string' do
+      error = described_class.new('original form error')
+      error.message = 'localized form error'
+      expect(error.to_s).to eq('localized form error')
+    end
+
+    it 'falls back to the constructor-time message when @message is nil' do
+      error = described_class.new('untouched form error')
+      expect(error.to_s).to eq('untouched form error')
+    end
+  end
+end

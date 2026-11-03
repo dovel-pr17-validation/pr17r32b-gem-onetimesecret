@@ -1,0 +1,333 @@
+<!-- src/apps/session/views/Login.vue -->
+
+<script setup lang="ts">
+import AuthMethodSelector from '@/apps/session/components/AuthMethodSelector.vue';
+import AuthView from '@/apps/session/components/AuthView.vue';
+import OIcon from '@/shared/components/icons/OIcon.vue';
+import { SIGNIN_VERIFIED_STATE_KEY } from '@/shared/constants/signin';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import { useProductIdentity } from '@/shared/stores/identityStore';
+import { useLanguageStore } from '@/shared/stores/languageStore';
+import { hasPasswordlessMethods, isPasswordSignInOffered } from '@/utils/features';
+import { storeToRefs } from 'pinia';
+import { ref, computed, onMounted, type ComponentPublicInstance } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
+
+const { t } = useI18n();
+const route = useRoute();
+
+const languageStore = useLanguageStore();
+const bootstrapStore = useBootstrapStore();
+const { authentication, features } = storeToRefs(bootstrapStore);
+
+// Per-domain sign-in disable (#3415). features.signin is the resolved
+// availability for THIS domain context (AND of global AUTH_SIGNIN and the
+// domain SigninConfig). Only an explicit false disables: the global-off case
+// never reaches this page (the requiresFeature route guard redirects to '/'),
+// so in practice this branch renders for domain-level disables.
+const signinDisabled = computed(() => features.value?.signin === false);
+
+// Custom domain branding: replace generic icon with domain logo on sign-in page
+const identityStore = useProductIdentity();
+const { isCustom } = storeToRefs(identityStore);
+const { logoUri, displayName } = identityStore;
+const signupEnabled = computed(
+  () => !isCustom.value && authentication.value?.enabled && authentication.value?.signup
+);
+
+// Handle auth errors passed via query params (from SSO/magic link failures)
+const authError = ref<string | null>(null);
+
+// Handle informational notices passed via query params. Distinct from auth_error:
+// these are non-failure prompts a backend redirect drops the user here with — e.g.
+// after issuing a mailbox-proof SSO link (#3840 Phase 4), the callback redirects to
+// /signin?auth_notice=link_verification_sent (token-less; the token is emailed).
+const authNotice = ref<string | null>(null);
+
+// Post-verification return: useAuth.verifyAccount() sends the user here after
+// they click the link in their welcome email. The "just verified" signal
+// arrives via router history state (SIGNIN_VERIFIED_STATE_KEY), not the URL:
+//   - verifiedNotice: drives a persistent success banner (vs. the transient toast)
+//   - initialAuthMode: default to the password tab. Re-entering the password
+//     they just chose is less redundant than another email link and confirms it
+//     was typed correctly the first time. Only when a password tab actually
+//     exists: under restrict_to 'email_auth' / 'webauthn' the password form is
+//     withheld, and a 'password' default there would resolve to whichever tab
+//     is first rather than to a deliberate choice. Send no default instead and
+//     let the selector apply its own precedence (saved preference, then first
+//     tab).
+//
+// It is a one-shot flag: we clear it from history state right after reading, so a
+// manual refresh does not re-show the banner. Clearing touches only history
+// state — the route's path/query (and thus fullPath) are unchanged — so the
+// fullPath-keyed routed component in App.vue is NOT remounted and verifiedNotice
+// survives. (Stripping a ?verified=1 query param, by contrast, would change
+// fullPath, remount this view, and discard the banner it was meant to show.)
+const verifiedState = (typeof window !== 'undefined' ? window.history.state : null) as
+  | Record<string, unknown>
+  | null;
+const justVerified = verifiedState?.[SIGNIN_VERIFIED_STATE_KEY] === true;
+const verifiedNotice = ref(justVerified);
+const initialAuthMode = justVerified && isPasswordSignInOffered() ? 'password' : undefined;
+if (justVerified && typeof window !== 'undefined') {
+  // Drop just our one-shot key; spread preserves vue-router's reserved state
+  // keys (back / current / forward / replaced / position / scroll).
+  window.history.replaceState({ ...window.history.state, [SIGNIN_VERIFIED_STATE_KEY]: undefined }, '');
+}
+
+const authErrorMessages: Record<string, string> = {
+  sso_failed: 'web.login.errors.sso_failed',
+  sso_cancelled: 'web.login.errors.sso_cancelled',
+  sso_not_configured: 'web.login.errors.sso_not_configured',
+  sso_issuer_mismatch: 'web.login.errors.sso_issuer_mismatch',
+  sso_config_unusable: 'web.login.errors.sso_config_unusable',
+  sso_domain_unverified: 'web.login.errors.sso_domain_unverified',
+  domain_unavailable: 'web.login.errors.domain_unavailable',
+  token_missing: 'web.login.errors.token_missing',
+  token_expired: 'web.login.errors.token_expired',
+  token_invalid: 'web.login.errors.token_invalid',
+  missing_email: 'web.login.errors.missing_email',
+  invalid_email: 'web.login.errors.invalid_email',
+  domain_not_allowed: 'web.login.errors.domain_not_allowed',
+  account_exists_link_required: 'web.login.errors.account_exists_link_required',
+  tenant_sso_link_unavailable: 'web.login.errors.tenant_sso_link_unavailable',
+  identity_connect_conflict: 'web.login.errors.identity_connect_conflict',
+  identity_connect_wrong_domain: 'web.login.errors.identity_connect_wrong_domain',
+  link_sso_failed: 'web.login.errors.link_sso_failed',
+  org_join_failed: 'web.login.errors.org_join_failed',
+  account_closing: 'web.login.errors.account_closing',
+};
+
+// Informational notices (not failures). Only known codes render — an unknown
+// notice is silently ignored rather than shown as a generic banner.
+const authNoticeMessages: Record<string, string> = {
+  link_verification_sent: 'web.login.notices.link_verification_sent',
+};
+
+// Strip a consumed one-shot query param (auth_error / auth_notice) from the
+// address bar so a manual refresh does not re-show the banner. Uses
+// window.history.replaceState — NOT router.replace — deliberately: App.vue keys
+// <router-view> by $route.fullPath and forces a fresh component instance on any
+// route change (query-only changes included), so a router.replace() dropping the
+// param would REMOUNT this view and discard the banner we just set — the same
+// fullPath-remount trap the verifiedNotice handling above sidesteps. replaceState
+// updates only the URL bar, leaving Vue Router's route (and this instance)
+// intact, so the banner survives while a refresh no longer re-shows it.
+const stripConsumedQueryParam = (name: string) => {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has(name)) return;
+  url.searchParams.delete(name);
+  window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+};
+
+onMounted(() => {
+  const errorCode = route.query.auth_error;
+  if (typeof errorCode === 'string' && errorCode.length > 0) {
+    // Render a message for ANY auth_error code so a redirect from the auth
+    // backend never lands on a silent/blank page (the "frozen loading screen"
+    // in issue #3478). Known codes get their specific localized message;
+    // unrecognized codes — e.g. from a backend newer than this bundle —
+    // fall back to the generic SSO failure copy instead of rendering nothing.
+    const messageKey = authErrorMessages[errorCode] ?? 'web.login.errors.sso_failed';
+    authError.value = t(messageKey);
+    // Clear the query param to prevent showing error on refresh (URL-bar only;
+    // see stripConsumedQueryParam — a router nav here would remount and wipe it).
+    stripConsumedQueryParam('auth_error');
+  }
+
+  const noticeCode = route.query.auth_notice;
+  if (typeof noticeCode === 'string' && noticeCode.length > 0) {
+    // Unlike auth_error there is no generic fallback: an unrecognized notice is
+    // not a failure to surface, so ignore it rather than guess a message.
+    const messageKey = authNoticeMessages[noticeCode];
+    if (messageKey) {
+      authNotice.value = t(messageKey);
+    }
+    // Clear the query param either way so a refresh does not re-show it
+    // (URL-bar only — see stripConsumedQueryParam).
+    stripConsumedQueryParam('auth_notice');
+  }
+});
+
+// Check if any passwordless methods are enabled (magic links or webauthn)
+const passwordlessEnabled = hasPasswordlessMethods();
+
+// Build signup link with preserved query params (email, redirect)
+const signupLink = computed(() => {
+  const query: Record<string, string> = {};
+  if (typeof route.query.email === 'string') {
+    query.email = route.query.email;
+  }
+  if (typeof route.query.redirect === 'string') {
+    query.redirect = route.query.redirect;
+  }
+  if (Object.keys(query).length > 0) {
+    return { path: '/signup', query };
+  }
+  return '/signup';
+});
+
+type AuthMode = 'passkey' | 'passwordless' | 'password';
+
+// Reference to AuthMethodSelector (kept for potential future use)
+const authMethodSelectorRef = ref<ComponentPublicInstance<{ currentMode: AuthMode }> | null>(null);
+
+// Mode change handler (kept for potential future use)
+const handleModeChange = (_mode: AuthMode) => {
+  // Footer is now consistent across modes, no need to track
+};
+
+// A magic link was just issued: the auth section replaces its whole form with a
+// "check your email" panel, so this page has stopped being "sign in" and become
+// "go to your inbox". Retire both one-shot banners:
+//   - verifiedNotice: a past-tense "you can now sign in" above a present-tense
+//     "check your email" reads as a contradiction.
+//   - authNotice: link_verification_sent is itself a "check your inbox" prompt,
+//     so leaving it stacks two inbox instructions for two different emails.
+// No route change occurs here to remount this view and clear them on its own.
+// Deliberately one-way: "try a different email" returns the form, but both are
+// one-shot notices that have now been superseded, so they do not come back.
+const handleLinkSent = () => {
+  verifiedNotice.value = false;
+  authNotice.value = null;
+};
+</script>
+
+<template>
+  <AuthView
+    :heading="signinDisabled ? t('web.login.signin_disabled_heading') : t('web.COMMON.login_to_your_account')"
+    heading-id="signin-heading"
+    :title-logo="isCustom ? logoUri : null"
+    :title="isCustom ? displayName : null"
+    :with-subheading="true"
+    :hide-icon="false"
+    :hide-background-icon="isCustom"
+    :show-return-home="signinDisabled">
+    <template #form>
+      <!-- Auth error from redirects (SSO failure, invalid magic link, etc.).
+           Deliberately outside the sign-in-disabled conditional below: the auth
+           backend redirects to /signin?auth_error=domain_unavailable when the
+           request host's custom-domain record could not be read (#4668), and
+           that same failed read turns features.signin off, so the banner must
+           render on the disabled page too. -->
+      <!-- prettier-ignore-attribute class -->
+      <div
+        v-if="authError"
+        role="alert"
+        data-testid="signin-auth-error"
+        class="
+          mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700
+          dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+        {{ authError }}
+      </div>
+
+      <!-- Sign-in disabled for this domain: friendly notice instead of the
+           auth form. AuthView's return-home link provides the way out. -->
+      <div
+        v-if="signinDisabled"
+        data-testid="signin-disabled-panel"
+        class="space-y-3 py-2 text-center">
+        <OIcon
+          collection="heroicons"
+          name="lock-closed"
+          class="mx-auto size-10 text-gray-400 dark:text-gray-500"
+          aria-hidden="true" />
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          {{ t('web.login.signin_disabled_message') }}
+        </p>
+      </div>
+
+      <template v-else>
+        <!-- Post-verification success: persistent confirmation that the email
+             was verified, shown until the user leaves the page. -->
+        <!-- prettier-ignore-attribute class -->
+        <div
+          v-if="verifiedNotice"
+          role="status"
+          class="
+            mb-4 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-3
+            text-sm text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300"
+          data-testid="signin-verified-notice">
+          <OIcon
+            collection="heroicons"
+            name="check-circle-solid"
+            class="size-5 shrink-0 text-green-500 dark:text-green-400"
+            aria-hidden="true" />
+          <span>{{ t('web.login.verified_notice') }}</span>
+        </div>
+
+        <!-- Informational notice from redirects (e.g. mailbox-proof SSO link sent —
+             #3840 Phase 4). Non-failure "check your inbox" prompt, styled distinctly
+             from the red error banner. -->
+        <!-- prettier-ignore-attribute class -->
+        <div
+          v-if="authNotice"
+          role="status"
+          class="
+            mb-4 flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3
+            text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
+          data-testid="signin-auth-notice">
+          <OIcon
+            collection="heroicons"
+            name="envelope"
+            class="size-5 shrink-0 text-blue-500 dark:text-blue-400"
+            aria-hidden="true" />
+          <span>{{ authNotice }}</span>
+        </div>
+
+        <AuthMethodSelector
+          ref="authMethodSelectorRef"
+          :locale="languageStore.currentLocale ?? ''"
+          :initial-mode="initialAuthMode"
+          @mode-change="handleModeChange"
+          @link-sent="handleLinkSent" />
+      </template>
+    </template>
+    <template #footer>
+      <nav
+        v-if="!signinDisabled"
+        aria-label="Additional sign-in options"
+        class="flex items-center justify-center gap-2 text-sm">
+        <!-- Consistent footer for all modes when passwordless methods enabled -->
+        <template v-if="passwordlessEnabled">
+          <!-- prettier-ignore-attribute class -->
+          <router-link
+            to="/help"
+            class="
+              text-gray-500 transition-colors duration-200 hover:text-gray-700 hover:underline
+              dark:text-gray-400 dark:hover:text-gray-300">
+            {{ t('web.login.need_help') }}
+          </router-link>
+          <template v-if="signupEnabled">
+            <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">&#8226;</span>
+            <!-- prettier-ignore-attribute class -->
+            <router-link
+              :to="signupLink"
+              class="
+                text-gray-500 transition-colors duration-200 hover:text-gray-700 hover:underline
+                dark:text-gray-400 dark:hover:text-gray-300">
+              {{ t('web.login.create_account') }}
+            </router-link>
+          </template>
+        </template>
+        <!-- Password-only mode (no passwordless methods enabled): original footer -->
+        <template v-else-if="signupEnabled">
+          <span class="text-gray-600 dark:text-gray-400">
+            {{ t('web.login.alternate_prefix') }}
+          </span>
+          {{ ' ' }}
+          <!-- prettier-ignore-attribute class -->
+          <router-link
+            :to="signupLink"
+            class="
+              font-medium text-brand-600 underline transition-colors duration-200
+              hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300">
+            {{ t('web.login.need_an_account') }}
+          </router-link>
+        </template>
+      </nav>
+    </template>
+  </AuthView>
+</template>

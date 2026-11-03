@@ -1,0 +1,81 @@
+# apps/api/domains/logic/domains/list_domains.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/domain_validation/features'
+require_relative '../base'
+
+module DomainsAPI::Logic
+  module Domains
+    # List Custom Domains
+    #
+    # @api Returns all custom domains for the user's organization, or for
+    #   a specific organization if org_id is provided. Each domain includes
+    #   its full record and the organization summary. Also returns cluster
+    #   configuration details.
+    #
+    # Supports two modes:
+    # 1. Default: Uses organization from session context
+    # 2. Explicit: Uses org_id param (must be an org the user is a member of)
+    #
+    # The explicit mode allows the frontend to fetch domains for a specific
+    # organization when the user switches organizations in the UI, before
+    # the session is updated.
+    #
+    class ListDomains < DomainsAPI::Logic::Base
+      SCHEMAS = { response: 'customDomainList' }.freeze
+
+      attr_reader :custom_domains, :with_brand, :target_organization
+
+      def process_params
+        @with_brand   = !params['with_brand'].to_s.empty?
+        @org_id_param = sanitize_identifier(params['org_id'])
+      end
+
+      def raise_concerns
+        require_organization!
+
+        # If explicit org_id provided, validate membership and use that org
+        if @org_id_param && !@org_id_param.empty?
+          @target_organization = resolve_target_organization(@org_id_param)
+          raise_form_error('Organization not found or access denied', field: :org_id, error_type: :unauthorized) unless @target_organization
+        else
+          @target_organization = organization
+        end
+
+        # Members can view the org but cannot list domains — admin+ required (#3326)
+        require_entitlement_in!(@target_organization, 'custom_domains')
+      end
+
+      def process
+        domains = target_organization.list_domains
+
+        # Domain-scope enforcement: filter by membership scope (#3384).
+        # nil membership means the caller passed require_entitlement_in! via
+        # org-owner status (not a regular member row) — show all domains.
+        membership = Onetime::OrganizationMembership.find_by_org_customer(
+          target_organization.objid, @cust.objid
+        )
+        domains    = domains.select { |d| membership.nil? || membership.can_access_domain?(d) }
+
+        OT.ld "[ListDomains] Processing #{domains.size} domains for org #{target_organization.objid}"
+
+        @custom_domains = domains.map(&:safe_dump)
+
+        success_data
+      end
+
+      def success_data
+        {
+          user_id: @cust.objid,
+          organization: target_organization.safe_dump,
+          records: @custom_domains,
+          count: @custom_domains.length,
+          details: {
+            cluster: Onetime::DomainValidation::Features.safe_dump,
+          },
+        }
+      end
+    end
+  end
+end

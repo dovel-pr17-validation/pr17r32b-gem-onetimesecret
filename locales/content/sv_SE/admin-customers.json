@@ -1,0 +1,842 @@
+{
+  "web.admin.customers.title": {
+    "text": "Kunder",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.customers.description": {
+    "text": "Hitta en kund och lös supportärenden.",
+    "source_hash": "00961ea3"
+  },
+  "web.admin.customers.actions.plan.label": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.plan.apply": {
+    "text": "Tillämpa",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.plan.confirmTitle": {
+    "text": "Ändra plan?",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.customers.actions.plan.confirmDescription": {
+    "text": "Ändra {email} till planen {plan}.",
+    "source_hash": "83fb4158"
+  },
+  "web.admin.customers.actions.plan.success": {
+    "text": "Planen har uppdaterats.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.customers.actions.plan.localConfigWarning": {
+    "text": "Planer inlästa från lokal konfiguration – Stripe är inte konfigurerat eller går inte att nå.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.customers.actions.purge.button": {
+    "text": "Rensa ut kund",
+    "source_hash": "ff658f69"
+  },
+  "web.admin.customers.actions.purge.confirmTitle": {
+    "text": "Rensa ut kund?",
+    "source_hash": "9feed9f1"
+  },
+  "web.admin.customers.actions.purge.confirmDescription": {
+    "text": "Detta begär permanent radering av {email}. En förkontroll körs innan kontot avvecklas och avvisar rensningen om en arbetsyta har domäner, faktureringsstatus, andra medlemmar, bevarad data eller inkonsekventa referenser. Granska och åtgärda eventuella hinder innan du försöker igen. Detta kan inte ångras när avvecklingen har börjat.",
+    "source_hash": "7b4e5e37"
+  },
+  "web.admin.customers.actions.purge.success": {
+    "text": "Kunden har rensats ut.",
+    "source_hash": "6145e5c8"
+  },
+  "web.admin.customers.actions.role.label": {
+    "text": "Roll",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.actions.role.apply": {
+    "text": "Tillämpa",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.role.confirmTitle": {
+    "text": "Ändra roll?",
+    "source_hash": "227f57d7"
+  },
+  "web.admin.customers.actions.role.confirmDescription": {
+    "text": "Ändrar {email} till rollen {role}. Colonel-rollen ger full administrativ åtkomst till alla konton, hemligheter och organisationer på den här installationen. Skriv kontots e-postadress nedan för att bekräfta.",
+    "source_hash": "0ed85b97"
+  },
+  "web.admin.customers.actions.role.success": {
+    "text": "Rollen har uppdaterats.",
+    "source_hash": "0c33aa24"
+  },
+  "web.admin.customers.actions.suspend.button": {
+    "text": "Stäng av konto",
+    "source_hash": "95a04f27"
+  },
+  "web.admin.customers.actions.suspend.reasonLabel": {
+    "text": "Orsak (valfritt)",
+    "source_hash": "0f7d4664"
+  },
+  "web.admin.customers.actions.suspend.reasonPlaceholder": {
+    "text": "Varför stängs det här kontot av?",
+    "source_hash": "8eca975e"
+  },
+  "web.admin.customers.actions.suspend.confirmTitle": {
+    "text": "Stänga av konto?",
+    "source_hash": "cbfa275b"
+  },
+  "web.admin.customers.actions.suspend.confirmDescription": {
+    "text": "Hindrar {email} från att logga in och återkallar deras aktiva sessioner. Ingen data raderas – detta går att ångra.",
+    "source_hash": "e5d046bc"
+  },
+  "web.admin.customers.actions.suspend.success": {
+    "text": "Kontot har stängts av.",
+    "source_hash": "04c5f996"
+  },
+  "web.admin.customers.actions.unsuspend.button": {
+    "text": "Återaktivera konto",
+    "source_hash": "35a10fb5"
+  },
+  "web.admin.customers.actions.unsuspend.confirmTitle": {
+    "text": "Återaktivera konto?",
+    "source_hash": "6fd78a72"
+  },
+  "web.admin.customers.actions.unsuspend.confirmDescription": {
+    "text": "Återställer inloggning för {email}.",
+    "source_hash": "cb2bb4e0"
+  },
+  "web.admin.customers.actions.unsuspend.success": {
+    "text": "Kontot har återaktiverats.",
+    "source_hash": "c5b4377f"
+  },
+  "web.admin.customers.actions.unverify.button": {
+    "text": "Avverifiera",
+    "source_hash": "b0dee41f"
+  },
+  "web.admin.customers.actions.unverify.confirmTitle": {
+    "text": "Avverifiera kund?",
+    "source_hash": "62ed2854"
+  },
+  "web.admin.customers.actions.unverify.confirmDescription": {
+    "text": "Markerar {email} som inte verifierad. Ett overifierat konto kan inte ha rollen Colonel, Administratör eller Personal, så detta tar också bort eventuell förhöjd roll som kontot har. Skriv kontots e-postadress nedan för att bekräfta.",
+    "source_hash": "601f7382"
+  },
+  "web.admin.customers.actions.unverify.success": {
+    "text": "Kunden har avverifierats.",
+    "source_hash": "a9b7bbac"
+  },
+  "web.admin.customers.actions.verify.button": {
+    "text": "Verifiera",
+    "source_hash": "eea2745e"
+  },
+  "web.admin.customers.actions.verify.confirmTitle": {
+    "text": "Verifiera kund?",
+    "source_hash": "43037ce1"
+  },
+  "web.admin.customers.actions.verify.confirmDescription": {
+    "text": "Markera {email} som verifierad.",
+    "source_hash": "7052d79d"
+  },
+  "web.admin.customers.actions.verify.success": {
+    "text": "Kunden har verifierats.",
+    "source_hash": "19e382dc"
+  },
+  "web.admin.customers.columns.email": {
+    "text": "E-post",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.columns.role": {
+    "text": "Roll",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.columns.verified": {
+    "text": "Verifierad",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.columns.plan": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.columns.secrets": {
+    "text": "Hemligheter",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.columns.created": {
+    "text": "Skapad",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.columns.lastLogin": {
+    "text": "Senaste inloggning",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.backToList": {
+    "text": "Tillbaka till kunder",
+    "source_hash": "077807fb"
+  },
+  "web.admin.customers.detail.openFullPage": {
+    "text": "Öppna helsida",
+    "source_hash": "a467911c"
+  },
+  "web.admin.customers.detail.notFound": {
+    "text": "Kunden hittades inte",
+    "source_hash": "5e3f5824"
+  },
+  "web.admin.customers.detail.notFoundDescription": {
+    "text": "Ingen kund matchar den här identifieraren. De kan ha rensats ut.",
+    "source_hash": "82b04725"
+  },
+  "web.admin.customers.detail.loadError": {
+    "text": "Det gick inte att läsa in den här kunden.",
+    "source_hash": "cfd1bcca"
+  },
+  "web.admin.customers.detail.retry": {
+    "text": "Försök igen",
+    "source_hash": "942087cc"
+  },
+  "web.admin.customers.detail.yes": {
+    "text": "Ja",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.customers.detail.no": {
+    "text": "Nej",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.customers.detail.none": {
+    "text": "Ingen",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.never": {
+    "text": "Aldrig",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.customers.detail.billing.plan": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.billing.organization": {
+    "text": "Faktureringsorganisation",
+    "source_hash": "90c94ee1"
+  },
+  "web.admin.customers.detail.billing.subscriptionStatus": {
+    "text": "Prenumerationsstatus",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.customers.detail.billing.periodEnd": {
+    "text": "Nuvarande period slutar",
+    "source_hash": "742b8229"
+  },
+  "web.admin.customers.detail.billing.latestInvoice": {
+    "text": "Senaste faktura",
+    "source_hash": "7a6133cc"
+  },
+  "web.admin.customers.detail.billing.noInvoices": {
+    "text": "Inga fakturor",
+    "source_hash": "e6b30f93"
+  },
+  "web.admin.customers.detail.billing.openStripe": {
+    "text": "Öppna i Stripes instrumentpanel",
+    "source_hash": "dfa7c41d"
+  },
+  "web.admin.customers.detail.billing.unavailable": {
+    "text": "Stripe-data är inte tillgänglig: {reason}",
+    "source_hash": "9fe08e49"
+  },
+  "web.admin.customers.detail.billing.notConfigured": {
+    "text": "Fakturering är inte konfigurerad på den här installationen.",
+    "source_hash": "6e90375e"
+  },
+  "web.admin.customers.detail.fields.email": {
+    "text": "E-post",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.detail.fields.publicId": {
+    "text": "Offentligt ID",
+    "source_hash": "3705b64f"
+  },
+  "web.admin.customers.detail.fields.role": {
+    "text": "Roll",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.detail.fields.verified": {
+    "text": "Verifierad",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.detail.fields.plan": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.fields.locale": {
+    "text": "Språk",
+    "source_hash": "ca3dc612"
+  },
+  "web.admin.customers.detail.fields.created": {
+    "text": "Skapad",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.fields.updated": {
+    "text": "Uppdaterad",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.customers.detail.fields.lastLogin": {
+    "text": "Senaste inloggning",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.fields.suspendedAt": {
+    "text": "Avstängd den",
+    "source_hash": "7227f219"
+  },
+  "web.admin.customers.detail.fields.suspendedBy": {
+    "text": "Avstängd av",
+    "source_hash": "e0830524"
+  },
+  "web.admin.customers.detail.fields.suspendedReason": {
+    "text": "Orsak till avstängning",
+    "source_hash": "d6b08d8e"
+  },
+  "web.admin.customers.detail.organizations.empty": {
+    "text": "Inga organisationer",
+    "source_hash": "c256efdc"
+  },
+  "web.admin.customers.detail.organizations.default": {
+    "text": "Standard",
+    "source_hash": "21b111cb"
+  },
+  "web.admin.customers.detail.receiptColumns.shortId": {
+    "text": "Kort ID",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.receiptColumns.state": {
+    "text": "Tillstånd",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.receiptColumns.created": {
+    "text": "Skapad",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.receipts.empty": {
+    "text": "Inga kvitton",
+    "source_hash": "fb425a68"
+  },
+  "web.admin.customers.detail.secretColumns.shortId": {
+    "text": "Kort ID",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.secretColumns.state": {
+    "text": "Tillstånd",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.secretColumns.created": {
+    "text": "Skapad",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.secretColumns.expiration": {
+    "text": "Utgång",
+    "source_hash": "f38d6e0e"
+  },
+  "web.admin.customers.detail.secrets.empty": {
+    "text": "Inga hemligheter",
+    "source_hash": "c37ab3f7"
+  },
+  "web.admin.customers.detail.sections.profile": {
+    "text": "Profil",
+    "source_hash": "d696a35b"
+  },
+  "web.admin.customers.detail.sections.secrets": {
+    "text": "Hemligheter",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.detail.sections.receipts": {
+    "text": "Kvitton",
+    "source_hash": "60a627df"
+  },
+  "web.admin.customers.detail.sections.organizations": {
+    "text": "Organisationer",
+    "source_hash": "2730183d"
+  },
+  "web.admin.customers.detail.sections.actions": {
+    "text": "Åtgärder",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sections.billing": {
+    "text": "Fakturering",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.customers.detail.sessions.title": {
+    "text": "Aktiva sessioner",
+    "source_hash": "b58fa4e0"
+  },
+  "web.admin.customers.detail.sessions.empty": {
+    "text": "Inga aktiva sessioner.",
+    "source_hash": "6f064eb9"
+  },
+  "web.admin.customers.detail.sessions.loadError": {
+    "text": "Det gick inte att läsa in sessioner.",
+    "source_hash": "d2884313"
+  },
+  "web.admin.customers.detail.sessions.unknown": {
+    "text": "Okänd",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.sessions.columns.lastActivity": {
+    "text": "Senaste aktivitet",
+    "source_hash": "06475633"
+  },
+  "web.admin.customers.detail.sessions.columns.ipAddress": {
+    "text": "IP-adress",
+    "source_hash": "0302a467"
+  },
+  "web.admin.customers.detail.sessions.columns.device": {
+    "text": "Enhet",
+    "source_hash": "6ba0bdec"
+  },
+  "web.admin.customers.detail.sessions.columns.authMethod": {
+    "text": "Autentiseringsmetod",
+    "source_hash": "bc4ea262"
+  },
+  "web.admin.customers.detail.sessions.columns.actions": {
+    "text": "Åtgärder",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sessions.revoke.button": {
+    "text": "Återkalla",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmTitle": {
+    "text": "Återkalla session?",
+    "source_hash": "7735d1ef"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmDescription": {
+    "text": "Detta loggar omedelbart ut användaren från den här sessionen. De behöver logga in igen.",
+    "source_hash": "b4291af0"
+  },
+  "web.admin.customers.detail.sessions.revoke.success": {
+    "text": "Sessionen har återkallats.",
+    "source_hash": "5e4762e5"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.button": {
+    "text": "Återkalla alla",
+    "source_hash": "c6847a4b"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmTitle": {
+    "text": "Återkalla alla sessioner?",
+    "source_hash": "a4fa4c65"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmDescription": {
+    "text": "Detta loggar ut användaren från alla enheter och webbläsare – inklusive sessioner som inte visas i den här listan – och stänger omedelbart av deras autentiserade rutter. Använd vid offboarding eller misstänkt kapning av konto. Skriv användarens ID för att bekräfta.",
+    "source_hash": "483cdd88"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.success": {
+    "text": "Alla sessioner återkallades ({count} avslutade).",
+    "source_hash": "4e1cce55"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.capped": {
+    "text": "Avslutade {count} sessioner, men svepet av ospårade sessioner avkortades – en äldre session kan finnas kvar. Kör igen för att vara säker.",
+    "source_hash": "e3d295a6"
+  },
+  "web.admin.customers.detail.stats.secretsCreated": {
+    "text": "Skapade hemligheter",
+    "source_hash": "7d17719e"
+  },
+  "web.admin.customers.detail.stats.secretsShared": {
+    "text": "Delade hemligheter",
+    "source_hash": "ba85b265"
+  },
+  "web.admin.customers.detail.stats.emailsSent": {
+    "text": "Skickade e-postmeddelanden",
+    "source_hash": "be604792"
+  },
+  "web.admin.customers.list.roleFilter": {
+    "text": "Roll",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.list.empty": {
+    "text": "Inga kunder hittades",
+    "source_hash": "dc754ec0"
+  },
+  "web.admin.customers.list.loadError": {
+    "text": "Det gick inte att läsa in kunder.",
+    "source_hash": "81783303"
+  },
+  "web.admin.customers.list.searchPlaceholder": {
+    "text": "Sök efter e-post, extid eller objid",
+    "source_hash": "c06d5a3b"
+  },
+  "web.admin.customers.list.emptySearch": {
+    "text": "Inga kunder matchar den här sökningen",
+    "source_hash": "ea7e7012"
+  },
+  "web.admin.customers.roles.colonel": {
+    "text": "Colonel",
+    "source_hash": "02577777"
+  },
+  "web.admin.customers.roles.admin": {
+    "text": "Administratör",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.customers.roles.staff": {
+    "text": "Personal",
+    "source_hash": "681927e3"
+  },
+  "web.admin.customers.roles.customer": {
+    "text": "Kund",
+    "source_hash": "bf376338"
+  },
+  "web.admin.customers.suspended.badge": {
+    "text": "Avstängd",
+    "source_hash": "e392a389"
+  },
+  "web.admin.customers.actions.checkoutLink.button": {
+    "text": "Skapa kassalänk",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.modalTitle": {
+    "text": "Skapa kassalänk",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.planLabel": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.checkoutLink.planPlaceholder": {
+    "text": "Plan-familje-ID (t.ex. identity_plus_v1)",
+    "source_hash": "12eba027"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleLabel": {
+    "text": "Faktureringscykel",
+    "source_hash": "d69f731e"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleMonthly": {
+    "text": "Månadsvis",
+    "source_hash": "9b11f6b7"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleYearly": {
+    "text": "Årsvis",
+    "source_hash": "6e69b59e"
+  },
+  "web.admin.customers.actions.checkoutLink.allowPromo": {
+    "text": "Tillåt kampanjkoder",
+    "source_hash": "ebe7bc8b"
+  },
+  "web.admin.customers.actions.checkoutLink.submit": {
+    "text": "Skapa länk",
+    "source_hash": "e6b850cf"
+  },
+  "web.admin.customers.actions.checkoutLink.resultLead": {
+    "text": "Kassalänk skapad. Dela den med kunden — den kan användas en gång och går ut.",
+    "source_hash": "6ff1fb0e"
+  },
+  "web.admin.customers.actions.checkoutLink.copy": {
+    "text": "Kopiera kassalänk",
+    "source_hash": "f1e51ca7"
+  },
+  "web.admin.customers.actions.checkoutLink.expiry": {
+    "text": "Går ut om ~{hours}h ({date}).",
+    "source_hash": "4c878a15"
+  },
+  "web.admin.customers.actions.checkoutLink.regionLabel": {
+    "text": "Region",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.customers.actions.checkoutLink.parseError": {
+    "text": "Servern accepterade begäran men returnerade ett oläsligt svar, så ingen länk kan visas. Kontrollera Stripe innan du försöker igen.",
+    "source_hash": "e7e08290"
+  },
+  "web.admin.customers.actions.checkoutLink.done": {
+    "text": "Klar",
+    "source_hash": "11a6767d"
+  },
+  "web.admin.customers.actions.purge.typePrompt": {
+    "text": "För att bekräfta, skriv kontots e-postadress {token} nedan",
+    "source_hash": "8b2a1819"
+  },
+  "web.admin.customers.actions.purge.unavailable": {
+    "text": "Rensning är inte tillgänglig: detta konto har ingen e-postadress att skriva om som bekräftelse.",
+    "source_hash": "5f20f7e5"
+  },
+  "web.admin.customers.columns.actions": {
+    "text": "Åtgärder",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.diagnostics.title": {
+    "text": "Kontodiagnostik",
+    "source_hash": "5574ece8"
+  },
+  "web.admin.customers.detail.diagnostics.loading": {
+    "text": "Kör diagnos…",
+    "source_hash": "062c83d5"
+  },
+  "web.admin.customers.detail.diagnostics.loadError": {
+    "text": "Kunde inte ladda diagnostik.",
+    "source_hash": "69e69f49"
+  },
+  "web.admin.customers.detail.diagnostics.healthy": {
+    "text": "Inget blockerande tillstånd hittades. Underlaget för autentisering och organisationskontext ser felfritt ut – misstänk problem på klientsidan (cookies, inloggningskonfiguration för anpassad domän) eller fel region.",
+    "source_hash": "e0e8450e"
+  },
+  "web.admin.customers.detail.diagnostics.authUnavailable": {
+    "text": "Autentiseringsdatabas inte tillgänglig (enkelt autentiseringsläge) — SQL-sidekontroller hoppades över.",
+    "source_hash": "d668907c"
+  },
+  "web.admin.customers.detail.diagnostics.authFailed": {
+    "text": "Autentiseringsdatabasen svarade inte, så SQL-sidekontroller kunde inte köras: {reason}",
+    "source_hash": "46d047c0"
+  },
+  "web.admin.customers.detail.diagnostics.unknown": {
+    "text": "Okänd",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.title": {
+    "text": "Autentiseringslogg",
+    "source_hash": "48ad8ba8"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.empty": {
+    "text": "Inga autentiseringshändelser registrerade.",
+    "source_hash": "d2332558"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.unavailable": {
+    "text": "Autentiseringsloggen kunde inte läsas: {reason}",
+    "source_hash": "ab18af57"
+  },
+  "web.admin.customers.detail.diagnostics.facts.authStatus": {
+    "text": "Autentiseringsstatus",
+    "source_hash": "34def169"
+  },
+  "web.admin.customers.detail.diagnostics.facts.noAccount": {
+    "text": "Inget autentiseringskonto",
+    "source_hash": "a9968e9e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.password": {
+    "text": "Lösenord",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordSet": {
+    "text": "Inställt",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordNone": {
+    "text": "Inget",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfa": {
+    "text": "MFA",
+    "source_hash": "d39ce053"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfaNone": {
+    "text": "Inget",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.loginFailures": {
+    "text": "Misslyckade försök",
+    "source_hash": "63e7f0a8"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lockedBadge": {
+    "text": "Utelåst",
+    "source_hash": "ace29f74"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiter": {
+    "text": "Hastighetsbegränsare",
+    "source_hash": "32892404"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterEngaged": {
+    "text": "Aktiverad",
+    "source_hash": "1b0d851e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterClear": {
+    "text": "Fri",
+    "source_hash": "83b12c22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verification": {
+    "text": "Verifieringsmail",
+    "source_hash": "23fac8fb"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationPending": {
+    "text": "Väntar — senast skickad {date}",
+    "source_hash": "9ab8d1b6"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationNone": {
+    "text": "Ingen väntar",
+    "source_hash": "a4d4cc22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.sessions": {
+    "text": "Aktiva sessioner",
+    "source_hash": "61ad9909"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lastLogin": {
+    "text": "Senaste inloggning (auth)",
+    "source_hash": "373e7fb1"
+  },
+  "web.admin.customers.detail.receipts.partial": {
+    "text": "Delvis lista — visar de {count} senaste. Denna kund har fler kvitton än vad som visas här.",
+    "source_hash": "127fd4db"
+  },
+  "web.admin.customers.detail.secrets.partial": {
+    "text": "Delvis lista — visar de {count} senaste. Denna kund äger fler hemligheter än vad som visas här.",
+    "source_hash": "a537c8f3"
+  },
+  "web.admin.customers.detail.sessions.columns.country": {
+    "text": "Land",
+    "source_hash": "701d021d"
+  },
+  "web.admin.customers.detail.sessions.current.badge": {
+    "text": "Denna session",
+    "source_hash": "6da6530a"
+  },
+  "web.admin.customers.detail.sessions.current.tooltip": {
+    "text": "Din nuvarande administratörssession. Att återkalla den här har ingen effekt — den återskapas för resten av denna begäran.",
+    "source_hash": "ef097ab1"
+  },
+  "web.admin.customers.verification.verified": {
+    "text": "Verifierad",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.verification.unverified": {
+    "text": "Inte verifierad",
+    "source_hash": "15133907"
+  },
+  "web.admin.customers.actions.impersonate.button": {
+    "text": "Personifiera kund",
+    "source_hash": "38a7cfbe"
+  },
+  "web.admin.customers.actions.impersonate.confirmTitle": {
+    "text": "Starta personifiering?",
+    "source_hash": "c6e4fa74"
+  },
+  "web.admin.customers.actions.impersonate.confirmDescription": {
+    "text": "Öppnar en tidsbegränsad, skrivskyddad session som {email}. Varje sida visar en banner tills du avslutar, ändringar blockeras och sessionen registreras i granskningsloggen tillsammans med ditt skäl.",
+    "source_hash": "713c01b4"
+  },
+  "web.admin.customers.actions.impersonate.reasonLabel": {
+    "text": "Skäl (obligatoriskt)",
+    "source_hash": "d976f5d9"
+  },
+  "web.admin.customers.actions.impersonate.reasonPlaceholder": {
+    "text": "Varför behövs den här sessionen? Ange ärendereferensen.",
+    "source_hash": "89a4835d"
+  },
+  "web.admin.customers.actions.impersonate.success": {
+    "text": "Personifiering startad.",
+    "source_hash": "b4662bcc"
+  },
+  "web.admin.customers.actions.impersonate.unavailable": {
+    "text": "Personifiering är inte tillgänglig för Colonel-konton, anonyma konton och avstängda konton.",
+    "source_hash": "fb6578b2"
+  },
+  "web.admin.customers.actions.purge.refused": {
+    "text": "Rensningen avvisades. Kunden har bevarats; åtgärda hindren innan du försöker igen.",
+    "source_hash": "8e8a2ae1"
+  },
+  "web.admin.customers.actions.purge.partial": {
+    "text": "Rensningen stoppades efter att viss upprensning hade slutförts. Rapportera inte att den lyckades och försök inte igen i blindo; granska de slutförda stegen och hindren.",
+    "source_hash": "a88fd15b"
+  },
+  "web.admin.customers.actions.purge.incomplete": {
+    "text": "Rensningen slutfördes inte (status: {status}). Granska livscykeldetaljerna innan du försöker igen.",
+    "source_hash": "c0c3d287"
+  },
+  "web.admin.customers.actions.purge.unreadableResult": {
+    "text": "Servern returnerade ett oläsbart rensningsresultat. Inget lyckat resultat rapporterades; kontrollera kundens och arbetsytans status innan du försöker igen.",
+    "source_hash": "cc837a77"
+  },
+  "web.admin.customers.actions.purge.resultStage": {
+    "text": "Stoppades vid steg: {stage}.",
+    "source_hash": "d0e313bf"
+  },
+  "web.admin.customers.actions.purge.resultBlockers": {
+    "text": "Hinder: {blockers}.",
+    "source_hash": "00c1e196"
+  },
+  "web.admin.customers.actions.purge.resultPlannedActions": {
+    "text": "Planerad upprensning: {actions}.",
+    "source_hash": "6915205d"
+  },
+  "web.admin.customers.actions.purge.resultActions": {
+    "text": "Slutförd upprensning: {actions}.",
+    "source_hash": "d34121b3"
+  },
+  "web.admin.customers.actions.purge.resultCompletedStages": {
+    "text": "Slutförda steg: {stages}.",
+    "source_hash": "67f68860"
+  },
+  "web.admin.customers.actions.role.button": {
+    "text": "Ändra roll",
+    "source_hash": "a43a8d8c"
+  },
+  "web.admin.customers.actions.role.selfDemote": {
+    "text": "Du kan inte degradera ditt eget Colonel-konto. Be en annan Colonel att göra det, eller kör `bin/ots customers role demote`.",
+    "source_hash": "3e75d01b"
+  },
+  "web.admin.customers.actions.role.lastColonel": {
+    "text": "Du kan inte degradera den sista kvarvarande Colonel – installationen skulle stå utan administratör. Befordra och verifiera ett annat konto först.",
+    "source_hash": "9c59c731"
+  },
+  "web.admin.customers.actions.unverify.selfUnverify": {
+    "text": "Du kan inte avverifiera ditt eget konto: en verifierad e-postadress krävs för att ha Colonel-rollen.",
+    "source_hash": "8ab024fe"
+  },
+  "web.admin.customers.actions.unverify.lastColonel": {
+    "text": "Du kan inte avverifiera den sista kvarvarande Colonel – ett overifierat konto kan inte ha Colonel-rollen. Befordra och verifiera ett annat konto först.",
+    "source_hash": "fc404616"
+  },
+  "web.admin.customers.detail.diagnostics.organizationContextBlocked": {
+    "text": "Organisationskontexten är blockerad eller ofullständig. Granska den indexerade arbetsytan och reparera ägarskap, medlemskap eller avvikelser i indexet för kontakt-e-post innan du betraktar kontot som felfritt.",
+    "source_hash": "5c5c89be"
+  },
+  "web.admin.customers.detail.diagnostics.organization": {
+    "text": "Arbetsyta: {id}",
+    "source_hash": "6ee50fe9"
+  },
+  "web.admin.customers.detail.diagnostics.remediation": {
+    "text": "Åtgärd: {action}",
+    "source_hash": "83ddc7d7"
+  },
+  "web.admin.customers.detail.fields.internalId": {
+    "text": "Internt ID",
+    "source_hash": "e468bb47"
+  },
+  "web.admin.customers.detail.organizations.open": {
+    "text": "Öppna",
+    "source_hash": "ed077f3d"
+  },
+  "web.admin.customers.detail.rodauthAdmin.open": {
+    "text": "Öppna i Rodauth Admin",
+    "source_hash": "467173c8"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.selfDescription": {
+    "text": "Detta loggar ut dig från alla andra enheter och webbläsare, inklusive sessioner som inte visas i den här listan. Sessionen du arbetar i just nu behålls.",
+    "source_hash": "ae350040"
+  },
+  "web.admin.customers.list.capped": {
+    "text": "Resultaten är begränsade: antalet som visas är ett minimivärde, inte totalen. Begränsa sökningen eller filtret för att se allt.",
+    "source_hash": "27537844"
+  },
+  "web.admin.customers.list.orphanedAccounts.title": {
+    "text": "Konto i autentiseringsdatabasen utan kundpost",
+    "source_hash": "82cf7a27"
+  },
+  "web.admin.customers.list.orphanedAccounts.hint": {
+    "text": "Autentiseringsdatabasen har ett konto för den här adressen, men ingen kundpost är kopplad till det. Personen kan fortfarande logga in; kundindexet har inget om personen. Öppna adressen för diagnostik.",
+    "source_hash": "0f903f23"
+  },
+  "web.admin.customers.list.orphanedAccounts.diagnose": {
+    "text": "Öppna kontodiagnostik",
+    "source_hash": "55b3e826"
+  },
+  "web.admin.customers.list.orphanedAccounts.accountId": {
+    "text": "Konto #{id}",
+    "source_hash": "485dee3c"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unverified": {
+    "text": "Inte verifierad",
+    "source_hash": "33c8e8de"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.verified": {
+    "text": "Verifierad",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.closed": {
+    "text": "Stängd",
+    "source_hash": "c21ead06"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unknown": {
+    "text": "Okänd",
+    "source_hash": "b764cdc0"
+  }
+}

@@ -1,0 +1,150 @@
+{
+  "web.admin.audit.title": {
+    "text": "Auditnapló",
+    "source_hash": "47751f88"
+  },
+  "web.admin.audit.description": {
+    "text": "Minden módosító adminisztrátori művelet, a legújabb elöl — ki mit tett, kivel, és hogyan zárult.",
+    "source_hash": "2326a1a0"
+  },
+  "web.admin.audit.categories.customer": {
+    "text": "Ügyfelek",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.audit.categories.session": {
+    "text": "Munkamenetek",
+    "source_hash": "6fa3cbf4"
+  },
+  "web.admin.audit.categories.domain": {
+    "text": "Domének",
+    "source_hash": "ced67718"
+  },
+  "web.admin.audit.categories.organization": {
+    "text": "Szervezetek",
+    "source_hash": "2730183d"
+  },
+  "web.admin.audit.categories.banner": {
+    "text": "Szalagcím",
+    "source_hash": "b7f4d98f"
+  },
+  "web.admin.audit.categories.queue": {
+    "text": "Sorok",
+    "source_hash": "be77db11"
+  },
+  "web.admin.audit.categories.email": {
+    "text": "E-mail",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.audit.categories.ratelimit": {
+    "text": "Sebességkorlátok",
+    "source_hash": "6ed021f7"
+  },
+  "web.admin.audit.categories.ip": {
+    "text": "IP-tiltások",
+    "source_hash": "48cdea49"
+  },
+  "web.admin.audit.columns.timestamp": {
+    "text": "Időbélyeg",
+    "source_hash": "115a2cc9"
+  },
+  "web.admin.audit.columns.actor": {
+    "text": "Végrehajtó",
+    "source_hash": "449995c4"
+  },
+  "web.admin.audit.columns.action": {
+    "text": "Művelet",
+    "source_hash": "64cff131"
+  },
+  "web.admin.audit.columns.target": {
+    "text": "Cél",
+    "source_hash": "978354db"
+  },
+  "web.admin.audit.columns.result": {
+    "text": "Eredmény",
+    "source_hash": "6e7d50e8"
+  },
+  "web.admin.audit.columns.detail": {
+    "text": "Részlet",
+    "source_hash": "fb5f27d5"
+  },
+  "web.admin.audit.filters.actorPlaceholder": {
+    "text": "Szűrés végrehajtó szerint (extid vagy e-mail)",
+    "source_hash": "966aa580"
+  },
+  "web.admin.audit.filters.actionLabel": {
+    "text": "Művelet",
+    "source_hash": "64cff131"
+  },
+  "web.admin.audit.filters.allActions": {
+    "text": "Minden művelet",
+    "source_hash": "83140cf1"
+  },
+  "web.admin.audit.list.loadError": {
+    "text": "Nem sikerült betölteni az auditnaplót.",
+    "source_hash": "acf244f4"
+  },
+  "web.admin.audit.list.retry": {
+    "text": "Újrapróbálkozás",
+    "source_hash": "942087cc"
+  },
+  "web.admin.audit.list.empty": {
+    "text": "Még nincsenek rögzített auditesemények",
+    "source_hash": "8fe0cac3"
+  },
+  "web.admin.audit.result.success": {
+    "text": "Sikeres",
+    "source_hash": "c88a0b90"
+  },
+  "web.admin.audit.result.failure": {
+    "text": "Sikertelen",
+    "source_hash": "7031edbc"
+  },
+  "web.admin.audit.categories.secret": {
+    "text": "Titkok",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.audit.categories.membership": {
+    "text": "Tagságok",
+    "source_hash": "b50f1a42"
+  },
+  "web.admin.audit.categories.entitlement_preview": {
+    "text": "Jogosultság előnézetek",
+    "source_hash": "255c5797"
+  },
+  "web.admin.audit.categories.colonel": {
+    "text": "Colonel bejelentkezések",
+    "source_hash": "01eeeb38"
+  },
+  "web.admin.audit.filters.actorLabel": {
+    "text": "Szereplő",
+    "source_hash": "449995c4"
+  },
+  "web.admin.audit.filters.searchButton": {
+    "text": "Keresés",
+    "source_hash": "49c266ba"
+  },
+  "web.admin.audit.filters.searchHint": {
+    "text": "Adjon meg egy szereplőt, majd nyomja meg az Entert, vagy válassza a Keresés gombot a futtatáshoz. A lista nem frissül gépelés közben.",
+    "source_hash": "45eceb12"
+  },
+  "web.admin.audit.filters.pendingSearch": {
+    "text": "Még nincs keresve — nyomja meg az Entert, vagy válassza a Keresés gombot a szereplő alkalmazásához.",
+    "source_hash": "f76095c2"
+  },
+  "web.admin.audit.list.contractError": {
+    "text": "A szerver válaszolt, de az audit adatok nem feleltek meg a várt formátumnak. Nem lehet eseményeket megjeleníteni — ez egy jelentéskészítési hiba, nem üres napló.",
+    "source_hash": "7f48137e"
+  },
+  "web.admin.audit.export.csv": {
+    "text": "CSV exportálása",
+    "source_hash": "91f71c14"
+  },
+  "web.admin.audit.export.ndjson": {
+    "text": "NDJSON exportálása",
+    "source_hash": "3ee2c07c"
+  },
+  "web.admin.audit.export.hint": {
+    "text": "Az exportálás a jelenlegi szűrőknek megfelelő teljes megőrzött naplót tartalmazza, nem csak ezt az oldalt. A megőrzés korlátozott — a hosszabb előzmények az auditnapló célrendszerében érhetők el.",
+    "source_hash": "163e8ad0"
+  }
+}

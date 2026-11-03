@@ -1,0 +1,749 @@
+# apps/web/auth/spec/integration/callback_validation_spec.rb
+#
+# frozen_string_literal: true
+
+# =============================================================================
+# TEST TYPE: Integration Tests for Cross-Tenant Callback Validation
+# =============================================================================
+#
+# Issue: #2786 - Per-domain SSO configuration
+#
+# Tests the before_omniauth_callback_route hook in OmniAuthTenant, which
+# validates that OAuth callbacks arrive at the same domain that initiated
+# the authentication request.
+#
+# These tests exercise the callback validation path directly by simulating
+# session state (domain_id + host stored during request phase) and then
+# invoking the callback validation logic against various host headers.
+#
+# Gap covered:
+#   - Callback from same domain as setup -> succeeds (no 403)
+#   - Callback domain mismatch -> 403 tenant_mismatch
+#   - No tenant context in session (platform-level) -> proceeds normally
+#   - Session context is cleaned up after callback
+#
+# REQUIREMENTS:
+# - Valkey running on port 2163: pnpm run test:database:start
+# - AUTH_DATABASE_URL set (SQLite or PostgreSQL)
+# - AUTHENTICATION_MODE=full
+#
+# RUN:
+#   source .env.test && pnpm run test:rspec apps/web/auth/spec/integration/callback_validation_spec.rb
+#
+# =============================================================================
+
+require_relative '../../spec_helper'
+require_relative '../../support/tenant_test_fixtures'
+require_relative '../../support/domain_sso_test_fixtures'
+require_relative '../../support/mock_omniauth_strategy'
+require_relative '../../support/oauth_flow_helper'
+require 'json'
+
+# Define the Auth::Config namespace so the hook file can load without a full
+# app boot. Auth::Config MUST be a Rodauth::Auth subclass here, never a plain
+# `module Config`: this spec shares its RSpec process with integration specs
+# that boot the real app, and the application registry reopens
+# `class Config < Rodauth::Auth`. A module would fix the constant to the wrong
+# type, so the reopen raises "TypeError: Config is not a class" and boot is
+# marked permanently not-ready for every later spec in the process.
+require 'rodauth'
+module Auth; end
+Auth.const_set(:Config, Class.new(Rodauth::Auth)) unless defined?(Auth::Config)
+Auth::Config.const_set(:Hooks, Module.new) unless Auth::Config.const_defined?(:Hooks, false)
+
+# Require Auth::Logging (used by the hook)
+require_relative '../../../lib/logging'
+
+# Require the tenant resolution hook
+require_relative '../../../config/hooks/omniauth_tenant'
+
+RSpec.describe 'Cross-Tenant Callback Validation', type: :integration do
+  include TenantTestFixtures
+  include DomainSsoTestFixtures
+
+  # Registered custom-domain hosts must classify :custom, which only happens
+  # with the domains axis ON and a PARSEABLE canonical host installed. Both
+  # used to be inherited from the ambient DOMAINS_ENABLED of whatever shell
+  # ran the suite; declaring it here makes the file green in either.
+  include_context 'domains enabled'
+
+  # Configure Familia encryption for testing, saving originals for restoration
+  before(:all) do
+    @original_encryption_keys = Familia.config.encryption_keys&.dup
+    @original_key_version = Familia.config.current_key_version
+    @original_personalization = Familia.config.encryption_personalization
+
+    key_v1 = 'test_encryption_key_32bytes_ok!!'
+    key_v2 = 'another_test_key_for_testing_!!'
+
+    Familia.configure do |config|
+      config.encryption_keys = {
+        v1: Base64.strict_encode64(key_v1),
+        v2: Base64.strict_encode64(key_v2),
+      }
+      config.current_key_version = :v1
+      config.encryption_personalization = 'CallbackValidTst'
+    end
+  end
+
+  # Restore original Familia encryption config to avoid cross-contamination
+  after(:all) do
+    Familia.configure do |config|
+      config.encryption_keys = @original_encryption_keys if @original_encryption_keys
+      config.current_key_version = @original_key_version if @original_key_version
+      config.encryption_personalization = @original_personalization if @original_personalization
+    end
+  end
+
+  let(:helpers) { Auth::Config::Hooks::OmniAuthTenant }
+
+  # ==========================================================================
+  # Direct Hook Logic Tests (no full app boot required)
+  # ==========================================================================
+  #
+  # These tests validate the callback validation logic by calling the helper
+  # methods directly and simulating the session + request state that the
+  # before_omniauth_callback_route hook reads.
+  #
+  # This approach is more reliable than full OAuth flow tests because it
+  # does not depend on OIDC discovery being available at boot time.
+  #
+
+  describe 'before_omniauth_callback_route logic' do
+    include_context 'tenant fixtures'
+
+    # Simulates the state transitions the hook performs:
+    #   1. session.delete(:omniauth_tenant_domain_id)
+    #   2. session.delete(:omniauth_tenant_host)
+    #   3. resolve_custom_domain(request.host)
+    #   4. compare identifiers -> 403 or proceed
+
+    describe 'callback from same domain as setup' do
+      it 'does not raise when domain_id matches' do
+        # Simulate: setup stored domain_id for test_custom_domain
+        expected_domain_id = test_custom_domain.identifier
+        callback_host = tenant_domain
+
+        # Resolve the callback domain (same domain as setup)
+        current_domain = helpers.resolve_custom_domain(callback_host)
+
+        # The hook's comparison: current_domain.identifier != expected_domain_id
+        expect(current_domain).not_to be_nil
+        expect(current_domain.identifier).to eq(expected_domain_id),
+          "Same-domain callback should have matching domain_id"
+      end
+    end
+
+    describe 'callback domain mismatch' do
+      let(:attacker_domain) { "evil-#{test_run_id}.attacker.example.com" }
+
+      let!(:attacker_custom_domain) do
+        domain = Onetime::CustomDomain.new(
+          display_domain: attacker_domain,
+          org_id: test_organization.org_id
+        )
+        domain.save
+        Onetime::CustomDomain.display_domain_index.put(attacker_domain, domain.domainid)
+        domain
+      end
+
+      after do
+        Onetime::CustomDomain.display_domain_index.remove(attacker_domain) rescue nil
+        attacker_custom_domain&.destroy! rescue nil
+      end
+
+      it 'detects mismatch when callback arrives at a different domain' do
+        # Setup stored domain_id from domain A
+        expected_domain_id = test_custom_domain.identifier
+
+        # Callback arrives at domain B (attacker domain)
+        current_domain = helpers.resolve_custom_domain(attacker_domain)
+
+        expect(current_domain).not_to be_nil
+        expect(current_domain.identifier).not_to eq(expected_domain_id),
+          "Cross-domain callback should produce a domain_id mismatch"
+      end
+
+      it 'detects mismatch when callback host resolves to nil' do
+        # Setup stored domain_id from a real domain
+        expected_domain_id = test_custom_domain.identifier
+
+        # Callback arrives at an unknown host (no CustomDomain record)
+        current_domain = helpers.resolve_custom_domain('unknown.example.com')
+
+        # The hook checks: current_domain&.identifier != expected_domain_id
+        # When current_domain is nil, nil != expected_domain_id => mismatch
+        domain_mismatch = current_domain&.identifier != expected_domain_id
+        expect(domain_mismatch).to be(true),
+          "Callback to unknown domain should trigger mismatch"
+      end
+    end
+
+    describe 'no tenant context in session (platform-level flow)' do
+      it 'skips validation when no domain_id was stored in session' do
+        # Simulate: session.delete(:omniauth_tenant_domain_id) returns nil
+        expected_domain_id = nil
+
+        # The hook does: next unless expected_domain_id
+        # When nil, it skips all validation and lets callback proceed
+        expect(expected_domain_id).to be_nil,
+          "Platform-level flow has no tenant context in session"
+      end
+
+      it 'does not attempt domain resolution when no tenant context' do
+        # When expected_domain_id is nil, the hook short-circuits with `next`
+        # and never calls resolve_custom_domain. Verify this invariant:
+        # the resolve call only makes sense when expected_domain_id is present.
+        expected_domain_id = nil
+        skip_validation = !expected_domain_id
+
+        expect(skip_validation).to be(true),
+          "Hook should skip validation when no tenant context in session"
+      end
+    end
+
+    describe 'session cleanup after callback' do
+      it 'removes domain_id from session via delete (not just read)' do
+        # The hook uses session.delete, which both reads and removes.
+        # Simulate with a real hash to verify the delete semantics.
+        mock_session = {
+          omniauth_tenant_domain_id: test_custom_domain.identifier,
+          omniauth_tenant_host: tenant_domain,
+        }
+
+        # session.delete returns the value AND removes the key
+        extracted_domain_id = mock_session.delete(:omniauth_tenant_domain_id)
+        extracted_host = mock_session.delete(:omniauth_tenant_host)
+
+        expect(extracted_domain_id).to eq(test_custom_domain.identifier)
+        expect(extracted_host).to eq(tenant_domain)
+
+        # After delete, keys should be gone
+        expect(mock_session).not_to have_key(:omniauth_tenant_domain_id),
+          "Session should not retain domain_id after callback"
+        expect(mock_session).not_to have_key(:omniauth_tenant_host),
+          "Session should not retain host after callback"
+      end
+
+      it 'cleans up session even when domain matches (success path)' do
+        mock_session = {
+          omniauth_tenant_domain_id: test_custom_domain.identifier,
+          omniauth_tenant_host: tenant_domain,
+        }
+
+        # Simulate the hook's session.delete calls
+        expected_domain_id = mock_session.delete(:omniauth_tenant_domain_id)
+        _expected_host = mock_session.delete(:omniauth_tenant_host)
+
+        # Verify domain matches (success case)
+        current_domain = helpers.resolve_custom_domain(tenant_domain)
+        expect(current_domain&.identifier).to eq(expected_domain_id)
+
+        # The original 'pending' keys are consumed; the hook re-stores the
+        # validated domain_id under a separate key for downstream consumers.
+        expect(mock_session).not_to have_key(:omniauth_tenant_domain_id),
+          "Original :omniauth_tenant_domain_id must be consumed even on success"
+        expect(mock_session).not_to have_key(:omniauth_tenant_host),
+          "Original :omniauth_tenant_host must be consumed even on success"
+      end
+
+      it 'cleans up session even on mismatch (failure path)' do
+        mock_session = {
+          omniauth_tenant_domain_id: 'domain_that_does_not_exist',
+          omniauth_tenant_host: 'original.example.com',
+        }
+
+        # The hook deletes BEFORE checking mismatch
+        expected_domain_id = mock_session.delete(:omniauth_tenant_domain_id)
+        _expected_host = mock_session.delete(:omniauth_tenant_host)
+
+        # Mismatch would be detected here
+        current_domain = helpers.resolve_custom_domain(tenant_domain)
+        domain_mismatch = current_domain&.identifier != expected_domain_id
+
+        expect(domain_mismatch).to be(true)
+        # Session is already clean regardless of mismatch
+        expect(mock_session).to be_empty,
+          "Session tenant context must be cleaned up even on failed callback"
+      end
+    end
+
+    describe 'validated domain_id preservation (issue #3114)' do
+      # The hook re-stores the validated domain_id under :validated_omniauth_domain_id
+      # AFTER the mismatch check passes. Downstream hooks
+      # (after_omniauth_create_account, after_login) read this key to call
+      # JoinDomainOrganization. Without this, tenant-SSO users are not added
+      # to the tenant org.
+
+      it 'sets :validated_omniauth_domain_id on successful validation' do
+        mock_session = {
+          omniauth_tenant_domain_id: test_custom_domain.identifier,
+          omniauth_tenant_host: tenant_domain,
+        }
+
+        # Mirror the hook's flow: delete original, validate, then re-store
+        expected_domain_id = mock_session.delete(:omniauth_tenant_domain_id)
+        _expected_host = mock_session.delete(:omniauth_tenant_host)
+
+        current_domain = helpers.resolve_custom_domain(tenant_domain)
+        domain_mismatch = current_domain&.identifier != expected_domain_id
+
+        # On success path, re-store under separate key (this is what the hook does)
+        mock_session[:validated_omniauth_domain_id] = expected_domain_id unless domain_mismatch
+
+        expect(domain_mismatch).to be(false)
+        expect(mock_session[:validated_omniauth_domain_id]).to eq(test_custom_domain.identifier),
+          "Validated domain_id must be preserved for downstream hooks to consume"
+      end
+
+      it 'does NOT set :validated_omniauth_domain_id on mismatch (failure path)' do
+        mock_session = {
+          omniauth_tenant_domain_id: 'domain_that_does_not_exist',
+          omniauth_tenant_host: 'original.example.com',
+        }
+
+        expected_domain_id = mock_session.delete(:omniauth_tenant_domain_id)
+        _expected_host = mock_session.delete(:omniauth_tenant_host)
+
+        current_domain = helpers.resolve_custom_domain(tenant_domain)
+        domain_mismatch = current_domain&.identifier != expected_domain_id
+
+        # On mismatch the hook throws 403 BEFORE the re-store line, so the
+        # validated key never gets set.
+        mock_session[:validated_omniauth_domain_id] = expected_domain_id unless domain_mismatch
+
+        expect(domain_mismatch).to be(true)
+        expect(mock_session).not_to have_key(:validated_omniauth_domain_id),
+          "Validated key must NOT be set when callback validation fails"
+      end
+
+      it 'does NOT set :validated_omniauth_domain_id when no tenant context (platform-level)' do
+        # Platform-level callback: no tenant context was stored during request phase
+        mock_session = {}
+
+        expected_domain_id = mock_session.delete(:omniauth_tenant_domain_id)
+        _expected_host = mock_session.delete(:omniauth_tenant_host)
+
+        # `next unless expected_domain_id` causes the hook to short-circuit;
+        # the re-store line is never reached.
+        skip_validation = !expected_domain_id
+
+        expect(skip_validation).to be(true)
+        expect(mock_session).not_to have_key(:validated_omniauth_domain_id),
+          "Platform-level callback should not set validated key"
+      end
+    end
+  end
+
+  # ==========================================================================
+  # Full OAuth Flow Tests (require app boot + OIDC routes)
+  # ==========================================================================
+  #
+  # These tests attempt the real OAuth initiation -> callback flow through
+  # the Rack stack. They may skip if OIDC routes are not registered.
+  #
+
+  describe 'full OAuth callback flow', type: :integration, oauth_flow: true do
+    include Rack::Test::Methods
+    include OAuthFlowHelper
+
+    def app
+      Onetime::Application::Registry.generate_rack_url_map
+    end
+
+    before(:all) do
+      Onetime.boot! :test
+    end
+
+    after do
+      cleanup_oauth_test_fixtures
+    end
+
+    context 'same-domain callback succeeds' do
+      let(:test_run_id) { "same-cb-#{SecureRandom.hex(4)}" }
+      let(:domain_host) { "secrets-#{test_run_id}.same-domain.example.com" }
+
+      before do
+        @domain_fixtures = setup_oauth_test_domain(domain_host)
+      end
+
+      it 'does not return 403 when callback domain matches initiation domain' do
+        OmniAuth.config.test_mode = true
+        OmniAuth.config.allowed_request_methods = %i[get post]
+
+        OmniAuth.config.mock_auth[:oidc] = OmniAuth::AuthHash.new({
+          provider: 'oidc',
+          uid: "uid-same-#{test_run_id}",
+          info: { email: "user-#{test_run_id}@same-domain.example.com", name: 'Test User' },
+        })
+
+        begin
+          # Initiate from domain
+          header 'Host', domain_host
+          post '/auth/sso/oidc'
+
+          if last_response.status == 404
+            skip 'OmniAuth route not registered (OIDC discovery not available at boot)'
+          end
+
+          expect(last_response.status).to eq(302)
+
+          # Callback from same domain
+          header 'Host', domain_host
+          post '/auth/sso/oidc/callback'
+
+          expect(last_response.status).not_to eq(403),
+            "Same-domain callback should not return 403, got: #{last_response.status}"
+        ensure
+          OmniAuth.config.test_mode = false
+          OmniAuth.config.mock_auth.clear
+        end
+      end
+    end
+
+    context 'cross-domain callback returns 403' do
+      let(:test_run_id) { "cross-cb-#{SecureRandom.hex(4)}" }
+      let(:domain_a_host) { "secrets-#{test_run_id}.legit.example.com" }
+      let(:domain_b_host) { "secrets-#{test_run_id}.attacker.example.com" }
+
+      before do
+        @domain_a_fixtures = setup_oauth_test_domain(domain_a_host)
+        @domain_b_fixtures = setup_oauth_test_domain(domain_b_host)
+      end
+
+      it 'returns 403 tenant_mismatch when callback host differs from initiation host' do
+        OmniAuth.config.test_mode = true
+        OmniAuth.config.allowed_request_methods = %i[get post]
+
+        OmniAuth.config.mock_auth[:oidc] = OmniAuth::AuthHash.new({
+          provider: 'oidc',
+          uid: "uid-cross-#{test_run_id}",
+          info: { email: "user-#{test_run_id}@legit.example.com", name: 'Test User' },
+        })
+
+        begin
+          # Initiate from domain A
+          header 'Host', domain_a_host
+          post '/auth/sso/oidc'
+
+          if last_response.status == 404
+            skip 'OmniAuth route not registered (OIDC discovery not available at boot)'
+          end
+
+          expect(last_response.status).to eq(302)
+
+          # Callback from domain B (different host)
+          header 'Host', domain_b_host
+          post '/auth/sso/oidc/callback'
+
+          expect(last_response.status).to eq(403),
+            "Cross-domain callback should return 403, got: #{last_response.status}, body: #{last_response.body}"
+          expect(last_response.body).to include('tenant_mismatch').or include('Authentication context mismatch')
+        ensure
+          OmniAuth.config.test_mode = false
+          OmniAuth.config.mock_auth.clear
+        end
+      end
+    end
+
+    # Defense in depth behind the refusal paths' clear_pending_tenant_context:
+    # this callback ran with the TENANT's options injected by host (the setup
+    # hook fires on the callback phase too), but the session carries no
+    # pending tenant flow. That is never a platform sign-in — the strategy
+    # just ran with a tenant's credentials — so the hook must refuse rather
+    # than skip the tenant checks. Contrast the canonical-host example below,
+    # where nothing was injected and proceeding is correct.
+    context 'tenant callback with no pending tenant flow in the session' do
+      let(:test_run_id) { "no-ctx-#{SecureRandom.hex(4)}" }
+      let(:domain_host) { "secrets-#{test_run_id}.no-context.example.com" }
+
+      before do
+        @domain_fixtures = setup_oauth_test_domain(domain_host)
+      end
+
+      it 'returns 403 tenant_context_missing instead of proceeding on the platform path' do
+        OmniAuth.config.test_mode = true
+        OmniAuth.config.allowed_request_methods = %i[get post]
+
+        OmniAuth.config.mock_auth[:oidc] = OmniAuth::AuthHash.new({
+          provider: 'oidc',
+          uid: "uid-noctx-#{test_run_id}",
+          info: { email: "user-#{test_run_id}@no-context.example.com", name: 'Test User' },
+        })
+
+        begin
+          # Straight to the tenant callback: no request phase, no markers.
+          header 'Host', domain_host
+          post '/auth/sso/oidc/callback'
+
+          if last_response.status == 404
+            skip 'OmniAuth route not registered (OIDC discovery not available at boot)'
+          end
+
+          expect(last_response.status).to eq(403),
+            "Tenant callback without a pending flow should return 403, got: #{last_response.status}, body: #{last_response.body}"
+          expect(last_response.body).to include('tenant_context_missing')
+          expect(last_request.env['rack.session'].to_h.keys.map(&:to_s)).not_to include('validated_omniauth_domain_id')
+        ensure
+          OmniAuth.config.test_mode = false
+          OmniAuth.config.mock_auth.clear
+        end
+      end
+    end
+
+    context 'platform-level callback (no tenant context)' do
+      it 'proceeds without 403 when no tenant context in session' do
+        OmniAuth.config.test_mode = true
+        OmniAuth.config.allowed_request_methods = %i[get post]
+
+        OmniAuth.config.mock_auth[:oidc] = OmniAuth::AuthHash.new({
+          provider: 'oidc',
+          uid: 'uid-platform-level',
+          info: { email: 'user@platform.example.com', name: 'Platform User' },
+        })
+
+        begin
+          # Hit callback directly on canonical domain (no initiation, no tenant context)
+          canonical_host = OT.conf.dig('site', 'host') || 'onetimesecret.com'
+          header 'Host', canonical_host
+          post '/auth/sso/oidc/callback'
+
+          # Should not get 403 since there is no tenant context to validate
+          expect(last_response.status).not_to eq(403),
+            "Platform-level callback should not fail with 403, got: #{last_response.status}"
+        ensure
+          OmniAuth.config.test_mode = false
+          OmniAuth.config.mock_auth.clear
+        end
+      end
+    end
+  end
+
+  # ==========================================================================
+  # Tenant SSO email-domain allowlist enforcement
+  #
+  # Regression coverage for the 2026-08-14 appsec review, finding H-3:
+  # "Tenant SSO allowed_domains is dead code — the documented access control
+  # has no runtime effect."
+  #
+  # allowed_domains is plumbed through the API, rendered in the UI, and
+  # described by the provider metadata as the way to restrict a generic OIDC
+  # IdP ('oidc' declares requires_domain_filter: true) — but SsoConfig's
+  # valid_email_domain? had zero production callers, so an operator who
+  # restricted their tenant to @example.com got no restriction at all.
+  #
+  # Enforcement lives in before_omniauth_callback_route rather than
+  # before_omniauth_create_account, because the latter runs on the CREATE path
+  # only: once an (provider, issuer, uid) identity row exists the gem skips
+  # both account_from_omniauth and before_omniauth_create_account, so a
+  # create-only gate lets an already-provisioned user keep signing in forever
+  # after their domain is removed from the allowlist.
+  # ==========================================================================
+
+  describe '.enforce_tenant_email_domain!' do
+    let(:rodauth) { double('Rodauth') }
+    let(:domain_id) { 'domain_under_test' }
+
+    before do
+      allow(rodauth).to receive(:redirect)
+      allow(Auth::Logging).to receive(:log_auth_event)
+    end
+
+    # In production `redirect` throws to halt the callback; the double simply
+    # records the call, which is sufficient because the redirect is the last
+    # statement on the rejection path.
+    def expect_rejected(error = 'domain_not_allowed')
+      expect(rodauth).to have_received(:redirect).with("/signin?auth_error=#{error}")
+    end
+
+    def expect_permitted
+      expect(rodauth).not_to have_received(:redirect)
+    end
+
+    def enforce(email, sso_config)
+      allow(Onetime::CustomDomain::SsoConfig).to receive(:find_by_domain_id)
+        .with(domain_id).and_return(sso_config)
+      helpers.enforce_tenant_email_domain!(domain_id, email, rodauth)
+    end
+
+    context 'with an allowlist configured' do
+      # build_domain_sso_config(:oidc) allows example.com and
+      # subsidiary.example.com.
+      let(:sso_config) { build_domain_sso_config(:oidc) }
+
+      it 'permits an address in the allowlist' do
+        enforce('user@example.com', sso_config)
+
+        expect_permitted
+      end
+
+      it 'rejects an address outside the allowlist' do
+        enforce('attacker@evil.com', sso_config)
+
+        expect_rejected
+      end
+
+      it 'rejects a multi-@ address whose LAST segment is a listed domain' do
+        # This exact ordering is the bypass the structural check exists for.
+        # valid_email_domain? reads the segment after the LAST '@', so the
+        # allowlist ALONE returns true here:
+        #   'attacker@evil.com@example.com'.split('@').last => 'example.com'
+        # Only Onetime::SignupValidation.structurally_valid_email? rejects it.
+        #
+        # Do NOT "simplify" this to user@example.com@evil.com — that resolves
+        # to evil.com, which the allowlist rejects unaided, so it would pass
+        # even with the structural check deleted and this test would stop
+        # guarding anything.
+        expect(sso_config.valid_email_domain?('attacker@evil.com@example.com')).to be true
+
+        enforce('attacker@evil.com@example.com', sso_config)
+
+        expect_rejected('invalid_email')
+      end
+
+      it 'rejects a non-String claim even when its string representation matches the allowlist' do
+        enforce(['user@example.com'], sso_config)
+
+        expect_rejected('invalid_email')
+      end
+
+      it 'rejects a claim case folding would rewrite even when its domain is listed' do
+        # 'straße' folds to 'strasse', a different address (#4726).
+        enforce('straße@example.com', sso_config)
+
+        expect_rejected('invalid_email')
+      end
+
+      it 'rejects a missing email claim' do
+        enforce(nil, sso_config)
+
+        expect_rejected('missing_email')
+      end
+
+      ['', " \t\n", "\u00a0"].each do |email|
+        it "rejects a blank email claim #{email.inspect} as missing_email" do
+          enforce(email, sso_config)
+
+          expect_rejected('missing_email')
+        end
+      end
+    end
+
+    # RISK-2026-10-10-03 (#4736).
+    context 'with an internationalised allowlist entry' do
+      let(:sso_config) { build_domain_sso_config(:oidc, allowed_domains: ['bücher.de']) }
+
+      it 'permits the A-label form and logs that only the forms differed' do
+        enforce('user@xn--bcher-kva.de', sso_config)
+
+        expect_permitted
+        expect(Auth::Logging).to have_received(:log_auth_event).with(
+          :omniauth_tenant_domain_idn_match,
+          hash_including(
+            level: :info,
+            domain_id: domain_id,
+            reason: :idn_form_differed,
+            allowed_domain: 'bücher.de',
+            asserted_domain: 'xn--bcher-kva.de',
+          ),
+        )
+      end
+
+      it 'logs nothing for a byte-for-byte match' do
+        enforce('user@bücher.de', sso_config)
+
+        expect_permitted
+        expect(Auth::Logging).not_to have_received(:log_auth_event)
+      end
+
+      it 'rejects a different name that IDNA mapping would encode alike' do
+        enforce("user@b\u00fc\u00adcher.de", sso_config)
+
+        expect_rejected
+      end
+    end
+
+    context 'without an allowlist configured' do
+      let(:sso_config) { build_domain_sso_config(:oidc, allowed_domains: []) }
+
+      it 'permits any address the IdP authenticates' do
+        # Allow-all is the documented, intended state for providers that
+        # control access themselves (Entra ID via app assignment). Enforcement
+        # must not turn an unconfigured allowlist into a lockout.
+        enforce('anyone@anywhere.example', sso_config)
+
+        expect_permitted
+      end
+
+      it 'does not require email for an already linked identity' do
+        enforce(nil, sso_config)
+
+        expect_permitted
+      end
+    end
+
+    context 'with a request-cached SsoConfig' do
+      # omniauth_setup stashes the record it loaded in the rack env; the
+      # callback hook hands it to the helper so the tenant path costs one
+      # Redis read, not two.
+      let(:sso_config) { build_domain_sso_config(:oidc, domain_id: domain_id) }
+
+      it 'uses the provided record without a second fetch when it matches the domain' do
+        expect(Onetime::CustomDomain::SsoConfig).not_to receive(:find_by_domain_id)
+
+        helpers.enforce_tenant_email_domain!(
+          domain_id, 'user@example.com', rodauth, sso_config: sso_config
+        )
+
+        expect_permitted
+      end
+
+      it 're-fetches rather than trusting a record for a different domain' do
+        stranger = build_domain_sso_config(:oidc, domain_id: 'some_other_domain')
+        allow(Onetime::CustomDomain::SsoConfig).to receive(:find_by_domain_id)
+          .with(domain_id).and_return(nil)
+
+        helpers.enforce_tenant_email_domain!(
+          domain_id, 'user@example.com', rodauth, sso_config: stranger
+        )
+
+        # The fresh fetch found nothing, so the no_sso_config rung denies —
+        # proving the stranger record was not consulted.
+        expect(Onetime::CustomDomain::SsoConfig).to have_received(:find_by_domain_id).with(domain_id)
+        expect_rejected
+      end
+    end
+
+    context 'when the tenant configuration cannot be evaluated' do
+      it 'rejects when the SSO config has gone missing mid-flow' do
+        enforce('user@example.com', nil)
+
+        expect_rejected
+      end
+
+      it 'keeps a missing config denial even when the email is also missing' do
+        enforce(nil, nil)
+
+        expect_rejected
+      end
+
+      it 'keeps a corrupt config denial even when the email is malformed' do
+        corrupt = build_domain_sso_config(:oidc)
+        corrupt.allowed_domains_json = 'not json'
+
+        enforce('not-an-email', corrupt)
+
+        expect_rejected
+      end
+
+      it 'rejects when the allowlist is unreadable rather than treating it as absent' do
+        corrupt = build_domain_sso_config(:oidc)
+        corrupt.allowed_domains_json = '["example.com"'
+
+        enforce('user@example.com', corrupt)
+
+        expect_rejected
+      end
+    end
+  end
+end

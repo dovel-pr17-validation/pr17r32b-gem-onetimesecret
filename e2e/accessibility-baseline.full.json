@@ -1,0 +1,42 @@
+{
+  "dark|/dashboard|page-has-heading-one|html": {
+    "theme": "dark",
+    "route": "/dashboard",
+    "ruleId": "page-has-heading-one",
+    "target": "html",
+    "impact": "moderate",
+    "help": "Page should contain a level-one heading"
+  },
+  "dark|/orgs|color-contrast|.bg-brand-600": {
+    "theme": "dark",
+    "route": "/orgs",
+    "ruleId": "color-contrast",
+    "target": ".bg-brand-600",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+  },
+  "dark|/recent|page-has-heading-one|html": {
+    "theme": "dark",
+    "route": "/recent",
+    "ruleId": "page-has-heading-one",
+    "target": "html",
+    "impact": "moderate",
+    "help": "Page should contain a level-one heading"
+  },
+  "light|/dashboard|page-has-heading-one|html": {
+    "theme": "light",
+    "route": "/dashboard",
+    "ruleId": "page-has-heading-one",
+    "target": "html",
+    "impact": "moderate",
+    "help": "Page should contain a level-one heading"
+  },
+  "light|/recent|page-has-heading-one|html": {
+    "theme": "light",
+    "route": "/recent",
+    "ruleId": "page-has-heading-one",
+    "target": "html",
+    "impact": "moderate",
+    "help": "Page should contain a level-one heading"
+  }
+}

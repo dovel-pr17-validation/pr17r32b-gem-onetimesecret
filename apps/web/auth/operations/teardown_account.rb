@@ -1,0 +1,225 @@
+# apps/web/auth/operations/teardown_account.rb
+#
+# frozen_string_literal: true
+
+require 'auth/operations/remove_authentication_data'
+require 'auth/operations/destroy_customer_record'
+require 'onetime/operations/sessions/revoke_all_for_customer'
+require 'onetime/operations/sessions/revoke_all_for_customer_except_current'
+
+module Auth
+  module Operations
+    # Permanently removes one account through the same ordered teardown in every
+    # authentication mode and from both self-service and administrative callers.
+    #
+    # The operation revokes sessions first, removes the Rodauth identity with
+    # its credentials and its authentication audit log when full auth is
+    # enabled, and deletes the Redis Customer last. Rodauth's own close_account
+    # only flips the status column and drops the password hash; the SQL
+    # credential rows (identities, MFA secrets, remember and refresh keys,
+    # active sessions) are removed here on every path, including the
+    # after_close_account hook, which runs inside the same SQL transaction and
+    # keeps closure committed once a Redis mutation has started.
+    #
+    # `retain_auth_account: true` is for that hook only (#4819). There the
+    # accounts row and its audit log stay in place, the row set to CLOSED,
+    # because Rodauth still inserts the "Account closed" audit row after the
+    # hook returns; Rodauth's delete_account (config/hooks/account.rb) then
+    # removes the audit log and the row as the last statements of the same
+    # transaction. Every other caller runs outside Rodauth and deletes the row
+    # and its audit log here. No path keeps a closed row or its audit history.
+    #
+    # Immediately before it removes the sign-in identity (the auth account in
+    # full mode, the record in simple mode) the operation marks the Customer
+    # (Customer#mark_closure_started!); a teardown refused or stopped before
+    # that point leaves a live account unmarked. A completed closure deletes
+    # the record, marker included. One interrupted after the SQL identity is
+    # gone leaves a record that says so, and `customers sync-auth-accounts`
+    # leaves that record alone rather than provisioning a new auth account
+    # for it: the closed accounts row used to be the only thing standing in
+    # its way.
+    # A self-service closure is marked earlier, by after_close_account
+    # before its purge starts; the write here is then a no-op.
+    #
+    # Colonel auditing remains in Customers::Purge. Supplying actor selects the
+    # audited administrative session-revocation operation; self-service callers do
+    # not write to the Colonel audit trail.
+    #
+    # `sweep_untracked_sessions: false` skips the administrative revocation's
+    # keyspace walk for pre-sidecar blobs (see RevokeAllForCustomer): a bulk
+    # sweep of long-idle accounts has nothing for it to find and would repeat
+    # the walk once per account. The tracked revocation always runs.
+    class TeardownAccount
+      class Result
+        attr_reader :status, :extid, :custid, :account_id, :completed_stages, :blocked_stage
+
+        def initialize(status:, extid:, custid:, account_id:, completed_stages: [], blocked_stage: nil)
+          @status           = status
+          @extid            = extid
+          @custid           = custid
+          @account_id       = account_id
+          @completed_stages = completed_stages.freeze
+          @blocked_stage    = blocked_stage
+          freeze
+        end
+      end
+
+      def initialize(customer: nil, account: nil, actor: nil, reason: nil, db: nil,
+                     before_mutation: nil, on_mutation: nil,
+                     bulk_audit_context: nil, sweep_untracked_sessions: true,
+                     self_service: false, retain_auth_account: false)
+        raise ArgumentError, 'Must provide either customer: or account:' if customer.nil? && account.nil?
+        raise ArgumentError, 'Cannot provide both customer: and account:' if customer && account
+
+        @customer                 = customer
+        @account                  = account
+        @actor                    = actor
+        @reason                   = reason
+        @db                       = db
+        @before_mutation          = before_mutation
+        @on_mutation              = on_mutation
+        @bulk_audit_context       = bulk_audit_context
+        @sweep_untracked_sessions = sweep_untracked_sessions
+        @self_service             = self_service
+        @retain_auth_account      = retain_auth_account
+        @completed_stages         = []
+      end
+
+      # rubocop:disable Metrics/PerceivedComplexity -- two stores, one irreversible
+      # ordering; the branches are the cross-store outcome matrix
+      def call
+        customer = @customer || find_customer
+        unless customer
+          account_id = close_auth_account(account_extid)
+          status     = @account && full_auth_mode? ? :success : :not_found
+          return Result.new(
+            status: status,
+            extid: account_extid,
+            custid: nil,
+            account_id: account_id,
+            completed_stages: @completed_stages,
+          )
+        end
+
+        extid  = customer.extid
+        custid = customer.custid
+
+        return blocked_result(:session_revocation, extid, custid) unless mutation_allowed?(:session_revocation)
+
+        mutation_started!(:session_revocation)
+        revoke_sessions(customer)
+        @completed_stages << :session_revocation
+
+        if full_auth_mode? && !mutation_allowed?(:authentication_closure)
+          return blocked_result(:authentication_closure, extid, custid)
+        end
+
+        # The marker goes on just before the sign-in identity goes: the auth
+        # account in full mode, the record itself in simple mode. A stop
+        # before that leaves a live account, which must not read as closing.
+        # A failed write (Redis unreachable) raises before the identity is
+        # touched.
+        customer.mark_closure_started! if full_auth_mode?
+        mutation_started!(:authentication_closure) if full_auth_mode?
+        account_id = close_auth_account(extid)
+        @completed_stages << :authentication_closure if full_auth_mode?
+
+        return blocked_result(:customer_deletion, extid, custid, account_id) unless mutation_allowed?(:customer_deletion)
+
+        customer.mark_closure_started! unless full_auth_mode?
+        mutation_started!(:customer_deletion)
+        deleted = Auth::Operations::DestroyCustomerRecord.new(customer: customer).call
+        @completed_stages << :customer_deletion if deleted
+
+        status = if deleted
+                   :success
+                 elsif @before_mutation && @completed_stages.any?
+                   :partial
+                 else
+                   :not_found
+                 end
+        Result.new(
+          status: status,
+          extid: extid,
+          custid: custid,
+          account_id: account_id,
+          completed_stages: @completed_stages,
+        )
+      end
+      # rubocop:enable Metrics/PerceivedComplexity
+
+      private
+
+      def mutation_started!(stage)
+        @on_mutation&.call(stage)
+      end
+
+      def mutation_allowed?(stage)
+        return true unless @before_mutation
+
+        @before_mutation.call(stage) == true
+      end
+
+      def blocked_result(stage, extid, custid, account_id = nil)
+        status = @completed_stages.empty? ? :refused : :partial
+        Result.new(
+          status: status,
+          extid: extid,
+          custid: custid,
+          account_id: account_id,
+          completed_stages: @completed_stages,
+          blocked_stage: stage,
+        )
+      end
+
+      def find_customer
+        customer = Onetime::Customer.find_by_extid(account_extid) unless account_extid.to_s.empty?
+        return customer if customer
+        return nil if @account[:email].to_s.empty?
+
+        Onetime::Customer.find_by_email(@account[:email])
+      end
+
+      def account_extid
+        @account&.[](:external_id)
+      end
+
+      def revoke_sessions(customer)
+        if @actor
+          Onetime::Operations::Sessions::RevokeAllForCustomer.new(
+            customer: customer,
+            actor: @actor,
+            reason: @reason,
+            bulk_audit_context: @bulk_audit_context,
+            sweep_untracked: @sweep_untracked_sessions,
+            self_service: @self_service,
+          ).call
+        else
+          Onetime::Operations::Sessions::RevokeAllForCustomerExceptCurrent.new(
+            customer: customer,
+            except_session_id: nil,
+          ).call
+        end
+      end
+
+      def close_auth_account(extid)
+        return nil unless full_auth_mode?
+
+        result = Auth::Operations::RemoveAuthenticationData.call(
+          extid: extid,
+          db: @db,
+          allow_missing: true,
+          revoke_sessions: false,
+          retain_account: @retain_auth_account,
+        )
+        return result[:account_id] if result[:success]
+
+        raise Onetime::Problem, "Unable to close auth account: #{result[:error]}"
+      end
+
+      def full_auth_mode?
+        Onetime.auth_config.full_enabled?
+      end
+    end
+  end
+end

@@ -1,0 +1,284 @@
+<!-- src/apps/session/components/SignUpForm.vue -->
+
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+import LegalLink from '@/shared/components/common/LegalLink.vue';
+import OIcon from '@/shared/components/icons/OIcon.vue';
+import { useAuth } from '@/shared/composables/useAuth';
+import { useAuthStore } from '@/shared/stores/authStore';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import type { Jurisdiction } from '@/schemas/shapes/config';
+import { computed, ref } from 'vue';
+import { useRoute } from 'vue-router';
+
+export interface Props {
+  enabled?: boolean;
+  jurisdiction?: Jurisdiction
+  locale?: string;
+}
+
+withDefaults(defineProps<Props>(), {
+  enabled: true,
+  locale: 'en',
+})
+
+const route = useRoute();
+const authStore = useAuthStore();
+const bootstrapStore = useBootstrapStore();
+const { signup, isLoading, error, fieldError, clearErrors } = useAuth();
+
+const { t } = useI18n();
+
+// Legal URLs from site.legal (#4278). When a URL is unset, LegalLink
+// renders the document name as plain text — the consent sentence still
+// reads correctly, and the agreement still binds.
+const termsUrl = computed(() => bootstrapStore.legalUrls.terms_url);
+const privacyUrl = computed(() => bootstrapStore.legalUrls.privacy_url);
+
+// Prefill email from query param (e.g., from invitation flow)
+const emailFromQuery = typeof route.query.email === 'string' ? route.query.email : '';
+const email = ref(emailFromQuery);
+const password = ref('');
+const termsAgreed = ref(false);
+const showPassword = ref(false);
+
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value;
+};
+
+const isSubmitting = ref(false);
+
+const handleSubmit = async () => {
+  if (isSubmitting.value) return;
+  isSubmitting.value = true;
+  try {
+    clearErrors();
+    // Best-effort CSRF token refresh through the refresh coordinator (#4459),
+    // which never throws: on failure we proceed with the existing token.
+    await authStore.refresh({ kind: 'ordinary', reason: 'csrf' });
+    await signup(email.value, password.value, termsAgreed.value);
+    // Navigation handled by useAuth composable
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+</script>
+
+<template>
+  <form
+    @submit.prevent="handleSubmit"
+    class=""
+    data-testid="signup-form">
+    <!-- Honeypot field for spam prevention -->
+    <input
+      type="text"
+      name="skill"
+      class="hidden"
+      aria-hidden="true"
+      aria-disabled="true"
+      tabindex="-1"
+      value="" />
+
+    <!-- Error message -->
+    <div
+      v-if="error"
+      class="rounded-md bg-red-50 p-4 dark:bg-red-900/20"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+      data-testid="signup-error-message">
+      <div class="flex">
+        <div class="shrink-0">
+          <svg
+            class="size-5 text-red-400"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+              clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+            {{ t('web.signup.error_title') }}
+          </h3>
+          <div class="mt-2 text-sm text-red-700 dark:text-red-300">
+            <!-- Show specific field error if available, otherwise show generic error -->
+            <p
+              v-if="fieldError && fieldError[0] === 'password'"
+              id="password-error"
+              class="font-medium">
+              {{ t('web.signup.password_error') }}: {{ fieldError[1] }}
+            </p>
+            <p
+              v-else-if="fieldError && fieldError[0] === 'login'"
+              id="email-error"
+              class="font-medium">
+              {{ t('web.signup.email_error') }}: {{ fieldError[1] }}
+            </p>
+            <p v-else id="form-error">
+              {{ error }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <!-- Email field -->
+      <div>
+        <label
+          for="email-address"
+          class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {{ t('web.COMMON.field_email') }}
+        </label>
+        <input
+          id="email-address"
+          name="email"
+          type="email"
+          autocomplete="email"
+          required
+          :disabled="isSubmitting || isLoading"
+          focus
+          tabindex="0"
+          :aria-invalid="fieldError && fieldError[0] === 'login' ? 'true' : undefined"
+          :aria-describedby="fieldError && fieldError[0] === 'login' ? 'email-error' : undefined"
+          class="block w-full appearance-none rounded-md
+                      border
+                      border-gray-300 px-3
+                      py-2 text-lg
+                      text-gray-900 placeholder:text-gray-500
+                      focus:border-brand-500 focus:outline-none focus:ring-brand-500
+                      disabled:cursor-not-allowed disabled:opacity-50
+                      dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400
+                      dark:focus:border-brand-500 dark:focus:ring-brand-500"
+          :placeholder="t('web.COMMON.email_placeholder')"
+          v-model="email"
+          data-testid="signup-email-input" />
+      </div>
+
+      <!-- Password input with visibility toggle -->
+      <div>
+        <label
+          for="password"
+          class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {{ t('web.COMMON.field_password') }}
+        </label>
+        <div class="relative">
+          <input
+            id="password"
+            :type="showPassword ? 'text' : 'password'"
+            name="password"
+            autocomplete="new-password"
+            required
+            :disabled="isSubmitting || isLoading"
+            tabindex="0"
+            :aria-invalid="fieldError && fieldError[0] === 'password' ? 'true' : undefined"
+            :aria-describedby="fieldError && fieldError[0] === 'password' ? 'password-error' : 'password-requirements'"
+            class="block w-full appearance-none rounded-md
+                   border
+                   border-gray-300 px-3
+                   py-2 pr-10 text-lg
+                   text-gray-900 placeholder:text-gray-500
+                   focus:border-brand-500 focus:outline-none focus:ring-brand-500
+                   disabled:cursor-not-allowed disabled:opacity-50
+                   dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400
+                   dark:focus:border-brand-500 dark:focus:ring-brand-500"
+            :placeholder="t('web.COMMON.password_placeholder')"
+            v-model="password"
+            data-testid="signup-password-input" />
+          <button
+            type="button"
+            @click="togglePasswordVisibility"
+            :disabled="isSubmitting || isLoading"
+            :aria-label="showPassword ? t('web.COMMON.hide_password') : t('web.COMMON.show_password')"
+            class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-sm leading-5 disabled:opacity-50"
+            data-testid="signup-toggle-password">
+            <OIcon
+              collection="heroicons"
+              :name="showPassword ? 'outline-eye-off' : 'solid-eye'"
+              size="5"
+              class="text-gray-400"
+              aria-hidden="true" />
+          </button>
+        </div>
+        <!-- Password requirements (screen reader only) -->
+        <span id="password-requirements" class="sr-only">
+          {{ t('web.COMMON.password_requirements') }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Terms checkbox -->
+    <div class="mt-4 flex items-center justify-between">
+      <div class="flex items-center text-lg">
+        <input
+          id="terms-agreement"
+          name="agree"
+          type="checkbox"
+          required
+          :disabled="isSubmitting || isLoading"
+          tabindex="0"
+          class="size-4 rounded border-gray-300
+                      text-brand-600
+                      focus:ring-brand-500
+                      disabled:cursor-not-allowed disabled:opacity-50
+                      dark:border-gray-600
+                      dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-brand-500"
+          v-model="termsAgreed"
+          data-testid="signup-terms-checkbox" />
+        <label
+          for="terms-agreement"
+          class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+          {{ t('web.auth.terms.agree_prefix') }}
+          <LegalLink
+            :url="termsUrl"
+            class="font-medium text-brand-600 hover:text-brand-500
+                     dark:text-brand-400 dark:hover:text-brand-300"
+            data-testid="signup-terms-link">
+            {{ t('web.layout.terms_of_service') }}
+          </LegalLink>
+          {{ t('web.COMMON.and') }}
+          <LegalLink
+            :url="privacyUrl"
+            class="font-medium text-brand-600 hover:text-brand-500
+                     dark:text-brand-400 dark:hover:text-brand-300"
+            data-testid="signup-privacy-link">
+            {{ t('web.layout.privacy_policy') }}
+          </LegalLink>
+        </label>
+      </div>
+    </div>
+
+    <!-- Submit button -->
+    <div class="mt-5">
+      <button
+        type="submit"
+        :disabled="isSubmitting || isLoading"
+        class="group relative flex w-full justify-center
+                     rounded-md
+                     border border-transparent
+                     bg-brand-600 px-4 py-2
+                     text-lg font-medium
+                     text-white hover:bg-brand-700
+                     focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
+                     disabled:cursor-not-allowed disabled:opacity-50
+                     dark:bg-brand-600 dark:hover:bg-brand-700 dark:focus:ring-offset-gray-800"
+        data-testid="signup-submit">
+        <span v-if="isSubmitting || isLoading">{{ t('web.COMMON.processing') || 'Processing...' }}</span>
+        <span v-else>{{ t('web.COMMON.button_create_account') }}</span>
+      </button>
+      <!-- Loading state announcement (screen reader only) -->
+      <div
+        v-if="isSubmitting || isLoading"
+        aria-live="polite"
+        aria-atomic="true"
+        class="sr-only">
+        {{ t('web.COMMON.form_processing') }}
+      </div>
+    </div>
+  </form>
+</template>

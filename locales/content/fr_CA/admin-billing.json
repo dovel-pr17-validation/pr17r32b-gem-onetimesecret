@@ -1,0 +1,362 @@
+{
+  "web.admin.billing.title": {
+    "text": "Catalogue de facturation",
+    "source_hash": "bfde7e68"
+  },
+  "web.admin.billing.description": {
+    "text": "Vue en lecture seule des forfaits configurés et de leurs droits, ainsi que tout écart par rapport au catalogue en direct synchronisé avec Stripe.",
+    "source_hash": "05d5b332"
+  },
+  "web.admin.billing.retry": {
+    "text": "Réessayer",
+    "source_hash": "942087cc"
+  },
+  "web.admin.billing.loadError": {
+    "text": "Impossible de charger le catalogue de facturation.",
+    "source_hash": "c3110f77"
+  },
+  "web.admin.billing.localConfigWarning": {
+    "text": "Le cache des forfaits synchronisés avec Stripe est vide ; les forfaits en direct et les écarts ne peuvent donc pas être évalués. Seul le catalogue configuré (billing.yaml) est affiché — typique en développement ou lorsque Stripe n'est pas configuré.",
+    "source_hash": "905d95f8"
+  },
+  "web.admin.billing.inSync": {
+    "text": "Synchronisé",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.driftCount": {
+    "text": "{count} différence(s)",
+    "source_hash": "166538f5"
+  },
+  "web.admin.billing.inSyncDetail": {
+    "text": "Le catalogue configuré correspond aux forfaits en direct. Aucun écart détecté.",
+    "source_hash": "57ab60a6"
+  },
+  "web.admin.billing.columns.planid": {
+    "text": "ID du forfait",
+    "source_hash": "1f0d4dc6"
+  },
+  "web.admin.billing.columns.name": {
+    "text": "Nom",
+    "source_hash": "dcd1d522"
+  },
+  "web.admin.billing.columns.tier": {
+    "text": "Niveau",
+    "source_hash": "cb9e8664"
+  },
+  "web.admin.billing.columns.status": {
+    "text": "État",
+    "source_hash": "920e413c"
+  },
+  "web.admin.billing.diff.title": {
+    "text": "Différence de forfait : {planid}",
+    "source_hash": "bc86e5f7"
+  },
+  "web.admin.billing.diff.subtitle": {
+    "text": "Catalogue configuré (billing.yaml) comparé au forfait en direct synchronisé avec Stripe, côte à côte.",
+    "source_hash": "d92e93ae"
+  },
+  "web.admin.billing.diff.config": {
+    "text": "Configuré (billing.yaml)",
+    "source_hash": "6bf2ff04"
+  },
+  "web.admin.billing.diff.live": {
+    "text": "En direct (cache Stripe)",
+    "source_hash": "4886945d"
+  },
+  "web.admin.billing.diff.absentConfig": {
+    "text": "Ce forfait n'est pas présent dans le catalogue configuré.",
+    "source_hash": "0b594c88"
+  },
+  "web.admin.billing.diff.absentLive": {
+    "text": "Ce forfait n'est pas présent dans le cache en direct synchronisé avec Stripe.",
+    "source_hash": "c53f31c3"
+  },
+  "web.admin.billing.plans.title": {
+    "text": "Forfaits",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.admin.billing.plans.empty": {
+    "text": "Aucun forfait trouvé dans le catalogue.",
+    "source_hash": "39db3c13"
+  },
+  "web.admin.billing.plans.viewDiff": {
+    "text": "Voir la différence",
+    "source_hash": "0e5d6873"
+  },
+  "web.admin.billing.source.stripe": {
+    "text": "Cache Stripe",
+    "source_hash": "b5577327"
+  },
+  "web.admin.billing.source.localConfig": {
+    "text": "Configuration locale",
+    "source_hash": "49de43d2"
+  },
+  "web.admin.billing.stats.configured": {
+    "text": "Forfaits configurés",
+    "source_hash": "4fda4796"
+  },
+  "web.admin.billing.stats.live": {
+    "text": "Forfaits en direct",
+    "source_hash": "faaa88d9"
+  },
+  "web.admin.billing.stats.source": {
+    "text": "Source",
+    "source_hash": "0e570ca6"
+  },
+  "web.admin.billing.stats.drift": {
+    "text": "Écart",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.billing.status.in_sync": {
+    "text": "Synchronisé",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.status.only_config": {
+    "text": "Configuration seulement",
+    "source_hash": "15836cba"
+  },
+  "web.admin.billing.status.only_live": {
+    "text": "En direct seulement",
+    "source_hash": "8f4ed495"
+  },
+  "web.admin.billing.status.changed": {
+    "text": "Modifié",
+    "source_hash": "2a6141e4"
+  },
+  "web.admin.billing.diff.backToCatalog": {
+    "text": "Retour au catalogue de facturation",
+    "source_hash": "8532b373"
+  },
+  "web.admin.billing.diff.driftedFields": {
+    "text": "Champs qui diffèrent :",
+    "source_hash": "9890c95b"
+  },
+  "web.admin.billing.diff.notFound": {
+    "text": "Forfait introuvable dans le catalogue",
+    "source_hash": "0253898b"
+  },
+  "web.admin.billing.diff.notFoundDescription": {
+    "text": "Aucun forfait avec l'identifiant {planid} n'a été trouvé dans le catalogue configuré ou le cache synchronisé avec Stripe.",
+    "source_hash": "2e69551c"
+  },
+  "web.admin.billing.stripeOrgs.title": {
+    "text": "Clients Stripe",
+    "source_hash": "0463ae27"
+  },
+  "web.admin.billing.stripeOrgs.description": {
+    "text": "Organisations liées à un enregistrement de client Stripe.",
+    "source_hash": "2ab09aec"
+  },
+  "web.admin.billing.stripeOrgs.searchPlaceholder": {
+    "text": "Rechercher par identifiant client Stripe",
+    "source_hash": "d5acf08f"
+  },
+  "web.admin.billing.stripeOrgs.empty": {
+    "text": "Aucune organisation n'a d'identifiant client Stripe.",
+    "source_hash": "2e373537"
+  },
+  "web.admin.billing.stripeOrgs.emptySearch": {
+    "text": "Aucun identifiant client Stripe ne correspond à cette recherche.",
+    "source_hash": "75011174"
+  },
+  "web.admin.billing.stripeOrgs.loadError": {
+    "text": "Impossible de charger la liste des clients Stripe.",
+    "source_hash": "15e2d9a7"
+  },
+  "web.admin.billing.stripeOrgs.unavailable": {
+    "text": "La liste des clients Stripe n'est pas encore disponible sur ce serveur.",
+    "source_hash": "aab6451a"
+  },
+  "web.admin.billing.stripeOrgs.none": {
+    "text": "Aucun",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.billing.stripeOrgs.capped": {
+    "text": "L'analyse de l'index a atteint sa limite, donc le total est une borne inférieure — affinez la recherche pour voir le reste.",
+    "source_hash": "20bcaa38"
+  },
+  "web.admin.billing.stripeOrgs.stale": {
+    "text": "{count} entrée(s) d'index sur cette page pointe(nt) vers une organisation qui ne se charge plus et a/ont été ignorée(s).",
+    "source_hash": "51980f83"
+  },
+  "web.admin.billing.stripeOrgs.copyStripeId": {
+    "text": "Copier l'identifiant client Stripe",
+    "source_hash": "a77d18b1"
+  },
+  "web.admin.billing.stripeOrgs.columns.organization": {
+    "text": "Organisation",
+    "source_hash": "d764d425"
+  },
+  "web.admin.billing.stripeOrgs.columns.owner": {
+    "text": "Propriétaire",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.billing.stripeOrgs.columns.plan": {
+    "text": "Forfait",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.billing.stripeOrgs.columns.subscription": {
+    "text": "Abonnement",
+    "source_hash": "4999c6c6"
+  },
+  "web.admin.billing.stripeOrgs.columns.stripeCustomer": {
+    "text": "Identifiant client Stripe",
+    "source_hash": "7e1d8bbb"
+  },
+  "web.admin.billing.pendingFederated.title": {
+    "text": "Abonnements fédérés en attente",
+    "source_hash": "8bc81ff7"
+  },
+  "web.admin.billing.pendingFederated.description": {
+    "text": "Abonnements qui attendent qu'un compte vérifié de cette région en réclame les avantages.",
+    "source_hash": "e4c714c8"
+  },
+  "web.admin.billing.pendingFederated.correlationRetention": {
+    "text": "Les abonnements en attente peuvent subsister pendant 90 jours, mais les enregistrements de webhook locaux ne sont conservés que cinq jours. Une corrélation expirée ou indisponible n'indique aucun résultat de traitement.",
+    "source_hash": "c846410e"
+  },
+  "web.admin.billing.pendingFederated.loadError": {
+    "text": "Impossible de charger les abonnements fédérés en attente.",
+    "source_hash": "a1ecc6cb"
+  },
+  "web.admin.billing.pendingFederated.capped": {
+    "text": "L'analyse des abonnements en attente a atteint sa limite, donc le total est une borne inférieure.",
+    "source_hash": "a1e02735"
+  },
+  "web.admin.billing.pendingFederated.stale": {
+    "text": "{count} entrée(s) d'index sur cette page pointe(nt) vers un abonnement en attente qui ne se charge plus et a/ont été ignorée(s).",
+    "source_hash": "56b4bd53"
+  },
+  "web.admin.billing.pendingFederated.empty": {
+    "text": "Aucun abonnement fédéré en attente trouvé.",
+    "source_hash": "91453fda"
+  },
+  "web.admin.billing.pendingFederated.unresolvedPlan": {
+    "text": "Non résolu",
+    "source_hash": "36afca80"
+  },
+  "web.admin.billing.pendingFederated.columns.status": {
+    "text": "État de l'abonnement",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.billing.pendingFederated.columns.planid": {
+    "text": "ID du forfait enregistré",
+    "source_hash": "159600ef"
+  },
+  "web.admin.billing.pendingFederated.columns.region": {
+    "text": "Région",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.billing.pendingFederated.columns.received": {
+    "text": "Reçu",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.pendingFederated.columns.webhook": {
+    "text": "Webhook source",
+    "source_hash": "e96bd1ef"
+  },
+  "web.admin.billing.pendingFederated.webhook.no_correlation": {
+    "text": "Indisponible — aucun webhook local corrélé n'a été enregistré.",
+    "source_hash": "57ed7d3a"
+  },
+  "web.admin.billing.pendingFederated.webhook.expired": {
+    "text": "Indisponible — le webhook local corrélé a expiré après cinq jours.",
+    "source_hash": "6173ad4b"
+  },
+  "web.admin.billing.webhookEvents.title": {
+    "text": "Événements de webhook Stripe",
+    "source_hash": "3a7c05f8"
+  },
+  "web.admin.billing.webhookEvents.description": {
+    "text": "Registre local en lecture seule du traitement des webhooks Stripe.",
+    "source_hash": "adc1e97f"
+  },
+  "web.admin.billing.webhookEvents.retention": {
+    "text": "Les enregistrements locaux d'événements de webhook sont conservés cinq jours. Les événements plus anciens ne sont pas disponibles ici.",
+    "source_hash": "de4c2f78"
+  },
+  "web.admin.billing.webhookEvents.loadError": {
+    "text": "Impossible de charger la liste des événements de webhook.",
+    "source_hash": "b070d441"
+  },
+  "web.admin.billing.webhookEvents.capped": {
+    "text": "L'analyse des événements a atteint sa limite, donc le total est une borne inférieure.",
+    "source_hash": "5b96b15b"
+  },
+  "web.admin.billing.webhookEvents.stale": {
+    "text": "{count} entrée(s) d'index sur cette page pointe(nt) vers un événement de webhook qui ne se charge plus et a/ont été ignorée(s).",
+    "source_hash": "879c2d98"
+  },
+  "web.admin.billing.webhookEvents.empty": {
+    "text": "Aucun événement de webhook conservé localement trouvé.",
+    "source_hash": "7e33e23d"
+  },
+  "web.admin.billing.webhookEvents.viewDetail": {
+    "text": "Voir les détails",
+    "source_hash": "d1bf045b"
+  },
+  "web.admin.billing.webhookEvents.columns.eventId": {
+    "text": "Identifiant de l'événement",
+    "source_hash": "3045abaf"
+  },
+  "web.admin.billing.webhookEvents.columns.type": {
+    "text": "Type",
+    "source_hash": "baaddf70"
+  },
+  "web.admin.billing.webhookEvents.columns.status": {
+    "text": "État du traitement",
+    "source_hash": "3f6498ae"
+  },
+  "web.admin.billing.webhookEvents.columns.received": {
+    "text": "Reçu",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.webhookEvents.columns.outcome": {
+    "text": "Résultat",
+    "source_hash": "4e80abb5"
+  },
+  "web.admin.billing.webhookEvents.detail.title": {
+    "text": "Détails de l'événement de webhook",
+    "source_hash": "829b940c"
+  },
+  "web.admin.billing.webhookEvents.detail.notFound": {
+    "text": "Cet événement local n'est plus disponible.",
+    "source_hash": "b029d878"
+  },
+  "web.admin.billing.webhookEvents.detail.loadError": {
+    "text": "Impossible de charger les détails de l'événement de webhook.",
+    "source_hash": "39f7a33b"
+  },
+  "web.admin.billing.webhookEvents.detail.received": {
+    "text": "Reçu le",
+    "source_hash": "1ddb1a75"
+  },
+  "web.admin.billing.webhookEvents.detail.lastAttempt": {
+    "text": "Dernière tentative de traitement",
+    "source_hash": "b1325ebb"
+  },
+  "web.admin.billing.webhookEvents.detail.processed": {
+    "text": "Traité le",
+    "source_hash": "2eb2da28"
+  },
+  "web.admin.billing.webhookEvents.detail.attempts": {
+    "text": "Tentatives",
+    "source_hash": "06e70139"
+  },
+  "web.admin.billing.webhookEvents.detail.mode": {
+    "text": "Mode",
+    "source_hash": "5e23ec6a"
+  },
+  "web.admin.billing.webhookEvents.detail.live": {
+    "text": "Production",
+    "source_hash": "b64ac05f"
+  },
+  "web.admin.billing.webhookEvents.detail.test": {
+    "text": "Test",
+    "source_hash": "532eaabd"
+  },
+  "web.admin.billing.webhookEvents.detail.apiVersion": {
+    "text": "Version de l'API Stripe",
+    "source_hash": "9cd61c6f"
+  }
+}

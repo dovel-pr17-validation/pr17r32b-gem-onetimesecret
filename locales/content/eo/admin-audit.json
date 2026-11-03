@@ -1,0 +1,150 @@
+{
+  "web.admin.audit.title": {
+    "text": "Kontrola protokolo",
+    "source_hash": "47751f88"
+  },
+  "web.admin.audit.description": {
+    "text": "Ĉiu modifanta administra ago, plej nova unue — kiu faris kion al kiu, kaj kiel ĝi rezultis.",
+    "source_hash": "2326a1a0"
+  },
+  "web.admin.audit.categories.customer": {
+    "text": "Klientoj",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.audit.categories.session": {
+    "text": "Seancoj",
+    "source_hash": "6fa3cbf4"
+  },
+  "web.admin.audit.categories.domain": {
+    "text": "Domajnoj",
+    "source_hash": "ced67718"
+  },
+  "web.admin.audit.categories.organization": {
+    "text": "Organizoj",
+    "source_hash": "2730183d"
+  },
+  "web.admin.audit.categories.banner": {
+    "text": "Standardo",
+    "source_hash": "b7f4d98f"
+  },
+  "web.admin.audit.categories.queue": {
+    "text": "Vicoj",
+    "source_hash": "be77db11"
+  },
+  "web.admin.audit.categories.email": {
+    "text": "Retpoŝto",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.audit.categories.ratelimit": {
+    "text": "Frekvenclimoj",
+    "source_hash": "6ed021f7"
+  },
+  "web.admin.audit.categories.ip": {
+    "text": "IP-malpermesoj",
+    "source_hash": "48cdea49"
+  },
+  "web.admin.audit.columns.timestamp": {
+    "text": "Tempostampilo",
+    "source_hash": "115a2cc9"
+  },
+  "web.admin.audit.columns.actor": {
+    "text": "Aganto",
+    "source_hash": "449995c4"
+  },
+  "web.admin.audit.columns.action": {
+    "text": "Ago",
+    "source_hash": "64cff131"
+  },
+  "web.admin.audit.columns.target": {
+    "text": "Celo",
+    "source_hash": "978354db"
+  },
+  "web.admin.audit.columns.result": {
+    "text": "Rezulto",
+    "source_hash": "6e7d50e8"
+  },
+  "web.admin.audit.columns.detail": {
+    "text": "Detalo",
+    "source_hash": "fb5f27d5"
+  },
+  "web.admin.audit.filters.actorPlaceholder": {
+    "text": "Filtri laŭ aganto (extid aŭ retpoŝto)",
+    "source_hash": "966aa580"
+  },
+  "web.admin.audit.filters.actionLabel": {
+    "text": "Ago",
+    "source_hash": "64cff131"
+  },
+  "web.admin.audit.filters.allActions": {
+    "text": "Ĉiuj agoj",
+    "source_hash": "83140cf1"
+  },
+  "web.admin.audit.list.loadError": {
+    "text": "Ne eblis ŝargi la kontrolan protokolon.",
+    "source_hash": "acf244f4"
+  },
+  "web.admin.audit.list.retry": {
+    "text": "Reprovi",
+    "source_hash": "942087cc"
+  },
+  "web.admin.audit.list.empty": {
+    "text": "Neniuj kontrolaj eventoj ankoraŭ registritaj",
+    "source_hash": "8fe0cac3"
+  },
+  "web.admin.audit.result.success": {
+    "text": "Sukceso",
+    "source_hash": "c88a0b90"
+  },
+  "web.admin.audit.result.failure": {
+    "text": "Malsukceso",
+    "source_hash": "7031edbc"
+  },
+  "web.admin.audit.categories.secret": {
+    "text": "Sekretoj",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.audit.categories.membership": {
+    "text": "Membreco",
+    "source_hash": "b50f1a42"
+  },
+  "web.admin.audit.categories.entitlement_preview": {
+    "text": "Rajtantaŭrigardoj",
+    "source_hash": "255c5797"
+  },
+  "web.admin.audit.categories.colonel": {
+    "text": "Colonel-ensalutoj",
+    "source_hash": "01eeeb38"
+  },
+  "web.admin.audit.filters.actorLabel": {
+    "text": "Aganto",
+    "source_hash": "449995c4"
+  },
+  "web.admin.audit.filters.searchButton": {
+    "text": "Serĉi",
+    "source_hash": "49c266ba"
+  },
+  "web.admin.audit.filters.searchHint": {
+    "text": "Tajpu aganton, poste premu Enigo aŭ elektu Serĉi por ruli ĝin. La listo ne ĝisdatiĝas dum vi tajpas.",
+    "source_hash": "45eceb12"
+  },
+  "web.admin.audit.filters.pendingSearch": {
+    "text": "Ankoraŭ ne serĉita — premu Enigo aŭ elektu Serĉi por apliki ĉi tiun aganton.",
+    "source_hash": "f76095c2"
+  },
+  "web.admin.audit.list.contractError": {
+    "text": "La servilo respondis, sed la revizio-datumoj ne kongruis kun la atendata formato. Neniuj eventoj montreblas — ĉi tio estas raportad-eraro, ne malplena protokolo.",
+    "source_hash": "7f48137e"
+  },
+  "web.admin.audit.export.csv": {
+    "text": "Eksporti CSV",
+    "source_hash": "91f71c14"
+  },
+  "web.admin.audit.export.ndjson": {
+    "text": "Eksporti NDJSON",
+    "source_hash": "3ee2c07c"
+  },
+  "web.admin.audit.export.hint": {
+    "text": "Eksportoj kovras la tutan konservitan spuron laŭ la nunaj filtriloj, ne nur ĉi tiun paĝon. La konservado estas limigita — pli longa historio troviĝas en la celloko de la kontrola protokolo.",
+    "source_hash": "163e8ad0"
+  }
+}

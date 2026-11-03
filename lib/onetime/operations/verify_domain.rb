@@ -1,0 +1,593 @@
+# lib/onetime/operations/verify_domain.rb
+#
+# frozen_string_literal: true
+
+require_relative 'verify_domain/confirmation_window'
+
+module Onetime
+  module Operations
+    #
+    # Verifies domain ownership and SSL status for custom domains.
+    # Extracted from API logic for reuse in CLI tools and testing.
+    #
+    # Single domain usage:
+    #   result = VerifyDomain.new(domain: custom_domain).call
+    #   result.dns_validated  # => true/false
+    #   result.ssl_ready      # => true/false/nil
+    #
+    # Bulk domain usage:
+    #   result = VerifyDomain.new(domains: domain_list).call
+    #   result.verified_count # => 5
+    #   result.results        # => [Result, Result, ...]
+    #
+    # Options:
+    #   - persist: Whether to save changes to Redis (default: true)
+    #   - rate_limit: Delay in seconds between domains in bulk mode
+    #     (default: nil, the strategy's own bulk_rate_limit)
+    #   - strategy: Custom validation strategy (default: from config)
+    #
+    class VerifyDomain
+      include Onetime::LoggerMethods
+
+      # Immutable result for single domain verification
+      Result = Data.define(
+        :domain,          # CustomDomain instance
+        :previous_state,  # Symbol: :unverified, :pending, :resolving, :verified
+        :current_state,   # Symbol: :unverified, :pending, :resolving, :verified
+        :dns_validated,   # Boolean: TXT record matches
+        # Boolean: the TXT check produced no answer; verified left unchanged
+        # unless confirmation_expired is also true (see ConfirmationWindow)
+        :dns_indeterminate,
+        :dns_message,     # String or nil: strategy's description of the TXT outcome
+        :override_held,   # Boolean: TXT check failed but an operator override kept verified
+        :confirmation_expired, # Boolean: indeterminate for longer than the confirmation window; verified withdrawn
+        :ssl_ready,       # Boolean or nil: has valid SSL certificate; nil means unknown
+        :is_resolving,    # Boolean or nil: DNS resolving to correct target; nil means unknown
+        :persisted,       # Boolean: changes were saved
+        :error,           # String or nil: error message if failed
+        # Boolean: not checked, because the record has no organization
+        # (see VerifyDomain#verify_single); nothing was written
+        :skipped,
+      ) do
+        def initialize(dns_indeterminate: false, dns_message: nil, override_held: false,
+                       confirmation_expired: false, skipped: false, **)
+          super
+        end
+
+        def success?
+          error.nil?
+        end
+
+        # One label for the TXT outcome, for operator-facing output.
+        # @return [Symbol] :skipped, :validated, :confirmation_expired,
+        #   :indeterminate, :override_held, :failed
+        def dns_outcome
+          return :skipped if skipped
+          return :validated if dns_validated
+          # Still an indeterminate check (dns_indeterminate stays true), but
+          # unlike plain :indeterminate it did not leave verified unchanged.
+          return :confirmation_expired if confirmation_expired
+          return :indeterminate if dns_indeterminate
+
+          override_held ? :override_held : :failed
+        end
+
+        # The domain lost :verified on this run (the signature of the SSO
+        # breakage incidents: verified gates every auth URL).
+        def demoted?
+          previous_state == :verified && current_state != :verified
+        end
+
+        def changed?
+          previous_state != current_state
+        end
+
+        def to_h
+          {
+            domain: domain&.display_domain,
+            previous_state: previous_state,
+            current_state: current_state,
+            dns_validated: dns_validated,
+            dns_indeterminate: dns_indeterminate,
+            dns_message: dns_message,
+            dns_outcome: dns_outcome,
+            override_held: override_held,
+            confirmation_expired: confirmation_expired,
+            ssl_ready: ssl_ready,
+            is_resolving: is_resolving,
+            persisted: persisted,
+            error: error,
+            skipped: skipped,
+          }
+        end
+      end
+
+      # Immutable result for bulk domain verification
+      BulkResult = Data.define(
+        :total,           # Integer: total domains processed
+        :verified_count,  # Integer: domains with dns_validated=true
+        :failed_count,    # Integer: domains with errors
+        :skipped_count,   # Integer: domains skipped (no organization, see Result#skipped)
+        :indeterminate_count, # Integer: domains whose TXT check produced no answer
+        :demoted_count,   # Integer: domains that lost :verified on this run
+        :confirmation_expired_count, # Integer: of those, indeterminate past the confirmation window
+        :results,         # Array<Result>: individual results
+        :duration_seconds, # Float: total processing time
+      ) do
+        def initialize(indeterminate_count: 0, demoted_count: 0, confirmation_expired_count: 0, **)
+          super
+        end
+
+        def success?
+          failed_count == 0
+        end
+
+        def to_h
+          {
+            total: total,
+            verified_count: verified_count,
+            failed_count: failed_count,
+            skipped_count: skipped_count,
+            indeterminate_count: indeterminate_count,
+            demoted_count: demoted_count,
+            confirmation_expired_count: confirmation_expired_count,
+            duration_seconds: duration_seconds,
+            results: results.map(&:to_h),
+          }
+        end
+      end
+
+      # @param domain [Onetime::CustomDomain, nil] Single domain to verify
+      # @param domains [Array<Onetime::CustomDomain>, nil] Multiple domains for bulk mode
+      # @param strategy [Onetime::DomainValidation::BaseStrategy, nil] Validation strategy
+      # @param persist [Boolean] Whether to save changes to Redis
+      # @param rate_limit [Numeric, nil] Delay in seconds between domains (bulk
+      #   mode). nil defers to the strategy's bulk_rate_limit; any number,
+      #   including 0, overrides it.
+      def initialize(domain: nil, domains: nil, strategy: nil, persist: true, rate_limit: nil)
+        @domain     = domain
+        @domains    = domains
+        @strategy   = strategy
+        @persist    = persist
+        @rate_limit = rate_limit
+
+        validate_arguments!
+      end
+
+      # Executes domain verification
+      #
+      # @return [Result, BulkResult] Single or bulk result depending on mode
+      def call
+        if bulk_mode?
+          verify_bulk
+        else
+          verify_single(@domain)
+        end
+      end
+
+      private
+
+      def validate_arguments!
+        if @domain.nil? && (@domains.nil? || @domains.empty?)
+          raise ArgumentError, 'Must provide either domain: or domains:'
+        end
+
+        if @domain && @domains&.any?
+          raise ArgumentError, 'Cannot provide both domain: and domains:'
+        end
+      end
+
+      def bulk_mode?
+        @domains&.any?
+      end
+
+      def strategy
+        @strategy ||= Onetime::DomainValidation::Strategy.for_config(OT.conf)
+      end
+
+      # Verify a single domain
+      #
+      # A record with no organization is skipped (skipped_result): it is
+      # never served (CustomDomain#served_as_tenant?), so its ownership has
+      # nothing to decide. It also keeps a copy loaded before an operator
+      # adopted the record (CustomDomain.claim_orphaned_domain) from writing
+      # its result over the verification the adoption reset.
+      #
+      # @param domain [Onetime::CustomDomain] Domain to verify
+      # @return [Result] Verification result
+      def verify_single(domain)
+        return skipped_result(domain) if domain.org_id.to_s.empty?
+
+        previous_state = domain.verification_state
+
+        # Perform DNS ownership validation
+        dns_result = validate_ownership(domain)
+        window     = ConfirmationWindow.new(domain, dns_result)
+
+        # Check SSL/resolution status. A missing virtual host is created only
+        # once ownership is verified (see #check_status).
+        status_result = check_status(domain, provision: ownership_verified_after?(domain, dns_result, window))
+
+        # Persist changes if enabled
+        # Always persist when @persist is true - the validation results determine
+        # WHAT we persist (verified/unverified), not WHETHER we persist
+        persisted = false
+        if @persist
+          persisted = persist_changes(domain, dns_result, status_result, window)
+        end
+
+        current_state = domain.verification_state
+
+        # Auto-fetch the domain's favicon on the transition INTO :verified. Fires
+        # only when the domain first reaches :verified — not on every re-verify of
+        # an already-verified domain — so periodic domain_refresh runs don't re-queue.
+        # This path covers both the API verify and the scheduled domain_refresh_job,
+        # since both route through verify_single. (#3780)
+        if current_state == :verified && previous_state != :verified
+          enqueue_favicon_fetch(domain)
+        end
+
+        result = Result.new(
+          domain: domain,
+          previous_state: previous_state,
+          current_state: current_state,
+          dns_validated: dns_result[:validated] || false,
+          dns_indeterminate: dns_result[:indeterminate] == true,
+          dns_message: dns_result[:message],
+          override_held: override_held?(domain, dns_result),
+          confirmation_expired: window.expired?,
+          ssl_ready: status_result[:has_ssl],
+          is_resolving: status_result[:is_resolving],
+          persisted: persisted,
+          error: nil,
+        )
+
+        log_notable_outcome(result, dns_result, window)
+        result
+      rescue StandardError => ex
+        logger.error 'Domain verification failed',
+          domain: domain&.display_domain,
+          error: ex.message,
+          error_class: ex.class.name
+
+        Result.new(
+          domain: domain,
+          previous_state: domain&.verification_state,
+          current_state: domain&.verification_state,
+          dns_validated: false,
+          dns_indeterminate: true, # nothing was learned about the TXT record
+          ssl_ready: nil,
+          is_resolving: nil,
+          persisted: false,
+          error: ex.message,
+        )
+      end
+
+      # The result for a record with no organization: nothing checked,
+      # nothing written.
+      #
+      # @param domain [Onetime::CustomDomain]
+      # @return [Result]
+      def skipped_result(domain)
+        state = domain.verification_state
+        logger.info 'Domain verification skipped: no organization', domain: domain.display_domain
+
+        Result.new(
+          domain: domain,
+          previous_state: state,
+          current_state: state,
+          dns_validated: false,
+          ssl_ready: nil,
+          is_resolving: nil,
+          persisted: false,
+          error: nil,
+          skipped: true,
+        )
+      end
+
+      # Verify multiple domains, paced by the strategy (or the caller's
+      # explicit rate_limit)
+      #
+      # @return [BulkResult] Aggregated results
+      def verify_bulk
+        start_time = Time.now
+        results    = []
+        pause      = (@rate_limit.nil? ? strategy.bulk_rate_limit : @rate_limit).to_f
+
+        @domains.each_with_index do |domain, index|
+          sleep(pause) if index.positive? && pause.positive?
+
+          result = verify_single(domain)
+          results << result
+        end
+
+        duration = Time.now - start_time
+
+        BulkResult.new(
+          total: results.size,
+          verified_count: results.count { |r| r.dns_validated },
+          failed_count: results.count { |r| !r.success? },
+          skipped_count: results.count(&:skipped),
+          indeterminate_count: results.count { |r| r.dns_indeterminate },
+          demoted_count: results.count { |r| r.demoted? },
+          confirmation_expired_count: results.count { |r| r.confirmation_expired },
+          results: results,
+          duration_seconds: duration.round(2),
+        )
+      end
+
+      # Validate domain ownership via TXT record
+      #
+      # @param domain [Onetime::CustomDomain]
+      # @return [Hash] { validated: Boolean or nil, message: String, data: Hash }
+      def validate_ownership(domain)
+        result = strategy.validate_ownership(domain)
+        logger.debug 'DNS validation result',
+          domain: domain.display_domain,
+          validated: result[:validated]
+        result
+      rescue StandardError => ex
+        logger.error 'DNS validation error',
+          domain: domain.display_domain,
+          error: ex.message
+        # An exception is ours or the provider's, never evidence about the
+        # customer's DNS: indeterminate, so the stored flag is left alone and
+        # the confirmation window bounds how long that can last.
+        { validated: nil, indeterminate: true, message: ex.message, data: nil }
+      end
+
+      # Warn on the outcomes an operator needs to find without a console
+      # session: an indeterminate TXT check (verified left untouched, or
+      # withdrawn once the confirmation window ran out) and a demotion out of
+      # :verified. The raw strategy payload rides along so the failure modes
+      # can be told apart from the log line alone.
+      #
+      # @param result [Result]
+      # @param dns_result [Hash]
+      # @param window [ConfirmationWindow]
+      def log_notable_outcome(result, dns_result, window)
+        if result.override_held
+          logger.info 'DNS validation failed; verified held by operator override',
+            domain: result.domain.display_domain,
+            message: dns_result[:message]
+        end
+
+        if result.confirmation_expired
+          logger.warn 'DNS validation indeterminate past the confirmation window; verified withdrawn',
+            domain: result.domain.display_domain,
+            unconfirmed_since: window.unconfirmed_since,
+            last_confirmed_at: window.last_confirmed_at,
+            max_age: window.max_age,
+            persisted: result.persisted,
+            message: dns_result[:message]
+        elsif result.dns_indeterminate
+          logger.warn 'DNS validation indeterminate; verified left unchanged',
+            domain: result.domain.display_domain,
+            state: result.current_state,
+            message: dns_result[:message],
+            data: dns_result[:data]
+        end
+
+        return unless result.demoted?
+
+        logger.warn 'Domain demoted from verified',
+          domain: result.domain.display_domain,
+          previous_state: result.previous_state,
+          current_state: result.current_state,
+          dns_validated: result.dns_validated,
+          is_resolving: result.is_resolving,
+          message: dns_result[:message],
+          data: dns_result[:data]
+      end
+
+      # Whether the domain's ownership is verified once this check is
+      # persisted: the TXT check passed now, or it failed and an operator
+      # override holds, or it was indeterminate and the stored state stands
+      # (unless the confirmation window has run out and withdraws it).
+      #
+      # @param domain [Onetime::CustomDomain]
+      # @param dns_result [Hash]
+      # @param window [ConfirmationWindow]
+      # @return [Boolean]
+      def ownership_verified_after?(domain, dns_result, window)
+        case dns_result[:validated]
+        when true then true
+        when false then override_held?(domain, dns_result)
+        else domain.verified == true && !window.expired?
+        end
+      end
+
+      # Check SSL and resolution status
+      #
+      # The virtual host at the certificate provider is created here, not
+      # when the domain is added, and only once ownership is verified
+      # (+provision+). Until then a provider that has no virtual host for the
+      # name answers with :vhost_absent, a known state rather than a failed
+      # read, so nothing is stored for it and no staleness is recorded.
+      #
+      # @param domain [Onetime::CustomDomain]
+      # @param provision [Boolean] whether a missing virtual host may be created
+      # @return [Hash] { ready: Boolean, has_ssl: Boolean/nil, is_resolving: Boolean/nil, ... }
+      def check_status(domain, provision:)
+        result = strategy.check_status(domain)
+
+        if vhost_not_found?(result)
+          unless provision
+            logger.info 'Vhost not found; not created until ownership is verified',
+              domain: domain.display_domain
+            return {
+              ready: false,
+              has_ssl: nil,
+              is_resolving: nil,
+              vhost_absent: true,
+              message: 'Virtual host not created until ownership is verified',
+            }
+          end
+
+          logger.info 'Vhost not found, attempting to create',
+            domain: domain.display_domain
+          ensure_vhost_exists(domain)
+          result = strategy.check_status(domain)
+        end
+
+        logger.debug 'Status check result',
+          domain: domain.display_domain,
+          ready: result[:ready],
+          is_resolving: result[:is_resolving]
+
+        result
+      rescue StandardError => ex
+        logger.error 'Status check error',
+          domain: domain.display_domain,
+          error: ex.message
+        { ready: false, has_ssl: nil, is_resolving: nil, message: ex.message }
+      end
+
+      # Check if the result indicates vhost was not found (404 from Approximated)
+      #
+      # @param result [Hash]
+      # @return [Boolean]
+      def vhost_not_found?(result)
+        return false unless result.is_a?(Hash)
+
+        message = result[:message].to_s
+        message.include?('Could not find Virtual Host')
+      end
+
+      # Ensure the vhost exists in the SSL provider
+      #
+      # @param domain [Onetime::CustomDomain]
+      def ensure_vhost_exists(domain)
+        result = strategy.request_certificate(domain)
+
+        if %w[requested success].include?(result[:status])
+          logger.info 'Created vhost', domain: domain.display_domain
+
+          # Store the vhost data if returned and persistence is enabled
+          if @persist && result[:data]
+            domain.vhost   = result[:data].to_json
+            domain.updated = OT.now.to_i
+            domain.save
+          end
+        else
+          logger.warn 'Failed to create vhost',
+            domain: domain.display_domain,
+            message: result[:message]
+        end
+      rescue StandardError => ex
+        logger.error 'Error creating vhost',
+          domain: domain.display_domain,
+          error: ex.message
+      end
+
+      # Persist verification changes to the domain.
+      #
+      # Atomic update: persist a field only when the originating call returned
+      # authoritative data. Mixing stale and fresh state caused issue #3080
+      # (vhost stayed green while resolving flipped to "false" on API failure).
+      #
+      # Fresh-data indicators:
+      #   :data present — active strategy returned a payload (Approximated 200,
+      #                   or the Caddy on-demand probe with a known is_resolving)
+      #   :mode present — the strategy's own answer, no provider call to fail
+      #
+      # Status has two nil-guards. `resolving` is skipped here when
+      # :is_resolving is nil. has_ssl has no field of its own: it is stored
+      # inside the `vhost` blob, so a strategy that does not know it must
+      # leave :data out or carry the stored value into it
+      # (CaddyOnDemandStrategy#check_status does the latter). A status
+      # result with neither :data nor :mode changes nothing and records the
+      # failed check in vhost_fetch_failed_at.
+      #
+      # A 200 is not enough for ownership_verified: the strategy returns validated: nil
+      # when the upstream checker answered but its own DNS lookup failed
+      # (indeterminate). That is not evidence about the customer's DNS, so the
+      # stored flag is left alone — neither promoted nor demoted. The one
+      # exception is bounded by time: ConfirmationWindow withdraws ownership_verified
+      # once every check has been indeterminate for longer than its max age.
+      #
+      # @param domain [Onetime::CustomDomain]
+      # @param dns_result [Hash]
+      # @param status_result [Hash]
+      # @param window [ConfirmationWindow]
+      # @return [Boolean] Whether changes were saved
+      def persist_changes(domain, dns_result, status_result, window)
+        if (dns_result[:data] || dns_result[:mode]) && !dns_result[:validated].nil? &&
+           !override_held?(domain, dns_result)
+          domain.ownership_verified! dns_result[:validated]
+          if dns_result[:mode] == 'passthrough'
+            # Passthrough is an operator policy, not a TXT ownership result.
+            # End any stale unconfirmed run without inventing confirmation
+            # metadata or replacing an explicit operator override.
+            window.record_skipped
+          else
+            # DNS has now proven ownership itself; the operator's assertion is
+            # no longer what holds the flag, so later failures demote normally.
+            domain.verified_by_override = false if dns_result[:validated]
+            window.record_settled(dns_result[:validated], proven: strategy.proves_ownership?)
+          end
+        else
+          window.record_unsettled
+        end
+
+        # :vhost_absent is a known answer too (see #check_status): nothing to
+        # store, and not a failed read.
+        if status_result[:data] || status_result[:mode] || status_result[:vhost_absent]
+          domain.vhost                 = status_result[:data].to_json if status_result[:data]
+          unless status_result[:is_resolving].nil?
+            domain.resolving = status_result[:is_resolving]
+          end
+          domain.vhost_fetch_failed_at = nil
+        else
+          domain.vhost_fetch_failed_at = OT.now.to_i
+        end
+
+        domain.updated = OT.now.to_i
+        domain.save
+
+        true
+      rescue StandardError => ex
+        logger.error 'Failed to persist changes',
+          domain: domain.display_domain,
+          error: ex.message
+        false
+      end
+
+      # A Colonel override is an operator's standing assertion of ownership for
+      # domains DNS checks cannot reach (private networks, a broken upstream
+      # checker). A failed check must not undo it on the next refresh run; only
+      # the operator (override to false) or a passing check clears it.
+      #
+      # @param domain [Onetime::CustomDomain]
+      # @param dns_result [Hash]
+      # @return [Boolean]
+      def override_held?(domain, dns_result)
+        dns_result[:validated] == false && domain.verified_by_override == true
+      end
+
+      # Enqueue a background favicon fetch for a freshly-verified domain.
+      #
+      # Gated by the jobs.favicon_fetch.enabled feature flag (default off) and
+      # fully isolated: any failure here is logged and swallowed so it can never
+      # break verification. When jobs are disabled the Publisher runs the fetch
+      # operation inline; either way this call must not raise.
+      #
+      # @param domain [Onetime::CustomDomain]
+      def enqueue_favicon_fetch(domain)
+        return unless OT.conf.dig('jobs', 'favicon_fetch', 'enabled') == true
+
+        Onetime::Jobs::Publisher.enqueue_favicon_fetch(domain.identifier)
+      rescue StandardError => ex
+        logger.error 'Failed to enqueue favicon fetch',
+          domain: domain&.display_domain,
+          error: ex.message,
+          error_class: ex.class.name
+      end
+
+      # @return [SemanticLogger::Logger] Logger instance
+      def logger
+        @logger ||= Onetime.get_logger('Operations')
+      end
+    end
+  end
+end

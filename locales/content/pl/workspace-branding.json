@@ -1,0 +1,462 @@
+{
+  "web.branding.color_picker": {
+    "text": "Próbnik kolorów",
+    "source_hash": "ba42602c"
+  },
+  "web.branding.current_label_modelvalue_click_to_cycle_through_options": {
+    "text": "Bieżący {0}: {1}. Kliknij, aby przełączać opcje.",
+    "source_hash": "84bf49e6"
+  },
+  "web.branding.use_setting": {
+    "text": "Użyj ustawienia",
+    "source_hash": "8a18d118"
+  },
+  "web.branding.font_family": {
+    "text": "Rodzina czcionek",
+    "source_hash": "f81339da"
+  },
+  "web.branding.corner_style": {
+    "text": "Styl narożników",
+    "source_hash": "fcb3ecdf"
+  },
+  "web.branding.brand_color": {
+    "text": "Kolor marki",
+    "source_hash": "db3183e3"
+  },
+  "web.branding.preview_of_the_secret_link_page_for_recipients": {
+    "text": "Podgląd widoku odbiorcy podczas uzyskiwania dostępu do Twojego bezpiecznego linku",
+    "source_hash": "199c165f"
+  },
+  "web.branding.preview_and_customize": {
+    "text": "Dostosuj i wyświetl podgląd",
+    "source_hash": "fc68a28c"
+  },
+  "web.branding.switch_to_safari_browser_view": {
+    "text": "Przełącz na widok przeglądarki Safari",
+    "source_hash": "6e0fe791"
+  },
+  "web.branding.microsoft_edge": {
+    "text": "Microsoft Edge",
+    "source_hash": "951e7f89"
+  },
+  "web.branding.maximize_window": {
+    "text": "Maksymalizuj okno",
+    "source_hash": "45d23969"
+  },
+  "web.branding.minimize_window": {
+    "text": "Minimalizuj okno",
+    "source_hash": "5cd54386"
+  },
+  "web.branding.switch_to_edge_browser_view": {
+    "text": "Przełącz na widok przeglądarki Edge",
+    "source_hash": "a8fcd82d"
+  },
+  "web.branding.charactercount_500_characters": {
+    "text": "{0}/500 znaków",
+    "source_hash": "e36598ef"
+  },
+  "web.branding.example_pre_reveal_instructions": {
+    "text": "np. Zeskanuj kod QR telefonem",
+    "source_hash": "9cf0caf8"
+  },
+  "web.branding.example_post_reveal_instructions": {
+    "text": "np. W razie pytań skontaktuj się z onboarding{'@'}example.com",
+    "source_hash": "71749811"
+  },
+  "web.branding.these_instructions_will_be_shown_to_recipients_before": {
+    "text": "Te instrukcje zostaną pokazane odbiorcom, zanim ujawnią treść wiadomości",
+    "source_hash": "9d5a6334"
+  },
+  "web.branding.these_instructions_will_be_shown_to_recipients_after": {
+    "text": "Te instrukcje zostaną pokazane odbiorcom po ujawnieniu przez nich wiadomości",
+    "source_hash": "9f82bd94"
+  },
+  "web.branding.pre_reveal_instructions": {
+    "text": "Instrukcje przed wyświetleniem",
+    "source_hash": "a299422e"
+  },
+  "web.branding.post_reveal_instructions": {
+    "text": "Instrukcje po wyświetleniu",
+    "source_hash": "72ecc23a"
+  },
+  "web.branding.instructions": {
+    "text": "Instrukcje",
+    "source_hash": "934652dc"
+  },
+  "web.branding.logo_controls": {
+    "text": "Kontrolki logo",
+    "source_hash": "43e9a2d7"
+  },
+  "web.branding.click_to_upload_a_logo_with_recommendation": {
+    "text": "Kliknij, aby zarządzać logo. Zalecany rozmiar: 128x128 pikseli. Maksymalny rozmiar pliku: 1MB. Obsługiwane formaty: PNG, JPG, SVG",
+    "source_hash": "7bb92395"
+  },
+  "web.branding.upload_logo": {
+    "text": "Prześlij logo",
+    "source_hash": "c3330082"
+  },
+  "web.branding.loading_preview": {
+    "text": "Ładowanie podglądu...",
+    "source_hash": "c02130fa"
+  },
+  "web.branding.preview_how_recipients_will_see_your_secrets": {
+    "text": "Zobacz podgląd, jak odbiorcy zobaczą Twoje wiadomości, testując przycisk \"Wyświetl wiadomość\"",
+    "source_hash": "3b58a297"
+  },
+  "web.branding.eye_icon": {
+    "text": "Ikona oka",
+    "source_hash": "7f605d3c"
+  },
+  "web.branding.click_the_preview_image_below_to_update_your_logo": {
+    "text": "Kliknij obraz podglądu poniżej, aby zaktualizować logo (zalecane minimum 128x128 pikseli, maks. 1MB)",
+    "source_hash": "77a19049"
+  },
+  "web.branding.image_icon": {
+    "text": "Ikona obrazu",
+    "source_hash": "b0d64fcf"
+  },
+  "web.branding.use_the_controls_above_to_customize_brand_details": {
+    "text": "Użyj kontrolek powyżej, aby dostosować kolor marki, style i instrukcje dla odbiorcy",
+    "source_hash": "d6287134"
+  },
+  "web.branding.customization_icon": {
+    "text": "Ikona dostosowywania",
+    "source_hash": "bde04d31"
+  },
+  "web.branding.you_have_unsaved_changes_are_you_sure": {
+    "text": "Masz niezapisane zmiany. Czy na pewno?",
+    "source_hash": "184b6a83"
+  },
+  "web.branding.failed_to_load_brand_settings": {
+    "text": "Nie udało się załadować ustawień marki",
+    "source_hash": "a7a1575e"
+  },
+  "web.branding.this_is_an_interactive_preview_o": {
+    "text": "To interaktywny podgląd, jak odbiorcy zobaczą Twoje bezpieczne wiadomości. Możesz: - Dostosować kolory i czcionki za pomocą kontrolek powyżej - Przesłać logo (zalecane minimum 128x128 pikseli, maks. 1MB) - Przetestować podgląd za pomocą przycisku \"Wyświetl sekret\"",
+    "source_hash": "3d8b2c0d"
+  },
+  "web.branding.this_is_an_interactive_preview_of_how_recipients": {
+    "text": "To jest interaktywny podgląd tego, jak odbiorcy zobaczą Twoje bezpieczne wiadomości. Możesz: - Dostosować kolory i czcionki za pomocą kontrolek powyżej - Przesłać logo (zalecane minimum 128x128 pikseli, maks. 1MB) - Przetestować podgląd za pomocą przycisku \"Wyświetl wiadomość\"",
+    "source_hash": "3d8b2c0d"
+  },
+  "web.branding.default_logo_icon": {
+    "text": "Japoński znak kanji '秘' (himitsu) oznaczający 'sekret' lub 'poufny'",
+    "source_hash": "1e04ba2e"
+  },
+  "web.branding.powered_by_onetime_secret": {
+    "text": "Wspierane przez {product_name}",
+    "source_hash": "1f393117"
+  },
+  "web.branding.low_contrast_warning": {
+    "text": "Niski kontrast",
+    "source_hash": "2d6e7516"
+  },
+  "web.branding.contrast_ratio_label": {
+    "text": "Współczynnik kontrastu",
+    "source_hash": "d521a5be"
+  },
+  "web.branding.heading_logo": {
+    "text": "Logo {0}",
+    "source_hash": "3a3c98ed"
+  },
+  "web.branding.edge": {
+    "text": "Edge",
+    "source_hash": "0f82fe72"
+  },
+  "web.branding.switch_to_edge_preview": {
+    "text": "Przełącz na podgląd Edge",
+    "source_hash": "83883d84"
+  },
+  "web.branding.safari": {
+    "text": "Safari",
+    "source_hash": "5f033039"
+  },
+  "web.branding.switch_to_safari_preview": {
+    "text": "Przełącz na podgląd Safari",
+    "source_hash": "f24ac447"
+  },
+  "web.branding.upgrade_to_customize": {
+    "text": "Ulepsz swój plan, aby dostosować branding dla tej domeny.",
+    "source_hash": "9077bf79"
+  },
+  "web.branding.saved_successfully": {
+    "text": "Ustawienia marki zostały pomyślnie zapisane",
+    "source_hash": "9960c252"
+  },
+  "web.branding.keyhole_logo_icon": {
+    "text": "Ikona dziurki od klucza symbolizująca bezpieczne, prywatne udostępnianie",
+    "source_hash": "c868ac60"
+  },
+  "web.branding.secondary_color": {
+    "text": "Kolor drugorzędny",
+    "source_hash": "1f4728f6"
+  },
+  "web.branding.background_color": {
+    "text": "Kolor tła",
+    "source_hash": "b48bc969"
+  },
+  "web.branding.text_color": {
+    "text": "Kolor tekstu",
+    "source_hash": "2ea23234"
+  },
+  "web.branding.border_radius": {
+    "text": "Zaokrąglenie rogów",
+    "source_hash": "e758d7db"
+  },
+  "web.branding.heading_font": {
+    "text": "Czcionka nagłówka",
+    "source_hash": "6b5d30dc"
+  },
+  "web.branding.theme_presets": {
+    "text": "Gotowe motywy",
+    "source_hash": "931eeb74"
+  },
+  "web.branding.logo": {
+    "text": "Logo",
+    "source_hash": "d707dc2f"
+  },
+  "web.branding.replace_logo": {
+    "text": "Zastąp",
+    "source_hash": "95e15439"
+  },
+  "web.branding.logo_field_hint": {
+    "text": "Wyświetl podgląd, zanim Twoje zmiany zostaną opublikowane.",
+    "source_hash": "e9e222fc"
+  },
+  "web.branding.logo_modal_title": {
+    "text": "Logo domeny",
+    "source_hash": "5260dda5"
+  },
+  "web.branding.logo_modal_hint": {
+    "text": "PNG, JPG lub SVG. Zalecane 128x128px, do 1MB.",
+    "source_hash": "75d00802"
+  },
+  "web.branding.logo_modal_save": {
+    "text": "Zapisz logo",
+    "source_hash": "8b028a6f"
+  },
+  "web.branding.remove_logo": {
+    "text": "Usuń logo",
+    "source_hash": "f1c1afa4"
+  },
+  "web.branding.image_upload_choose": {
+    "text": "Wybierz obraz",
+    "source_hash": "ceed9fd5"
+  },
+  "web.branding.image_upload_drag_hint": {
+    "text": "lub przeciągnij i upuść",
+    "source_hash": "6613b73c"
+  },
+  "web.branding.image_invalid_type": {
+    "text": "Ten typ pliku nie jest obsługiwany. Wybierz obraz.",
+    "source_hash": "50e18866"
+  },
+  "web.branding.image_too_large": {
+    "text": "Obraz jest za duży. Maksymalny rozmiar to {max}.",
+    "source_hash": "b50b55e2"
+  },
+  "web.branding.image_will_be_removed": {
+    "text": "To logo zostanie usunięte po zapisaniu.",
+    "source_hash": "d94fa99a"
+  },
+  "web.branding.image_upload_failed": {
+    "text": "Coś poszło nie tak. Spróbuj ponownie.",
+    "source_hash": "3ccd9d65"
+  },
+  "web.branding.undo": {
+    "text": "Cofnij",
+    "source_hash": "a8283ade"
+  },
+  "web.branding.low_contrast_text_bg_warning": {
+    "text": "Niski kontrast tekstu/tła",
+    "source_hash": "1c676370"
+  },
+  "web.branding.path_simple": {
+    "text": "Prosty",
+    "source_hash": "3fee95da"
+  },
+  "web.branding.path_match": {
+    "text": "Dopasuj do mojej witryny",
+    "source_hash": "776679cf"
+  },
+  "web.branding.path_advanced": {
+    "text": "Zaawansowany",
+    "source_hash": "9f088dbe"
+  },
+  "web.branding.path_simple_tag": {
+    "text": "Podstawy Twojej marki.",
+    "source_hash": "7c9c0cca"
+  },
+  "web.branding.path_match_tag": {
+    "text": "Skopiuj ustawienia z istniejącej witryny.",
+    "source_hash": "e4b0d1cd"
+  },
+  "web.branding.path_advanced_tag": {
+    "text": "Stwórz własny CSS Tailwind v4.",
+    "source_hash": "2405bb6d"
+  },
+  "web.branding.badge_default": {
+    "text": "Domyślny",
+    "source_hash": "21b111cb"
+  },
+  "web.branding.badge_coming_soon": {
+    "text": "Wkrótce",
+    "source_hash": "4f7d6401"
+  },
+  "web.branding.your_brand": {
+    "text": "Twoja marka",
+    "source_hash": "406265d3"
+  },
+  "web.branding.your_brand_subtitle": {
+    "text": "Kilka szybkich wyborów — resztą zajmiemy się my.",
+    "source_hash": "dbc8ec33"
+  },
+  "web.branding.corners": {
+    "text": "Rogi",
+    "source_hash": "1d3cc47e"
+  },
+  "web.branding.more_options": {
+    "text": "Więcej opcji",
+    "source_hash": "bc79cdff"
+  },
+  "web.branding.paths_carryover_hint": {
+    "text": "To jest podgląd na żywo — Twoje zmiany nie będą widoczne dla odwiedzających, dopóki nie klikniesz Aktualizuj.",
+    "source_hash": "9a34df71"
+  },
+  "web.branding.coming_soon_match_blurb": {
+    "text": "Wskaż nam swoją witrynę, a odczytamy jej kolory i czcionki, a następnie wypełnimy różnicę jednym kliknięciem.",
+    "source_hash": "42c34cc1"
+  },
+  "web.branding.coming_soon_advanced_blurb": {
+    "text": "Edytuj bezpośrednio tokeny {'@'}theme Tailwind v4 lub wklej własny arkusz stylów.",
+    "source_hash": "5a8473f5"
+  },
+  "web.branding.preview_recipient_page": {
+    "text": "Strona odbiorcy",
+    "source_hash": "de8aa19f"
+  },
+  "web.branding.preview_badge": {
+    "text": "Podgląd",
+    "source_hash": "324b134f"
+  },
+  "web.branding.preview_homepage_enabled": {
+    "text": "Strona główna · włączona",
+    "source_hash": "2edd85f1"
+  },
+  "web.branding.preview_homepage_disabled": {
+    "text": "Strona główna · wyłączona",
+    "source_hash": "15d87050"
+  },
+  "web.branding.preview_live": {
+    "text": "Podgląd na żywo",
+    "source_hash": "f65ddc1f"
+  },
+  "web.branding.tile_share_secret": {
+    "text": "Udostępnij sekret",
+    "source_hash": "5384461b"
+  },
+  "web.branding.tile_create_link": {
+    "text": "Utwórz link do sekretu",
+    "source_hash": "610fd42e"
+  },
+  "web.branding.tile_delivery_only": {
+    "text": "Tylko bezpieczne dostarczanie wiadomości",
+    "source_hash": "dc24dec2"
+  },
+  "web.branding.tile_no_create": {
+    "text": "Odwiedzający nie mogą tutaj tworzyć sekretów.",
+    "source_hash": "17361d81"
+  },
+  "web.branding.recipient_page_content": {
+    "text": "Treść strony odbiorcy",
+    "source_hash": "937733bd"
+  },
+  "web.branding.recipient_page_content_hint": {
+    "text": "Język i instrukcje ujawniania wyświetlane odbiorcom w tej domenie.",
+    "source_hash": "04162b70"
+  },
+  "web.branding.tab_brand": {
+    "text": "Marka",
+    "source_hash": "090ed431"
+  },
+  "web.branding.tab_delivery": {
+    "text": "Dostarczanie",
+    "source_hash": "52bfe584"
+  },
+  "web.branding.delivery_language": {
+    "text": "Język",
+    "source_hash": "a4fe6526"
+  },
+  "web.branding.delivery_language_hint": {
+    "text": "Domyślny dla stron odbiorców i e-maili w tej domenie. Odbiorcy mogą zmienić język na stronie.",
+    "source_hash": "bfbc5599"
+  },
+  "web.branding.delivery_reveal_instructions": {
+    "text": "Instrukcje ujawniania",
+    "source_hash": "7e1331f7"
+  },
+  "web.branding.delivery_reveal_instructions_hint": {
+    "text": "Wyświetlane na stronie odbiorcy. Pozostaw puste, aby użyć wbudowanego tekstu w wybranym języku.",
+    "source_hash": "51b9811d"
+  },
+  "web.branding.delivery_before_reveal": {
+    "text": "Przed ujawnieniem",
+    "source_hash": "5ce82b01"
+  },
+  "web.branding.delivery_after_reveal": {
+    "text": "Po ujawnieniu",
+    "source_hash": "d5bfe7fd"
+  },
+  "web.branding.favicon": {
+    "text": "Favicon",
+    "source_hash": "42955289"
+  },
+  "web.branding.refresh_favicon": {
+    "text": "Odśwież favicon z domeny",
+    "source_hash": "7cc3d5dc"
+  },
+  "web.branding.refresh_favicon_hint": {
+    "text": "Pobierz ponownie favicon ze swojej domeny. Nowa ikona pojawi się wkrótce.",
+    "source_hash": "ee007e44"
+  },
+  "web.branding.refresh_favicon_queued": {
+    "text": "Trwa odświeżanie favicona — nowa ikona pojawi się wkrótce.",
+    "source_hash": "6bf38e6e"
+  },
+  "web.branding.refresh_favicon_user_upload_hint": {
+    "text": "Przesłano własny favicon, więc pobrana ikona go nie zastąpi.",
+    "source_hash": "c22e1ed6"
+  },
+  "web.branding.upload_favicon": {
+    "text": "Prześlij favicon",
+    "source_hash": "ceda39cb"
+  },
+  "web.branding.replace_favicon": {
+    "text": "Zastąp",
+    "source_hash": "95e15439"
+  },
+  "web.branding.remove_favicon": {
+    "text": "Usuń favicon",
+    "source_hash": "03693698"
+  },
+  "web.branding.favicon_field_hint": {
+    "text": "ICO, PNG lub SVG. Przesłanie zastępuje pobraną ikonę.",
+    "source_hash": "dfa0bfcb"
+  },
+  "web.branding.favicon_preview_alt": {
+    "text": "Favicon domeny",
+    "source_hash": "db7dca40"
+  },
+  "web.branding.favicon_modal_title": {
+    "text": "Favicon domeny",
+    "source_hash": "db7dca40"
+  },
+  "web.branding.favicon_modal_hint": {
+    "text": "ICO, PNG lub SVG. Do 256 KB. Zastępuje automatycznie pobraną ikonę.",
+    "source_hash": "c9eafc83"
+  },
+  "web.branding.favicon_modal_save": {
+    "text": "Zapisz favicon",
+    "source_hash": "c8a1566c"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "web.feedback.your_feedback": {
+    "text": "Your feedback",
+    "content_hash": "cdb1c0a5"
+  },
+  "web.feedback.all_feedback_welcome": {
+    "text": "All feedback welcome!",
+    "content_hash": "c57d3006"
+  },
+  "web.feedback.help_us_improve": {
+    "text": "Help us improve",
+    "content_hash": "f35439c4"
+  },
+  "web.feedback.close_feedback_modal": {
+    "text": "Close feedback modal",
+    "content_hash": "41689bb4"
+  },
+  "web.feedback.share_your_feedback": {
+    "text": "Share your feedback",
+    "content_hash": "6d62dfbd"
+  },
+  "web.feedback.delano_mandelbaum": {
+    "text": "Delano Mandelbaum",
+    "content_hash": "6da0b72b"
+  },
+  "web.feedback.delano": {
+    "text": "Delano",
+    "content_hash": "f58154f7"
+  },
+  "web.feedback.help_content_goes_here": {
+    "text": "Help content goes here.",
+    "content_hash": "796979ea"
+  },
+  "web.feedback.founder_note_line1": {
+    "text": "I read every piece of feedback that comes through here. It's how I figure out what to spend time on.",
+    "content_hash": "8b430d93"
+  },
+  "web.feedback.founder_note_line2": {
+    "text": "If something's off, or you have ideas about how it should work, this is the right place.",
+    "content_hash": "d4b8f073"
+  },
+  "web.feedback.open_feedback_form": {
+    "text": "Open feedback form",
+    "content_hash": "acd8409b"
+  },
+  "web.feedback.enter_your_feedback": {
+    "text": "Enter your feedback",
+    "content_hash": "1bb310f4"
+  },
+  "web.feedback.send_feedback": {
+    "text": "Send feedback",
+    "content_hash": "8235980b"
+  },
+  "web.feedback.sending_ellipses": {
+    "text": "Sending...",
+    "content_hash": "286a3af7"
+  },
+  "web.feedback.reason_email_change_unauthorized": {
+    "text": "It looks like you're reporting an unauthorized email change on your account. Please describe what happened and we'll investigate right away.",
+    "content_hash": "00e56551"
+  },
+  "web.feedback.anonymous_no_reply": {
+    "text": "Note: if you'd like a response, please sign or include an email address in the message.",
+    "content_hash": "c984f705"
+  },
+  "web.feedback.characters_remaining": {
+    "text": "{count} characters remaining",
+    "content_hash": "8d796f40"
+  },
+  "web.feedback.character_limit_reached": {
+    "text": "Character limit reached",
+    "content_hash": "031e9310"
+  }
+}

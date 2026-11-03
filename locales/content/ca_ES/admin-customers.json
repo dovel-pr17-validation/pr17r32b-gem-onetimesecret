@@ -1,0 +1,842 @@
+{
+  "web.admin.customers.title": {
+    "text": "Clients",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.customers.description": {
+    "text": "Troba un client i resol problemes de suport.",
+    "source_hash": "00961ea3"
+  },
+  "web.admin.customers.actions.plan.label": {
+    "text": "Pla",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.plan.apply": {
+    "text": "Aplica",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.plan.confirmTitle": {
+    "text": "Vols canviar el pla?",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.customers.actions.plan.confirmDescription": {
+    "text": "Canvia {email} al pla {plan}.",
+    "source_hash": "83fb4158"
+  },
+  "web.admin.customers.actions.plan.success": {
+    "text": "S'ha actualitzat el pla.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.customers.actions.plan.localConfigWarning": {
+    "text": "Plans carregats des de la configuració local — Stripe no està configurat o no s'hi pot accedir.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.customers.actions.purge.button": {
+    "text": "Purga el client",
+    "source_hash": "ff658f69"
+  },
+  "web.admin.customers.actions.purge.confirmTitle": {
+    "text": "Vols purgar el client?",
+    "source_hash": "9feed9f1"
+  },
+  "web.admin.customers.actions.purge.confirmDescription": {
+    "text": "Això sol·licita l'eliminació permanent de {email}. Abans de desmantellar el compte s'executa una comprovació prèvia que rebutja la purga quan un espai de treball té dominis, estat de facturació, altres membres, dades conservades o referències incoherents. Revisa i resol qualsevol impediment abans de tornar-ho a provar. Això no es pot desfer un cop comença el desmantellament.",
+    "source_hash": "7b4e5e37"
+  },
+  "web.admin.customers.actions.purge.success": {
+    "text": "S'ha purgat el client.",
+    "source_hash": "6145e5c8"
+  },
+  "web.admin.customers.actions.role.label": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.actions.role.apply": {
+    "text": "Aplica",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.role.confirmTitle": {
+    "text": "Vols canviar el rol?",
+    "source_hash": "227f57d7"
+  },
+  "web.admin.customers.actions.role.confirmDescription": {
+    "text": "Canvia {email} al rol {role}. El rol colonel concedeix accés administratiu complet a tots els comptes, secrets i organitzacions d'aquesta instal·lació. Escriu a continuació l'adreça de correu electrònic del compte per confirmar-ho.",
+    "source_hash": "0ed85b97"
+  },
+  "web.admin.customers.actions.role.success": {
+    "text": "S'ha actualitzat el rol.",
+    "source_hash": "0c33aa24"
+  },
+  "web.admin.customers.actions.suspend.button": {
+    "text": "Suspèn el compte",
+    "source_hash": "95a04f27"
+  },
+  "web.admin.customers.actions.suspend.reasonLabel": {
+    "text": "Motiu (opcional)",
+    "source_hash": "0f7d4664"
+  },
+  "web.admin.customers.actions.suspend.reasonPlaceholder": {
+    "text": "Per què se suspèn aquest compte?",
+    "source_hash": "8eca975e"
+  },
+  "web.admin.customers.actions.suspend.confirmTitle": {
+    "text": "Vols suspendre el compte?",
+    "source_hash": "cbfa275b"
+  },
+  "web.admin.customers.actions.suspend.confirmDescription": {
+    "text": "Impedeix que {email} iniciï la sessió i revoca les seves sessions actives. No s'elimina cap dada — això és reversible.",
+    "source_hash": "e5d046bc"
+  },
+  "web.admin.customers.actions.suspend.success": {
+    "text": "S'ha suspès el compte.",
+    "source_hash": "04c5f996"
+  },
+  "web.admin.customers.actions.unsuspend.button": {
+    "text": "Reactiva el compte",
+    "source_hash": "35a10fb5"
+  },
+  "web.admin.customers.actions.unsuspend.confirmTitle": {
+    "text": "Vols reactivar el compte?",
+    "source_hash": "6fd78a72"
+  },
+  "web.admin.customers.actions.unsuspend.confirmDescription": {
+    "text": "Restaura l'inici de sessió per a {email}.",
+    "source_hash": "cb2bb4e0"
+  },
+  "web.admin.customers.actions.unsuspend.success": {
+    "text": "S'ha reactivat el compte.",
+    "source_hash": "c5b4377f"
+  },
+  "web.admin.customers.actions.unverify.button": {
+    "text": "Anul·la la verificació",
+    "source_hash": "b0dee41f"
+  },
+  "web.admin.customers.actions.unverify.confirmTitle": {
+    "text": "Vols anul·lar la verificació del client?",
+    "source_hash": "62ed2854"
+  },
+  "web.admin.customers.actions.unverify.confirmDescription": {
+    "text": "Marca {email} com a no verificat. Un compte no verificat no pot tenir el rol de colonel, administrador ni personal, així que això també li retira qualsevol rol elevat que tingui. Escriu a continuació l'adreça de correu electrònic del compte per confirmar-ho.",
+    "source_hash": "601f7382"
+  },
+  "web.admin.customers.actions.unverify.success": {
+    "text": "S'ha anul·lat la verificació del client.",
+    "source_hash": "a9b7bbac"
+  },
+  "web.admin.customers.actions.verify.button": {
+    "text": "Verifica",
+    "source_hash": "eea2745e"
+  },
+  "web.admin.customers.actions.verify.confirmTitle": {
+    "text": "Vols verificar el client?",
+    "source_hash": "43037ce1"
+  },
+  "web.admin.customers.actions.verify.confirmDescription": {
+    "text": "Marca {email} com a verificat.",
+    "source_hash": "7052d79d"
+  },
+  "web.admin.customers.actions.verify.success": {
+    "text": "S'ha verificat el client.",
+    "source_hash": "19e382dc"
+  },
+  "web.admin.customers.columns.email": {
+    "text": "Correu electrònic",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.columns.role": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.columns.verified": {
+    "text": "Verificat",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.columns.plan": {
+    "text": "Pla",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.columns.secrets": {
+    "text": "Secrets",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.columns.created": {
+    "text": "Creat",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.columns.lastLogin": {
+    "text": "Últim inici de sessió",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.backToList": {
+    "text": "Torna als clients",
+    "source_hash": "077807fb"
+  },
+  "web.admin.customers.detail.openFullPage": {
+    "text": "Obre la pàgina completa",
+    "source_hash": "a467911c"
+  },
+  "web.admin.customers.detail.notFound": {
+    "text": "No s'ha trobat el client",
+    "source_hash": "5e3f5824"
+  },
+  "web.admin.customers.detail.notFoundDescription": {
+    "text": "Cap client coincideix amb aquest identificador. Pot ser que s'hagi purgat.",
+    "source_hash": "82b04725"
+  },
+  "web.admin.customers.detail.loadError": {
+    "text": "No s'ha pogut carregar aquest client.",
+    "source_hash": "cfd1bcca"
+  },
+  "web.admin.customers.detail.retry": {
+    "text": "Torna-ho a provar",
+    "source_hash": "942087cc"
+  },
+  "web.admin.customers.detail.yes": {
+    "text": "Sí",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.customers.detail.no": {
+    "text": "No",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.customers.detail.none": {
+    "text": "Cap",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.never": {
+    "text": "Mai",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.customers.detail.billing.plan": {
+    "text": "Pla",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.billing.organization": {
+    "text": "Organització de facturació",
+    "source_hash": "90c94ee1"
+  },
+  "web.admin.customers.detail.billing.subscriptionStatus": {
+    "text": "Estat de la subscripció",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.customers.detail.billing.periodEnd": {
+    "text": "El període actual acaba",
+    "source_hash": "742b8229"
+  },
+  "web.admin.customers.detail.billing.latestInvoice": {
+    "text": "Última factura",
+    "source_hash": "7a6133cc"
+  },
+  "web.admin.customers.detail.billing.noInvoices": {
+    "text": "Cap factura",
+    "source_hash": "e6b30f93"
+  },
+  "web.admin.customers.detail.billing.openStripe": {
+    "text": "Obre al tauler de control de Stripe",
+    "source_hash": "dfa7c41d"
+  },
+  "web.admin.customers.detail.billing.unavailable": {
+    "text": "Dades de Stripe no disponibles: {reason}",
+    "source_hash": "9fe08e49"
+  },
+  "web.admin.customers.detail.billing.notConfigured": {
+    "text": "La facturació no està configurada en aquesta instal·lació.",
+    "source_hash": "6e90375e"
+  },
+  "web.admin.customers.detail.fields.email": {
+    "text": "Correu electrònic",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.detail.fields.publicId": {
+    "text": "ID públic",
+    "source_hash": "3705b64f"
+  },
+  "web.admin.customers.detail.fields.role": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.detail.fields.verified": {
+    "text": "Verificat",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.detail.fields.plan": {
+    "text": "Pla",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.fields.locale": {
+    "text": "Configuració regional",
+    "source_hash": "ca3dc612"
+  },
+  "web.admin.customers.detail.fields.created": {
+    "text": "Creat",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.fields.updated": {
+    "text": "Actualitzat",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.customers.detail.fields.lastLogin": {
+    "text": "Últim inici de sessió",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.fields.suspendedAt": {
+    "text": "Suspès el",
+    "source_hash": "7227f219"
+  },
+  "web.admin.customers.detail.fields.suspendedBy": {
+    "text": "Suspès per",
+    "source_hash": "e0830524"
+  },
+  "web.admin.customers.detail.fields.suspendedReason": {
+    "text": "Motiu de la suspensió",
+    "source_hash": "d6b08d8e"
+  },
+  "web.admin.customers.detail.organizations.empty": {
+    "text": "Cap organització",
+    "source_hash": "c256efdc"
+  },
+  "web.admin.customers.detail.organizations.default": {
+    "text": "Per defecte",
+    "source_hash": "21b111cb"
+  },
+  "web.admin.customers.detail.receiptColumns.shortId": {
+    "text": "ID curt",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.receiptColumns.state": {
+    "text": "Estat",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.receiptColumns.created": {
+    "text": "Creat",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.receipts.empty": {
+    "text": "Cap rebut",
+    "source_hash": "fb425a68"
+  },
+  "web.admin.customers.detail.secretColumns.shortId": {
+    "text": "ID curt",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.secretColumns.state": {
+    "text": "Estat",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.secretColumns.created": {
+    "text": "Creat",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.secretColumns.expiration": {
+    "text": "Caducitat",
+    "source_hash": "f38d6e0e"
+  },
+  "web.admin.customers.detail.secrets.empty": {
+    "text": "Cap secret",
+    "source_hash": "c37ab3f7"
+  },
+  "web.admin.customers.detail.sections.profile": {
+    "text": "Perfil",
+    "source_hash": "d696a35b"
+  },
+  "web.admin.customers.detail.sections.secrets": {
+    "text": "Secrets",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.detail.sections.receipts": {
+    "text": "Rebuts",
+    "source_hash": "60a627df"
+  },
+  "web.admin.customers.detail.sections.organizations": {
+    "text": "Organitzacions",
+    "source_hash": "2730183d"
+  },
+  "web.admin.customers.detail.sections.actions": {
+    "text": "Accions",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sections.billing": {
+    "text": "Facturació",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.customers.detail.sessions.title": {
+    "text": "Sessions actives",
+    "source_hash": "b58fa4e0"
+  },
+  "web.admin.customers.detail.sessions.empty": {
+    "text": "Cap sessió activa.",
+    "source_hash": "6f064eb9"
+  },
+  "web.admin.customers.detail.sessions.loadError": {
+    "text": "No s'han pogut carregar les sessions.",
+    "source_hash": "d2884313"
+  },
+  "web.admin.customers.detail.sessions.unknown": {
+    "text": "Desconegut",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.sessions.columns.lastActivity": {
+    "text": "Última activitat",
+    "source_hash": "06475633"
+  },
+  "web.admin.customers.detail.sessions.columns.ipAddress": {
+    "text": "Adreça IP",
+    "source_hash": "0302a467"
+  },
+  "web.admin.customers.detail.sessions.columns.device": {
+    "text": "Dispositiu",
+    "source_hash": "6ba0bdec"
+  },
+  "web.admin.customers.detail.sessions.columns.authMethod": {
+    "text": "Mètode d'autenticació",
+    "source_hash": "bc4ea262"
+  },
+  "web.admin.customers.detail.sessions.columns.actions": {
+    "text": "Accions",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sessions.revoke.button": {
+    "text": "Revoca",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmTitle": {
+    "text": "Vols revocar la sessió?",
+    "source_hash": "7735d1ef"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmDescription": {
+    "text": "Això tanca immediatament la sessió de l'usuari. Haurà de tornar a iniciar la sessió.",
+    "source_hash": "b4291af0"
+  },
+  "web.admin.customers.detail.sessions.revoke.success": {
+    "text": "S'ha revocat la sessió.",
+    "source_hash": "5e4762e5"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.button": {
+    "text": "Revoca-les totes",
+    "source_hash": "c6847a4b"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmTitle": {
+    "text": "Vols revocar totes les sessions?",
+    "source_hash": "a4fa4c65"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmDescription": {
+    "text": "Això tanca la sessió de l'usuari a tots els dispositius i navegadors — incloses les sessions que no es mostren en aquesta llista — i li bloqueja immediatament les rutes autenticades. Fes-ho servir per a la desvinculació o per una sospita de segrest de compte. Escriu l'ID de l'usuari per confirmar.",
+    "source_hash": "483cdd88"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.success": {
+    "text": "S'han revocat totes les sessions ({count} finalitzades).",
+    "source_hash": "4e1cce55"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.capped": {
+    "text": "S'han finalitzat {count} sessions, però l'escombratge de sessions no rastrejades s'ha truncat — pot ser que quedi alguna sessió més antiga. Torna-ho a executar per assegurar-te.",
+    "source_hash": "e3d295a6"
+  },
+  "web.admin.customers.detail.stats.secretsCreated": {
+    "text": "Secrets creats",
+    "source_hash": "7d17719e"
+  },
+  "web.admin.customers.detail.stats.secretsShared": {
+    "text": "Secrets compartits",
+    "source_hash": "ba85b265"
+  },
+  "web.admin.customers.detail.stats.emailsSent": {
+    "text": "Correus electrònics enviats",
+    "source_hash": "be604792"
+  },
+  "web.admin.customers.list.roleFilter": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.list.empty": {
+    "text": "No s'ha trobat cap client",
+    "source_hash": "dc754ec0"
+  },
+  "web.admin.customers.list.loadError": {
+    "text": "No s'han pogut carregar els clients.",
+    "source_hash": "81783303"
+  },
+  "web.admin.customers.list.searchPlaceholder": {
+    "text": "Cerca per correu electrònic, extid o objid",
+    "source_hash": "c06d5a3b"
+  },
+  "web.admin.customers.list.emptySearch": {
+    "text": "Cap client coincideix amb aquesta cerca",
+    "source_hash": "ea7e7012"
+  },
+  "web.admin.customers.roles.colonel": {
+    "text": "Colonel",
+    "source_hash": "02577777"
+  },
+  "web.admin.customers.roles.admin": {
+    "text": "Administrador",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.customers.roles.staff": {
+    "text": "Personal",
+    "source_hash": "681927e3"
+  },
+  "web.admin.customers.roles.customer": {
+    "text": "Client",
+    "source_hash": "bf376338"
+  },
+  "web.admin.customers.suspended.badge": {
+    "text": "Suspès",
+    "source_hash": "e392a389"
+  },
+  "web.admin.customers.actions.checkoutLink.button": {
+    "text": "Crea un enllaç de pagament",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.modalTitle": {
+    "text": "Crea un enllaç de pagament",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.planLabel": {
+    "text": "Pla",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.checkoutLink.planPlaceholder": {
+    "text": "Identificador de família de pla (p. ex. identity_plus_v1)",
+    "source_hash": "12eba027"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleLabel": {
+    "text": "Cicle de facturació",
+    "source_hash": "d69f731e"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleMonthly": {
+    "text": "Mensual",
+    "source_hash": "9b11f6b7"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleYearly": {
+    "text": "Anual",
+    "source_hash": "6e69b59e"
+  },
+  "web.admin.customers.actions.checkoutLink.allowPromo": {
+    "text": "Permet codis de promoció",
+    "source_hash": "ebe7bc8b"
+  },
+  "web.admin.customers.actions.checkoutLink.submit": {
+    "text": "Crea l'enllaç",
+    "source_hash": "e6b850cf"
+  },
+  "web.admin.customers.actions.checkoutLink.resultLead": {
+    "text": "S'ha creat l'enllaç de pagament. Comparteix-lo amb el client — només es pot utilitzar una vegada i caduca.",
+    "source_hash": "6ff1fb0e"
+  },
+  "web.admin.customers.actions.checkoutLink.copy": {
+    "text": "Copia l'enllaç de pagament",
+    "source_hash": "f1e51ca7"
+  },
+  "web.admin.customers.actions.checkoutLink.expiry": {
+    "text": "Caduca en ~{hours}h ({date}).",
+    "source_hash": "4c878a15"
+  },
+  "web.admin.customers.actions.checkoutLink.regionLabel": {
+    "text": "Regió",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.customers.actions.checkoutLink.parseError": {
+    "text": "El servidor ha acceptat la sol·licitud però ha retornat una resposta il·legible, així que no es pot mostrar cap enllaç. Comprova Stripe abans de tornar-ho a intentar.",
+    "source_hash": "e7e08290"
+  },
+  "web.admin.customers.actions.checkoutLink.done": {
+    "text": "Fet",
+    "source_hash": "11a6767d"
+  },
+  "web.admin.customers.actions.purge.typePrompt": {
+    "text": "Per confirmar, escriu l'adreça de correu electrònic del compte {token} a continuació",
+    "source_hash": "8b2a1819"
+  },
+  "web.admin.customers.actions.purge.unavailable": {
+    "text": "L'eliminació no està disponible: aquest compte no té cap adreça de correu electrònic per escriure com a confirmació.",
+    "source_hash": "5f20f7e5"
+  },
+  "web.admin.customers.columns.actions": {
+    "text": "Accions",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.diagnostics.title": {
+    "text": "Diagnòstic del compte",
+    "source_hash": "5574ece8"
+  },
+  "web.admin.customers.detail.diagnostics.loading": {
+    "text": "S'està executant el diagnòstic…",
+    "source_hash": "062c83d5"
+  },
+  "web.admin.customers.detail.diagnostics.loadError": {
+    "text": "No s'ha pogut carregar el diagnòstic.",
+    "source_hash": "69e69f49"
+  },
+  "web.admin.customers.detail.diagnostics.healthy": {
+    "text": "No s'ha trobat cap condició bloquejant. Les dades d'autenticació i del context d'organització semblen correctes — sospita de problemes del costat del client (galetes, configuració d'inici de sessió de domini personalitzat) o de la regió incorrecta.",
+    "source_hash": "e0e8450e"
+  },
+  "web.admin.customers.detail.diagnostics.authUnavailable": {
+    "text": "Base de dades d'autenticació no disponible (mode d'autenticació simple) — s'han omès les comprovacions SQL.",
+    "source_hash": "d668907c"
+  },
+  "web.admin.customers.detail.diagnostics.authFailed": {
+    "text": "La base de dades d'autenticació no ha respost, així que les comprovacions SQL no s'han pogut executar: {reason}",
+    "source_hash": "46d047c0"
+  },
+  "web.admin.customers.detail.diagnostics.unknown": {
+    "text": "Desconegut",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.title": {
+    "text": "Registre d'autenticació",
+    "source_hash": "48ad8ba8"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.empty": {
+    "text": "No s'han registrat esdeveniments d'autenticació.",
+    "source_hash": "d2332558"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.unavailable": {
+    "text": "No s'ha pogut llegir el registre d'autenticació: {reason}",
+    "source_hash": "ab18af57"
+  },
+  "web.admin.customers.detail.diagnostics.facts.authStatus": {
+    "text": "Estat d'autenticació",
+    "source_hash": "34def169"
+  },
+  "web.admin.customers.detail.diagnostics.facts.noAccount": {
+    "text": "Sense compte d'autenticació",
+    "source_hash": "a9968e9e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.password": {
+    "text": "Contrasenya",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordSet": {
+    "text": "Establerta",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordNone": {
+    "text": "Cap",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfa": {
+    "text": "MFA",
+    "source_hash": "d39ce053"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfaNone": {
+    "text": "Cap",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.loginFailures": {
+    "text": "Intents fallits",
+    "source_hash": "63e7f0a8"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lockedBadge": {
+    "text": "Bloquejat",
+    "source_hash": "ace29f74"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiter": {
+    "text": "Limitador de freqüència",
+    "source_hash": "32892404"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterEngaged": {
+    "text": "Activat",
+    "source_hash": "1b0d851e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterClear": {
+    "text": "Lliure",
+    "source_hash": "83b12c22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verification": {
+    "text": "Correu electrònic de verificació",
+    "source_hash": "23fac8fb"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationPending": {
+    "text": "Pendent — darrer enviament {date}",
+    "source_hash": "9ab8d1b6"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationNone": {
+    "text": "Cap pendent",
+    "source_hash": "a4d4cc22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.sessions": {
+    "text": "Sessions actives",
+    "source_hash": "61ad9909"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lastLogin": {
+    "text": "Darrera entrada (auth)",
+    "source_hash": "373e7fb1"
+  },
+  "web.admin.customers.detail.receipts.partial": {
+    "text": "Llista parcial — es mostren els {count} més recents. Aquest client té més rebuts dels que es mostren aquí.",
+    "source_hash": "127fd4db"
+  },
+  "web.admin.customers.detail.secrets.partial": {
+    "text": "Llista parcial — es mostren els {count} més recents. Aquest client té més secrets dels que es mostren aquí.",
+    "source_hash": "a537c8f3"
+  },
+  "web.admin.customers.detail.sessions.columns.country": {
+    "text": "País",
+    "source_hash": "701d021d"
+  },
+  "web.admin.customers.detail.sessions.current.badge": {
+    "text": "Aquesta sessió",
+    "source_hash": "6da6530a"
+  },
+  "web.admin.customers.detail.sessions.current.tooltip": {
+    "text": "La teva sessió d'administrador actual. Revocar-la aquí no té cap efecte — es torna a crear per a la resta d'aquesta sol·licitud.",
+    "source_hash": "ef097ab1"
+  },
+  "web.admin.customers.verification.verified": {
+    "text": "Verificat",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.verification.unverified": {
+    "text": "No verificat",
+    "source_hash": "15133907"
+  },
+  "web.admin.customers.actions.impersonate.button": {
+    "text": "Suplanta el client",
+    "source_hash": "38a7cfbe"
+  },
+  "web.admin.customers.actions.impersonate.confirmTitle": {
+    "text": "Vols iniciar la suplantació?",
+    "source_hash": "c6e4fa74"
+  },
+  "web.admin.customers.actions.impersonate.confirmDescription": {
+    "text": "Obre una sessió de només lectura i de durada limitada com a {email}. Cada pàgina mostra un bàner fins que l'aturis, els canvis estan bloquejats i la sessió queda registrada al registre d'auditoria amb el teu motiu.",
+    "source_hash": "713c01b4"
+  },
+  "web.admin.customers.actions.impersonate.reasonLabel": {
+    "text": "Motiu (obligatori)",
+    "source_hash": "d976f5d9"
+  },
+  "web.admin.customers.actions.impersonate.reasonPlaceholder": {
+    "text": "Per què cal aquesta sessió? Inclou la referència del tiquet.",
+    "source_hash": "89a4835d"
+  },
+  "web.admin.customers.actions.impersonate.success": {
+    "text": "S'ha iniciat la suplantació.",
+    "source_hash": "b4662bcc"
+  },
+  "web.admin.customers.actions.impersonate.unavailable": {
+    "text": "La suplantació no està disponible per a comptes colonel, anònims ni suspesos.",
+    "source_hash": "fb6578b2"
+  },
+  "web.admin.customers.actions.purge.refused": {
+    "text": "Purga rebutjada. El client s'ha conservat; resol els impediments abans de tornar-ho a provar.",
+    "source_hash": "8e8a2ae1"
+  },
+  "web.admin.customers.actions.purge.partial": {
+    "text": "La purga s'ha aturat després de completar part de la neteja. No informis d'un èxit ni ho tornis a provar a cegues; revisa les etapes completades i els impediments.",
+    "source_hash": "a88fd15b"
+  },
+  "web.admin.customers.actions.purge.incomplete": {
+    "text": "La purga no s'ha completat (estat: {status}). Revisa els detalls del cicle de vida abans de tornar-ho a provar.",
+    "source_hash": "c0c3d287"
+  },
+  "web.admin.customers.actions.purge.unreadableResult": {
+    "text": "El servidor ha retornat un resultat de purga il·legible. No s'ha informat de cap èxit; verifica l'estat del client i de l'espai de treball abans de tornar-ho a provar.",
+    "source_hash": "cc837a77"
+  },
+  "web.admin.customers.actions.purge.resultStage": {
+    "text": "Aturat a l'etapa: {stage}.",
+    "source_hash": "d0e313bf"
+  },
+  "web.admin.customers.actions.purge.resultBlockers": {
+    "text": "Impediments: {blockers}.",
+    "source_hash": "00c1e196"
+  },
+  "web.admin.customers.actions.purge.resultPlannedActions": {
+    "text": "Neteja planificada: {actions}.",
+    "source_hash": "6915205d"
+  },
+  "web.admin.customers.actions.purge.resultActions": {
+    "text": "Neteja completada: {actions}.",
+    "source_hash": "d34121b3"
+  },
+  "web.admin.customers.actions.purge.resultCompletedStages": {
+    "text": "Etapes completades: {stages}.",
+    "source_hash": "67f68860"
+  },
+  "web.admin.customers.actions.role.button": {
+    "text": "Canvia el rol",
+    "source_hash": "a43a8d8c"
+  },
+  "web.admin.customers.actions.role.selfDemote": {
+    "text": "No pots degradar el teu propi compte colonel. Demana a un altre colonel que ho faci o executa `bin/ots customers role demote`.",
+    "source_hash": "3e75d01b"
+  },
+  "web.admin.customers.actions.role.lastColonel": {
+    "text": "No pots degradar l'últim colonel que queda — la instal·lació es quedaria sense administrador. Primer promou i verifica un altre compte.",
+    "source_hash": "9c59c731"
+  },
+  "web.admin.customers.actions.unverify.selfUnverify": {
+    "text": "No pots anul·lar la verificació del teu propi compte: cal un correu electrònic verificat per tenir el rol de colonel.",
+    "source_hash": "8ab024fe"
+  },
+  "web.admin.customers.actions.unverify.lastColonel": {
+    "text": "No pots anul·lar la verificació de l'últim colonel que queda — un compte no verificat no pot tenir el rol de colonel. Primer promou i verifica un altre compte.",
+    "source_hash": "fc404616"
+  },
+  "web.admin.customers.detail.diagnostics.organizationContextBlocked": {
+    "text": "El context d'organització està bloquejat o és incomplet. Inspecciona l'espai de treball indexat i repara la desviació de l'índex de propietat, de pertinença o de correu electrònic de contacte abans de considerar aquest compte com a correcte.",
+    "source_hash": "5c5c89be"
+  },
+  "web.admin.customers.detail.diagnostics.organization": {
+    "text": "Espai de treball: {id}",
+    "source_hash": "6ee50fe9"
+  },
+  "web.admin.customers.detail.diagnostics.remediation": {
+    "text": "Solució: {action}",
+    "source_hash": "83ddc7d7"
+  },
+  "web.admin.customers.detail.fields.internalId": {
+    "text": "ID intern",
+    "source_hash": "e468bb47"
+  },
+  "web.admin.customers.detail.organizations.open": {
+    "text": "Obre",
+    "source_hash": "ed077f3d"
+  },
+  "web.admin.customers.detail.rodauthAdmin.open": {
+    "text": "Obre a Rodauth Admin",
+    "source_hash": "467173c8"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.selfDescription": {
+    "text": "Això tanca la teva sessió a tots els altres dispositius i navegadors, incloses les sessions que no es mostren en aquesta llista. Es manté la sessió en què estàs treballant ara mateix.",
+    "source_hash": "ae350040"
+  },
+  "web.admin.customers.list.capped": {
+    "text": "Els resultats estan limitats: el recompte que es mostra és un mínim, no el total. Redueix la cerca o el filtre per veure-ho tot.",
+    "source_hash": "27537844"
+  },
+  "web.admin.customers.list.orphanedAccounts.title": {
+    "text": "Compte de la base de dades d'autenticació sense registre de client",
+    "source_hash": "82cf7a27"
+  },
+  "web.admin.customers.list.orphanedAccounts.hint": {
+    "text": "La base de dades d'autenticació conté un compte per a aquesta adreça, però cap registre de client no hi correspon. La persona encara pot iniciar la sessió; l'índex de clients no té res per a ella. Obre l'adreça per veure'n el diagnòstic.",
+    "source_hash": "0f903f23"
+  },
+  "web.admin.customers.list.orphanedAccounts.diagnose": {
+    "text": "Obre el diagnòstic del compte",
+    "source_hash": "55b3e826"
+  },
+  "web.admin.customers.list.orphanedAccounts.accountId": {
+    "text": "Compte núm. {id}",
+    "source_hash": "485dee3c"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unverified": {
+    "text": "No verificat",
+    "source_hash": "33c8e8de"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.verified": {
+    "text": "Verificat",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.closed": {
+    "text": "Tancat",
+    "source_hash": "c21ead06"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unknown": {
+    "text": "Desconegut",
+    "source_hash": "b764cdc0"
+  }
+}

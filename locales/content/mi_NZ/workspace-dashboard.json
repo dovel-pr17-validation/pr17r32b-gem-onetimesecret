@@ -1,0 +1,38 @@
+{
+  "web.dashboard.title_received": {
+    "text": "Kua Whiwhia",
+    "source_hash": "49f19bee"
+  },
+  "web.dashboard.title_not_received": {
+    "text": "Kāore i Whiwhia",
+    "source_hash": "a4cf12ca"
+  },
+  "web.dashboard.title_no_recent_secrets": {
+    "text": "Kāore he karere huna tata nei",
+    "source_hash": "02b7b86b"
+  },
+  "web.dashboard.get_started_by_creating_your_first_secret": {
+    "text": "Tīmata mā te waihanga i tō karere huna tuatahi.",
+    "source_hash": "e96db24d"
+  },
+  "web.dashboard.fetch_error_title": {
+    "text": "Kāore e taea te uta i ngā raraunga",
+    "source_hash": "ba7df1be"
+  },
+  "web.dashboard.fetch_error_description": {
+    "text": "I puta he raru i te utanga o ō raraunga. Tēnā whakamātauria anō.",
+    "source_hash": "ff0d904e"
+  },
+  "web.teams.create_first_team_title": {
+    "text": "Waihanga i tō rōpū tuatahi",
+    "source_hash": "54693f14"
+  },
+  "web.teams.create_first_team_description": {
+    "text": "Mā ngā rōpū koe e āhei ai ki te mahi tahi me ētahi atu i tētahi wāhi mahi tohatohahia.",
+    "source_hash": "d61b86b5"
+  },
+  "web.teams.create_team": {
+    "text": "Waihanga rōpū",
+    "source_hash": "284ff194"
+  }
+}

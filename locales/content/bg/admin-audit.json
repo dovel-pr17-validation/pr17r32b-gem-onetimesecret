@@ -1,0 +1,150 @@
+{
+  "web.admin.audit.title": {
+    "text": "Одитен дневник",
+    "source_hash": "47751f88"
+  },
+  "web.admin.audit.description": {
+    "text": "Всяко променящо администраторско действие, най-новите първи — кой какво е направил на кого и как е протекло.",
+    "source_hash": "2326a1a0"
+  },
+  "web.admin.audit.categories.customer": {
+    "text": "Клиенти",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.audit.categories.session": {
+    "text": "Сесии",
+    "source_hash": "6fa3cbf4"
+  },
+  "web.admin.audit.categories.domain": {
+    "text": "Домейни",
+    "source_hash": "ced67718"
+  },
+  "web.admin.audit.categories.organization": {
+    "text": "Организации",
+    "source_hash": "2730183d"
+  },
+  "web.admin.audit.categories.banner": {
+    "text": "Банер",
+    "source_hash": "b7f4d98f"
+  },
+  "web.admin.audit.categories.queue": {
+    "text": "Опашки",
+    "source_hash": "be77db11"
+  },
+  "web.admin.audit.categories.email": {
+    "text": "Имейл",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.audit.categories.ratelimit": {
+    "text": "Ограничения на скоростта",
+    "source_hash": "6ed021f7"
+  },
+  "web.admin.audit.categories.ip": {
+    "text": "IP забрани",
+    "source_hash": "48cdea49"
+  },
+  "web.admin.audit.columns.timestamp": {
+    "text": "Времеви печат",
+    "source_hash": "115a2cc9"
+  },
+  "web.admin.audit.columns.actor": {
+    "text": "Извършител",
+    "source_hash": "449995c4"
+  },
+  "web.admin.audit.columns.action": {
+    "text": "Действие",
+    "source_hash": "64cff131"
+  },
+  "web.admin.audit.columns.target": {
+    "text": "Цел",
+    "source_hash": "978354db"
+  },
+  "web.admin.audit.columns.result": {
+    "text": "Резултат",
+    "source_hash": "6e7d50e8"
+  },
+  "web.admin.audit.columns.detail": {
+    "text": "Детайли",
+    "source_hash": "fb5f27d5"
+  },
+  "web.admin.audit.filters.actorPlaceholder": {
+    "text": "Филтриране по извършител (extid или имейл)",
+    "source_hash": "966aa580"
+  },
+  "web.admin.audit.filters.actionLabel": {
+    "text": "Действие",
+    "source_hash": "64cff131"
+  },
+  "web.admin.audit.filters.allActions": {
+    "text": "Всички действия",
+    "source_hash": "83140cf1"
+  },
+  "web.admin.audit.list.loadError": {
+    "text": "Одитният дневник не можа да бъде зареден.",
+    "source_hash": "acf244f4"
+  },
+  "web.admin.audit.list.retry": {
+    "text": "Повторен опит",
+    "source_hash": "942087cc"
+  },
+  "web.admin.audit.list.empty": {
+    "text": "Все още няма записани одитни събития",
+    "source_hash": "8fe0cac3"
+  },
+  "web.admin.audit.result.success": {
+    "text": "Успех",
+    "source_hash": "c88a0b90"
+  },
+  "web.admin.audit.result.failure": {
+    "text": "Неуспех",
+    "source_hash": "7031edbc"
+  },
+  "web.admin.audit.categories.secret": {
+    "text": "Тайни",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.audit.categories.membership": {
+    "text": "Членства",
+    "source_hash": "b50f1a42"
+  },
+  "web.admin.audit.categories.entitlement_preview": {
+    "text": "Прегледи на права",
+    "source_hash": "255c5797"
+  },
+  "web.admin.audit.categories.colonel": {
+    "text": "Влизания в Colonel",
+    "source_hash": "01eeeb38"
+  },
+  "web.admin.audit.filters.actorLabel": {
+    "text": "Участник",
+    "source_hash": "449995c4"
+  },
+  "web.admin.audit.filters.searchButton": {
+    "text": "Търсене",
+    "source_hash": "49c266ba"
+  },
+  "web.admin.audit.filters.searchHint": {
+    "text": "Въведете участник, след това натиснете Enter или изберете Търсене, за да го изпълните. Списъкът не се актуализира, докато пишете.",
+    "source_hash": "45eceb12"
+  },
+  "web.admin.audit.filters.pendingSearch": {
+    "text": "Все още няма търсене — натиснете Enter или изберете Търсене, за да приложите този участник.",
+    "source_hash": "f76095c2"
+  },
+  "web.admin.audit.list.contractError": {
+    "text": "Сървърът отговори, но данните от одита не съответстват на очаквания формат. Не могат да бъдат показани събития — това е грешка в отчитането, а не празен журнал.",
+    "source_hash": "7f48137e"
+  },
+  "web.admin.audit.export.csv": {
+    "text": "Експортиране в CSV",
+    "source_hash": "91f71c14"
+  },
+  "web.admin.audit.export.ndjson": {
+    "text": "Експортиране в NDJSON",
+    "source_hash": "3ee2c07c"
+  },
+  "web.admin.audit.export.hint": {
+    "text": "Експортът обхваща целия съхранен одитен запис според текущите филтри, а не само тази страница. Срокът на съхранение е ограничен — по-дългата история се пази в приемника на одитния дневник.",
+    "source_hash": "163e8ad0"
+  }
+}

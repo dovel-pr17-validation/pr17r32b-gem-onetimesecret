@@ -1,0 +1,200 @@
+# apps/web/core/application.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/application'
+require 'onetime/application/otto_hooks'
+require 'onetime/middleware'
+require 'onetime/middleware/tenant_csp_extras'
+require 'onetime/middleware/signin_return_path'
+require 'onetime/logger_methods'
+
+require_relative 'middleware/request_setup'
+require_relative 'middleware/error_handling'
+require_relative 'middleware/snapshot_ordering'
+require_relative 'middleware/vite_proxy'
+
+require_relative 'logic'
+require_relative 'controllers'
+require_relative 'auth_strategies'
+
+module Core
+  # Core Web Application
+  #
+  # The main web application serving the Onetime Secret frontend and HTML views.
+  # Uses Otto router with custom authentication strategies and CSP nonce support.
+  #
+  # ## Architecture
+  #
+  # - Router: Otto (configured in `build_router`)
+  # - Middleware: Universal (MiddlewareStack) + Core-specific (below)
+  # - Otto Hooks: Includes `OttoHooks` for request lifecycle logging
+  #
+  class Application < Onetime::Application::Base
+    include Onetime::LoggerMethods
+    include Onetime::Application::OttoHooks  # Provides configure_otto_request_hook
+
+    @uri_prefix = '/'
+
+    # Core-specific middleware (universal middleware in MiddlewareStack)
+    #
+    # Initialize request context (nonce, locale) before other processing
+    use Core::Middleware::RequestSetup
+
+    # Per-request CSP form-action widening for tenant SSO IdPs (#4173).
+    # Mounted INSIDE RequestSetup: it writes env['otto.csp.extra_directives']
+    # on the way OUT (only for CSP-enabled HTML responses), strictly before
+    # RequestSetup's finalize_response — the outer layer — emits the CSP via
+    # Otto's Writer with env in hand. Core-only: the API/auth apps emit their
+    # own CSP (Rack::Protection default-src 'self') but no form-action
+    # directive; the enforcing document for the SSO form is the Core page.
+    use Onetime::Middleware::TenantCspExtras
+
+    # Simplified error handling for Vue SPA - serves entry points
+    # Must come after security but before router to catch all downstream errors
+    use Core::Middleware::ErrorHandling
+
+    # A signed-out GET of a session page (GET /recent and the other
+    # auth=sessionauth routes) gets Otto's 302 to a bare /signin; this adds
+    # the requested page as ?redirect= so the sign-in flow returns there.
+    # Core-only: the API apps answer the same refusal with a JSON 401.
+    use Onetime::Middleware::SigninReturnPath
+
+    Onetime.development? do
+      # Enable development-specific middleware when in development mode
+      # This handles code validation and frontend development server integration
+      use Core::Middleware::ViteProxy
+
+      use Rack::SessionDebugger if ENV['DEBUG_SESSION']
+
+      # Schema validation middleware validates that hydration data matches
+      # the JSON schemas generated from <schema> sections in .rue templates.
+      #
+      # To generate/update schemas, run:
+      #   pnpm run schemas:rhales:generate
+      #
+      # Or directly with rake:
+      #   bundle exec rake rhales:schema:generate TEMPLATES_DIR=./apps/web/core/templates OUTPUT_DIR=./public/schemas
+      schemas_dir = File.expand_path('../../../../public/schemas', __dir__)
+      if File.exist?(File.join(schemas_dir, 'index.json'))
+        begin
+          require 'rhales/middleware/schema_validator'
+          use Rhales::Middleware::SchemaValidator,
+            schemas_dir: schemas_dir,
+            fail_on_error: true,  # Fail loudly in development
+            skip_paths: [
+              '/assets',
+              '/api',
+              '/public',
+            ]
+          rhales_logger.debug 'Schema validation middleware enabled'
+        rescue LoadError => ex
+          rhales_logger.warn 'Could not load schema validation middleware - json_schemer gem not available',
+            {
+              exception: ex,
+            }
+        end
+      end
+    end
+
+    # Serve static frontend assets (Rack::Static over an allowlist of asset
+    # paths, gated by site.middleware.static_files). While reverse proxies
+    # often handle static files in production, this provides a fallback for
+    # simpler deployments. Mounted in EVERY environment, not just production:
+    # the dynamically served /site.webmanifest references /icon-192.png and
+    # /icon-512.png, and when the Rack app is hit directly outside production
+    # (no Vite publicDir, no reverse proxy) those icons 404ed on every page
+    # (QA 2026-07-07). The middleware claims only its allowlisted paths, so
+    # all other requests pass through unchanged.
+    use Onetime::Middleware::StaticFiles
+
+    # Bootstrap snapshot ordering (ADR-046). Innermost on purpose: after the
+    # session is loaded, behind StaticFiles so asset requests allocate nothing,
+    # and ahead of the router so the version is stamped before the
+    # authentication strategy reads any state the snapshot will carry.
+    use Core::Middleware::SnapshotOrdering
+
+    warmup do
+      # Expensive initialization tasks go here
+      # We may want to preload all custom domains here so that they are in
+      # ruby memory from the get go? It'll need to be more nuanced and robust
+      # than I'm making it sounds since not everything can be like a nice, fresh
+      # loaf of bread (cut & dry).
+    end
+
+    protected
+
+    # Build and configure Otto router instance
+    #
+    # Router-specific configuration happens here, after the router instance
+    # is created. This is separate from universal middleware configuration
+    # in MiddlewareStack.
+    #
+    # @return [Otto] Configured router instance
+    def build_router
+      routes_path = File.join(__dir__, 'routes.txt')
+      router      = Otto.new(routes_path)
+
+      # Configure Otto request lifecycle hooks (from OttoHooks module)
+      # Instance-level hook logging for operational metrics and audit trail
+      configure_otto_request_hook(router)
+
+      # IP privacy (incl. private/localhost masking) is configured once on the
+      # universal IPPrivacyMiddleware mount in MiddlewareStack via
+      # ip_privacy_security_config (mask_private_ips = true). The per-router
+      # enable_full_ip_privacy! call was removed to keep a single trust/privacy
+      # source; the mount's idempotency makes a second pass here redundant.
+
+      # Enable CSP nonce support for enhanced security
+      router.enable_csp_with_nonce!(debug: OT.debug?)
+
+      # Opt in to otto's request-scoped CSP extras channel (otto >= 2.9). Without
+      # this, writes to env['otto.csp.extra_directives'] are ignored — the
+      # channel is off by default so that only apps that deliberately widen
+      # directives per-request (TenantCspExtras: tenant SSO IdP origins into
+      # form-action, #4173) expose that surface to the middleware stack.
+      router.security_config.enable_csp_request_extras!
+
+      # Widen the CSP form-action directive with the active SSO IdP origins so
+      # Chromium permits the SSO form POST that 302-redirects to the provider
+      # (form-action is enforced across the redirect chain). No-op when no SSO
+      # provider is configured (policy stays byte-identical) and inert when CSP
+      # is disabled (RequestSetup emits nothing unless site.security.csp.enabled).
+      sso_origins = Onetime.auth_config.sso_form_action_origins
+      merge_csp_form_action_origins(router.security_config, sso_origins) unless sso_origins.empty?
+
+      # Register authentication strategies for Web Core
+      Core::AuthStrategies.register_essential(router)
+
+      # Default error responses
+      headers             = { 'content-type' => 'text/html' }
+      router.not_found    = [404, headers, ['Not Found']]
+      router.server_error = [500, headers, ['Internal Server Error']]
+
+      router
+    end
+
+    private
+
+    # Otto replaces an override when merge_csp_directives receives the same
+    # directive a second time. Core boot-time form-action contributors must use
+    # this helper so their sources are explicitly additive.
+    def merge_csp_form_action_origins(security_config, origins)
+      overrides = security_config.csp_directive_overrides
+      existing  = overrides['form-action']
+
+      # Otto stores a nil/false override verbatim (Config#merge_csp_directives
+      # -> Policy.normalize_overrides) and reads it at build time as directive
+      # REMOVAL (Policy.build_directive returns nil for both). Reading it back
+      # as "no override" would resurrect a form-action a boot-time caller
+      # deliberately removed — and Array(false) would ship a literal 'false'
+      # source token. Preserve the removal instead.
+      return if overrides.key?('form-action') && (existing.nil? || existing == false)
+
+      sources = Array(existing).flat_map { |value| value.to_s.split }
+      sources = (sources + ["'self'"] + origins).uniq
+
+      security_config.merge_csp_directives('form-action' => sources.join(' '))
+    end
+  end
+end

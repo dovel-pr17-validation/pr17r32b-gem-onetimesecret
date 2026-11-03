@@ -1,0 +1,271 @@
+# apps/web/auth/config/hooks/billing.rb
+#
+# frozen_string_literal: true
+
+module Auth::Config::Hooks
+  # Billing - Plan selection carry-through after authentication
+  #
+  # MECHANISM: this file defines helper methods via auth_class_eval (additive,
+  # safe to layer) — it defines NO hooks. The before_create_account hook that
+  # calls capture_plan_selection lives in account.rb (moved there after the
+  # #3275 hook-collision bug; see the NOTE block at the bottom of this file).
+  #
+  # Captures plan selection from pricing page URLs and provides redirect
+  # information in auth responses to continue the checkout flow.
+  #
+  # ## Flow
+  #
+  # 1. User visits pricing page: /pricing/identity_plus_v1/monthly
+  # 2. User clicks "Get Started" -> redirected to signup with query params
+  # 3. Frontend passes `product` and `interval` to signup/login
+  # 4. On successful auth, this hook:
+  #    a. Validates the plan exists in catalog
+  #    b. Stores plan selection in session
+  #    c. Adds `billing_redirect` to JSON response
+  # 5. Frontend uses its query params to navigate to checkout
+  #    (billing_redirect in response is optional - used for validation/analytics)
+  #
+  # ## Query Parameters
+  #
+  # - `product`: Plan identifier (e.g., 'identity_plus_v1')
+  # - `interval`: Billing interval ('monthly' or 'yearly')
+  #
+  # ## JSON Response Enhancement
+  #
+  # When plan params are present and valid, adds to json_response:
+  #
+  #   {
+  #     "billing_redirect": {
+  #       "product": "identity_plus_v1",
+  #       "interval": "monthly",
+  #       "valid": true
+  #     }
+  #   }
+  #
+  # If params are invalid:
+  #
+  #   {
+  #     "billing_redirect": {
+  #       "product": "unknown_plan",
+  #       "interval": "monthly",
+  #       "valid": false,
+  #       "error": "Plan not found: unknown_plan_monthly"
+  #     }
+  #   }
+  #
+  module Billing
+    SESSION_KEY_PRODUCT  = :billing_product
+    SESSION_KEY_INTERVAL = :billing_interval
+
+    # Reads (PEEKS) pending_plan_intent from a customer record.
+    # Returns [product, interval] or [nil, nil] if not found or parse error.
+    #
+    # DELIBERATELY DOES NOT DELETE (issue #4306). Surfacing billing_redirect
+    # on a login/two-factor response is not the handoff — the client may
+    # crash between receiving that response and entering the billing flow
+    # (e.g. its org fetch fails), and a delete-on-read here made that loss
+    # unrecoverable. The intent is consumed by
+    # Onetime::Customer#consume_pending_plan_intent! at the authenticated
+    # plans-flow entry (Billing::Controllers::BillingController
+    # #subscription_status), bounded by the field's 24h TTL until then.
+    #
+    # This module method is used by both the Rodauth hook and tests.
+    #
+    # @param customer [Onetime::Customer] Customer record with pending_plan_intent field
+    # @param logger [Proc, nil] Optional logging callback for parse errors
+    # @return [Array<String, String>, Array<nil, nil>] [product, interval] tuple
+    def self.extract_pending_plan_intent(customer, logger: nil)
+      return [nil, nil] unless customer
+      return [nil, nil] if customer.pending_plan_intent&.value.to_s.strip == ''
+
+      intent = JSON.parse(customer.pending_plan_intent.value)
+      return [nil, nil] unless intent.is_a?(Hash)
+
+      [intent['product'], intent['interval']]
+    rescue JSON::ParserError => ex
+      logger&.call(ex)
+      [nil, nil]
+    end
+
+    def self.configure(auth)
+      # Lazy-load billing dependencies only when actually configuring
+      # This prevents LoadError on self-hosted instances where billing is disabled
+      require_relative '../../../billing/models/plan'
+      require_relative '../../../billing/lib/plan_resolver'
+
+      # Define helper methods on the Rodauth Auth class using auth_class_eval
+      # This is the recommended Rodauth approach for custom method definitions
+      # rubocop:disable Lint/NestedMethodDefinition -- auth_class_eval evaluates in Auth class context
+      auth.auth_class_eval do
+        # Captures plan selection from request params into session.
+        # Called by before_login_attempt and before_create_account hooks.
+        def capture_plan_selection
+          product  = param_or_nil('product')
+          interval = param_or_nil('interval')
+
+          return unless product || interval
+
+          # Store whatever params were provided (validation happens later)
+          session[SESSION_KEY_PRODUCT]  = product  if product
+          session[SESSION_KEY_INTERVAL] = interval if interval
+
+          Auth::Logging.log_auth_event(
+            :billing_plan_captured,
+            level: :debug,
+            product: product,
+            interval: interval,
+            correlation_id: session[:auth_correlation_id],
+          )
+        end
+
+        # Adds billing redirect information to JSON response.
+        # Called by after_login, after_create_account, and after_two_factor_authentication hooks.
+        def add_billing_redirect_to_response
+          product  = session[SESSION_KEY_PRODUCT]
+          interval = session[SESSION_KEY_INTERVAL]
+
+          # Fallback to Redis-backed pending_plan_intent if session keys are empty (issue #3130)
+          # This handles the case where user signs up, verifies email, then logs in with fresh session.
+          # Note: exactly ONE hook calls this per completed login (#4306): after_login
+          # guards on the MFA decision, so an MFA-gated login defers surfacing to
+          # after_two_factor_authentication — the intent survives the OTP hop untouched.
+          #
+          # REPLAY SEMANTICS (#4306): this is a PEEK, not a consume — the intent
+          # used to be deleted right here, at response-build time, which lost it
+          # forever when the client crashed after this response (e.g. its org
+          # fetch failed). Until the authenticated handoff succeeds, repeated
+          # logins MAY re-surface the same billing_redirect: that is intended
+          # (retry-on-failure), harmless because navigateAfterAuth immediately
+          # routes into the flow that consumes it, and bounded by the 24h TTL.
+          # Consumption happens at the plans-flow entry — see
+          # Onetime::Customer#consume_pending_plan_intent! and its caller,
+          # Billing::Controllers::BillingController#subscription_status.
+          if product.nil? && interval.nil? && account
+            product, interval = extract_pending_plan_intent_from_customer
+          end
+
+          # No plan selection params stored
+          return unless product || interval
+
+          # Build redirect info
+          redirect_info = build_billing_redirect_info(product, interval)
+
+          # Add to JSON response for frontend
+          json_response[:billing_redirect] = redirect_info
+
+          Auth::Logging.log_auth_event(
+            :billing_redirect_added,
+            level: :info,
+            product: product,
+            interval: interval,
+            valid: redirect_info[:valid],
+            error: redirect_info[:error],
+            correlation_id: session[:auth_correlation_id],
+          )
+
+          # Clear session keys after use (one-time redirect)
+          session.delete(SESSION_KEY_PRODUCT)
+          session.delete(SESSION_KEY_INTERVAL)
+        end
+
+        # Builds billing redirect info hash for JSON response.
+        def build_billing_redirect_info(product, interval)
+          # Require billing to be enabled
+          unless billing_enabled?
+            return {
+              product: product,
+              interval: interval,
+              valid: false,
+              error: 'Billing not enabled',
+            }
+          end
+
+          # Validate params are present
+          unless product && interval
+            return {
+              product: product,
+              interval: interval,
+              valid: false,
+              error: 'Missing product or interval',
+            }
+          end
+
+          # Validate plan exists in catalog (checkout endpoint will resolve details)
+          result = ::Billing::PlanResolver.resolve(product: product, interval: interval)
+
+          if result.success?
+            # Return minimal info - checkout endpoint resolves plan details
+            {
+              product: product,
+              interval: interval,
+              valid: true,
+            }
+          else
+            {
+              product: product,
+              interval: interval,
+              valid: false,
+              error: result.error,
+            }
+          end
+        end
+
+        # Checks if billing is enabled.
+        def billing_enabled?
+          Onetime.billing_config.enabled?
+        end
+
+        # Extracts product/interval from customer's pending_plan_intent in Redis.
+        # Returns [product, interval] or [nil, nil] if not found or parse error.
+        # Delegates to the module method for testability.
+        def extract_pending_plan_intent_from_customer
+          customer       = Onetime::Customer.find_by_extid(account[:external_id])
+          correlation_id = session[:auth_correlation_id]
+
+          Billing.extract_pending_plan_intent(
+            customer,
+            logger: ->(e) {
+                        Auth::Logging.log_auth_event(
+                          :pending_plan_intent_parse_error,
+                          level: :warn,
+                          error: e.message,
+                          correlation_id: correlation_id,
+                        )
+            },
+          )
+        end
+      end
+      # rubocop:enable Lint/NestedMethodDefinition
+
+      # ========================================================================
+      # NOTE: All Rodauth hooks REMOVED from this file
+      # ========================================================================
+      #
+      # Rodauth hooks don't chain — each auth.before_X / auth.after_X call
+      # overwrites the previous definition. Since billing.rb loads after
+      # login.rb, account.rb, and two_factor.rb (see config.rb), any hooks
+      # defined here would silently replace their critical logic (session sync,
+      # email validation, Customer creation, MFA verification).
+      #
+      # Instead, login.rb, account.rb, and two_factor.rb call billing methods
+      # conditionally:
+      # - before_login_attempt: calls capture_plan_selection if defined
+      # - after_login: calls add_billing_redirect_to_response if defined AND no
+      #   second factor is pending (MFA logins defer to the two-factor hook, #4306)
+      # - before_create_account: calls capture_plan_selection if defined
+      # - after_create_account: calls add_billing_redirect_to_response if defined
+      # - after_two_factor_authentication: calls add_billing_redirect_to_response if defined
+      #
+      # This ensures core auth logic always runs, with billing enhancements
+      # layered on top when billing is enabled.
+      #
+      # See issue #3275 for the hook-collision bug this pattern prevents.
+      #
+      # ========================================================================
+
+      # after_two_factor_authentication also moved out — it lives in
+      # two_factor.rb (same pattern). See the NOTE block above for the full
+      # list of relocated hooks.
+    end
+  end
+end

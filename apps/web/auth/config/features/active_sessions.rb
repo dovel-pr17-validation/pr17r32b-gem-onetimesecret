@@ -1,0 +1,119 @@
+# apps/web/auth/config/features/active_sessions.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/session/active_session_gate'
+
+module Auth::Config::Features
+  # Active sessions feature: track and manage user sessions across devices.
+  # Allows users to view where they're logged in and revoke sessions.
+  #
+  # ENV: AUTH_ACTIVE_SESSIONS_ENABLED (default: enabled, set to 'false' to disable)
+  #
+  module ActiveSessions
+    def self.configure(auth)
+      auth.enable :active_sessions
+
+      # Session deadlines. Rodauth applies them in its sessions-page sweep
+      # (remove_inactive_sessions) and refreshes last_use wherever
+      # currently_active_session? runs; Onetime::ActiveSessionGate applies the
+      # same two values on every authenticated request, which is where the
+      # deadlines actually end a session. The gate owns the numbers so the
+      # two can never drift apart. The sweep's condition is the gate's too
+      # (inactive_session_cond below), because only the gate knows about a
+      # remembered row's remember_until. The lifetime deadline is the
+      # operator's site.session.absolute_timeout, nil (none) when set to 0.
+      auth.session_inactivity_deadline Onetime::ActiveSessionGate::INACTIVITY_DEADLINE
+      auth.session_lifetime_deadline Onetime::ActiveSessionGate.lifetime_deadline
+
+      # Stamp the Rodauth-side JOIN KEY into the app session.
+      #
+      # WHY: Rodauth mints its OWN opaque token in add_active_session
+      # (`active_session_id`, a random urlsafe_base64) and persists only
+      # HMAC(active_session_id) in account_active_session_keys. It never sees the
+      # Onetime Rack sid. The Onetime::SessionMetadata sidecar is keyed by that
+      # PLAIN sid. The two records therefore share NO value, and HMACing the sid
+      # does not produce the column Rodauth stored — the digests are of different
+      # inputs and can never match. Carrying the digest across is the only way the
+      # active-sessions route can attach browser/network detail to a Rodauth row.
+      #
+      # WHY HERE: compute_hmac needs the Rodauth instance (it keys off
+      # hmac_secret), which Onetime::Operations::Sessions::TrackMetadata does not
+      # have. So the digest is computed at auth time and copied verbatim into the
+      # sidecar at session-write time — the same stamp-then-copy path
+      # `session['auth_method']` already uses.
+      #
+      # WHY update_session: it is the single seam EVERY path that mints an
+      # active_session_id passes through. Rodauth's own active_sessions override is
+      # `remove_current_session; super; add_active_session`, so by the time `super`
+      # returns here the new token is in the session. Hooking after_login instead
+      # would miss the create_account / reset_password / verify_account
+      # autologins, which call login_session directly and never fire
+      # after_login.
+      #
+      # The RAW token is deliberately NOT carried: the sidecar is not encrypted at
+      # rest, and Rodauth itself persists only the digest.
+      #
+      # LOAD-BEARING: Onetime::ActiveSessionGate joins every authenticated
+      # request to its active-session row on this stamp, and a Rack session
+      # without one is exempt from revocation (it cannot be joined). The stamp
+      # therefore cannot be best-effort: a login whose stamp fails would mint a
+      # Rack session that no revocation could ever end. So a failed stamp
+      # refuses the login instead: the Rack session is cleared (Rodauth's
+      # `super` has already marked it authenticated) and the error propagates,
+      # loudly, to the router's error handler. The only Rack sessions without
+      # a stamp are the ones minted before it existed.
+      #
+      # What becomes of the active-session row `super` just INSERTed depends
+      # on the caller. `login` (password, SSO, email-auth, WebAuthn) runs
+      # login_session inside a transaction, so the row rolls back with the
+      # error. The verify_account and reset_password autologins call
+      # login_session OUTSIDE their transactions (rodauth 2.45:
+      # verify_account.rb, reset_password.rb), so on those paths the row is
+      # left behind. That orphan is inert: no Rack session carries its join
+      # key, so nothing can present it, and Rodauth's inactivity sweep
+      # removes it after session_inactivity_deadline.
+      #
+      # rubocop:disable Lint/NestedMethodDefinition -- Rodauth's auth_class_eval pattern
+      auth.auth_class_eval do
+        def update_session
+          super
+          stamp_active_session_join_key
+        end
+
+        def stamp_active_session_join_key
+          # String key matches the app-session convention (SyncSession,
+          # 'auth_method'); read back by Sessions::TrackMetadata and joined on
+          # by Onetime::ActiveSessionGate.
+          session['active_session_id_hmac'] = active_session_join_key
+        rescue StandardError => ex
+          OT.le '[active_sessions] join-key stamp failed; login refused and Rack session cleared: ' \
+                "#{ex.class}: #{ex.message}"
+          clear_session
+          raise
+        end
+
+        # HMAC(active_session_id), the form Rodauth persists. Its own method so
+        # the refusal above can be exercised without stubbing compute_hmac,
+        # which Rodauth's add_active_session also calls.
+        def active_session_join_key
+          token = session[session_id_session_key]
+          raise "no #{session_id_session_key} in the Rack session after update_session" if token.nil?
+
+          compute_hmac(token)
+        end
+
+        # The sessions-page sweep (remove_inactive_sessions) deletes on the
+        # gate's rule rather than Rodauth's, which knows nothing of
+        # remember_until: Rodauth's would delete a remembered row left idle
+        # past the inactivity deadline on one device the moment the account
+        # opened its sessions page on another.
+        def inactive_session_cond
+          Onetime::ActiveSessionGate.expired_condition
+        end
+        private :inactive_session_cond
+      end
+      # rubocop:enable Lint/NestedMethodDefinition
+    end
+  end
+end

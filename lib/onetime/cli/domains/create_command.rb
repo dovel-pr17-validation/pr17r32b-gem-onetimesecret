@@ -1,0 +1,152 @@
+# lib/onetime/cli/domains/create_command.rb
+#
+# frozen_string_literal: true
+
+# Register a custom domain against an organization.
+#
+# This is the CLI peer of `POST /api/colonel/domains`. Both adapters call the
+# same op (Onetime::Operations::Domains::Create), which owns validation,
+# creation and the single `domain.create` ColonelAuditEvent. No certificate is
+# requested here: the virtual host is created by `bin/ots domains verify` once
+# ownership is verified. Every other colonel domain verb (verify / probe /
+# repair / transfer / remove) already had a CLI peer; create was the gap.
+#
+# Usage:
+#   bin/ots domains create example.com --org on123abc            # confirm, then create
+#   bin/ots domains create example.com --org on123abc --yes
+#   bin/ots domains create example.com --org on123abc --yes --json
+#
+# ORG accepts the organization extid (preferred — what every admin surface
+# routes by) or the internal objid.
+#
+# Lives under lib/onetime/cli (not apps/api/domains/cli) so the require of the
+# op is unambiguous at load time; registration is identical either way.
+
+require 'json'
+require 'onetime/operations/domains/create'
+
+module Onetime
+  module CLI
+    class DomainsCreateCommand < Command
+      # Audit actor for CLI-initiated mutations. Matches the other domain
+      # commands' sentinel — never an operator objid (the shell has no identity).
+      CLI_ACTOR = 'cli'
+
+      desc 'Register a custom domain against an organization'
+
+      argument :domain,
+        type: :string,
+        required: true,
+        desc: 'Domain name to register (e.g. secrets.example.com)'
+
+      option :org,
+        type: :string,
+        default: nil,
+        desc: 'Organization extid (or objid) that will own the domain'
+      option :yes,
+        type: :boolean,
+        default: false,
+        aliases: ['-y', '-f'],
+        desc: 'Skip confirmation prompt'
+      option :json,
+        type: :boolean,
+        default: false,
+        desc: 'Output as JSON'
+
+      def call(domain:, org: nil, yes: false, json: false, **)
+        boot_application!
+
+        error_exit('--org is required', json: json) if org.to_s.strip.empty?
+
+        organization = resolve_org(org)
+        error_exit("Organization not found: #{org}", json: json) unless organization
+
+        operation = Onetime::Operations::Domains::Create.new(
+          domain: domain,
+          org: organization,
+          actor: CLI_ACTOR,
+        )
+
+        # Validate BEFORE prompting so an obviously bad input fails fast, and so
+        # the operator sees the normalised FQDN they are about to register.
+        check = refuse_on_problem(json) { operation.validate }
+        error_exit(check.message, json: json) unless check.status == :ok
+
+        unless yes
+          error_exit('Refusing to create without --yes in --json mode', json: true) if json
+
+          puts "Domain:       #{check.display_domain}"
+          puts "Organization: #{organization.display_name || organization.extid} (#{organization.extid})"
+          puts '  (adopts an existing ORPHANED record; its ownership verification is reset)' if check.claims_orphan
+          puts
+          print 'Create this domain? [y/N] '
+          response = $stdin.gets&.strip&.downcase
+          unless response == 'y'
+            puts 'Aborted.'
+            return
+          end
+        end
+
+        result = refuse_on_problem(json) { operation.call }
+        error_exit(result.message, json: json) unless result.status == :created
+
+        OT.info "[cli-domains-create] domain=#{result.display_domain} org=#{organization.extid} extid=#{result.extid}"
+
+        if json
+          puts JSON.pretty_generate(
+            status: result.status,
+            domain_id: result.domain_id,
+            extid: result.extid,
+            display_domain: result.display_domain,
+            org_id: organization.extid,
+            claimed_orphan: result.claims_orphan,
+            adoption: result.adoption&.to_payload,
+          )
+        else
+          puts "Created #{result.display_domain} (#{result.extid}) for #{organization.extid}"
+          print_adoption(result.adoption) if result.adoption
+          puts
+          puts "Next: bin/ots domains verify #{result.display_domain}"
+        end
+      end
+
+      private
+
+      # The adopted orphan's verification was reset; it kept the per-domain
+      # state listed, which the operator may want to review.
+      def print_adoption(report)
+        puts '  Adopted a previously orphaned record'
+        report.lines.each { |line| puts "  #{line}" }
+      end
+
+      # extid first (the documented input), objid as a fallback — the same
+      # precedence CreateCustomDomain uses on the HTTP side.
+      def resolve_org(identifier)
+        value = identifier.to_s.strip
+        Onetime::Organization.find_by_extid(value) || Onetime::Organization.load(value)
+      end
+
+      def error_exit(message, json:)
+        puts(json ? JSON.generate({ error: message }) : "Error: #{message}")
+        exit 1
+      end
+
+      # CustomDomain.parse and create! refuse some names (too deep, TXT
+      # challenge name too long, already registered) and report datastore
+      # failures with an Onetime::Problem whose message is written for the
+      # person adding the domain. Shown like any other refusal, not as a
+      # stack trace. The op has already audited a raise from #call.
+      def refuse_on_problem(json)
+        yield
+      rescue Onetime::Problem => ex
+        error_exit(ex.message, json: json)
+      end
+    end
+
+    # Registered twice (not via `aliases:`) — nested Dry::CLI names are
+    # registry paths, so an alias has to be its own registration. Mirrors
+    # `domains info` / `domains show`.
+    register 'domains create', DomainsCreateCommand
+    register 'domains add', DomainsCreateCommand
+  end
+end

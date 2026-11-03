@@ -1,0 +1,238 @@
+# lib/onetime/application/request_logger.rb
+#
+# frozen_string_literal: true
+
+require_relative 'error_correlation'
+require_relative '../error_handler'
+
+module Onetime
+  module Application
+    class RequestLogger
+      CAPTURE_MODES = {
+        minimal: [:method, :path, :status, :duration_ms],
+        standard: [:method, :path, :status, :duration_ms, :request_id, :ip],
+        debug: [:method, :path, :status, :duration_ms, :request_id, :ip,
+                :params, :headers, :session_handle],
+      }.freeze
+
+      # Route segments followed by a capability (secret or receipt identifier).
+      # `incoming` is the SPA success page, /incoming/<receipt>.
+      CAPABILITY_ROUTES = %w[secret receipt private metadata l incoming].freeze
+
+      # The incoming API (mounted at /api/incoming) has only these static
+      # routes and carries no capabilities.
+      INCOMING_API_ACTIONS = %w[config secret validate].freeze
+
+      # Capability URLs are credentials. Classify the combined mount/path
+      # after decoding so encoded route names and separators cannot bypass
+      # redaction. Keep only known action suffixes after the capability.
+      # Class-level so every request log line (see OttoHooks' completion
+      # trace) applies the same classification.
+      def self.redacted_path(request)
+        original = request.path
+        decoded  = original
+        3.times do
+          next_path = Rack::Utils.unescape_path(decoded)
+          break if next_path == decoded
+
+          decoded = next_path
+        end
+        segments = decoded.split('/', -1)
+        index    = segments.index { |segment| CAPABILITY_ROUTES.include?(segment) }
+        return original unless index && segments.length > index + 1
+
+        return original if static_capability_action?(segments, index, request)
+
+        segments.each_index do |position|
+          next if position <= index || segments[position].empty?
+          next if position == segments.length - 1 && position > index + 1 && %w[burn reveal status].include?(segments[position])
+
+          segments[position] = '[REDACTED]'
+        end
+        segments.join('/')
+      rescue ArgumentError, EncodingError
+        '[REDACTED]'
+      end
+
+      def self.static_capability_action?(segments, index, request)
+        return false unless segments.length == index + 2
+
+        route, action = segments[index, 2]
+        prefix        = segments[0...index]
+        return prefix.last == 'api' && INCOMING_API_ACTIONS.include?(action) if route == 'incoming'
+        return false unless prefix.each_cons(2).any? { |left, right| left == 'api' && %w[v1 v2 v3].include?(right) }
+
+        if route == 'secret'
+          %w[POST OPTIONS].include?(request.request_method) && %w[conceal generate status].include?(action)
+        else
+          %w[receipt private metadata].include?(route) && request.get? && action == 'recent'
+        end
+      end
+      private_class_method :static_capability_action?
+
+      def initialize(app, config)
+        @app                 = app
+        @config              = config
+        @logger              = Onetime.get_logger('HTTP')
+        @slow_threshold_μs   = (config['slow_request_ms'] || 1000) * 1000
+
+        requested_mode = config['capture']&.to_sym || :standard
+        @capture       = CAPTURE_MODES[requested_mode]
+
+        unless @capture
+          @capture = CAPTURE_MODES[:standard]
+          @logger.warn "Unknown LOG_HTTP_CAPTURE mode '#{requested_mode}', falling back to :standard (valid: #{CAPTURE_MODES.keys.join(', ')})"
+        end
+
+        # Read once at construction, same as @capture/@slow_threshold_μs above,
+        # rather than re-reading Onetime.logging_conf on every :debug-capture
+        # request. RequestLogger middleware instances are long-lived (built
+        # once at boot), so this follows the same "config fixed at boot"
+        # convention as the rest of this class.
+        @allowed_fields = Onetime::ErrorHandler.allowed_error_fields
+      end
+
+      def call(env)
+        return @app.call(env) if ignored?(env['PATH_INFO'])
+
+        request = Rack::Request.new(env)
+        start   = Onetime.now_in_μs
+
+        status, headers, body = @app.call(env)
+        duration_μs           = Onetime.now_in_μs - start  # Duration in microseconds
+
+        log_request(request, status, duration_μs)
+
+        [status, headers, body]
+      end
+
+      private
+
+      def log_request(request, status, duration_μs)
+        level   = determine_level(status, duration_μs)
+        payload = build_payload(request, status, duration_μs)
+
+        @logger.send(level, Familia::JsonSerializer.dump(sanitize_for_json(payload)))
+      end
+
+      # Recursively coerce values into JSON-safe primitives so strict
+      # serialization never raises on unexpected objects (e.g., uploaded files,
+      # tempfiles, IO handles) that may appear under :debug capture mode.
+      # Logging must never break request processing.
+      def sanitize_for_json(value, depth = 0)
+        return '[TOO_DEEP]' if depth > 10
+
+        case value
+        when Hash
+          value.each_with_object({}) do |(k, v), result|
+            result[k.to_s] = sanitize_for_json(v, depth + 1)
+          end
+        when Array
+          value.map { |v| sanitize_for_json(v, depth + 1) }
+        when String, Integer, Float, TrueClass, FalseClass, NilClass
+          value
+        else
+          value.to_s
+        end
+      end
+
+      def build_payload(request, status, duration_μs)
+        payload = {}
+
+        payload[:method]     = request.request_method if capture?(:method)
+        payload[:path]       = self.class.redacted_path(request) if capture?(:path)
+        payload[:status]     = status if capture?(:status)
+        payload[:request_id] = request.env['HTTP_X_REQUEST_ID'] if capture?(:request_id)
+        payload[:ip]         = request.ip if capture?(:ip)
+        payload[:params]     = allowlisted_params(request.params) if capture?(:params)
+        # The session id IS the bearer cookie, so no capture mode logs it.
+        # The handle (Onetime::SessionMetadata.handle_for) is a keyed,
+        # non-reversible digest: the same value every other session log line
+        # carries, so a request still joins to them. (RISK-2026-08-14-L09)
+        if capture?(:session_handle) && request.session.respond_to?(:id)
+          sid                      = request.session.id
+          plain                    = sid.respond_to?(:public_id) ? sid.public_id : sid.to_s
+          payload[:session_handle] = Onetime::SessionMetadata.handle_for(plain)
+        end
+
+        payload[:headers] = allowlisted_headers(request.env) if capture?(:headers)
+
+        # Error classification stashed by the typed-error edges via
+        # Onetime::Application::ErrorCorrelation (the Otto apps and the Roda
+        # /auth surface). Recorded regardless of capture mode because it only
+        # appears on error responses and is high-signal: the same line names
+        # *what* failed (e.g. RecordNotFound). The correlation id must ride the
+        # same line, so on error responses pull in request_id even under
+        # :minimal capture (which normally omits it) — otherwise the id the
+        # client received in the x-request-id header and the JSON error body
+        # would have nothing to grep against here.
+        if (error_type = request.env[ErrorCorrelation::ENV_ERROR_TYPE])
+          payload[:error_type]   = error_type
+          payload[:request_id] ||= request.env['HTTP_X_REQUEST_ID']
+        end
+
+        # Add duration_μs last so it appears rightmost in logs
+        payload[:duration_ms] = duration_μs / 1000.0 if capture?(:duration_ms)
+
+        payload
+      end
+
+      def capture?(field)
+        @capture.include?(field)
+      end
+
+      # Determine log level based on response status and duration.
+      # - 5xx errors → :error
+      # - 4xx client errors → :warn
+      # - Slow requests (exceeding threshold) → :warn
+      # - Normal requests → :info
+      def determine_level(status, duration_μs)
+        return :error if status >= 500
+        return :warn if status >= 400
+        return :warn if slow_request?(duration_μs)
+
+        :info
+      end
+
+      def slow_request?(duration_μs)
+        duration_μs > @slow_threshold_μs
+      end
+
+      # :debug capture mode is the only capture mode that requests :params —
+      # gate it on the same opt-in allowlist as error reporting
+      # (Onetime::ErrorHandler.allowed_error_fields) rather than a blocklist,
+      # so it can never lag behind new sensitive field names. Empty by
+      # default: enabling LOG_HTTP_CAPTURE=debug alone shows no param values
+      # until an operator explicitly names which ones are safe.
+      def allowlisted_params(params)
+        return {} if @allowed_fields.empty?
+
+        params.each_with_object({}) do |(k, v), result|
+          result[k] = v if @allowed_fields.include?(k.to_s)
+        end
+      end
+
+      # Same allowlist as #allowlisted_params, matched against the
+      # human-readable header name (e.g. "User-Agent"), not the raw
+      # HTTP_USER_AGENT env key. Empty by default — without it, :debug
+      # capture used to dump every header verbatim, Cookie/Authorization
+      # included.
+      def allowlisted_headers(env)
+        return {} if @allowed_fields.empty?
+
+        env.each_with_object({}) do |(k, v), result|
+          next unless k.start_with?('HTTP_')
+
+          header_name         = k.sub(/^HTTP_/, '').split('_').map(&:capitalize).join('-')
+          result[header_name] = v if @allowed_fields.include?(header_name)
+        end
+      end
+
+      def ignored?(path)
+        return false if path.nil? || @config.nil? || @config['ignore_paths'].nil?
+
+        @config['ignore_paths'].any? { |pattern| File.fnmatch(pattern, path) }
+      end
+    end
+  end
+end

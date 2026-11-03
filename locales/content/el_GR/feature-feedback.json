@@ -1,0 +1,74 @@
+{
+  "web.feedback.your_feedback": {
+    "text": "Τα σχόλιά σας",
+    "source_hash": "cdb1c0a5"
+  },
+  "web.feedback.all_feedback_welcome": {
+    "text": "Όλα τα σχόλια είναι ευπρόσδεκτα!",
+    "source_hash": "c57d3006"
+  },
+  "web.feedback.help_us_improve": {
+    "text": "Βοηθήστε μας να βελτιωθούμε",
+    "source_hash": "f35439c4"
+  },
+  "web.feedback.close_feedback_modal": {
+    "text": "Κλείσιμο παραθύρου σχολίων",
+    "source_hash": "41689bb4"
+  },
+  "web.feedback.share_your_feedback": {
+    "text": "Μοιραστείτε τα σχόλιά σας",
+    "source_hash": "6d62dfbd"
+  },
+  "web.feedback.delano_mandelbaum": {
+    "text": "Delano Mandelbaum",
+    "source_hash": "6da0b72b"
+  },
+  "web.feedback.delano": {
+    "text": "Delano",
+    "source_hash": "f58154f7"
+  },
+  "web.feedback.help_content_goes_here": {
+    "text": "Το περιεχόμενο βοήθειας τοποθετείται εδώ.",
+    "source_hash": "796979ea"
+  },
+  "web.feedback.founder_note_line1": {
+    "text": "Διαβάζω κάθε σχόλιο που έρχεται εδώ. Έτσι καταλαβαίνω σε τι πρέπει να αφιερώσω χρόνο.",
+    "source_hash": "8b430d93"
+  },
+  "web.feedback.founder_note_line2": {
+    "text": "Εάν κάτι δεν πάει καλά, ή έχετε ιδέες για το πώς θα έπρεπε να λειτουργεί, αυτό είναι το σωστό μέρος.",
+    "source_hash": "d4b8f073"
+  },
+  "web.feedback.open_feedback_form": {
+    "text": "Άνοιγμα φόρμας σχολίων",
+    "source_hash": "acd8409b"
+  },
+  "web.feedback.enter_your_feedback": {
+    "text": "Εισάγετε τα σχόλιά σας",
+    "source_hash": "1bb310f4"
+  },
+  "web.feedback.send_feedback": {
+    "text": "Αποστολή σχολίων",
+    "source_hash": "8235980b"
+  },
+  "web.feedback.sending_ellipses": {
+    "text": "Αποστολή...",
+    "source_hash": "286a3af7"
+  },
+  "web.feedback.reason_email_change_unauthorized": {
+    "text": "Φαίνεται ότι αναφέρετε μια μη εξουσιοδοτημένη αλλαγή email στον λογαριασμό σας. Παρακαλώ περιγράψτε τι συνέβη και θα το διερευνήσουμε αμέσως.",
+    "source_hash": "00e56551"
+  },
+  "web.feedback.anonymous_no_reply": {
+    "text": "Σημείωση: αν θέλετε απάντηση, υπογράψτε ή συμπεριλάβετε μια διεύθυνση email στο μήνυμα.",
+    "source_hash": "c984f705"
+  },
+  "web.feedback.characters_remaining": {
+    "text": "Απομένουν {count} χαρακτήρες",
+    "source_hash": "8d796f40"
+  },
+  "web.feedback.character_limit_reached": {
+    "text": "Συμπληρώθηκε το όριο χαρακτήρων",
+    "source_hash": "031e9310"
+  }
+}

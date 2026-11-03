@@ -1,0 +1,842 @@
+{
+  "web.admin.customers.title": {
+    "text": "Kunden",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.customers.description": {
+    "text": "Kunden finden und Support-Probleme lösen.",
+    "source_hash": "00961ea3"
+  },
+  "web.admin.customers.actions.plan.label": {
+    "text": "Tarif",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.plan.apply": {
+    "text": "Anwenden",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.plan.confirmTitle": {
+    "text": "Tarif ändern?",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.customers.actions.plan.confirmDescription": {
+    "text": "{email} auf den Tarif {plan} ändern.",
+    "source_hash": "83fb4158"
+  },
+  "web.admin.customers.actions.plan.success": {
+    "text": "Tarif aktualisiert.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.customers.actions.plan.localConfigWarning": {
+    "text": "Tarife aus lokaler Konfiguration geladen — Stripe ist nicht konfiguriert oder nicht erreichbar.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.customers.actions.purge.button": {
+    "text": "Kunden endgültig löschen",
+    "source_hash": "ff658f69"
+  },
+  "web.admin.customers.actions.purge.confirmTitle": {
+    "text": "Kunden endgültig löschen?",
+    "source_hash": "9feed9f1"
+  },
+  "web.admin.customers.actions.purge.confirmDescription": {
+    "text": "Damit wird das endgültige Löschen von {email} angefordert. Vor der Auflösung des Kontos läuft eine Vorabprüfung, die das endgültige Löschen ablehnt, wenn ein Workspace Bereiche, einen Abrechnungsstatus, weitere Mitglieder, aufbewahrte Daten oder inkonsistente Verweise hat. Prüfen und beheben Sie alle Hindernisse, bevor Sie es erneut versuchen. Sobald die Auflösung begonnen hat, kann dies nicht rückgängig gemacht werden.",
+    "source_hash": "7b4e5e37"
+  },
+  "web.admin.customers.actions.purge.success": {
+    "text": "Kunde gelöscht.",
+    "source_hash": "6145e5c8"
+  },
+  "web.admin.customers.actions.role.label": {
+    "text": "Rolle",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.actions.role.apply": {
+    "text": "Anwenden",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.role.confirmTitle": {
+    "text": "Rolle ändern?",
+    "source_hash": "227f57d7"
+  },
+  "web.admin.customers.actions.role.confirmDescription": {
+    "text": "Ändert {email} auf die Rolle {role}. Die Colonel-Rolle gewährt vollen Administratorzugriff auf jedes Konto, jedes Geheimnis und jede Organisation in dieser Installation. Geben Sie zur Bestätigung unten die E-Mail-Adresse des Kontos ein.",
+    "source_hash": "0ed85b97"
+  },
+  "web.admin.customers.actions.role.success": {
+    "text": "Rolle aktualisiert.",
+    "source_hash": "0c33aa24"
+  },
+  "web.admin.customers.actions.suspend.button": {
+    "text": "Konto sperren",
+    "source_hash": "95a04f27"
+  },
+  "web.admin.customers.actions.suspend.reasonLabel": {
+    "text": "Grund (optional)",
+    "source_hash": "0f7d4664"
+  },
+  "web.admin.customers.actions.suspend.reasonPlaceholder": {
+    "text": "Warum wird dieses Konto gesperrt?",
+    "source_hash": "8eca975e"
+  },
+  "web.admin.customers.actions.suspend.confirmTitle": {
+    "text": "Konto sperren?",
+    "source_hash": "cbfa275b"
+  },
+  "web.admin.customers.actions.suspend.confirmDescription": {
+    "text": "Hindert {email} daran, sich einzutragen, und widerruft die aktiven Sitzungen. Es werden keine Daten gelöscht — dies ist reversibel.",
+    "source_hash": "e5d046bc"
+  },
+  "web.admin.customers.actions.suspend.success": {
+    "text": "Konto gesperrt.",
+    "source_hash": "04c5f996"
+  },
+  "web.admin.customers.actions.unsuspend.button": {
+    "text": "Kontosperre aufheben",
+    "source_hash": "35a10fb5"
+  },
+  "web.admin.customers.actions.unsuspend.confirmTitle": {
+    "text": "Kontosperre aufheben?",
+    "source_hash": "6fd78a72"
+  },
+  "web.admin.customers.actions.unsuspend.confirmDescription": {
+    "text": "Stellt die Anmeldung für {email} wieder her.",
+    "source_hash": "cb2bb4e0"
+  },
+  "web.admin.customers.actions.unsuspend.success": {
+    "text": "Kontosperre aufgehoben.",
+    "source_hash": "c5b4377f"
+  },
+  "web.admin.customers.actions.unverify.button": {
+    "text": "Verifizierung aufheben",
+    "source_hash": "b0dee41f"
+  },
+  "web.admin.customers.actions.unverify.confirmTitle": {
+    "text": "Verifizierung des Kunden aufheben?",
+    "source_hash": "62ed2854"
+  },
+  "web.admin.customers.actions.unverify.confirmDescription": {
+    "text": "Markiert {email} als nicht verifiziert. Ein nicht verifiziertes Konto kann weder die Colonel- noch die Administrator- oder Mitarbeiter-Rolle innehaben, daher wird dabei auch jede erweiterte Rolle des Kontos entfernt. Geben Sie zur Bestätigung unten die E-Mail-Adresse des Kontos ein.",
+    "source_hash": "601f7382"
+  },
+  "web.admin.customers.actions.unverify.success": {
+    "text": "Verifizierung des Kunden aufgehoben.",
+    "source_hash": "a9b7bbac"
+  },
+  "web.admin.customers.actions.verify.button": {
+    "text": "Verifizieren",
+    "source_hash": "eea2745e"
+  },
+  "web.admin.customers.actions.verify.confirmTitle": {
+    "text": "Kunden verifizieren?",
+    "source_hash": "43037ce1"
+  },
+  "web.admin.customers.actions.verify.confirmDescription": {
+    "text": "{email} als verifiziert markieren.",
+    "source_hash": "7052d79d"
+  },
+  "web.admin.customers.actions.verify.success": {
+    "text": "Kunde verifiziert.",
+    "source_hash": "19e382dc"
+  },
+  "web.admin.customers.columns.email": {
+    "text": "E-Mail",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.columns.role": {
+    "text": "Rolle",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.columns.verified": {
+    "text": "Verifiziert",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.columns.plan": {
+    "text": "Tarif",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.columns.secrets": {
+    "text": "Geheimnisse",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.columns.created": {
+    "text": "Erstellt",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.columns.lastLogin": {
+    "text": "Letzte Anmeldung",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.backToList": {
+    "text": "Zurück zu den Kunden",
+    "source_hash": "077807fb"
+  },
+  "web.admin.customers.detail.openFullPage": {
+    "text": "Vollständige Seite öffnen",
+    "source_hash": "a467911c"
+  },
+  "web.admin.customers.detail.notFound": {
+    "text": "Kunde nicht gefunden",
+    "source_hash": "5e3f5824"
+  },
+  "web.admin.customers.detail.notFoundDescription": {
+    "text": "Kein Kunde entspricht diesem Bezeichner. Möglicherweise wurde er endgültig gelöscht.",
+    "source_hash": "82b04725"
+  },
+  "web.admin.customers.detail.loadError": {
+    "text": "Dieser Kunde konnte nicht geladen werden.",
+    "source_hash": "cfd1bcca"
+  },
+  "web.admin.customers.detail.retry": {
+    "text": "Erneut versuchen",
+    "source_hash": "942087cc"
+  },
+  "web.admin.customers.detail.yes": {
+    "text": "Ja",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.customers.detail.no": {
+    "text": "Nein",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.customers.detail.none": {
+    "text": "Keine",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.never": {
+    "text": "Nie",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.customers.detail.billing.plan": {
+    "text": "Tarif",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.billing.organization": {
+    "text": "Abrechnungsorganisation",
+    "source_hash": "90c94ee1"
+  },
+  "web.admin.customers.detail.billing.subscriptionStatus": {
+    "text": "Abonnementstatus",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.customers.detail.billing.periodEnd": {
+    "text": "Aktueller Zeitraum endet",
+    "source_hash": "742b8229"
+  },
+  "web.admin.customers.detail.billing.latestInvoice": {
+    "text": "Neueste Rechnung",
+    "source_hash": "7a6133cc"
+  },
+  "web.admin.customers.detail.billing.noInvoices": {
+    "text": "Keine Rechnungen",
+    "source_hash": "e6b30f93"
+  },
+  "web.admin.customers.detail.billing.openStripe": {
+    "text": "Im Stripe-Dashboard öffnen",
+    "source_hash": "dfa7c41d"
+  },
+  "web.admin.customers.detail.billing.unavailable": {
+    "text": "Stripe-Daten nicht verfügbar: {reason}",
+    "source_hash": "9fe08e49"
+  },
+  "web.admin.customers.detail.billing.notConfigured": {
+    "text": "Die Abrechnung ist auf dieser Installation nicht konfiguriert.",
+    "source_hash": "6e90375e"
+  },
+  "web.admin.customers.detail.fields.email": {
+    "text": "E-Mail",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.detail.fields.publicId": {
+    "text": "Öffentliche ID",
+    "source_hash": "3705b64f"
+  },
+  "web.admin.customers.detail.fields.role": {
+    "text": "Rolle",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.detail.fields.verified": {
+    "text": "Verifiziert",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.detail.fields.plan": {
+    "text": "Tarif",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.fields.locale": {
+    "text": "Sprache",
+    "source_hash": "ca3dc612"
+  },
+  "web.admin.customers.detail.fields.created": {
+    "text": "Erstellt",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.fields.updated": {
+    "text": "Aktualisiert",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.customers.detail.fields.lastLogin": {
+    "text": "Letzte Anmeldung",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.fields.suspendedAt": {
+    "text": "Gesperrt am",
+    "source_hash": "7227f219"
+  },
+  "web.admin.customers.detail.fields.suspendedBy": {
+    "text": "Gesperrt von",
+    "source_hash": "e0830524"
+  },
+  "web.admin.customers.detail.fields.suspendedReason": {
+    "text": "Sperrgrund",
+    "source_hash": "d6b08d8e"
+  },
+  "web.admin.customers.detail.organizations.empty": {
+    "text": "Keine Organisationen",
+    "source_hash": "c256efdc"
+  },
+  "web.admin.customers.detail.organizations.default": {
+    "text": "Standard",
+    "source_hash": "21b111cb"
+  },
+  "web.admin.customers.detail.receiptColumns.shortId": {
+    "text": "Kurz-ID",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.receiptColumns.state": {
+    "text": "Status",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.receiptColumns.created": {
+    "text": "Erstellt",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.receipts.empty": {
+    "text": "Keine Belege",
+    "source_hash": "fb425a68"
+  },
+  "web.admin.customers.detail.secretColumns.shortId": {
+    "text": "Kurz-ID",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.secretColumns.state": {
+    "text": "Status",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.secretColumns.created": {
+    "text": "Erstellt",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.secretColumns.expiration": {
+    "text": "Ablauf",
+    "source_hash": "f38d6e0e"
+  },
+  "web.admin.customers.detail.secrets.empty": {
+    "text": "Keine Geheimnisse",
+    "source_hash": "c37ab3f7"
+  },
+  "web.admin.customers.detail.sections.profile": {
+    "text": "Profil",
+    "source_hash": "d696a35b"
+  },
+  "web.admin.customers.detail.sections.secrets": {
+    "text": "Geheimnisse",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.detail.sections.receipts": {
+    "text": "Belege",
+    "source_hash": "60a627df"
+  },
+  "web.admin.customers.detail.sections.organizations": {
+    "text": "Organisationen",
+    "source_hash": "2730183d"
+  },
+  "web.admin.customers.detail.sections.actions": {
+    "text": "Aktionen",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sections.billing": {
+    "text": "Abrechnung",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.customers.detail.sessions.title": {
+    "text": "Aktive Sitzungen",
+    "source_hash": "b58fa4e0"
+  },
+  "web.admin.customers.detail.sessions.empty": {
+    "text": "Keine aktiven Sitzungen.",
+    "source_hash": "6f064eb9"
+  },
+  "web.admin.customers.detail.sessions.loadError": {
+    "text": "Sitzungen konnten nicht geladen werden.",
+    "source_hash": "d2884313"
+  },
+  "web.admin.customers.detail.sessions.unknown": {
+    "text": "Unbekannt",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.sessions.columns.lastActivity": {
+    "text": "Letzte Aktivität",
+    "source_hash": "06475633"
+  },
+  "web.admin.customers.detail.sessions.columns.ipAddress": {
+    "text": "IP-Adresse",
+    "source_hash": "0302a467"
+  },
+  "web.admin.customers.detail.sessions.columns.device": {
+    "text": "Gerät",
+    "source_hash": "6ba0bdec"
+  },
+  "web.admin.customers.detail.sessions.columns.authMethod": {
+    "text": "Authentifizierungsmethode",
+    "source_hash": "bc4ea262"
+  },
+  "web.admin.customers.detail.sessions.columns.actions": {
+    "text": "Aktionen",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sessions.revoke.button": {
+    "text": "Widerrufen",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmTitle": {
+    "text": "Sitzung widerrufen?",
+    "source_hash": "7735d1ef"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmDescription": {
+    "text": "Dadurch wird der Benutzer sofort aus dieser Sitzung abgemeldet. Er muss sich erneut eintragen.",
+    "source_hash": "b4291af0"
+  },
+  "web.admin.customers.detail.sessions.revoke.success": {
+    "text": "Sitzung widerrufen.",
+    "source_hash": "5e4762e5"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.button": {
+    "text": "Alle widerrufen",
+    "source_hash": "c6847a4b"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmTitle": {
+    "text": "Jede Sitzung widerrufen?",
+    "source_hash": "a4fa4c65"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmDescription": {
+    "text": "Dadurch wird der Benutzer von jedem Gerät und Browser abgemeldet — einschließlich Sitzungen, die in dieser Liste nicht angezeigt werden — und der Zugriff auf seine authentifizierten Routen wird sofort gesperrt. Verwenden Sie dies beim Offboarding oder bei einem vermuteten Kontodiebstahl. Geben Sie die Benutzer-ID zur Bestätigung ein.",
+    "source_hash": "483cdd88"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.success": {
+    "text": "Alle Sitzungen widerrufen ({count} beendet).",
+    "source_hash": "4e1cce55"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.capped": {
+    "text": "{count} Sitzungen beendet, aber die Bereinigung nicht verfolgter Sitzungen wurde abgeschnitten — eine ältere Sitzung könnte verbleiben. Führen Sie den Vorgang zur Sicherheit erneut aus.",
+    "source_hash": "e3d295a6"
+  },
+  "web.admin.customers.detail.stats.secretsCreated": {
+    "text": "Erstellte Geheimnisse",
+    "source_hash": "7d17719e"
+  },
+  "web.admin.customers.detail.stats.secretsShared": {
+    "text": "Geteilte Geheimnisse",
+    "source_hash": "ba85b265"
+  },
+  "web.admin.customers.detail.stats.emailsSent": {
+    "text": "Gesendete E-Mails",
+    "source_hash": "be604792"
+  },
+  "web.admin.customers.list.roleFilter": {
+    "text": "Rolle",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.list.empty": {
+    "text": "Keine Kunden gefunden",
+    "source_hash": "dc754ec0"
+  },
+  "web.admin.customers.list.loadError": {
+    "text": "Kunden konnten nicht geladen werden.",
+    "source_hash": "81783303"
+  },
+  "web.admin.customers.list.searchPlaceholder": {
+    "text": "Nach E-Mail, extid oder objid suchen",
+    "source_hash": "c06d5a3b"
+  },
+  "web.admin.customers.list.emptySearch": {
+    "text": "Keine Kunden entsprechen dieser Suche",
+    "source_hash": "ea7e7012"
+  },
+  "web.admin.customers.roles.colonel": {
+    "text": "Colonel",
+    "source_hash": "02577777"
+  },
+  "web.admin.customers.roles.admin": {
+    "text": "Administrator",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.customers.roles.staff": {
+    "text": "Mitarbeiter",
+    "source_hash": "681927e3"
+  },
+  "web.admin.customers.roles.customer": {
+    "text": "Kunde",
+    "source_hash": "bf376338"
+  },
+  "web.admin.customers.suspended.badge": {
+    "text": "Gesperrt",
+    "source_hash": "e392a389"
+  },
+  "web.admin.customers.actions.checkoutLink.button": {
+    "text": "Checkout-Link erstellen",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.modalTitle": {
+    "text": "Checkout-Link erstellen",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.planLabel": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.checkoutLink.planPlaceholder": {
+    "text": "Plan-Familien-ID (z.B. identity_plus_v1)",
+    "source_hash": "12eba027"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleLabel": {
+    "text": "Abrechnungszyklus",
+    "source_hash": "d69f731e"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleMonthly": {
+    "text": "Monatlich",
+    "source_hash": "9b11f6b7"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleYearly": {
+    "text": "Jährlich",
+    "source_hash": "6e69b59e"
+  },
+  "web.admin.customers.actions.checkoutLink.allowPromo": {
+    "text": "Aktionscodes zulassen",
+    "source_hash": "ebe7bc8b"
+  },
+  "web.admin.customers.actions.checkoutLink.submit": {
+    "text": "Link erstellen",
+    "source_hash": "e6b850cf"
+  },
+  "web.admin.customers.actions.checkoutLink.resultLead": {
+    "text": "Checkout-Link erstellt. Teilen Sie ihn mit dem Kunden – er kann einmal verwendet werden und läuft ab.",
+    "source_hash": "6ff1fb0e"
+  },
+  "web.admin.customers.actions.checkoutLink.copy": {
+    "text": "Checkout-Link kopieren",
+    "source_hash": "f1e51ca7"
+  },
+  "web.admin.customers.actions.checkoutLink.expiry": {
+    "text": "Läuft in ca. {hours} Std. ab ({date}).",
+    "source_hash": "4c878a15"
+  },
+  "web.admin.customers.actions.checkoutLink.regionLabel": {
+    "text": "Region",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.customers.actions.checkoutLink.parseError": {
+    "text": "Der Server hat die Anfrage akzeptiert, aber eine unlesbare Antwort zurückgegeben, sodass kein Link angezeigt werden kann. Überprüfen Sie Stripe, bevor Sie es erneut versuchen.",
+    "source_hash": "e7e08290"
+  },
+  "web.admin.customers.actions.checkoutLink.done": {
+    "text": "Fertig",
+    "source_hash": "11a6767d"
+  },
+  "web.admin.customers.actions.purge.typePrompt": {
+    "text": "Zur Bestätigung geben Sie bitte die E-Mail-Adresse des Kontos {token} unten ein",
+    "source_hash": "8b2a1819"
+  },
+  "web.admin.customers.actions.purge.unavailable": {
+    "text": "Löschen nicht verfügbar: Dieses Konto hat keine E-Mail-Adresse zur Bestätigung.",
+    "source_hash": "5f20f7e5"
+  },
+  "web.admin.customers.columns.actions": {
+    "text": "Aktionen",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.diagnostics.title": {
+    "text": "Kontodiagnose",
+    "source_hash": "5574ece8"
+  },
+  "web.admin.customers.detail.diagnostics.loading": {
+    "text": "Diagnose wird ausgeführt…",
+    "source_hash": "062c83d5"
+  },
+  "web.admin.customers.detail.diagnostics.loadError": {
+    "text": "Diagnose konnte nicht geladen werden.",
+    "source_hash": "69e69f49"
+  },
+  "web.admin.customers.detail.diagnostics.healthy": {
+    "text": "Keine blockierende Bedingung gefunden. Die Hinweise zu Authentifizierung und Organisationskontext sehen gesund aus – vermuten Sie clientseitige Probleme (Cookies, Anmeldekonfiguration des benutzerdefinierten Bereichs) oder die falsche Region.",
+    "source_hash": "e0e8450e"
+  },
+  "web.admin.customers.detail.diagnostics.authUnavailable": {
+    "text": "Authentifizierungsdatenbank nicht verfügbar (einfacher Authentifizierungsmodus) – SQL-seitige Prüfungen wurden übersprungen.",
+    "source_hash": "d668907c"
+  },
+  "web.admin.customers.detail.diagnostics.authFailed": {
+    "text": "Die Authentifizierungsdatenbank hat nicht geantwortet, sodass SQL-seitige Prüfungen nicht ausgeführt werden konnten: {reason}",
+    "source_hash": "46d047c0"
+  },
+  "web.admin.customers.detail.diagnostics.unknown": {
+    "text": "Unbekannt",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.title": {
+    "text": "Authentifizierungsprotokoll",
+    "source_hash": "48ad8ba8"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.empty": {
+    "text": "Keine Authentifizierungsereignisse aufgezeichnet.",
+    "source_hash": "d2332558"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.unavailable": {
+    "text": "Authentifizierungsprotokoll konnte nicht gelesen werden: {reason}",
+    "source_hash": "ab18af57"
+  },
+  "web.admin.customers.detail.diagnostics.facts.authStatus": {
+    "text": "Authentifizierungsstatus",
+    "source_hash": "34def169"
+  },
+  "web.admin.customers.detail.diagnostics.facts.noAccount": {
+    "text": "Kein Authentifizierungskonto",
+    "source_hash": "a9968e9e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.password": {
+    "text": "Passwort",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordSet": {
+    "text": "Gesetzt",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordNone": {
+    "text": "Keines",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfa": {
+    "text": "MFA",
+    "source_hash": "d39ce053"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfaNone": {
+    "text": "Keines",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.loginFailures": {
+    "text": "Fehlgeschlagene Versuche",
+    "source_hash": "63e7f0a8"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lockedBadge": {
+    "text": "Gesperrt",
+    "source_hash": "ace29f74"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiter": {
+    "text": "Ratenbegrenzung",
+    "source_hash": "32892404"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterEngaged": {
+    "text": "Aktiv",
+    "source_hash": "1b0d851e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterClear": {
+    "text": "Frei",
+    "source_hash": "83b12c22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verification": {
+    "text": "Bestätigungs-E-Mail",
+    "source_hash": "23fac8fb"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationPending": {
+    "text": "Ausstehend – zuletzt gesendet {date}",
+    "source_hash": "9ab8d1b6"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationNone": {
+    "text": "Keine ausstehend",
+    "source_hash": "a4d4cc22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.sessions": {
+    "text": "Aktive Sitzungen",
+    "source_hash": "61ad9909"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lastLogin": {
+    "text": "Letzte Anmeldung (Auth)",
+    "source_hash": "373e7fb1"
+  },
+  "web.admin.customers.detail.receipts.partial": {
+    "text": "Teilliste – zeigt die {count} neuesten. Dieser Kunde hat mehr Belege als hier angezeigt werden.",
+    "source_hash": "127fd4db"
+  },
+  "web.admin.customers.detail.secrets.partial": {
+    "text": "Teilliste – zeigt die {count} neuesten. Dieser Kunde besitzt mehr Geheimnisse als hier angezeigt werden.",
+    "source_hash": "a537c8f3"
+  },
+  "web.admin.customers.detail.sessions.columns.country": {
+    "text": "Land",
+    "source_hash": "701d021d"
+  },
+  "web.admin.customers.detail.sessions.current.badge": {
+    "text": "Diese Sitzung",
+    "source_hash": "6da6530a"
+  },
+  "web.admin.customers.detail.sessions.current.tooltip": {
+    "text": "Ihre aktuelle Admin-Sitzung. Das Widerrufen hier hat keine Wirkung – sie wird für den Rest dieser Anfrage neu erstellt.",
+    "source_hash": "ef097ab1"
+  },
+  "web.admin.customers.verification.verified": {
+    "text": "Verifiziert",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.verification.unverified": {
+    "text": "Nicht verifiziert",
+    "source_hash": "15133907"
+  },
+  "web.admin.customers.actions.impersonate.button": {
+    "text": "Identität des Kunden übernehmen",
+    "source_hash": "38a7cfbe"
+  },
+  "web.admin.customers.actions.impersonate.confirmTitle": {
+    "text": "Identitätswechsel starten?",
+    "source_hash": "c6e4fa74"
+  },
+  "web.admin.customers.actions.impersonate.confirmDescription": {
+    "text": "Öffnet eine zeitlich begrenzte, schreibgeschützte Sitzung als {email}. Bis Sie den Vorgang beenden, zeigt jede Seite ein Banner an, Änderungen sind gesperrt und die Sitzung wird mit Ihrer Begründung im Audit-Log protokolliert.",
+    "source_hash": "713c01b4"
+  },
+  "web.admin.customers.actions.impersonate.reasonLabel": {
+    "text": "Begründung (erforderlich)",
+    "source_hash": "d976f5d9"
+  },
+  "web.admin.customers.actions.impersonate.reasonPlaceholder": {
+    "text": "Warum wird diese Sitzung benötigt? Geben Sie die Ticket-Referenz an.",
+    "source_hash": "89a4835d"
+  },
+  "web.admin.customers.actions.impersonate.success": {
+    "text": "Identitätswechsel gestartet.",
+    "source_hash": "b4662bcc"
+  },
+  "web.admin.customers.actions.impersonate.unavailable": {
+    "text": "Der Identitätswechsel ist für Colonel-, anonyme und gesperrte Konten nicht verfügbar.",
+    "source_hash": "fb6578b2"
+  },
+  "web.admin.customers.actions.purge.refused": {
+    "text": "Endgültiges Löschen abgelehnt. Der Kunde wurde beibehalten; beheben Sie die Hindernisse, bevor Sie es erneut versuchen.",
+    "source_hash": "8e8a2ae1"
+  },
+  "web.admin.customers.actions.purge.partial": {
+    "text": "Das endgültige Löschen wurde angehalten, nachdem ein Teil der Bereinigung abgeschlossen war. Melden Sie keinen Erfolg und versuchen Sie es nicht blind erneut; prüfen Sie die abgeschlossenen Phasen und Hindernisse.",
+    "source_hash": "a88fd15b"
+  },
+  "web.admin.customers.actions.purge.incomplete": {
+    "text": "Das endgültige Löschen wurde nicht abgeschlossen (Status: {status}). Prüfen Sie die Lebenszyklusdetails, bevor Sie es erneut versuchen.",
+    "source_hash": "c0c3d287"
+  },
+  "web.admin.customers.actions.purge.unreadableResult": {
+    "text": "Der Server hat ein nicht lesbares Ergebnis des endgültigen Löschens zurückgegeben. Es wurde kein Erfolg gemeldet; überprüfen Sie den Status von Kunde und Workspace, bevor Sie es erneut versuchen.",
+    "source_hash": "cc837a77"
+  },
+  "web.admin.customers.actions.purge.resultStage": {
+    "text": "Angehalten in Phase: {stage}.",
+    "source_hash": "d0e313bf"
+  },
+  "web.admin.customers.actions.purge.resultBlockers": {
+    "text": "Hindernisse: {blockers}.",
+    "source_hash": "00c1e196"
+  },
+  "web.admin.customers.actions.purge.resultPlannedActions": {
+    "text": "Geplante Bereinigung: {actions}.",
+    "source_hash": "6915205d"
+  },
+  "web.admin.customers.actions.purge.resultActions": {
+    "text": "Abgeschlossene Bereinigung: {actions}.",
+    "source_hash": "d34121b3"
+  },
+  "web.admin.customers.actions.purge.resultCompletedStages": {
+    "text": "Abgeschlossene Phasen: {stages}.",
+    "source_hash": "67f68860"
+  },
+  "web.admin.customers.actions.role.button": {
+    "text": "Rolle ändern",
+    "source_hash": "a43a8d8c"
+  },
+  "web.admin.customers.actions.role.selfDemote": {
+    "text": "Sie können Ihr eigenes Colonel-Konto nicht herabstufen. Bitten Sie einen anderen Colonel darum oder führen Sie `bin/ots customers role demote` aus.",
+    "source_hash": "3e75d01b"
+  },
+  "web.admin.customers.actions.role.lastColonel": {
+    "text": "Sie können den letzten verbleibenden Colonel nicht herabstufen – die Installation hätte sonst keinen Administrator. Befördern und verifizieren Sie zuerst ein anderes Konto.",
+    "source_hash": "9c59c731"
+  },
+  "web.admin.customers.actions.unverify.selfUnverify": {
+    "text": "Sie können die Verifizierung Ihres eigenen Kontos nicht aufheben: Für die Colonel-Rolle ist eine verifizierte E-Mail-Adresse erforderlich.",
+    "source_hash": "8ab024fe"
+  },
+  "web.admin.customers.actions.unverify.lastColonel": {
+    "text": "Sie können die Verifizierung des letzten verbleibenden Colonels nicht aufheben – ein nicht verifiziertes Konto kann die Colonel-Rolle nicht innehaben. Befördern und verifizieren Sie zuerst ein anderes Konto.",
+    "source_hash": "fc404616"
+  },
+  "web.admin.customers.detail.diagnostics.organizationContextBlocked": {
+    "text": "Der Organisationskontext ist blockiert oder unvollständig. Prüfen Sie den indizierten Workspace und beheben Sie Indexabweichungen bei Inhaberschaft, Mitgliedschaft oder Kontakt-E-Mail, bevor Sie dieses Konto als gesund betrachten.",
+    "source_hash": "5c5c89be"
+  },
+  "web.admin.customers.detail.diagnostics.organization": {
+    "text": "Workspace: {id}",
+    "source_hash": "6ee50fe9"
+  },
+  "web.admin.customers.detail.diagnostics.remediation": {
+    "text": "Behebung: {action}",
+    "source_hash": "83ddc7d7"
+  },
+  "web.admin.customers.detail.fields.internalId": {
+    "text": "Interne ID",
+    "source_hash": "e468bb47"
+  },
+  "web.admin.customers.detail.organizations.open": {
+    "text": "Öffnen",
+    "source_hash": "ed077f3d"
+  },
+  "web.admin.customers.detail.rodauthAdmin.open": {
+    "text": "In Rodauth Admin öffnen",
+    "source_hash": "467173c8"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.selfDescription": {
+    "text": "Dadurch werden Sie von jedem anderen Gerät und Browser abgemeldet, einschließlich Sitzungen, die in dieser Liste nicht angezeigt werden. Die Sitzung, in der Sie gerade arbeiten, bleibt erhalten.",
+    "source_hash": "ae350040"
+  },
+  "web.admin.customers.list.capped": {
+    "text": "Die Ergebnisse sind begrenzt: Die angezeigte Anzahl ist eine Untergrenze, nicht die Gesamtzahl. Grenzen Sie die Suche oder den Filter ein, um alles zu sehen.",
+    "source_hash": "27537844"
+  },
+  "web.admin.customers.list.orphanedAccounts.title": {
+    "text": "Konto in der Authentifizierungsdatenbank ohne Kundendatensatz",
+    "source_hash": "82cf7a27"
+  },
+  "web.admin.customers.list.orphanedAccounts.hint": {
+    "text": "Die Authentifizierungsdatenbank enthält ein Konto für diese Adresse, aber kein Kundendatensatz ist ihm zugeordnet. Die Person kann sich weiterhin anmelden; der Kundenindex enthält nichts zu ihr. Öffnen Sie die Adresse für die Diagnose.",
+    "source_hash": "0f903f23"
+  },
+  "web.admin.customers.list.orphanedAccounts.diagnose": {
+    "text": "Kontodiagnose öffnen",
+    "source_hash": "55b3e826"
+  },
+  "web.admin.customers.list.orphanedAccounts.accountId": {
+    "text": "Konto #{id}",
+    "source_hash": "485dee3c"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unverified": {
+    "text": "Nicht verifiziert",
+    "source_hash": "33c8e8de"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.verified": {
+    "text": "Verifiziert",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.closed": {
+    "text": "Geschlossen",
+    "source_hash": "c21ead06"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unknown": {
+    "text": "Unbekannt",
+    "source_hash": "b764cdc0"
+  }
+}

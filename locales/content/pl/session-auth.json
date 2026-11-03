@@ -1,0 +1,551 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "Nie masz konta?",
+    "source_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "Zarejestruj się.",
+    "source_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "Zapomniałeś hasła?",
+    "source_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "Zaloguj się",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "Wprowadź swoje dane logowania",
+    "source_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "Zapamiętaj mnie",
+    "source_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "Wyślij link logowania",
+    "source_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "Bezpieczny link zostanie wysłany na Twoją skrzynkę e-mail.",
+    "source_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "lub",
+    "source_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "Zaloguj się hasłem",
+    "source_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "Użyj logowania bez hasła",
+    "source_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "Utwórz konto",
+    "source_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "Wróć do strony głównej",
+    "source_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "Hasło",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "Magiczny link",
+    "source_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "Klucz dostępu",
+    "source_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "Potrzebujesz pomocy?",
+    "source_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "Lub kontynuuj przez",
+    "source_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "Zaloguj się przez SSO",
+    "source_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "Zaloguj się przez {provider}",
+    "source_hash": "b8794f11"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "Przekierowanie do dostawcy tożsamości...",
+    "source_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "Logowanie SSO nie powiodło się. Spróbuj ponownie.",
+    "source_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "Uwierzytelnianie SSO nie powiodło się. Spróbuj ponownie lub zaloguj się hasłem.",
+    "source_hash": "13a2210a"
+  },
+  "web.login.errors.token_missing": {
+    "text": "Link uwierzytelniający jest niekompletny. Poproś o nowy link do logowania.",
+    "source_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "Ten link do logowania wygasł. Poproś o nowy.",
+    "source_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "Ten link do logowania jest nieprawidłowy. Poproś o nowy.",
+    "source_hash": "270c6401"
+  },
+  "web.signup.create_your_account": {
+    "text": "Utwórz swoje konto",
+    "source_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "Masz już konto?",
+    "source_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "Zaloguj się.",
+    "source_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "Błąd tworzenia konta",
+    "source_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "Hasło",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "E-mail",
+    "source_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": "Email verification flow after signup"
+  },
+  "web.auth.verify.title": {
+    "text": "Zweryfikuj swoje konto",
+    "source_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "Twoje konto zostało pomyślnie zweryfikowane",
+    "source_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "Nieprawidłowy lub wygasły klucz weryfikacyjny",
+    "source_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "Ten link weryfikacyjny wygasł. Poproś o nowy.",
+    "source_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "To konto zostało już zweryfikowane. Możesz się teraz zalogować.",
+    "source_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "Nie można zweryfikować konta. Spróbuj ponownie lub skontaktuj się z pomocą techniczną.",
+    "source_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "Sprawdź swoją pocztę, aby znaleźć link weryfikacyjny",
+    "source_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "Weryfikacja konta nie powiodła się. Sprawdź swój link weryfikacyjny lub poproś o nowy.",
+    "source_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "Weryfikacja nie powiodła się",
+    "source_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "Co powinienem zrobić?",
+    "source_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "Sprawdź swoją pocztę, aby znaleźć najnowszy link weryfikacyjny",
+    "source_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "Sprawdź folder spam/śmieci, jeśli nie możesz znaleźć e-maila",
+    "source_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "Skontaktuj się z pomocą techniczną, jeśli nadal masz problemy",
+    "source_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "Wymagany link weryfikacyjny",
+    "source_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "Użyj linku weryfikacyjnego wysłanego na Twój adres e-mail, aby zweryfikować swoje konto.",
+    "source_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "Utwórz nowe konto",
+    "source_hash": "0e24ec84"
+  },
+  "web.auth.change_password.title": {
+    "text": "Zmień hasło",
+    "source_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "Aktualne hasło",
+    "source_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "Nowe hasło",
+    "source_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "Potwierdź nowe hasło",
+    "source_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "Twoje hasło zostało pomyślnie zmienione",
+    "source_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "Zmiana hasła nie powiodła się. Sprawdź swoje aktualne hasło i spróbuj ponownie.",
+    "source_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "Zamknij konto",
+    "source_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "Tej operacji nie można cofnąć. Wszystkie Twoje sekrety zostaną trwale usunięte.",
+    "source_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "Rozumiem, że ta operacja jest nieodwracalna",
+    "source_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "Wprowadź hasło, aby potwierdzić",
+    "source_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "Trwale zamknij konto",
+    "source_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "Anuluj",
+    "source_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "Żądanie resetu hasła",
+    "source_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "Wprowadź swój adres e-mail poniżej, a wyślemy Ci link do zresetowania hasła",
+    "source_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "Wyślij link resetujący",
+    "source_hash": "7d5f16d4"
+  },
+  "web.auth.password_reset.title": {
+    "text": "Wybierz nowe hasło",
+    "context": "Password reset request flow - user requests a reset link",
+    "source_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "Wprowadź nowe hasło poniżej. Upewnij się, że jest silne i unikalne, aby chronić swoje konto.",
+    "source_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "Wysłano do Ciebie e-mail z linkiem do zresetowania hasła do Twojego konta",
+    "source_hash": "63a6af45"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "Zgadzam się na",
+    "source_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "Informacje o koncie",
+    "context": "User account overview/dashboard section",
+    "source_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "Adres e-mail",
+    "source_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "Konto utworzone",
+    "source_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "E-mail zweryfikowany",
+    "source_hash": "bc512ab0"
+  },
+  "web.auth.account.region": {
+    "text": "Region",
+    "source_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "E-mail niezweryfikowany",
+    "source_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "Zweryfikuj adres e-mail",
+    "source_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "Uwierzytelnianie dwuskładnikowe",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "Włączone",
+    "source_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "Wyłączone",
+    "source_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "Aktywne sesje",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "{count} aktywnych sesji",
+    "source_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "Szybkie akcje",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "Zarządzaj uwierzytelnianiem dwuskładnikowym",
+    "source_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "Zarządzaj aktywnymi sesjami",
+    "source_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "Zmień hasło",
+    "source_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "Zamknij konto",
+    "source_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "Pomoc i wsparcie",
+    "source_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "Rozwiązywanie problemów z logowaniem",
+    "source_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "Magiczny link nie przychodzi?",
+    "source_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "Sprawdź folder spam lub śmieci",
+    "source_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "Sprawdź, czy wprowadziłeś poprawnie adres e-mail",
+    "source_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "Poczekaj kilka minut - e-maile mogą czasem być opóźnione",
+    "source_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "Spróbuj poprosić o nowy link, jeśli minęło więcej niż 10 minut",
+    "source_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "Zapomniałeś hasła?",
+    "source_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "Możesz poprosić o link do resetowania hasła, aby utworzyć nowe hasło.",
+    "source_hash": "3c3eabad"
+  },
+  "web.help.account_locked": {
+    "text": "Konto tymczasowo zablokowane?",
+    "source_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "Po wielu nieudanych próbach logowania konta są tymczasowo blokowane ze względów bezpieczeństwa. Poczekaj 15 minut i spróbuj ponownie lub użyj Magicznego linku, aby się zalogować.",
+    "source_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "Nadal potrzebujesz pomocy?",
+    "source_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "Jeśli nadal masz problemy, chętnie pomożemy. Wyślij nam wiadomość, a odpowiemy najszybciej jak to możliwe.",
+    "source_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "Skontaktuj się z pomocą techniczną",
+    "source_hash": "f8d47b82"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "Konto SSO",
+    "source_hash": "b8f4c728"
+  },
+  "web.help.reset_password_link": {
+    "text": "Zresetuj hasło",
+    "source_hash": "e0edfeb3"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "Jednokrotne logowanie jest dostępne dla tej domeny",
+    "source_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "Administrator organizacji może włączyć SSO, aby umożliwić członkom zespołu logowanie się tutaj. Skontaktuj się z administratorem, aby uzyskać dostęp.",
+    "source_hash": "f3726509"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "Logowanie jest niedostępne",
+    "source_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "Logowanie jest obecnie niedostępne w tej domenie.",
+    "source_hash": "b681c35d"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "Jednokrotne logowanie nie jest skonfigurowane dla tej domeny. Skontaktuj się z administratorem.",
+    "source_hash": "b39ef93e"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "Adres e-mail z Twojego dostawcy tożsamości jest nieprawidłowy. Skontaktuj się z administratorem.",
+    "source_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "Twoja domena e-mail nie jest autoryzowana do rejestracji przez SSO. Skontaktuj się z administratorem.",
+    "source_hash": "87603782"
+  },
+  "web.auth.check_email.title": {
+    "text": "Sprawdź swoją skrzynkę e-mail",
+    "source_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "Wysłaliśmy link weryfikacyjny na adres:",
+    "source_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "Wysłaliśmy link weryfikacyjny na Twój adres e-mail.",
+    "source_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "Kliknij link w wiadomości, aby aktywować swoje konto.",
+    "source_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "Nie możesz go znaleźć? Sprawdź folder ze spamem.",
+    "source_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "Wprowadzono niewłaściwy adres?",
+    "source_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "Zacznij od nowa",
+    "source_hash": "5eed7e9f"
+  },
+  "web.auth.field-errors.password": {
+    "text": "Hasło",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "Nie otrzymałeś wiadomości weryfikacyjnej? Wprowadź swój adres e-mail, aby wysłać ją ponownie.",
+    "source_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "Wyślij ponownie wiadomość weryfikacyjną",
+    "source_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "Jeśli konto wymaga weryfikacji, nowa wiadomość została wysłana. Sprawdź swoją skrzynkę odbiorczą oraz folder ze spamem.",
+    "source_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "Nie udało się wysłać wiadomości weryfikacyjnej. Sprawdź swoje połączenie i spróbuj ponownie.",
+    "source_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "Wyślij ponownie",
+    "source_hash": "4f44603e"
+  },
+  "web.login.verified_notice": {
+    "text": "Twój adres e-mail został zweryfikowany — możesz się teraz zalogować.",
+    "source_hash": "c8d4b5a8"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "Ustaw hasło",
+    "source_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "Twoje konto nie ma jeszcze hasła. Wyślemy Ci e-mailem bezpieczny link, aby je ustawić, dzięki czemu będziesz mógł logować się także bezpośrednio.",
+    "source_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "Wyślij link konfiguracyjny",
+    "source_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "Wysłaliśmy do Ciebie e-mail z linkiem do ustawienia hasła dla Twojego konta",
+    "source_hash": "82b686c7"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "Konto z tym adresem e-mail już istnieje, ale nie jest powiązane z tą metodą logowania. Zaloguj się dotychczasową metodą, a następnie powiąż tego dostawcę w Ustawieniach zabezpieczeń → Połączone tożsamości.",
+    "source_hash": "7fbbb7e7"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "Nie udało się połączyć tej tożsamości. Może ona już należeć do innego konta.",
+    "source_hash": "d8b71cf8"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "Nie udało się dokończyć dodawania Cię do Twojej organizacji. Skontaktuj się ze swoim administratorem.",
+    "source_hash": "155e71bb"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "Nie udało się powiązać tej metody logowania. Zaloguj się dotychczasowym hasłem, a następnie połącz tego dostawcę w Ustawieniach zabezpieczeń → Połączone tożsamości.",
+    "source_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "Sprawdź skrzynkę odbiorczą — wysłaliśmy Ci e-mailem link potwierdzający połączenie konta. Otwórz go, aby dokończyć logowanie.",
+    "source_hash": "b251c8f3"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "Logowanie zostało anulowane. Możesz spróbować ponownie, kiedy tylko zechcesz.",
+    "source_hash": "b5f3d3ec"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "Logowanie za pomocą tego dostawcy jest nieprawidłowo skonfigurowane. Skontaktuj się z administratorem.",
+    "source_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "Jednokrotne logowanie dla tej domeny jest skonfigurowane, ale obecnie nie można go użyć. Skontaktuj się z administratorem swojej organizacji.",
+    "source_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "Jednokrotne logowanie dla tej domeny nie jest jeszcze aktywne, ponieważ domena nie ukończyła weryfikacji. Skontaktuj się z administratorem.",
+    "source_hash": "bd981480"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "Ta tożsamość nie jest połączona z kontem w tej domenie. Jeśli możesz zalogować się w tej domenie na konto należące do tej organizacji, połącz ją w sekcji Połączone tożsamości. W przeciwnym razie poproś właściciela organizacji o zaproszenie tej tożsamości SSO lub skontaktuj się z pomocą techniczną.",
+    "source_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "Nie udało się połączyć tej tożsamości w tej domenie. Rozpocznij łączenie z witryny, na której masz aktywną sesję; w domenie organizacji Twoje konto musi już należeć do tej organizacji.",
+    "source_hash": "d967c761"
+  }
+}

@@ -1,0 +1,161 @@
+# apps/web/core/controllers/health.rb
+#
+# frozen_string_literal: true
+
+require_relative 'base'
+
+module Core
+  module Controllers
+    class Health
+      include Base
+
+      def index
+        res['content-type'] = 'application/json'
+        res.body            = JSON.generate(
+          status: 'ok',
+          timestamp: Familia.now.to_i,
+          version: Onetime::VERSION,
+        )
+      end
+
+      # Advanced health check - detailed status of all connections
+      # Only accessible from localhost/private networks (via middleware)
+      def advanced
+        checks = {
+          keydb: check_keydb,
+          jobqueue: check_jobqueue,
+          authdb: check_authdb,
+          secret_verifier: check_secret_verifier,
+        }
+
+        # Job queue and auth database are optional - only count configured services
+        required_checks = checks.reject { |_, v| v[:status] == 'not_configured' }
+        overall_status  = required_checks.values.all? { |c| c[:status] == 'ok' } ? 'ok' : 'degraded'
+
+        res['content-type'] = 'application/json'
+        res.body            = JSON.generate(
+          status: overall_status,
+          timestamp: Familia.now,
+          version: Onetime::VERSION,
+          checks: checks,
+        )
+      end
+
+      private
+
+      def check_keydb
+        # Key-value database (Redis/Valkey) - test connection with PING
+        keydb_url = Familia.uri.to_s
+        result    = Familia.dbclient.ping
+
+        {
+          status: result == 'PONG' ? 'ok' : 'error',
+          url: mask_url(keydb_url),
+        }
+      rescue StandardError => ex
+        {
+          status: 'error',
+          url: mask_url(keydb_url),
+          error: ex.message,
+        }
+      end
+
+      def check_jobqueue
+        # Job queue (RabbitMQ) is optional - skip entirely if jobs are disabled
+        return { status: 'not_configured' } unless OT.conf.dig('jobs', 'enabled')
+
+        # Get URL from config first, then env
+        amqp_url = OT.conf.dig('jobs', 'rabbitmq_url') || ENV.fetch('RABBITMQ_URL', nil)
+        return { status: 'not_configured' } if amqp_url.nil? || amqp_url.empty?
+
+        require 'bunny'
+        conn = Bunny.new(amqp_url, connection_timeout: 5, read_timeout: 5)
+        conn.start
+
+        {
+          status: conn.open? ? 'ok' : 'error',
+          url: mask_url(amqp_url),
+          vhost: conn.vhost,
+        }
+      rescue LoadError
+        { status: 'not_configured' }
+      rescue StandardError => ex
+        {
+          status: 'error',
+          url: mask_url(amqp_url),
+          error: ex.message,
+        }
+      ensure
+        conn&.close if defined?(conn) && conn
+      end
+
+      # Boot-time SECRET verifier state (C10/QS-6). Reads the state the
+      # CheckSecretVerifier initializer cached at boot; only a mismatch
+      # degrades the top-level status.
+      #
+      # When boot cached :unavailable (datastore was down at boot), this
+      # process never verified that SECRET matches the datastore. Re-probe
+      # read-only here: if the datastore has since recovered, a wrong SECRET
+      # surfaces as a real mismatch rather than being silently dropped from
+      # required_checks while keydb reports ok. status never adopts, so a
+      # health poll can't paper over the "never verified" condition.
+      def check_secret_verifier
+        state = Onetime.secret_verifier_state
+        state = Onetime::SecretVerifier.status if state == :unavailable
+
+        case state
+        when :ok, :adopted
+          { status: 'ok', state: state.to_s }
+        when :mismatch
+          {
+            status: 'error',
+            state: 'mismatch',
+            error: 'SECRET does not match the datastore key verifier; existing secrets cannot be decrypted',
+          }
+        when :unavailable
+          # Still unreachable — keydb check above owns the connectivity failure;
+          # don't double-report the same outage.
+          { status: 'not_configured', state: 'unavailable' }
+        else
+          # nil: check skipped (site.secret_verifier_mode: off) or never ran.
+          # :unadopted (re-probe found no stored verifier) lands here too — no
+          # baseline to compare against is indistinguishable from first boot.
+          { status: 'not_configured' }
+        end
+      end
+
+      def check_authdb
+        # Auth database is optional (only in advanced auth mode)
+        return { status: 'not_configured' } unless defined?(Auth::Database)
+
+        connection = Auth::Database.connection
+        return { status: 'not_configured' } unless connection
+
+        db_url = Onetime.auth_config.database_url
+
+        {
+          status: connection.test_connection ? 'ok' : 'error',
+          url: mask_url(db_url),
+          mode: Onetime.auth_config.mode,
+        }
+      rescue StandardError => ex
+        {
+          status: 'error',
+          url: mask_url(db_url),
+          error: ex.message,
+        }
+      end
+
+      # Mask password in connection URLs for safe display
+      # Format: scheme://user:password@host:port/path -> scheme://user:****@host:port/path
+      # The shared redactor also masks any query string (which can carry
+      # ?password=) and redacts wider rather than leaking when the password
+      # contains "/", ":" or "@".
+      def mask_url(url)
+        return nil if url.nil? || url.empty?
+
+        Onetime::Utils.redact_uri_userinfo(url, keep_username: true, mask: '****')
+      end
+    end
+  end
+end

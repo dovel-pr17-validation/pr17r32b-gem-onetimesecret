@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "Enviar un secreto",
+    "source_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "Comparte información sensible de forma segura con nuestro equipo de soporte",
+    "source_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "Cargando...",
+    "source_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "Error al cargar la configuración",
+    "source_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "Función no disponible",
+    "source_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "Esta función está actualmente deshabilitada. Por favor contacta a soporte para asistencia.",
+    "source_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "Memo",
+    "source_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "Descripción breve (ej., Solicitud de restablecimiento de contraseña)",
+    "source_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "Ayúdanos a dirigir tu mensaje a la persona correcta",
+    "source_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "Enviar a",
+    "source_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "Selecciona un destinatario",
+    "source_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "Selecciona un destinatario para este secreto",
+    "source_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "Elige quién recibirá este mensaje seguro",
+    "source_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "No hay destinatarios disponibles",
+    "source_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "Información secreta",
+    "source_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "Pega información sensible aquí (contraseñas, claves, etc.)",
+    "source_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "Esta información será cifrada y solo podrá verse una vez",
+    "source_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "Enviar secreto",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "Enviar secreto",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "Enviando...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "Enviando...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "Limpiar formulario",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "Limpiar formulario",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "Enviado exitosamente",
+    "source_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "Tu mensaje seguro ha sido entregado.",
+    "source_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "ID de referencia",
+    "source_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "¿Qué pasa después?",
+    "source_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "El destinatario podrá ver este secreto solo una vez. Después de verlo, el secreto será eliminado permanentemente.",
+    "source_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "Enviar otro secreto",
+    "source_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "Comparte información sensible de forma segura",
+    "source_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "Mantén las contraseñas y datos privados fuera de correos y chats",
+    "source_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "Guarda tu {receipt} para tus registros.",
+    "source_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "recibo",
+    "source_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "Se requiere mejorar el plan",
+    "source_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "Esta función requiere mejorar el plan. Ponte en contacto con el propietario de la cuenta para habilitar los secretos entrantes.",
+    "source_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "La nota debe tener {max} caracteres o menos",
+    "source_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "El contenido del secreto es obligatorio",
+    "source_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "Selecciona un destinatario",
+    "source_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "La función de secretos entrantes no está habilitada",
+    "source_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "Revisa el formulario en busca de errores",
+    "source_hash": "9056e064"
+  }
+}

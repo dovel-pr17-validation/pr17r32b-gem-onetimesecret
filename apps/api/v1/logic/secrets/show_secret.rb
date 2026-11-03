@@ -1,0 +1,195 @@
+# apps/api/v1/logic/secrets/show_secret.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/security/passphrase_rate_limiter'
+
+module V1::Logic
+  module Secrets
+
+    using Familia::Refinements::TimeLiterals
+
+    # V1 compat: uses load_owner (not load_customer) and
+    # decrypted_secret_value for decryption.
+    class ShowSecret < V1::Logic::Base
+      include Onetime::Security::PassphraseRateLimiter
+      include ActorAttribution
+
+      attr_reader :key, :passphrase, :continue
+      attr_reader :secret, :show_secret, :secret_value, :is_truncated,
+                  :original_size, :verification, :correct_passphrase,
+                  :display_lines, :one_liner, :is_owner, :has_passphrase,
+                  :secret_key, :share_domain
+
+      def process_params
+        @key = sanitize_identifier(params['key'].to_s)
+        @secret = Onetime::Secret.load key
+        @passphrase = params['passphrase'].to_s
+        @continue = params['continue'].to_s == 'true'
+      end
+
+      def raise_concerns
+        raise OT::MissingSecret if secret.nil? || !secret.viewable?
+
+        # Check passphrase rate limit before allowing passphrase attempts
+        # This prevents brute-force attacks on secrets with passphrases
+        check_passphrase_rate_limit!(secret.identifier, passphrase_client_ip) if secret.has_passphrase?
+      end
+
+      def process
+        # Verify the passphrase ONLY on a committed reveal (continue=true): a
+        # metadata-only request must never learn whether a guess was right, and
+        # never accrues or clears rate-limit state -- nothing was checked.
+        # Folding continue in here (rather than only into show_secret) is what
+        # closes the oracle: correct_passphrase is false for every
+        # metadata-only request, right guess or wrong.
+        @correct_passphrase = continue && (!secret.has_passphrase? || secret.passphrase?(passphrase))
+        @show_secret = secret.viewable? && correct_passphrase
+        @verification = secret.verification.to_s == "true"
+        @secret_key = @secret.identifier # Use identifier, not deprecated .key field
+
+        # Track passphrase attempts for rate limiting. Only non-empty
+        # submissions on a committed reveal count: the initial preview of a
+        # passphrase-protected secret sends an empty passphrase, and a
+        # continue=false request never had its passphrase checked at all, so
+        # neither must accrue attempts.
+        if continue && secret.has_passphrase? && !passphrase.empty?
+          if correct_passphrase
+            # Clear rate limit on successful passphrase
+            clear_passphrase_rate_limit!(secret.identifier, passphrase_client_ip)
+          else
+            # Record failed attempt
+            record_failed_passphrase_attempt!(secret.identifier, passphrase_client_ip)
+          end
+        end
+
+        owner = secret.load_owner
+
+        if show_secret
+          # Legacy v1 ordering: the plaintext is decrypted here, BEFORE the
+          # atomic revealed! claim below. A losing racer never sends it -- the
+          # claim gate suppresses @secret_value -- but it is still computed in
+          # memory. v2 avoids this by decrypting only inside the won claim
+          # (Secret#reveal!); v1 is maintenance-only, so the decoupled ordering
+          # is kept by design.
+          @secret_value = secret.decrypted_secret_value(passphrase_input: passphrase)
+          @is_truncated = secret.truncated?
+          @original_size = secret.respond_to?(:original_size) ? secret.original_size : nil
+
+          if verification
+            if owner.nil?
+              raise_form_error "Unable to verify account"
+            elsif cust.nil? || cust.anonymous? || (cust.custid == owner.custid && !owner.verified?)
+              owner.verified! "true"
+              # Skip for stateless auth. The v1 controllers pass no session at
+              # all (V1::ControllerBase#authorized), so sess is nil here.
+              sess.clear unless sess.nil? || sess.empty?
+              @revealed = secret.revealed!(actor_context: lifecycle_actor_context(secret))
+            else
+              raise_form_error "You can't verify an account when you're already logged in."
+            end
+          else
+
+            # Immediately mark the secret as revealed, so that it
+            # can't be shown again. If there's a network failure
+            # that prevents the client from receiving the response,
+            # we're not able to show it again. This is a feature
+            # not a bug.
+            #
+            # NOTE: This destructive action is called before the
+            # response is returned or even fully generated (which
+            # happens in success_data). This is a feature, not a
+            # bug but it means that all return values need to be
+            # pluck out of the secret object before this is called.
+            @revealed = secret.revealed!(actor_context: lifecycle_actor_context(secret))
+
+            # Gate the shared-secret metric on winning the atomic claim:
+            # revealed! returns false to a request that lost the burn-after-
+            # reading race, which revealed nothing and must not inflate the
+            # owner's counter (mirrors the v2 controllers).
+            owner.increment_field(:secrets_shared) if @revealed && owner && !owner.anonymous?
+            # TODO:
+            # Onetime::Customer.global.increment_field :secrets_shared
+
+          end
+
+          # revealed! performs an atomic claim: it returns true only for the
+          # single caller that won the burn-after-reading race. If a concurrent
+          # request beat us to it, we must NOT disclose the plaintext -- suppress
+          # it so success_data omits secret_value. Prevents a double-reveal.
+          unless @revealed
+            @show_secret  = false
+            @secret_value = nil
+          end
+
+        end
+
+        domain = if domains_enabled && !secret.share_domain.to_s.empty?
+          secret.share_domain
+        else
+          site_host # via LogicHlpers#site_host
+        end
+
+        @share_domain = [base_scheme, domain].join
+        @has_passphrase = secret.has_passphrase?
+        @display_lines = calculate_display_lines
+        @is_owner = secret.owner?(cust)
+        @one_liner = one_liner
+
+        # A metadata GET must not advance the secret's lifecycle state (#3633).
+        # Previously this flipped :new -> :previewed on every view; the secret
+        # now stays :new until a genuine reveal/burn. Downstream guards
+        # (viewable?, burned!, win_reveal_claim!) already accept :new, so no
+        # behavior depends on the removed transition.
+      end
+
+      def success_data
+        return nil unless secret
+        # correct_passphrase is not serialized: the verdict is a passphrase
+        # oracle. See #process.
+        ret = {
+          record: secret.safe_dump,
+          details: {
+            continue: @continue,
+            is_owner: @is_owner,
+            show_secret: @show_secret,
+            display_lines: @display_lines,
+            one_liner: @one_liner,
+          },
+        }
+
+        # Add the secret_value only if the secret is viewable
+        if show_secret && secret_value
+          ret[:record][:secret_value] = secret_value
+        end
+
+        ret
+      end
+
+      def calculate_display_lines
+        v = secret_value.to_s
+        ret = ((80+v.size)/80) + (v.scan(/\n/).size) + 3
+        ret = ret > 30 ? 30 : ret
+      end
+
+      def one_liner
+        return if secret_value.to_s.empty? # return nil when the value is empty
+        secret_value.to_s.scan(/\n/).size.zero?
+      end
+
+      private
+
+      # Client IP for the per-secret+IP passphrase rate-limit tier (M-8). V1
+      # logic is constructed with (sess, cust, params, locale) and has no
+      # strategy_result / per-request IP plumbing, so this is nil today and the
+      # limiter falls back to the global per-secret backstop. Kept as a single
+      # seam so v1 can adopt the per-IP tier if an IP is ever threaded in.
+      def passphrase_client_ip
+        return unless respond_to?(:strategy_result)
+
+        strategy_result&.metadata&.[](:ip)
+      end
+    end
+
+  end
+end

@@ -1,0 +1,669 @@
+# spec/integration/full/auth_mode_spec.rb
+#
+# frozen_string_literal: true
+
+# Integration tests for full authentication mode endpoints
+#
+# These tests verify Rodauth-based authentication in full mode:
+# - Login/logout flows
+# - Password reset
+# - Session management
+# - JSON API compatibility
+
+require_relative '../integration_spec_helper'
+require_relative '../../support/factories/auth_account_factory'
+require 'json'
+require 'familia'
+
+RSpec.describe 'Full Mode - Auth Endpoints', type: :integration do
+  include AuthTestConstants
+  include Rack::Test::Methods
+
+  def json_response
+    response = JSON.parse(last_response.body)
+    # Handle wrapped responses: {"data": "{...}", "success": true}
+    if response.is_a?(Hash) && response['data'].is_a?(String)
+      JSON.parse(response['data'])
+    else
+      response
+    end
+  end
+
+  # Headers for JSON API requests (Rodauth json-only mode requires both)
+  def json_request_headers
+    {
+      'HTTP_ACCEPT' => 'application/json',
+      'CONTENT_TYPE' => 'application/json'
+    }
+  end
+
+  # Establish a session and retrieve CSRF token
+  # Clear Content-Type before GET (Rack::Test persists it after POST)
+  def ensure_csrf_token
+    return @csrf_token if defined?(@csrf_token) && @csrf_token
+
+    header 'Content-Type', nil  # Clear Content-Type from previous POST requests
+    header 'Accept', 'application/json'
+    get '/auth'
+    @csrf_token = last_response.headers['X-CSRF-Token']
+    @csrf_token
+  end
+
+  # Fetch a fresh CSRF token (ignores cached value)
+  # Use after login/account-creation (session regeneration invalidates prior tokens)
+  def fetch_fresh_csrf_token
+    header 'Content-Type', nil  # Clear Content-Type from previous POST requests
+    header 'Accept', 'application/json'
+    get '/auth'
+    @csrf_token = last_response.headers['X-CSRF-Token']
+    @csrf_token
+  end
+
+  # Helper to post JSON data to Rodauth endpoints (with CSRF token)
+  #
+  # Auth routes require CSRF tokens. This method establishes a session first,
+  # extracts the CSRF token, and includes it in POST requests.
+  def post_json(path, data = {}, extra_env = {})
+    csrf_token = ensure_csrf_token
+
+    env = json_request_headers.merge(extra_env)
+    env['HTTP_X_CSRF_TOKEN'] = csrf_token if csrf_token
+
+    post path, data.merge(shrimp: csrf_token).to_json, env
+  end
+
+  # Helper for non-JSON POST with CSRF token and JSON headers
+  # (alias for post_json for clarity in tests)
+  def csrf_post_json(path, data = {})
+    post_json(path, data)
+  end
+
+  # Helper for non-JSON POST with CSRF token (form data)
+  #
+  # For routes that don't expect JSON, use this to send form data with CSRF.
+  def csrf_post_form(path, data = {}, extra_env = {})
+    csrf_token = ensure_csrf_token
+
+    env = extra_env.dup
+    env['HTTP_X_CSRF_TOKEN'] = csrf_token if csrf_token
+
+    post path, data.merge(shrimp: csrf_token), env
+  end
+
+  # POST JSON using a pre-stored CSRF token (for authenticated session requests)
+  # Use after login when session has been regenerated and you've fetched a fresh token
+  def post_json_with_token(path, data = {})
+    csrf_token = @csrf_token  # Use stored token from fetch_fresh_csrf_token
+
+    env = json_request_headers.dup
+    env['HTTP_X_CSRF_TOKEN'] = csrf_token if csrf_token
+
+    post path, data.merge(shrimp: csrf_token).to_json, env
+  end
+
+  let(:dbclient) do
+    Familia.dbclient
+  end
+
+  let(:test_email) { 'testuser@example.com' }
+  let(:test_password) { 'SecureP@ssw0rd123' }
+
+  # Helper to create a test customer (Redis) and SQL account (Rodauth)
+  #
+  # For full auth mode, Rodauth uses SQL accounts table while the app uses
+  # Redis-based Customer model. Both must be created and linked via external_id.
+  #
+  def create_test_customer(email: test_email, password: test_password)
+    require 'argon2'
+
+    # Get SQL database connection
+    sql_db = Auth::Database.connection
+
+    # Clean up any existing account with this email in SQL
+    # Must delete from all tables with foreign keys to accounts first
+    existing_account = sql_db[:accounts].where(email: email).first
+    if existing_account
+      account_id = existing_account[:id]
+
+      # Delete from tables using 'id' as foreign key (Rodauth convention for 1:1 tables)
+      # These tables have a 1:1 relationship with accounts - the id IS the account_id
+      tables_with_id_fk = %i[
+        account_password_hashes
+        account_otp_keys
+        account_otp_unlocks
+        account_webauthn_user_ids
+        account_email_auth_keys
+        account_lockouts
+        account_login_failures
+        account_password_reset_keys
+        account_remember_keys
+        account_verification_keys
+        account_login_change_keys
+        account_session_keys
+        account_sms_codes
+        account_activity_times
+        account_password_change_times
+        account_recovery_codes
+      ]
+
+      # Delete from tables using 'account_id' as foreign key (Rodauth convention for 1:many tables)
+      # These tables can have multiple rows per account
+      tables_with_account_id_fk = %i[
+        account_authentication_audit_logs
+        account_active_session_keys
+        account_previous_password_hashes
+        account_jwt_refresh_keys
+        account_webauthn_keys
+      ]
+
+      tables_with_id_fk.each do |table|
+        next unless sql_db.table_exists?(table)
+
+        sql_db[table].where(id: account_id).delete
+      end
+
+      tables_with_account_id_fk.each do |table|
+        next unless sql_db.table_exists?(table)
+
+        sql_db[table].where(account_id: account_id).delete
+      end
+
+      sql_db[:accounts].where(id: account_id).delete
+    end
+
+    # Create Redis customer first
+    if Onetime::Customer.email_exists?(email)
+      existing = Onetime::Customer.find_by_email(email)
+      existing&.destroy!
+    end
+
+    cust = Onetime::Customer.create!(email)
+    cust.verified = 'true'
+    cust.role = 'customer'
+    cust.save
+
+    # Create SQL account for Rodauth
+    # status_id: 2 = Verified (see account_statuses table)
+    account_id = sql_db[:accounts].insert(
+      email: email,
+      status_id: AuthTestConstants::STATUS_VERIFIED
+    )
+
+    # Link SQL account to Redis customer via external_id
+    # The external_identity feature with autocreate mode adds this column
+    sql_db[:accounts].where(id: account_id).update(external_id: cust.extid)
+
+    # Hash password with Argon2 (same params as test config)
+    argon2 = Argon2::Password.new(t_cost: 1, m_cost: 5, p_cost: 1)
+    password_hash = argon2.create(password)
+
+    # Store password hash in account_password_hashes table
+    sql_db[:account_password_hashes].insert(
+      id: account_id,
+      password_hash: password_hash
+    )
+
+    cust
+  end
+
+  def app
+    # MUST memoize - calling generate_rack_url_map multiple times corrupts app state
+    @app ||= Onetime::Application::Registry.generate_rack_url_map
+  end
+
+  before(:all) do
+    # Set full mode before loading the application
+    ENV['AUTHENTICATION_MODE'] = 'full'
+
+    # Reset registry to clear state from previous test runs
+    Onetime::Application::Registry.reset!
+
+    # Reload auth config to pick up AUTHENTICATION_MODE env var
+    Onetime.auth_config.reload!
+
+    # Boot application (skip if already booted by FullModeSuiteDatabase.setup!)
+    Onetime.boot! :test unless Onetime.ready?
+
+    # Prepare the application registry
+    Onetime::Application::Registry.prepare_application_registry
+  end
+
+  after(:all) do
+    ENV.delete('AUTHENTICATION_MODE')
+  end
+
+  describe 'POST /auth/login' do
+    context 'with invalid credentials' do
+      it 'returns 400 or 401 status' do
+        post_json '/auth/login', { login: 'nonexistent@example.com', password: 'wrongpassword' }
+
+        # 400 = Bad Request (Rodauth default for invalid login)
+        # 401 = Unauthorized (alternative authentication failure response)
+        expect([400, 401]).to include(last_response.status)
+      end
+
+      it 'returns JSON response' do
+        post_json '/auth/login', { login: 'nonexistent@example.com', password: 'wrongpassword' }
+
+        expect(last_response.headers['Content-Type']).to include('application/json')
+      end
+
+      it 'returns error structure' do
+        post_json '/auth/login', { login: 'nonexistent@example.com', password: 'wrongpassword' }
+
+        response = json_response
+        expect(response).to have_key('error')
+        expect(response['error']).to be_a(String)
+      end
+
+      it 'returns field-error tuple' do
+        post_json '/auth/login', { login: 'nonexistent@example.com', password: 'wrongpassword' }
+
+        response = json_response
+        expect(response).to have_key('field-error')
+        expect(response['field-error']).to be_an(Array)
+        expect(response['field-error'].length).to eq(2)
+        # Rodauth uses 'login' as the field name, not 'email'
+        expect(response['field-error'][0]).to eq('login')
+        # Rodauth returns "no matching login" for non-existent accounts
+        expect(response['field-error'][1]).to eq('no matching login')
+      end
+    end
+
+    context 'without JSON Accept header' do
+      it 'rejects non-JSON requests in JSON-only mode' do
+        # Use csrf_post_form to include CSRF token (required for all POST routes)
+        # but without JSON content-type/accept headers
+        csrf_post_form '/auth/login', { login: 'test@example.com', password: 'password' }
+
+        # Rodauth is configured with only_json? true, so non-JSON requests return 400
+        expect(last_response.status).to eq(400)
+      end
+    end
+  end
+
+  describe 'POST /auth/create-account' do
+    context 'with incomplete data' do
+      it 'returns validation error (400 or 422)' do
+        post_json '/auth/create-account', { login: 'incomplete@example.com' }
+
+        # Missing password should return 400 (bad request) or 422 (unprocessable)
+        expect(last_response.status).to eq(400).or eq(422)
+        expect(last_response.headers['Content-Type']).to include('application/json')
+      end
+    end
+
+    # The SPA signup form (src/shared/composables/useAuth.ts#signup) sends one
+    # email field and one password field: no `login-confirm`, no
+    # `password-confirm`. Rodauth requires `login-confirm` by default and only
+    # verify_account turns that off, so a deployment with verify_account
+    # disabled rejected every SPA signup with 422 "logins do not match" until
+    # account_management.rb stated require_login_confirmation? false.
+    context 'with the single email field the SPA sends, verify_account disabled' do
+      let(:spa_email) { "spa-signup-#{SecureRandom.hex(8)}@example.com" }
+
+      it 'creates the account' do
+        # The branch under test. RACK_ENV=test turns verify_account off
+        # (etc/defaults/auth.defaults.yaml); if that changes, this spec no
+        # longer covers the verify-disabled config and must say so.
+        expect(Onetime.auth_config.verify_account_enabled?).to be(false)
+
+        post_json '/auth/create-account', { login: spa_email, password: test_password }
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_response).to include('success', 'next_action' => 'sign_in')
+        expect(json_response).not_to have_key('field-error')
+        expect(Auth::Database.connection[:accounts].where(email: spa_email).count).to eq(1)
+      end
+    end
+
+    # An invite signup posted straight to this route. (The SPA's invite form
+    # posts to /api/invite/:token/signup instead, which sets up the session.)
+    # after_create_account opens the account, and create_account_autologin?
+    # is false, so this route sets up no session of any kind: no account_id
+    # for Rodauth, no active-session row, no app-level `authenticated` flag.
+    # next_action therefore names sign-in
+    # (apps/web/auth/config/features/account_management.rb).
+    context 'with a valid invite_token' do
+      let(:invited_email) { "invitee-#{SecureRandom.hex(8)}@example.com" }
+      let(:invite_token) do
+        owner_email  = "invite-owner-#{SecureRandom.hex(8)}@example.com"
+        owner        = Onetime::Customer.create!(email: owner_email, role: 'customer')
+        organization = Onetime::Organization.create!('Invite JSON Org', owner, owner_email, is_default: true)
+        Onetime::OrganizationMembership.create_invitation!(
+          organization: organization, email: invited_email, inviter: owner, role: 'member',
+        ).token
+      end
+
+      it 'opens the account, sets up no session, and answers sign_in', :aggregate_failures do
+        post_json '/auth/create-account', { login: invited_email, password: test_password, invite_token: invite_token }
+
+        expect(last_response.status).to eq(200), last_response.body
+        expect(json_response).to include('success', 'next_action' => 'sign_in')
+        account_row = Auth::Database.connection[:accounts].where(email: invited_email).first
+        expect(account_row[:status_id]).to eq(AuthTestConstants::STATUS_VERIFIED)
+        expect(last_request.env['rack.session']['account_id']).to be_nil
+        expect(last_request.env['rack.session']['authenticated']).not_to be(true)
+        expect(Auth::Database.connection[:account_active_session_keys].where(account_id: account_row[:id]).count)
+          .to eq(0)
+      end
+    end
+  end
+
+  describe 'POST /logout (without authentication)' do
+    it 'succeeds gracefully (idempotent)' do
+      csrf_post_json '/logout', {}
+
+      # Logout is idempotent - succeeds even if not authenticated
+      expect(last_response.status).to eq(200).or eq(302)
+    end
+  end
+
+  describe 'POST /logout (WITH authentication)' do
+    # NOTE: Session regeneration after login invalidates prior CSRF tokens.
+    # Must fetch fresh token AFTER login completes.
+
+    around(:each) do |example|
+      dbclient.flushdb
+      @test_cust = create_test_customer
+      example.run
+    ensure
+      @test_cust&.destroy! if @test_cust
+      dbclient.flushdb
+    end
+
+    it 'successfully logs out with valid session' do
+      # Login first
+      post_json '/auth/login', { login: test_email, password: test_password }
+      expect(last_response.status).to eq(200)
+
+      # Fetch fresh CSRF token after login (session regeneration invalidates prior tokens)
+      fetch_fresh_csrf_token
+
+      # Logout using fresh token
+      post_json_with_token '/logout', {}
+
+      expect([200, 302]).to include(last_response.status),
+        "Expected 200/302 but got #{last_response.status}: #{last_response.body[0..200]}"
+    end
+
+    it 'is idempotent - second logout succeeds gracefully' do
+      # Login first
+      post_json '/auth/login', { login: test_email, password: test_password }
+      expect(last_response.status).to eq(200)
+
+      # Fetch fresh CSRF token after login
+      fetch_fresh_csrf_token
+
+      # First logout
+      post_json_with_token '/logout', {}
+      expect([200, 302]).to include(last_response.status)
+
+      # Fetch fresh token after first logout (session may have changed)
+      fetch_fresh_csrf_token
+
+      # Second logout - should succeed gracefully (idempotent)
+      post_json_with_token '/logout', {}
+      expect([200, 302]).to include(last_response.status)
+    end
+  end
+
+  describe 'POST /auth/logout (without authentication)' do
+    it 'succeeds gracefully (idempotent)' do
+      post_json '/auth/logout'
+
+      # Logout is idempotent - succeeds even if not authenticated
+      expect(last_response.status).to eq(200).or eq(302)
+    end
+
+    context 'with JSON request' do
+      it 'returns JSON success response' do
+        post_json '/auth/logout'
+
+        expect(last_response.status).to eq(200).or eq(302)
+        expect(last_response.headers['Content-Type']).to include('application/json')
+      end
+    end
+  end
+
+  describe 'POST /auth/logout (WITH authentication)' do
+    # NOTE: Session regeneration after login invalidates prior CSRF tokens.
+    # Must fetch fresh token AFTER login completes.
+
+    around(:each) do |example|
+      dbclient.flushdb
+      @test_cust = create_test_customer
+      example.run
+    ensure
+      @test_cust&.destroy! if @test_cust
+      dbclient.flushdb
+    end
+
+    it 'successfully logs out with valid session' do
+      # Login first
+      post_json '/auth/login', { login: test_email, password: test_password }
+      expect(last_response.status).to eq(200)
+
+      # Fetch fresh CSRF token after login (session regeneration invalidates prior tokens)
+      fetch_fresh_csrf_token
+
+      # Logout using fresh token
+      post_json_with_token '/auth/logout', {}
+
+      expect([200, 302]).to include(last_response.status),
+        "Expected 200/302 but got #{last_response.status}: #{last_response.body[0..200]}"
+    end
+
+    it 'is idempotent - second logout succeeds gracefully' do
+      # Login first
+      post_json '/auth/login', { login: test_email, password: test_password }
+      expect(last_response.status).to eq(200)
+
+      # Fetch fresh CSRF token after login
+      fetch_fresh_csrf_token
+
+      # First logout
+      post_json_with_token '/auth/logout', {}
+      expect([200, 302]).to include(last_response.status)
+
+      # Fetch fresh token after first logout (session may have changed)
+      fetch_fresh_csrf_token
+
+      # Second logout - should succeed gracefully (idempotent)
+      post_json_with_token '/auth/logout', {}
+      expect([200, 302]).to include(last_response.status)
+    end
+  end
+
+  describe 'POST /auth/reset-password-request' do
+    it 'accepts password reset request' do
+      post_json '/auth/reset-password-request', { login: 'reset@example.com' }
+
+      # Rodauth behavior for reset-password-request:
+      # - 200: Request accepted (email may or may not be sent)
+      # - 401: Authentication required before reset (Rodauth config dependent)
+      # - 422: Validation error
+      # Uniform responses prevent user enumeration
+      expect(last_response.status).to satisfy { |status| [200, 401, 422].include?(status) }
+      expect(last_response.headers['Content-Type']).to include('application/json')
+    end
+  end
+
+  describe 'POST /auth/reset-password/:key' do
+    it 'rejects invalid reset token' do
+      post_json '/auth/reset-password/testtoken123',
+        { newpassword: 'newpassword123', 'password-confirm': 'newpassword123' }
+
+      # Invalid token should return 400 (bad request), 404 (not found), or 422 (invalid)
+      expect(last_response.status).to satisfy { |status| [400, 404, 422].include?(status) }
+      expect(last_response.headers['Content-Type']).to include('application/json')
+    end
+  end
+
+  describe 'Response Format Compatibility' do
+    it 'uses Rodauth-compatible JSON format for errors' do
+      post_json '/auth/login', { login: 'test@example.com', password: 'wrong' }
+
+      response = json_response
+
+      # Should have either 'success' or 'error' key
+      expect(response.keys & ['success', 'error']).not_to be_empty
+
+      # If error, should have field-error tuple
+      if response.key?('error')
+        expect(response).to have_key('field-error')
+        expect(response['field-error']).to be_an(Array)
+      end
+    end
+  end
+
+  describe 'Session Lifecycle (Full Authentication Flow)' do
+    around(:each) do |example|
+      # Clear database before test
+      dbclient.flushdb
+
+      # Create test customer for each test
+      @test_cust = create_test_customer
+
+      # Run the test
+      example.run
+    ensure
+      # Clean up test customer and database
+      @test_cust&.destroy! if @test_cust
+      dbclient.flushdb
+    end
+
+    context 'successful authentication' do
+      it 'login returns 200 with success message' do
+        post_json '/auth/login', { login: test_email, password: test_password }
+
+        expect(last_response.status).to eq(200)
+        expect(last_response.headers['Content-Type']).to include('application/json')
+
+        response = json_response
+        expect(response).to have_key('success')
+        expect(response['success']).to be_a(String)
+      end
+
+      it 'sets session cookie on successful login' do
+        # Clear any existing session state to ensure Set-Cookie is sent
+        clear_cookies
+
+        post_json '/auth/login', { login: test_email, password: test_password }
+
+        expect(last_response.status).to eq(200)
+
+        # Verify session is working by making a follow-up request
+        # Rack::Test automatically persists cookies across requests
+        get '/auth/account'
+
+        # A working session should return 200 with account info
+        expect(last_response.status).to eq(200)
+      end
+
+      it 'session persists across requests' do
+        # Login
+        post_json '/auth/login', { login: test_email, password: test_password }
+        expect(last_response.status).to eq(200)
+
+        # Fetch fresh CSRF token after login (session regeneration)
+        fetch_fresh_csrf_token
+
+        # Clear Content-Type before GET (Rack::Test persists it after POST)
+        header 'Content-Type', nil
+        header 'Accept', 'application/json'
+
+        # First request after login
+        get '/auth/account'
+        first_status = last_response.status
+
+        # Second request - session should still be valid
+        get '/auth/account'
+        second_status = last_response.status
+
+        # Both requests should return 200
+        expect(first_status).to eq(200)
+        expect(second_status).to eq(200)
+      end
+
+      it 'logout destroys the session' do
+        # Login
+        post_json '/auth/login', { login: test_email, password: test_password }
+        expect(last_response.status).to eq(200)
+
+        # Fetch fresh CSRF token after login (session regeneration)
+        fetch_fresh_csrf_token
+
+        # Verify session works before logout
+        header 'Content-Type', nil
+        header 'Accept', 'application/json'
+        get '/auth/account'
+        expect(last_response.status).to eq(200)
+
+        # Logout using fresh token
+        post_json_with_token '/auth/logout', {}
+        expect([200, 302]).to include(last_response.status)
+
+        # Session should be destroyed - subsequent requests need new auth
+        # Clear cached CSRF token since session changed
+        @csrf_token = nil
+      end
+    end
+
+    context 'Session storage' do
+      it 'stores session in kv database after login' do
+        post_json '/auth/login', { login: test_email, password: test_password }
+
+        expect(last_response.status).to eq(200)
+
+        # Check kv database for session keys
+        session_keys = dbclient.keys('*session*')
+        expect(session_keys).not_to be_empty
+      end
+
+      it 'removes session from kv database after logout' do
+        # Login
+        post_json '/auth/login', { login: test_email, password: test_password }
+
+        # Verify session exists in kv database
+        session_keys_before = dbclient.keys('*session*')
+        expect(session_keys_before).not_to be_empty
+
+        # Logout - Rack::Test maintains cookies automatically
+        post_json '/auth/logout'
+
+        # Verify session removed from kv database
+        # Note: Rack session middleware might keep empty session, so check for authenticated data
+        session_keys_after = dbclient.keys('*session*')
+
+        # Session should either be deleted or cleared (no authenticated_at).
+        # Only the rack session blob is a plain string; the per-session sidecar
+        # (session_metadata:* hash) and the customer active_sessions index
+        # (sorted set) also match '*session*' but are not GET-able — skip them.
+        if session_keys_after.any?
+          session_keys_after.each do |key|
+            next unless dbclient.type(key) == 'string'
+
+            session_data = dbclient.get(key)
+            expect(session_data).not_to include('authenticated_at') if session_data
+          end
+        end
+      end
+    end
+
+    context 'session authentication state' do
+      it 'sets authenticated_at timestamp on login' do
+        post_json '/auth/login', { login: test_email, password: test_password }
+
+        expect(last_response.status).to eq(200)
+
+        # Make another request to verify session state
+        # Rack::Test automatically persists cookies across requests
+        get '/auth/account'
+
+        # The session should be authenticated
+        expect(last_response.status).to eq(200)
+      end
+    end
+  end
+end

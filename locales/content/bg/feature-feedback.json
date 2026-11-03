@@ -1,0 +1,74 @@
+{
+  "web.feedback.your_feedback": {
+    "text": "Вашата обратна връзка",
+    "source_hash": "cdb1c0a5"
+  },
+  "web.feedback.all_feedback_welcome": {
+    "text": "Всякаква обратна връзка е добре дошла!",
+    "source_hash": "c57d3006"
+  },
+  "web.feedback.help_us_improve": {
+    "text": "Помогнете ни да се подобрим",
+    "source_hash": "f35439c4"
+  },
+  "web.feedback.close_feedback_modal": {
+    "text": "Затвори прозореца за обратна връзка",
+    "source_hash": "41689bb4"
+  },
+  "web.feedback.share_your_feedback": {
+    "text": "Споделете обратната си връзка",
+    "source_hash": "6d62dfbd"
+  },
+  "web.feedback.delano_mandelbaum": {
+    "text": "Delano Mandelbaum",
+    "source_hash": "6da0b72b"
+  },
+  "web.feedback.delano": {
+    "text": "Delano",
+    "source_hash": "f58154f7"
+  },
+  "web.feedback.help_content_goes_here": {
+    "text": "Съдържанието за помощ се въвежда тук.",
+    "source_hash": "796979ea"
+  },
+  "web.feedback.founder_note_line1": {
+    "text": "Чета всяка обратна връзка, която идва тук. Така разбирам върху какво да отделя време.",
+    "source_hash": "8b430d93"
+  },
+  "web.feedback.founder_note_line2": {
+    "text": "Ако нещо не е наред или имате идеи как трябва да работи, това е точното място.",
+    "source_hash": "d4b8f073"
+  },
+  "web.feedback.open_feedback_form": {
+    "text": "Отвори формуляра за обратна връзка",
+    "source_hash": "acd8409b"
+  },
+  "web.feedback.enter_your_feedback": {
+    "text": "Въведете обратната си връзка",
+    "source_hash": "1bb310f4"
+  },
+  "web.feedback.send_feedback": {
+    "text": "Изпрати обратна връзка",
+    "source_hash": "8235980b"
+  },
+  "web.feedback.sending_ellipses": {
+    "text": "Изпращане...",
+    "source_hash": "286a3af7"
+  },
+  "web.feedback.reason_email_change_unauthorized": {
+    "text": "Изглежда, че съобщавате за неоторизирана промяна на имейла на вашия акаунт. Моля, опишете какво се е случило и ние ще проучим незабавно.",
+    "source_hash": "00e56551"
+  },
+  "web.feedback.anonymous_no_reply": {
+    "text": "Забележка: ако желаете отговор, моля, подпишете се или включете имейл адрес в съобщението.",
+    "source_hash": "c984f705"
+  },
+  "web.feedback.characters_remaining": {
+    "text": "Остават {count} знака",
+    "source_hash": "8d796f40"
+  },
+  "web.feedback.character_limit_reached": {
+    "text": "Достигнат е лимитът на знаците",
+    "source_hash": "031e9310"
+  }
+}

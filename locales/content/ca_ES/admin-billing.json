@@ -1,0 +1,362 @@
+{
+  "web.admin.billing.title": {
+    "text": "Catàleg de facturació",
+    "source_hash": "bfde7e68"
+  },
+  "web.admin.billing.description": {
+    "text": "Vista de només lectura dels plans configurats i els seus drets, i qualsevol desviació respecte al catàleg en directe sincronitzat amb Stripe.",
+    "source_hash": "05d5b332"
+  },
+  "web.admin.billing.retry": {
+    "text": "Torna-ho a provar",
+    "source_hash": "942087cc"
+  },
+  "web.admin.billing.loadError": {
+    "text": "No s'ha pogut carregar el catàleg de facturació.",
+    "source_hash": "c3110f77"
+  },
+  "web.admin.billing.localConfigWarning": {
+    "text": "La memòria cau de plans sincronitzats amb Stripe és buida, de manera que no es poden avaluar els plans en directe ni la desviació. Es mostra només el catàleg configurat (billing.yaml) — habitual en desenvolupament o quan Stripe no està configurat.",
+    "source_hash": "905d95f8"
+  },
+  "web.admin.billing.inSync": {
+    "text": "Sincronitzat",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.driftCount": {
+    "text": "Diferències: {count}",
+    "source_hash": "166538f5"
+  },
+  "web.admin.billing.inSyncDetail": {
+    "text": "El catàleg configurat coincideix amb els plans en directe. No s'ha detectat cap desviació.",
+    "source_hash": "57ab60a6"
+  },
+  "web.admin.billing.columns.planid": {
+    "text": "ID del pla",
+    "source_hash": "1f0d4dc6"
+  },
+  "web.admin.billing.columns.name": {
+    "text": "Nom",
+    "source_hash": "dcd1d522"
+  },
+  "web.admin.billing.columns.tier": {
+    "text": "Nivell",
+    "source_hash": "cb9e8664"
+  },
+  "web.admin.billing.columns.status": {
+    "text": "Estat",
+    "source_hash": "920e413c"
+  },
+  "web.admin.billing.diff.title": {
+    "text": "Diferències del pla: {planid}",
+    "source_hash": "bc86e5f7"
+  },
+  "web.admin.billing.diff.subtitle": {
+    "text": "Catàleg configurat (billing.yaml) vs pla en directe sincronitzat amb Stripe, un al costat de l'altre.",
+    "source_hash": "d92e93ae"
+  },
+  "web.admin.billing.diff.config": {
+    "text": "Configurat (billing.yaml)",
+    "source_hash": "6bf2ff04"
+  },
+  "web.admin.billing.diff.live": {
+    "text": "En directe (memòria cau de Stripe)",
+    "source_hash": "4886945d"
+  },
+  "web.admin.billing.diff.absentConfig": {
+    "text": "Aquest pla no és present al catàleg configurat.",
+    "source_hash": "0b594c88"
+  },
+  "web.admin.billing.diff.absentLive": {
+    "text": "Aquest pla no és present a la memòria cau en directe sincronitzada amb Stripe.",
+    "source_hash": "c53f31c3"
+  },
+  "web.admin.billing.plans.title": {
+    "text": "Plans",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.admin.billing.plans.empty": {
+    "text": "No s'ha trobat cap pla al catàleg.",
+    "source_hash": "39db3c13"
+  },
+  "web.admin.billing.plans.viewDiff": {
+    "text": "Mostra les diferències",
+    "source_hash": "0e5d6873"
+  },
+  "web.admin.billing.source.stripe": {
+    "text": "Memòria cau de Stripe",
+    "source_hash": "b5577327"
+  },
+  "web.admin.billing.source.localConfig": {
+    "text": "Configuració local",
+    "source_hash": "49de43d2"
+  },
+  "web.admin.billing.stats.configured": {
+    "text": "Plans configurats",
+    "source_hash": "4fda4796"
+  },
+  "web.admin.billing.stats.live": {
+    "text": "Plans en directe",
+    "source_hash": "faaa88d9"
+  },
+  "web.admin.billing.stats.source": {
+    "text": "Font",
+    "source_hash": "0e570ca6"
+  },
+  "web.admin.billing.stats.drift": {
+    "text": "Desviació",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.billing.status.in_sync": {
+    "text": "Sincronitzat",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.status.only_config": {
+    "text": "Només configuració",
+    "source_hash": "15836cba"
+  },
+  "web.admin.billing.status.only_live": {
+    "text": "Només en directe",
+    "source_hash": "8f4ed495"
+  },
+  "web.admin.billing.status.changed": {
+    "text": "Modificat",
+    "source_hash": "2a6141e4"
+  },
+  "web.admin.billing.diff.backToCatalog": {
+    "text": "Torna al catàleg de facturació",
+    "source_hash": "8532b373"
+  },
+  "web.admin.billing.diff.driftedFields": {
+    "text": "Camps que difereixen:",
+    "source_hash": "9890c95b"
+  },
+  "web.admin.billing.diff.notFound": {
+    "text": "Pla no trobat al catàleg",
+    "source_hash": "0253898b"
+  },
+  "web.admin.billing.diff.notFoundDescription": {
+    "text": "No s'ha trobat cap pla amb l'identificador {planid} al catàleg configurat ni a la memòria cau sincronitzada amb Stripe.",
+    "source_hash": "2e69551c"
+  },
+  "web.admin.billing.stripeOrgs.title": {
+    "text": "Clients de Stripe",
+    "source_hash": "0463ae27"
+  },
+  "web.admin.billing.stripeOrgs.description": {
+    "text": "Organitzacions vinculades a un registre de client de Stripe.",
+    "source_hash": "2ab09aec"
+  },
+  "web.admin.billing.stripeOrgs.searchPlaceholder": {
+    "text": "Cerca per identificador de client de Stripe",
+    "source_hash": "d5acf08f"
+  },
+  "web.admin.billing.stripeOrgs.empty": {
+    "text": "Cap organització té un identificador de client de Stripe.",
+    "source_hash": "2e373537"
+  },
+  "web.admin.billing.stripeOrgs.emptySearch": {
+    "text": "Cap identificador de client de Stripe coincideix amb aquesta cerca.",
+    "source_hash": "75011174"
+  },
+  "web.admin.billing.stripeOrgs.loadError": {
+    "text": "No s'ha pogut carregar la llista de clients de Stripe.",
+    "source_hash": "15e2d9a7"
+  },
+  "web.admin.billing.stripeOrgs.unavailable": {
+    "text": "La llista de clients de Stripe encara no està disponible en aquest servidor.",
+    "source_hash": "aab6451a"
+  },
+  "web.admin.billing.stripeOrgs.none": {
+    "text": "Cap",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.billing.stripeOrgs.capped": {
+    "text": "L'escaneig de l'índex ha arribat al seu límit, així que el total és un mínim — redueix la cerca per veure la resta.",
+    "source_hash": "20bcaa38"
+  },
+  "web.admin.billing.stripeOrgs.stale": {
+    "text": "{count} entrada/entrades d'índex en aquesta pàgina apunten a una organització que ja no es carrega i s'han omès.",
+    "source_hash": "51980f83"
+  },
+  "web.admin.billing.stripeOrgs.copyStripeId": {
+    "text": "Copia l'identificador de client de Stripe",
+    "source_hash": "a77d18b1"
+  },
+  "web.admin.billing.stripeOrgs.columns.organization": {
+    "text": "Organització",
+    "source_hash": "d764d425"
+  },
+  "web.admin.billing.stripeOrgs.columns.owner": {
+    "text": "Propietari",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.billing.stripeOrgs.columns.plan": {
+    "text": "Pla",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.billing.stripeOrgs.columns.subscription": {
+    "text": "Subscripció",
+    "source_hash": "4999c6c6"
+  },
+  "web.admin.billing.stripeOrgs.columns.stripeCustomer": {
+    "text": "Identificador de client de Stripe",
+    "source_hash": "7e1d8bbb"
+  },
+  "web.admin.billing.pendingFederated.title": {
+    "text": "Subscripcions federades pendents",
+    "source_hash": "8bc81ff7"
+  },
+  "web.admin.billing.pendingFederated.description": {
+    "text": "Subscripcions que esperen que un compte verificat d'aquesta regió en reclami els avantatges.",
+    "source_hash": "e4c714c8"
+  },
+  "web.admin.billing.pendingFederated.correlationRetention": {
+    "text": "Les subscripcions pendents poden romandre fins a 90 dies, però els registres locals de webhooks només es conserven cinc dies. Una correlació caducada o no disponible no indica cap resultat del processament.",
+    "source_hash": "c846410e"
+  },
+  "web.admin.billing.pendingFederated.loadError": {
+    "text": "No s'han pogut carregar les subscripcions federades pendents.",
+    "source_hash": "a1ecc6cb"
+  },
+  "web.admin.billing.pendingFederated.capped": {
+    "text": "L'escaneig de subscripcions pendents ha arribat al seu límit, així que el total és un mínim.",
+    "source_hash": "a1e02735"
+  },
+  "web.admin.billing.pendingFederated.stale": {
+    "text": "{count} entrada/entrades d'índex en aquesta pàgina apunten a una subscripció pendent que ja no es carrega i s'han omès.",
+    "source_hash": "56b4bd53"
+  },
+  "web.admin.billing.pendingFederated.empty": {
+    "text": "No s'han trobat subscripcions federades pendents.",
+    "source_hash": "91453fda"
+  },
+  "web.admin.billing.pendingFederated.unresolvedPlan": {
+    "text": "No resolt",
+    "source_hash": "36afca80"
+  },
+  "web.admin.billing.pendingFederated.columns.status": {
+    "text": "Estat de la subscripció",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.billing.pendingFederated.columns.planid": {
+    "text": "ID del pla desat",
+    "source_hash": "159600ef"
+  },
+  "web.admin.billing.pendingFederated.columns.region": {
+    "text": "Regió",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.billing.pendingFederated.columns.received": {
+    "text": "Rebut",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.pendingFederated.columns.webhook": {
+    "text": "Webhook d'origen",
+    "source_hash": "e96bd1ef"
+  },
+  "web.admin.billing.pendingFederated.webhook.no_correlation": {
+    "text": "No disponible — no s'ha registrat cap webhook local correlacionat.",
+    "source_hash": "57ed7d3a"
+  },
+  "web.admin.billing.pendingFederated.webhook.expired": {
+    "text": "No disponible — el webhook local correlacionat ha caducat al cap de cinc dies.",
+    "source_hash": "6173ad4b"
+  },
+  "web.admin.billing.webhookEvents.title": {
+    "text": "Esdeveniments de webhook de Stripe",
+    "source_hash": "3a7c05f8"
+  },
+  "web.admin.billing.webhookEvents.description": {
+    "text": "Registre local de només lectura del processament dels webhooks de Stripe.",
+    "source_hash": "adc1e97f"
+  },
+  "web.admin.billing.webhookEvents.retention": {
+    "text": "Els registres locals d'esdeveniments de webhook es conserven cinc dies. Els esdeveniments més antics no estan disponibles aquí.",
+    "source_hash": "de4c2f78"
+  },
+  "web.admin.billing.webhookEvents.loadError": {
+    "text": "No s'ha pogut carregar la llista d'esdeveniments de webhook.",
+    "source_hash": "b070d441"
+  },
+  "web.admin.billing.webhookEvents.capped": {
+    "text": "L'escaneig d'esdeveniments ha arribat al seu límit, així que el total és un mínim.",
+    "source_hash": "5b96b15b"
+  },
+  "web.admin.billing.webhookEvents.stale": {
+    "text": "{count} entrada/entrades d'índex en aquesta pàgina apunten a un esdeveniment de webhook que ja no es carrega i s'han omès.",
+    "source_hash": "879c2d98"
+  },
+  "web.admin.billing.webhookEvents.empty": {
+    "text": "No s'han trobat esdeveniments de webhook conservats localment.",
+    "source_hash": "7e33e23d"
+  },
+  "web.admin.billing.webhookEvents.viewDetail": {
+    "text": "Mostra els detalls",
+    "source_hash": "d1bf045b"
+  },
+  "web.admin.billing.webhookEvents.columns.eventId": {
+    "text": "ID de l'esdeveniment",
+    "source_hash": "3045abaf"
+  },
+  "web.admin.billing.webhookEvents.columns.type": {
+    "text": "Tipus",
+    "source_hash": "baaddf70"
+  },
+  "web.admin.billing.webhookEvents.columns.status": {
+    "text": "Estat del processament",
+    "source_hash": "3f6498ae"
+  },
+  "web.admin.billing.webhookEvents.columns.received": {
+    "text": "Rebut",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.webhookEvents.columns.outcome": {
+    "text": "Resultat",
+    "source_hash": "4e80abb5"
+  },
+  "web.admin.billing.webhookEvents.detail.title": {
+    "text": "Detalls de l'esdeveniment de webhook",
+    "source_hash": "829b940c"
+  },
+  "web.admin.billing.webhookEvents.detail.notFound": {
+    "text": "Aquest esdeveniment local ja no està disponible.",
+    "source_hash": "b029d878"
+  },
+  "web.admin.billing.webhookEvents.detail.loadError": {
+    "text": "No s'han pogut carregar els detalls de l'esdeveniment de webhook.",
+    "source_hash": "39f7a33b"
+  },
+  "web.admin.billing.webhookEvents.detail.received": {
+    "text": "Rebut el",
+    "source_hash": "1ddb1a75"
+  },
+  "web.admin.billing.webhookEvents.detail.lastAttempt": {
+    "text": "Últim intent de processament",
+    "source_hash": "b1325ebb"
+  },
+  "web.admin.billing.webhookEvents.detail.processed": {
+    "text": "Processat el",
+    "source_hash": "2eb2da28"
+  },
+  "web.admin.billing.webhookEvents.detail.attempts": {
+    "text": "Intents",
+    "source_hash": "06e70139"
+  },
+  "web.admin.billing.webhookEvents.detail.mode": {
+    "text": "Mode",
+    "source_hash": "5e23ec6a"
+  },
+  "web.admin.billing.webhookEvents.detail.live": {
+    "text": "Real",
+    "source_hash": "b64ac05f"
+  },
+  "web.admin.billing.webhookEvents.detail.test": {
+    "text": "Prova",
+    "source_hash": "532eaabd"
+  },
+  "web.admin.billing.webhookEvents.detail.apiVersion": {
+    "text": "Versió de l'API de Stripe",
+    "source_hash": "9cd61c6f"
+  }
+}

@@ -1,0 +1,105 @@
+# .github/actions/generate-test-secrets/action.yml
+---
+# ==============================================================================
+# Generate Test Secrets - Composite Action
+# ==============================================================================
+# Version: 1.0.0
+# Repository: onetimesecret/onetimesecret
+#
+# Generates ephemeral cryptographic secrets for CI test environments.
+# All secrets are random hex strings (32 bytes / 64 chars) created via openssl.
+#
+# Exports to GITHUB_ENV:
+#   - SESSION_SECRET: For Rack session management
+#   - AUTH_SECRET: For HMAC signing operations (Rodauth, TOTP)
+#   - ARGON2_SECRET: For Argon2 password pepper
+#   - FEDERATION_SECRET: For federation email hashing
+#   - IDENTIFIER_SECRET: For verifiable identifier generation
+#   - SECRET: General purpose application secret (root)
+#
+# These reach a job's own steps, not a test lane. tests/lanes/run clears
+# every exported variable except its six-name keep-list, so all six are
+# scrubbed at the lane boundary and re-supplied as the fixed public dummies
+# in tests/lanes/base.env. For lane jobs this action is inert; it still
+# matters for steps that run outside the lane runner.
+#
+# Security Notes:
+#   - Secrets are logged in plaintext (safe for ephemeral test use)
+#   - Validates all three secrets are unique
+#   - DO NOT use for production secrets
+#
+# Usage:
+#   - uses: ./.github/actions/generate-test-secrets
+#
+# Changelog:
+#   1.0.0 - Initial release with openssl-based secret generation
+# ==============================================================================
+
+name: Generate Test Secrets
+description: |
+  Generate random secrets for testing and CI environments.
+  Creates distinct secrets exported to GITHUB_ENV:
+  - SESSION_SECRET: For session management
+  - AUTH_SECRET: For HMAC operations (Rodauth, TOTP)
+  - ARGON2_SECRET: For Argon2 password pepper
+  - FEDERATION_SECRET: For federation email hashing
+  - IDENTIFIER_SECRET: For verifiable identifier generation
+  - SECRET: General purpose secret (root)
+
+  ⚠️  TESTING ONLY: These secrets are ephemeral, generated fresh for each CI run,
+  used only with test data, and discarded when the job completes. They are logged
+  in plaintext for debugging purposes. DO NOT use this action for production secrets.
+
+runs:
+  using: composite
+  steps:
+    - name: Generate ephemeral test secrets
+      shell: bash
+      run: |
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "⚠️  Generating ephemeral secrets for testing purposes only"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+        # Generate unique random secrets
+        SESSION_SECRET=$(openssl rand -hex 32)
+        AUTH_SECRET=$(openssl rand -hex 32)
+        ARGON2_SECRET=$(openssl rand -hex 32)
+        FEDERATION_SECRET=$(openssl rand -hex 32)
+        IDENTIFIER_SECRET=$(openssl rand -hex 32)
+        SECRET=$(openssl rand -hex 32)
+
+        # Export to GITHUB_ENV for subsequent steps
+        echo "SESSION_SECRET=${SESSION_SECRET}" >> $GITHUB_ENV
+        echo "AUTH_SECRET=${AUTH_SECRET}" >> $GITHUB_ENV
+        echo "ARGON2_SECRET=${ARGON2_SECRET}" >> $GITHUB_ENV
+        echo "FEDERATION_SECRET=${FEDERATION_SECRET}" >> $GITHUB_ENV
+        echo "IDENTIFIER_SECRET=${IDENTIFIER_SECRET}" >> $GITHUB_ENV
+        echo "SECRET=${SECRET}" >> $GITHUB_ENV
+
+        # Log secrets for debugging (safe because these are ephemeral test secrets)
+        echo ""
+        echo "SESSION_SECRET=${SESSION_SECRET}"
+        echo "AUTH_SECRET=${AUTH_SECRET}"
+        echo "ARGON2_SECRET=${ARGON2_SECRET}"
+        echo "FEDERATION_SECRET=${FEDERATION_SECRET}"
+        echo "IDENTIFIER_SECRET=${IDENTIFIER_SECRET}"
+        echo "SECRET=${SECRET}"
+        echo ""
+
+        # Verify all secrets are unique
+        all_secrets=(
+          "$SESSION_SECRET"
+          "$AUTH_SECRET"
+          "$ARGON2_SECRET"
+          "$FEDERATION_SECRET"
+          "$IDENTIFIER_SECRET"
+          "$SECRET"
+        )
+        if [ "$(printf '%s\n' "${all_secrets[@]}" | sort -u | wc -l)" -eq "${#all_secrets[@]}" ]; then
+          echo "All secrets are unique"
+        else
+          echo "ERROR: Secrets are not unique!"
+          exit 1
+        fi
+
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

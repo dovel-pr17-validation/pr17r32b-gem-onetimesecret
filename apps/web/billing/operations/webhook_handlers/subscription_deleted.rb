@@ -1,0 +1,87 @@
+# apps/web/billing/operations/webhook_handlers/subscription_deleted.rb
+#
+# frozen_string_literal: true
+
+require_relative 'subscription_handler'
+require_relative 'subscription_federation'
+
+module Billing
+  module Operations
+    module WebhookHandlers
+      # Handles customer.subscription.deleted events.
+      #
+      # Marks organization subscription as canceled when subscription ends.
+      # Supports cross-region federation via email hash matching.
+      #
+      # Two-path matching:
+      # - Path 1 (Owner): Organization with matching stripe_customer_id
+      # - Path 2 (Federated): Organizations with matching email_hash but no stripe_customer_id
+      #
+      class SubscriptionDeleted < SubscriptionHandler
+        include SubscriptionFederation
+
+        def self.handles?(event_type)
+          event_type == 'customer.subscription.deleted'
+        end
+
+        protected
+
+        def process
+          subscription = @data_object
+
+          # Check if federation is enabled (FEDERATION_SECRET configured)
+          # Fall back to standard processing if not
+          unless federation_enabled?
+            return process_without_federation(subscription)
+          end
+
+          process_with_federation(subscription) do |org, is_owner|
+            if is_owner
+              org.clear_billing_fields
+
+              billing_logger.info 'Subscription deleted (owner)',
+                {
+                  orgid: org.objid,
+                  subscription_id: subscription.id,
+                }
+            else
+              clear_federated_org(org, subscription)
+
+              billing_logger.info 'Subscription deleted (federated)',
+                {
+                  orgid: org.objid,
+                  subscription_id: subscription.id,
+                }
+            end
+          end
+        end
+
+        private
+
+        # Standard processing without federation
+        def process_without_federation(subscription)
+          with_organization do |org|
+            org.clear_billing_fields
+
+            billing_logger.info 'Subscription deleted',
+              {
+                orgid: org.objid,
+                subscription_id: subscription.id,
+              }
+          end
+        end
+
+        # Clear federated organization subscription data
+        #
+        # Similar to clear_billing_fields but for federated orgs.
+        # Federated orgs don't have stripe_customer_id or stripe_subscription_id to clear.
+        #
+        # @param org [Onetime::Organization] Organization to update
+        # @param subscription [Stripe::Subscription] Stripe subscription (for logging)
+        def clear_federated_org(org, _subscription)
+          Billing::Operations::ApplySubscriptionToOrg.apply_free_tier(org, owner: false)
+        end
+      end
+    end
+  end
+end

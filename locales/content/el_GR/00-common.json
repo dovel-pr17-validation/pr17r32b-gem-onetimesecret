@@ -1,0 +1,1551 @@
+{
+  "web.COMMON.broadcast": {
+    "text": "",
+    "skip": true,
+    "note": "empty"
+  },
+  "web.COMMON.tagline": {
+    "text": "Ασφαλείς σύνδεσμοι που λειτουργούν μόνο μία φορά",
+    "source_hash": "9da7aece"
+  },
+  "web.COMMON.powered_by": {
+    "text": "Τροφοδοτείται από",
+    "source_hash": "fdc5d2e9"
+  },
+  "web.COMMON.website_url": {
+    "text": "https://onetimesecret.com/el",
+    "source_hash": "440f5303"
+  },
+  "web.COMMON.button_generate_secret_short": {
+    "text": "Δημιουργία κωδικού",
+    "source_hash": "fdcbfcc7"
+  },
+  "web.COMMON.generate_password_disabled": {
+    "text": "Η δημιουργία κωδικού είναι απενεργοποιημένη όταν η φόρμα είναι έγκυρη",
+    "source_hash": "dc0e2b8c"
+  },
+  "web.COMMON.email_placeholder": {
+    "text": "π.χ. tom{'@'}myspace.com",
+    "source_hash": "f2350739"
+  },
+  "web.COMMON.password_placeholder": {
+    "text": "Εισάγετε τον κωδικό σας",
+    "source_hash": "c06bf967"
+  },
+  "web.COMMON.custom_domains_title": {
+    "text": "Προσαρμοσμένοι τομείς",
+    "source_hash": "6170ab94"
+  },
+  "web.COMMON.custom_domains_description": {
+    "text": "Ενισχύστε τις σχέσεις και χτίστε εμπιστοσύνη με τους δικούς σας επώνυμους μυστικούς συνδέσμους.",
+    "source_hash": "71fddc05"
+  },
+  "web.COMMON.get_started_button": {
+    "text": "Ξεκινήστε",
+    "source_hash": "983f3110"
+  },
+  "web.COMMON.confirm_password_placeholder": {
+    "text": "Επιβεβαιώστε τον κωδικό σας",
+    "source_hash": "bfd8c343"
+  },
+  "web.COMMON.header_settings": {
+    "text": "Ρυθμίσεις",
+    "source_hash": "74a883a0"
+  },
+  "web.COMMON.submit_with": {
+    "text": "Υποβολή",
+    "source_hash": "155f816c"
+  },
+  "web.COMMON.submitting": {
+    "text": "Υποβολή...",
+    "source_hash": "64115d5b"
+  },
+  "web.COMMON.processing": {
+    "text": "Επεξεργασία...",
+    "source_hash": "f40a853e"
+  },
+  "web.COMMON.description": {
+    "text": "Κρατήστε τις ευαίσθητες πληροφορίες μακριά από τα αρχεία συνομιλιών και τα email σας. Μοιραστείτε έναν μυστικό σύνδεσμο που είναι διαθέσιμος μόνο μία φορά.",
+    "source_hash": "4c895f85"
+  },
+  "web.COMMON.incorrect_passphrase": {
+    "text": "Λανθασμένη φράση πρόσβασης",
+    "source_hash": "a55f9636"
+  },
+  "web.COMMON.keywords": {
+    "text": "μυστικό,γεννήτρια κωδικών,κοινοποίηση μυστικού,onetime",
+    "source_hash": "52728258"
+  },
+  "web.COMMON.button_create_secret": {
+    "text": "Δημιουργία μυστικού συνδέσμου",
+    "source_hash": "a3e07632"
+  },
+  "web.COMMON.button_generate_secret": {
+    "text": "Ή δημιουργήστε έναν τυχαίο κωδικό",
+    "source_hash": "8c1c764b"
+  },
+  "web.COMMON.secret_privacy_options": {
+    "text": "Επιλογές απορρήτου",
+    "source_hash": "643a6921"
+  },
+  "web.COMMON.secret_passphrase": {
+    "text": "Φράση πρόσβασης",
+    "source_hash": "e7611f05"
+  },
+  "web.COMMON.secret_passphrase_hint": {
+    "text": "Μια λέξη ή φράση που είναι δύσκολο να μαντέψει κανείς",
+    "source_hash": "29d0cf13"
+  },
+  "web.COMMON.secret_recipient_address": {
+    "text": "Διεύθυνση παραλήπτη",
+    "source_hash": "f6f6311d"
+  },
+  "web.COMMON.secret_placeholder": {
+    "text": "Το μυστικό περιεχόμενο τοποθετείται εδώ...",
+    "source_hash": "54630bab"
+  },
+  "web.COMMON.header_create_account": {
+    "text": "Δημιουργία λογαριασμού",
+    "source_hash": "0dffe234"
+  },
+  "web.COMMON.about": {
+    "text": "Σχετικά",
+    "source_hash": "4efca0d1"
+  },
+  "web.COMMON.header_sign_in": {
+    "text": "Σύνδεση",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.COMMON.header_dashboard": {
+    "text": "Λογαριασμός",
+    "source_hash": "7e1b0d56"
+  },
+  "web.COMMON.header_logout": {
+    "text": "Αποσύνδεση",
+    "source_hash": "d0527e4b"
+  },
+  "web.COMMON.secret": {
+    "text": "Μυστικό | Μυστικά",
+    "source_hash": "c7ebd045"
+  },
+  "web.COMMON.recent": {
+    "text": "Πρόσφατα",
+    "source_hash": "690dbe9d"
+  },
+  "web.COMMON.not_set": {
+    "text": "Δεν έχει οριστεί",
+    "source_hash": "4895f731"
+  },
+  "web.COMMON.word_edit": {
+    "text": "Επεξεργασία",
+    "source_hash": "464c4ffd"
+  },
+  "web.COMMON.word_save": {
+    "text": "Αποθήκευση",
+    "source_hash": "1509f561"
+  },
+  "web.COMMON.burn": {
+    "text": "Οριστική διαγραφή",
+    "source_hash": "926c5b43"
+  },
+  "web.COMMON.burned": {
+    "text": "Διαγράφηκε οριστικά",
+    "source_hash": "6d747b33"
+  },
+  "web.COMMON.expires_in": {
+    "text": "Λήγει σε",
+    "source_hash": "de996752"
+  },
+  "web.COMMON.burn_this_secret": {
+    "text": "Οριστική διαγραφή μυστικού",
+    "source_hash": "ffff30e8"
+  },
+  "web.COMMON.burn_this_secret_hint": {
+    "text": "Η οριστική διαγραφή θα διαγράψει το μυστικό πριν διαβαστεί (κλικ για επιβεβαίωση)",
+    "source_hash": "c6a8b145"
+  },
+  "web.COMMON.burn_this_secret_confirm_hint": {
+    "text": "Η οριστική διαγραφή είναι μόνιμη και δεν μπορεί να αναιρεθεί",
+    "source_hash": "ab774967"
+  },
+  "web.COMMON.msg_check_email": {
+    "text": "Ελέγξτε το email σας",
+    "source_hash": "77322879"
+  },
+  "web.COMMON.click_to_continue": {
+    "text": "Κάντε κλικ για αποκάλυψη →",
+    "source_hash": "41658f99"
+  },
+  "web.COMMON.click_to_verify": {
+    "text": "Συνεχίστε για επαλήθευση του λογαριασμού σας:",
+    "source_hash": "954d6fc9"
+  },
+  "web.COMMON.error_secret": {
+    "text": "Δεν παρείχατε κάτι για κοινοποίηση",
+    "source_hash": "9ac6488f"
+  },
+  "web.COMMON.error_passphrase": {
+    "text": "Ελέγξτε ξανά τη φράση πρόσβασης",
+    "source_hash": "b582f3a6"
+  },
+  "web.COMMON.enter_passphrase_here": {
+    "text": "Εισάγετε τη φράση πρόσβασης εδώ",
+    "source_hash": "ee855dad"
+  },
+  "web.COMMON.view_secret": {
+    "text": "Προβολή μυστικού",
+    "source_hash": "01835e7c"
+  },
+  "web.COMMON.careful_only_see_once": {
+    "text": "Προσοχή: θα το δείτε μόνο μία φορά.",
+    "source_hash": "d29e2820"
+  },
+  "web.COMMON.warning": {
+    "text": "Προειδοποίηση",
+    "source_hash": "e981ddae"
+  },
+  "web.COMMON.oops": {
+    "text": "Ουπς!",
+    "source_hash": "8344947a"
+  },
+  "web.COMMON.error": {
+    "text": "Σφάλμα",
+    "source_hash": "54a0e8c1"
+  },
+  "web.COMMON.unexpected_error": {
+    "text": "Παρουσιάστηκε απρόσμενο σφάλμα. Προσπαθήστε ξανά.",
+    "source_hash": "e198269c"
+  },
+  "web.COMMON.secret_was_truncated": {
+    "text": "Το μήνυμα περικόπηκε",
+    "source_hash": "1d1730d4"
+  },
+  "web.COMMON.signup_for_more": {
+    "text": "Εγγραφείτε για περισσότερα",
+    "source_hash": "cc1421d0"
+  },
+  "web.COMMON.login_to_your_account": {
+    "text": "Σύνδεση στον λογαριασμό σας",
+    "source_hash": "62f1fe13"
+  },
+  "web.COMMON.sent_to": {
+    "text": "Στάλθηκε σε:",
+    "source_hash": "e79c8bcb"
+  },
+  "web.COMMON.field_email": {
+    "text": "Email",
+    "source_hash": "969ccbd3"
+  },
+  "web.COMMON.field_password": {
+    "text": "Κωδικός πρόσβασης",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.COMMON.field_password2": {
+    "text": "Επιβεβαίωση κωδικού",
+    "source_hash": "c292210c"
+  },
+  "web.COMMON.button_create_account": {
+    "text": "Δημιουργία λογαριασμού",
+    "source_hash": "0dffe234"
+  },
+  "web.COMMON.share_a_secret": {
+    "text": "Κοινοποίηση μυστικού",
+    "source_hash": "5384461b"
+  },
+  "web.COMMON.title_home": {
+    "text": "Αρχική",
+    "source_hash": "3a786953"
+  },
+  "web.COMMON.word_none": {
+    "text": "Κανένα",
+    "source_hash": "dc937b59"
+  },
+  "web.COMMON.word_burned": {
+    "text": "διαγράφηκε οριστικά",
+    "source_hash": "2f79ea62"
+  },
+  "web.COMMON.word_received": {
+    "text": "παραλήφθηκε",
+    "source_hash": "318c5ad5"
+  },
+  "web.COMMON.word_confirm": {
+    "text": "Επιβεβαίωση",
+    "source_hash": "eebdd24a"
+  },
+  "web.COMMON.word_cancel": {
+    "text": "Ακύρωση",
+    "source_hash": "19766ed6"
+  },
+  "web.COMMON.word_continue": {
+    "text": "Συνέχεια",
+    "source_hash": "31fbef16"
+  },
+  "web.COMMON.word_done": {
+    "text": "Ολοκληρώθηκε",
+    "source_hash": "11a6767d"
+  },
+  "web.COMMON.back": {
+    "text": "Πίσω",
+    "source_hash": "76900f1b"
+  },
+  "web.COMMON.feedback_text": {
+    "text": "Μοιραστείτε τις σκέψεις, ιδέες ή εμπειρίες σας...",
+    "source_hash": "6bd0351a"
+  },
+  "web.COMMON.button_send_feedback": {
+    "text": "Αποστολή σχολίων",
+    "source_hash": "84195de9"
+  },
+  "web.COMMON.verification_sent_to": {
+    "text": "Στάλθηκε επαλήθευση στο",
+    "source_hash": "62da29c0"
+  },
+  "web.COMMON.autoverified_success": {
+    "text": "Ο λογαριασμός δημιουργήθηκε. Συνδεθείτε.",
+    "source_hash": "fd3610bf"
+  },
+  "web.COMMON.signup_success_generic": {
+    "text": "Εάν υπάρχει λογαριασμός με αυτό το email, θα λάβετε ένα email επαλήθευσης.",
+    "source_hash": "f596cdd0"
+  },
+  "web.COMMON.burn_this_secret_aria": {
+    "text": "Οριστική διαγραφή αυτού του μυστικού",
+    "source_hash": "0a7afc29"
+  },
+  "web.COMMON.burn_confirmation_title": {
+    "text": "Επιβεβαίωση",
+    "source_hash": "dcd78dfb"
+  },
+  "web.COMMON.burn_confirmation_message": {
+    "text": "Είστε σίγουροι ότι θέλετε να διαγράψετε οριστικά αυτό το μυστικό; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.",
+    "source_hash": "5dde5dd9"
+  },
+  "web.COMMON.confirm_burn": {
+    "text": "Ναι, διαγραφή οριστικά",
+    "source_hash": "6e5b02a7"
+  },
+  "web.COMMON.burn_security_notice": {
+    "text": "Η οριστική διαγραφή θα διαγράψει το μυστικό πριν παραληφθεί.",
+    "source_hash": "b4c8bbc3"
+  },
+  "web.COMMON.share_link_securely": {
+    "text": "Για ασφάλεια, μοιραστείτε αυτόν τον σύνδεσμο ξεχωριστά από άλλες πληροφορίες.",
+    "source_hash": "c46e6204"
+  },
+  "web.COMMON.copied_to_clipboard": {
+    "text": "Αντιγράφηκε στο πρόχειρο",
+    "source_hash": "d37078fe"
+  },
+  "web.COMMON.button_create_incoming": {
+    "text": "Δημιουργία εισερχόμενου",
+    "source_hash": "5bb95106"
+  },
+  "web.COMMON.faq_title": {
+    "text": "Συχνές ερωτήσεις",
+    "source_hash": "bd7394ac"
+  },
+  "web.COMMON.verification_not_valid": {
+    "text": "Η επαλήθευση δεν είναι έγκυρη",
+    "source_hash": "abf07ced"
+  },
+  "web.COMMON.verification_already_logged_in": {
+    "text": "Δεν είναι δυνατή η επαλήθευση λογαριασμού όταν είστε ήδη συνδεδεμένοι",
+    "source_hash": "f0a17c5f"
+  },
+  "web.COMMON.show_password": {
+    "text": "Εμφάνιση κωδικού",
+    "source_hash": "6aeaa6a5"
+  },
+  "web.COMMON.hide_password": {
+    "text": "Απόκρυψη κωδικού",
+    "source_hash": "a60a56c5"
+  },
+  "web.COMMON.minimum_8_characters": {
+    "text": "Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες",
+    "source_hash": "e3b8d09d"
+  },
+  "web.COMMON.password_requirements": {
+    "text": "Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες",
+    "source_hash": "e5054833"
+  },
+  "web.COMMON.passwords_do_not_match": {
+    "text": "Οι κωδικοί δεν ταιριάζουν",
+    "source_hash": "b6eb82cd"
+  },
+  "web.COMMON.form_field_required": {
+    "text": "Αυτό το πεδίο είναι υποχρεωτικό",
+    "source_hash": "6876f12e"
+  },
+  "web.COMMON.form_processing": {
+    "text": "Επεξεργασία του αιτήματός σας",
+    "source_hash": "a512a73b"
+  },
+  "web.COMMON.remember_me_description": {
+    "text": "Να παραμείνω συνδεδεμένος για 30 ημέρες",
+    "source_hash": "6e069c11"
+  },
+  "web.COMMON.redirecting": {
+    "text": "Ανακατεύθυνση...",
+    "source_hash": "cd23991b"
+  },
+  "web.COMMON.continue": {
+    "text": "Συνέχεια",
+    "source_hash": "31fbef16"
+  },
+  "web.COMMON.are_you_sure": {
+    "text": "Είστε σίγουροι;",
+    "source_hash": "f0762c4f"
+  },
+  "web.COMMON.caution_zone": {
+    "text": "Ζώνη προσοχής",
+    "source_hash": "fe27a3a8"
+  },
+  "web.COMMON.user_menu": {
+    "text": "Μενού χρήστη",
+    "source_hash": "6fa25be1"
+  },
+  "web.COMMON.security": {
+    "text": "Ασφάλεια",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.COMMON.manage": {
+    "text": "Διαχείριση",
+    "source_hash": "5a234448"
+  },
+  "web.COMMON.loading": {
+    "text": "Φόρτωση...",
+    "source_hash": "47d2a515"
+  },
+  "web.COMMON.save_changes": {
+    "text": "Αποθήκευση αλλαγών",
+    "source_hash": "35322b5b"
+  },
+  "web.COMMON.saving": {
+    "text": "Αποθήκευση...",
+    "source_hash": "dc85af8f"
+  },
+  "web.COMMON.adding_ellipses": {
+    "text": "Προσθήκη",
+    "source_hash": "0a6691ef"
+  },
+  "web.COMMON.e_g_example": {
+    "text": "π.χ.",
+    "source_hash": "a79b4bf9"
+  },
+  "web.COMMON.example_placeholder": {
+    "text": "π.χ. {example}",
+    "source_hash": "cc921aaa"
+  },
+  "web.COMMON.status": {
+    "text": "Κατάσταση",
+    "source_hash": "920e413c"
+  },
+  "web.COMMON.escape": {
+    "text": "Escape",
+    "source_hash": "037c9684"
+  },
+  "web.COMMON.active": {
+    "text": "Ενεργό",
+    "source_hash": "92340695"
+  },
+  "web.COMMON.preview": {
+    "text": "Προεπισκόπηση",
+    "source_hash": "324b134f"
+  },
+  "web.COMMON.remove": {
+    "text": "Αφαίρεση",
+    "source_hash": "c3812fc4"
+  },
+  "web.COMMON.press_esc_to_close": {
+    "text": "Πατήστε ESC για κλείσιμο",
+    "source_hash": "5aa83883"
+  },
+  "web.COMMON.enter": {
+    "text": "Enter",
+    "source_hash": "dc8659db"
+  },
+  "web.COMMON.important": {
+    "text": "Σημαντικό",
+    "source_hash": "ddca9a57"
+  },
+  "web.COMMON.language": {
+    "text": "Γλώσσα",
+    "source_hash": "a4fe6526"
+  },
+  "web.COMMON.theme": {
+    "text": "Θέμα",
+    "source_hash": "efb52e71"
+  },
+  "web.COMMON.appearance": {
+    "text": "Εμφάνιση",
+    "source_hash": "3907fa7f"
+  },
+  "web.COMMON.done": {
+    "text": "Ολοκληρώθηκε",
+    "source_hash": "11a6767d"
+  },
+  "web.COMMON.end": {
+    "text": "Τέλος",
+    "source_hash": "f4db1e48"
+  },
+  "web.COMMON.general": {
+    "text": "Γενικά",
+    "source_hash": "c910d474"
+  },
+  "web.COMMON.note": {
+    "text": "Σημείωση",
+    "source_hash": "d8da2c49"
+  },
+  "web.COMMON.monthly": {
+    "text": "Μηνιαία",
+    "source_hash": "9b11f6b7"
+  },
+  "web.COMMON.yearly": {
+    "text": "Ετήσια",
+    "source_hash": "6e69b59e"
+  },
+  "web.COMMON.go_on_then": {
+    "text": "Εντάξει, προχωρήστε.",
+    "source_hash": "fb697cc7"
+  },
+  "web.COMMON.loading_ellipses": {
+    "text": "Φόρτωση...",
+    "source_hash": "47d2a515"
+  },
+  "web.COMMON.not_received": {
+    "text": "ΔΕΝ ΠΑΡΑΛΗΦΘΗΚΕ",
+    "source_hash": "d84ee92c"
+  },
+  "web.COMMON.confirm_password": {
+    "text": "Επιβεβαίωση κωδικού πρόσβασης",
+    "source_hash": "5ac265f3"
+  },
+  "web.COMMON.new_password": {
+    "text": "Νέος κωδικός πρόσβασης",
+    "source_hash": "3dd9df44"
+  },
+  "web.COMMON.email_address": {
+    "text": "Διεύθυνση email",
+    "source_hash": "f2488fd4"
+  },
+  "web.COMMON.switch": {
+    "text": "εναλλαγή",
+    "source_hash": "78b49fb2"
+  },
+  "web.COMMON.features": {
+    "text": "Χαρακτηριστικά",
+    "source_hash": "5697d03d"
+  },
+  "web.COMMON.not_found": {
+    "text": "Δεν βρέθηκε",
+    "source_hash": "0019dfc4"
+  },
+  "web.COMMON.emoji_x": {
+    "text": "❌",
+    "source_hash": "2b2966a5"
+  },
+  "web.COMMON.emoji_checkmark": {
+    "text": "✅",
+    "source_hash": "1d456424"
+  },
+  "web.COMMON.supported": {
+    "text": "Υποστηρίζεται",
+    "source_hash": "c1658000"
+  },
+  "web.COMMON.version": {
+    "text": "Έκδοση",
+    "source_hash": "dd167905"
+  },
+  "web.COMMON.other": {
+    "text": "Άλλο",
+    "source_hash": "f97e9da0"
+  },
+  "web.COMMON.min_width_1024px": {
+    "text": "(min-width: 1024px)",
+    "source_hash": "c8a306d0"
+  },
+  "web.COMMON.ctrl_enter": {
+    "text": "Ctrl + Enter",
+    "source_hash": "78192e6e"
+  },
+  "web.COMMON.enter_0": {
+    "text": "⌘ + Enter",
+    "source_hash": "558acbab"
+  },
+  "web.COMMON.mac": {
+    "text": "Mac",
+    "source_hash": "8b3795aa"
+  },
+  "web.COMMON.email_address_copied_to_clipboard": {
+    "text": "Η διεύθυνση email αντιγράφηκε στο πρόχειρο!",
+    "source_hash": "23238b4e"
+  },
+  "web.COMMON.value": {
+    "text": "Τιμή",
+    "source_hash": "8e37953d"
+  },
+  "web.COMMON.host": {
+    "text": "Διακομιστής",
+    "source_hash": "4a823118"
+  },
+  "web.COMMON.type": {
+    "text": "Τύπος",
+    "source_hash": "baaddf70"
+  },
+  "web.COMMON.previous": {
+    "text": "Προηγούμενο",
+    "source_hash": "a57b08a4"
+  },
+  "web.COMMON.next": {
+    "text": "Επόμενο",
+    "source_hash": "1ff57a29"
+  },
+  "web.COMMON.password_strength": {
+    "text": "Ισχύς κωδικού:",
+    "source_hash": "663d6499"
+  },
+  "web.COMMON.great": {
+    "text": "Εξαιρετικός",
+    "source_hash": "c8cc1c7b"
+  },
+  "web.COMMON.pretty_good": {
+    "text": "Αρκετά καλός",
+    "source_hash": "521a41b6"
+  },
+  "web.COMMON.fair": {
+    "text": "Μέτριος",
+    "source_hash": "f7b19afc"
+  },
+  "web.COMMON.meh": {
+    "text": "Έτσι κι έτσι",
+    "source_hash": "8b0d6190"
+  },
+  "web.COMMON.not_great": {
+    "text": "Όχι καλός",
+    "source_hash": "00561207"
+  },
+  "web.COMMON.open_options": {
+    "text": "Άνοιγμα επιλογών",
+    "source_hash": "3dc08503"
+  },
+  "web.COMMON.inactive": {
+    "text": "Ανενεργό",
+    "source_hash": "ac7c949f"
+  },
+  "web.COMMON.an_error_occurred": {
+    "text": "Παρουσιάστηκε σφάλμα",
+    "source_hash": "ddf785b7"
+  },
+  "web.COMMON.copy_secret_to_clipboard": {
+    "text": "Αντιγραφή μυστικού στο πρόχειρο",
+    "source_hash": "a2ceff6d"
+  },
+  "web.COMMON.secret_copied_to_clipboard": {
+    "text": "Το μυστικό αντιγράφηκε στο πρόχειρο",
+    "source_hash": "da84ff02"
+  },
+  "web.COMMON.double_check_that_passphrase": {
+    "text": "Ελέγξτε ξανά τη φράση πρόσβασης",
+    "source_hash": "b582f3a6"
+  },
+  "web.COMMON.press_copy_button_below": {
+    "text": "Πατήστε το κουμπί αντιγραφής παρακάτω.",
+    "source_hash": "77fcf6fb"
+  },
+  "web.COMMON.external_link": {
+    "text": "Εξωτερικός σύνδεσμος",
+    "source_hash": "be6f6527"
+  },
+  "web.LABELS.view_toggle.show": {
+    "text": "Εμφάνιση",
+    "source_hash": "0df6f1ca"
+  },
+  "web.LABELS.view_toggle.hide": {
+    "text": "Απόκρυψη",
+    "source_hash": "ac20a57b"
+  },
+  "web.LABELS.view_toggle.show_more": {
+    "text": "Περισσότερα",
+    "source_hash": "ba8a80fd"
+  },
+  "web.LABELS.view_toggle.show_less": {
+    "text": "Λιγότερα",
+    "source_hash": "0264d7b0"
+  },
+  "web.LABELS.enable": {
+    "text": "Ενεργοποίηση",
+    "source_hash": "5342e09f"
+  },
+  "web.LABELS.disable": {
+    "text": "Απενεργοποίηση",
+    "source_hash": "b7e3e4aa"
+  },
+  "web.LABELS.stats": {
+    "text": "Στατιστικά",
+    "source_hash": "b4a73657"
+  },
+  "web.LABELS.timeline": {
+    "text": "Χρονολόγιο",
+    "source_hash": "9dcff98e"
+  },
+  "web.LABELS.lifespan": {
+    "text": "Διάρκεια ζωής",
+    "source_hash": "58994285"
+  },
+  "web.LABELS.expiration_time": {
+    "text": "Χρόνος λήξης",
+    "source_hash": "c5db84a8"
+  },
+  "web.LABELS.secret_ttl": {
+    "text": "Λήγει σε",
+    "source_hash": "de996752"
+  },
+  "web.LABELS.close": {
+    "text": "Κλείσιμο",
+    "source_hash": "7d9eb7ac"
+  },
+  "web.LABELS.loading": {
+    "text": "Φόρτωση...",
+    "source_hash": "47d2a515"
+  },
+  "web.LABELS.cancel": {
+    "text": "Ακύρωση",
+    "source_hash": "19766ed6"
+  },
+  "web.LABELS.saving": {
+    "text": "Αποθήκευση...",
+    "source_hash": "dc85af8f"
+  },
+  "web.LABELS.saved": {
+    "text": "Αποθηκεύτηκε",
+    "source_hash": "b5c120b3"
+  },
+  "web.LABELS.save": {
+    "text": "Αποθήκευση",
+    "source_hash": "1509f561"
+  },
+  "web.LABELS.save_all": {
+    "text": "Αποθήκευση όλων",
+    "source_hash": "d3c54e39"
+  },
+  "web.LABELS.details": {
+    "text": "Λεπτομέρειες",
+    "source_hash": "45989de4"
+  },
+  "web.LABELS.encrypted": {
+    "text": "Κρυπτογραφημένο",
+    "source_hash": "f45aef6e"
+  },
+  "web.LABELS.secret_status": {
+    "text": "Κατάσταση μυστικού",
+    "source_hash": "57330d93"
+  },
+  "web.LABELS.need_help": {
+    "text": "Χρειάζεστε βοήθεια;",
+    "source_hash": "c225cdfb"
+  },
+  "web.LABELS.create_new_secret": {
+    "text": "Δημιουργία νέου μυστικού",
+    "source_hash": "311d266c"
+  },
+  "web.LABELS.actions": {
+    "text": "Ενέργειες",
+    "source_hash": "ff8059dc"
+  },
+  "web.LABELS.no_passphrase": {
+    "text": "Δεν απαιτείται φράση πρόσβασης",
+    "source_hash": "6b43174d"
+  },
+  "web.LABELS.copy_to_clipboard": {
+    "text": "Αντιγραφή στο πρόχειρο",
+    "source_hash": "b749e205"
+  },
+  "web.LABELS.receipts": {
+    "text": "Αποδείξεις",
+    "source_hash": "60a627df"
+  },
+  "web.LABELS.share": {
+    "text": "Κοινοποίηση",
+    "source_hash": "29887a5f"
+  },
+  "web.LABELS.secret_link": {
+    "text": "Μυστικός σύνδεσμος",
+    "source_hash": "a02fb1cd"
+  },
+  "web.LABELS.dismiss": {
+    "text": "Απόρριψη",
+    "source_hash": "48845bff"
+  },
+  "web.LABELS.security_details": {
+    "text": "Λεπτομέρειες ασφάλειας",
+    "source_hash": "96d2098c"
+  },
+  "web.LABELS.items_count": {
+    "text": "{count} στοιχεία",
+    "source_hash": "63e0dea7"
+  },
+  "web.LABELS.recipients_count": {
+    "text": "{count} παραλήπτες",
+    "source_hash": "48187543"
+  },
+  "web.LABELS.view": {
+    "text": "Προβολή",
+    "source_hash": "dcc839a4"
+  },
+  "web.LABELS.views": {
+    "text": "Προβολές",
+    "source_hash": "69c40459"
+  },
+  "web.LABELS.times_viewed": {
+    "text": "φορές προβλήθηκε",
+    "source_hash": "73758343"
+  },
+  "web.LABELS.view_progress": {
+    "text": "Προβολή προόδου",
+    "source_hash": "6c072c1f"
+  },
+  "web.LABELS.help_section": {
+    "text": "Ενότητα βοήθειας",
+    "source_hash": "614e14f0"
+  },
+  "web.LABELS.passphrase_protected": {
+    "text": "Προστατεύεται με φράση πρόσβασης",
+    "source_hash": "a52b9edf"
+  },
+  "web.LABELS.feedback_received": {
+    "text": "Τα σχόλια παραλήφθηκαν.",
+    "source_hash": "3fa595ef"
+  },
+  "web.LABELS.sending_ellipses": {
+    "text": "Αποστολή...",
+    "source_hash": "286a3af7"
+  },
+  "web.LABELS.title_recent_secrets": {
+    "text": "Πρόσφατα μυστικά",
+    "source_hash": "0b907f8b"
+  },
+  "web.LABELS.pricing": {
+    "text": "Τιμολόγηση",
+    "source_hash": "dfe95783"
+  },
+  "web.LABELS.refresh": {
+    "text": "Ανανέωση",
+    "source_hash": "0e916101"
+  },
+  "web.LABELS.reload": {
+    "text": "Επαναφόρτωση",
+    "source_hash": "bdc090ec"
+  },
+  "web.LABELS.filter": {
+    "text": "Φίλτρο",
+    "source_hash": "638e249f"
+  },
+  "web.LABELS.clear": {
+    "text": "Εκκαθάριση",
+    "source_hash": "83b12c22"
+  },
+  "web.LABELS.caption_recent_secrets": {
+    "text": "Μυστικοί σύνδεσμοι που δημιουργήθηκαν σε αυτή τη συνεδρία",
+    "source_hash": "6c7ceab8"
+  },
+  "web.LABELS.create_link_short": {
+    "text": "Δημιουργία συνδέσμου",
+    "source_hash": "cac74fdb"
+  },
+  "web.LABELS.create_link": {
+    "text": "Δημιουργία μυστικού συνδέσμου",
+    "source_hash": "a30a47b9"
+  },
+  "web.LABELS.create_request_short": {
+    "text": "Δημιουργία αιτήματος",
+    "source_hash": "71a0bd40"
+  },
+  "web.LABELS.create_request": {
+    "text": "Δημιουργία συνδέσμου αιτήματος",
+    "source_hash": "190463dc"
+  },
+  "web.LABELS.related_settings": {
+    "text": "Σχετικές ρυθμίσεις",
+    "source_hash": "68574b20"
+  },
+  "web.LABELS.benefits": {
+    "text": "Οφέλη",
+    "context": "Section header for listing benefits",
+    "source_hash": "d5b67bc9"
+  },
+  "web.LABELS.creating_links_for": {
+    "text": "Δημιουργία συνδέσμων για",
+    "source_hash": "57db069e"
+  },
+  "web.LABELS.scope_indicator": {
+    "text": "Δημιουργία μυστικών στο {domain}",
+    "source_hash": "3bbed96b"
+  },
+  "web.STATUS.new": {
+    "text": "Νέο",
+    "source_hash": "18fdd549"
+  },
+  "web.STATUS.unread": {
+    "text": "Μη αναγνωσμένο",
+    "source_hash": "1b9f384c"
+  },
+  "web.STATUS.viewed": {
+    "text": "Ο σύνδεσμος ανοίχτηκε",
+    "source_hash": "66844573"
+  },
+  "web.STATUS.received": {
+    "text": "Παραλήφθηκε",
+    "source_hash": "49f19bee"
+  },
+  "web.STATUS.previewed": {
+    "text": "Προεπισκόπηση",
+    "source_hash": "3d391a9b"
+  },
+  "web.STATUS.revealed": {
+    "text": "Αποκαλύφθηκε",
+    "source_hash": "17376ee4"
+  },
+  "web.STATUS.burned": {
+    "text": "Διαγράφηκε οριστικά",
+    "source_hash": "6d747b33"
+  },
+  "web.STATUS.destroyed": {
+    "text": "Καταστράφηκε",
+    "source_hash": "ff49630c"
+  },
+  "web.STATUS.expiring_soon": {
+    "text": "Λήγει σύντομα",
+    "source_hash": "0259442c"
+  },
+  "web.STATUS.created": {
+    "text": "Δημιουργήθηκε",
+    "source_hash": "d70b9e24"
+  },
+  "web.STATUS.expires": {
+    "text": "Λήγει",
+    "source_hash": "f6725f3a"
+  },
+  "web.STATUS.expired": {
+    "text": "Έληξε",
+    "source_hash": "424a2551"
+  },
+  "web.STATUS.orphaned": {
+    "text": "Ορφανό",
+    "source_hash": "8d827807"
+  },
+  "web.STATUS.secured": {
+    "text": "Ασφαλισμένο",
+    "source_hash": "b0cbaa5b"
+  },
+  "web.STATUS.securing": {
+    "text": "Ασφάλιση",
+    "source_hash": "37c84053"
+  },
+  "web.STATUS.copied": {
+    "text": "Αντιγράφηκε",
+    "source_hash": "8d525e5f"
+  },
+  "web.STATUS.time_remaining": {
+    "text": "Χρόνος που απομένει",
+    "source_hash": "9e65f559"
+  },
+  "web.STATUS.new_description": {
+    "text": "Ο μυστικός σύνδεσμος δημιουργήθηκε και δεν έχει ακόμα προβληθεί",
+    "source_hash": "447c4445"
+  },
+  "web.STATUS.unread_description": {
+    "text": "Ο μυστικός σύνδεσμος δημιουργήθηκε και δεν έχει προβληθεί",
+    "source_hash": "83b9a0ca"
+  },
+  "web.STATUS.viewed_description": {
+    "text": "Ο μυστικός σύνδεσμος ανοίχτηκε και είναι έτοιμος για προβολή",
+    "source_hash": "f392af12"
+  },
+  "web.STATUS.received_description": {
+    "text": "Το μυστικό αποκαλύφθηκε στον παραλήπτη",
+    "source_hash": "ceb756b4"
+  },
+  "web.STATUS.previewed_description": {
+    "text": "Ο μυστικός σύνδεσμος ανοίχτηκε και είναι έτοιμος για αποκάλυψη",
+    "source_hash": "cc7d1e92"
+  },
+  "web.STATUS.revealed_description": {
+    "text": "Το περιεχόμενο του μυστικού αποκαλύφθηκε στον παραλήπτη",
+    "source_hash": "39b32f80"
+  },
+  "web.STATUS.burned_description": {
+    "text": "Το μυστικό διαγράφηκε χειροκίνητα πριν προβληθεί",
+    "source_hash": "e7aa1ec1"
+  },
+  "web.STATUS.destroyed_description": {
+    "text": "Το μυστικό καταστράφηκε οριστικά",
+    "source_hash": "9bcb9949"
+  },
+  "web.STATUS.expiring_soon_description": {
+    "text": "Το μυστικό θα λήξει σύντομα",
+    "source_hash": "e182e8f4"
+  },
+  "web.STATUS.orphaned_description": {
+    "text": "Το μυστικό έχει γίνει ορφανό και θα καταστραφεί σύντομα",
+    "source_hash": "49b87422"
+  },
+  "web.STATUS.expired_description": {
+    "text": "Το μυστικό έληξε πριν προβληθεί",
+    "source_hash": "f527de55"
+  },
+  "web.STATUS.success": {
+    "text": "Επιτυχία",
+    "source_hash": "c88a0b90"
+  },
+  "web.STATUS.delivered": {
+    "text": "Παραδόθηκε",
+    "source_hash": "90611565"
+  },
+  "web.STATUS.dns_incorrect": {
+    "text": "DNS λανθασμένο",
+    "source_hash": "7848d601"
+  },
+  "web.STATUS.active": {
+    "text": "Ενεργό",
+    "source_hash": "92340695"
+  },
+  "web.STATUS.inactive": {
+    "text": "Ανενεργό",
+    "source_hash": "ac7c949f"
+  },
+  "web.FEATURES.unlimited_views": {
+    "text": "Απεριόριστες προβολές",
+    "source_hash": "3f6859b0"
+  },
+  "web.FEATURES.custom_domain_protected": {
+    "text": "Επωνυμία αξιόπιστου τομέα",
+    "source_hash": "5e39b05c"
+  },
+  "web.FEATURES.encrypted_in_transit": {
+    "text": "Κρυπτογραφημένο κατά τη μεταφορά και σε ηρεμία",
+    "source_hash": "314c7974"
+  },
+  "web.UNITS.ttl.duration": {
+    "text": "{count} {unit}",
+    "source_hash": "e6c9e0e6"
+  },
+  "web.UNITS.ttl.time.day": {
+    "text": "ημέρα | ημέρες",
+    "source_hash": "6ac0d345"
+  },
+  "web.UNITS.ttl.time.hour": {
+    "text": "ώρα | ώρες",
+    "source_hash": "f4fef91b"
+  },
+  "web.UNITS.ttl.time.minute": {
+    "text": "λεπτό | λεπτά",
+    "source_hash": "08d71a9f"
+  },
+  "web.UNITS.ttl.time.second": {
+    "text": "δευτερόλεπτο | δευτερόλεπτα",
+    "source_hash": "e655e068"
+  },
+  "web.UNITS.ttl.noOptionsAvailable": {
+    "text": "---",
+    "source_hash": "cb3f91d5"
+  },
+  "web.UNITS.ttl_remaining.duration": {
+    "text": "Απομένουν {count} {unit}",
+    "source_hash": "18f6c6e8"
+  },
+  "web.UNITS.ttl_remaining.time.day": {
+    "text": "απομένει ημέρα | απομένουν ημέρες",
+    "source_hash": "6702855e"
+  },
+  "web.UNITS.ttl_remaining.time.hour": {
+    "text": "απομένει ώρα | απομένουν ώρες",
+    "source_hash": "2eaebd6f"
+  },
+  "web.UNITS.ttl_remaining.time.minute": {
+    "text": "απομένει λεπτό | απομένουν λεπτά",
+    "source_hash": "26c80140"
+  },
+  "web.UNITS.ttl_remaining.time.second": {
+    "text": "απομένει δευτερόλεπτο | απομένουν δευτερόλεπτα",
+    "source_hash": "01159ce3"
+  },
+  "web.UNITS.ttl_remaining.noOptionsAvailable": {
+    "text": "---",
+    "source_hash": "cb3f91d5"
+  },
+  "web.UNITS.limited_views": {
+    "text": "Όριο {count} προβολών",
+    "source_hash": "8db0e228"
+  },
+  "web.UNITS.days_remaining": {
+    "text": "Απομένουν {count} ημέρες",
+    "source_hash": "398e4024"
+  },
+  "web.UNITS.hours_remaining": {
+    "text": "Απομένουν {count} ώρες",
+    "source_hash": "717b6d58"
+  },
+  "web.UNITS.minutes_remaining": {
+    "text": "Απομένουν {count} λεπτά",
+    "source_hash": "d322f4c5"
+  },
+  "web.TITLES.incoming": {
+    "text": "Εισερχόμενα μυστικά",
+    "source_hash": "883dbca9"
+  },
+  "web.TITLES.feedback": {
+    "text": "Σχόλια",
+    "source_hash": "aac77df3"
+  },
+  "web.TITLES.help": {
+    "text": "Βοήθεια",
+    "source_hash": "b79cac92"
+  },
+  "web.TITLES.signin": {
+    "text": "Σύνδεση",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.TITLES.signup": {
+    "text": "Δημιουργία λογαριασμού",
+    "source_hash": "0dffe234"
+  },
+  "web.TITLES.forgot_password": {
+    "text": "Ξεχάσατε τον κωδικό",
+    "source_hash": "fdfd41de"
+  },
+  "web.TITLES.reset_password": {
+    "text": "Επαναφορά κωδικού",
+    "source_hash": "4e70f1fd"
+  },
+  "web.TITLES.logout": {
+    "text": "Αποσύνδεση",
+    "source_hash": "afbce8a6"
+  },
+  "web.TITLES.verify_account": {
+    "text": "Επαλήθευση λογαριασμού",
+    "source_hash": "2f3ea760"
+  },
+  "web.TITLES.mfa_verify": {
+    "text": "Επαλήθευση δύο παραγόντων",
+    "source_hash": "bc074b60"
+  },
+  "web.TITLES.email_login": {
+    "text": "Σύνδεση με email",
+    "source_hash": "c316e3d7"
+  },
+  "web.TITLES.accept_invitation": {
+    "text": "Αποδοχή πρόσκλησης",
+    "source_hash": "ce7cfeaf"
+  },
+  "web.TITLES.secret": {
+    "text": "Μυστικό",
+    "source_hash": "7e32a729"
+  },
+  "web.TITLES.metadata": {
+    "text": "Λεπτομέρειες μυστικού",
+    "source_hash": "c11bd410"
+  },
+  "web.TITLES.receipt": {
+    "text": "Απόδειξη μυστικού",
+    "source_hash": "fe0c79e9"
+  },
+  "web.TITLES.burn_secret": {
+    "text": "Οριστική διαγραφή μυστικού",
+    "source_hash": "28785b83"
+  },
+  "web.TITLES.dashboard": {
+    "text": "Πίνακας ελέγχου",
+    "source_hash": "67b69646"
+  },
+  "web.TITLES.recent": {
+    "text": "Πρόσφατα μυστικά",
+    "source_hash": "0b907f8b"
+  },
+  "web.TITLES.domains": {
+    "text": "Προσαρμοσμένοι τομείς",
+    "source_hash": "6170ab94"
+  },
+  "web.TITLES.domain_add": {
+    "text": "Προσθήκη τομέα",
+    "source_hash": "0f09df73"
+  },
+  "web.TITLES.domain_verify": {
+    "text": "Επαλήθευση τομέα",
+    "source_hash": "b416f537"
+  },
+  "web.TITLES.domain_brand": {
+    "text": "Επωνυμία τομέα",
+    "source_hash": "35e4dfbe"
+  },
+  "web.TITLES.account": {
+    "text": "Λογαριασμός",
+    "source_hash": "7e1b0d56"
+  },
+  "web.TITLES.data_region": {
+    "text": "Περιοχή δεδομένων",
+    "source_hash": "a1c6039f"
+  },
+  "web.TITLES.current_region": {
+    "text": "Τρέχουσα περιοχή",
+    "source_hash": "b92e254d"
+  },
+  "web.TITLES.available_regions": {
+    "text": "Διαθέσιμες περιοχές",
+    "source_hash": "ee788590"
+  },
+  "web.TITLES.why_data_sovereignty": {
+    "text": "Γιατί έχει σημασία η κυριαρχία δεδομένων",
+    "source_hash": "67de6cf7"
+  },
+  "web.TITLES.profile_settings": {
+    "text": "Ρυθμίσεις προφίλ",
+    "source_hash": "4f1063c9"
+  },
+  "web.TITLES.preferences_settings": {
+    "text": "Προτιμήσεις",
+    "source_hash": "66962f72"
+  },
+  "web.TITLES.privacy_settings": {
+    "text": "Απόρρητο",
+    "source_hash": "54a57c31"
+  },
+  "web.TITLES.notification_settings": {
+    "text": "Ειδοποιήσεις",
+    "source_hash": "78801183"
+  },
+  "web.TITLES.change_email": {
+    "text": "Αλλαγή email",
+    "source_hash": "18c3f2d5"
+  },
+  "web.TITLES.confirm_email_change": {
+    "text": "Επιβεβαίωση αλλαγής email",
+    "source_hash": "c2736949"
+  },
+  "web.TITLES.security_overview": {
+    "text": "Ασφάλεια",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.TITLES.change_password": {
+    "text": "Αλλαγή κωδικού πρόσβασης",
+    "source_hash": "a949f462"
+  },
+  "web.TITLES.mfa_settings": {
+    "text": "Επαλήθευση δύο παραγόντων",
+    "source_hash": "bc074b60"
+  },
+  "web.TITLES.active_sessions": {
+    "text": "Ενεργές συνεδρίες",
+    "source_hash": "b58fa4e0"
+  },
+  "web.TITLES.recovery_codes": {
+    "text": "Κωδικοί ανάκτησης",
+    "source_hash": "579c7f4e"
+  },
+  "web.TITLES.passkeys": {
+    "text": "Passkeys",
+    "context": "Page title for passkey management",
+    "source_hash": "c87ccdb4"
+  },
+  "web.TITLES.api_settings": {
+    "text": "Ρυθμίσεις API",
+    "source_hash": "6c2a9675"
+  },
+  "web.TITLES.advanced_settings": {
+    "text": "Προχωρημένες ρυθμίσεις",
+    "source_hash": "22d4f608"
+  },
+  "web.TITLES.system_settings": {
+    "text": "Ρυθμίσεις συστήματος",
+    "source_hash": "1f87f883"
+  },
+  "web.TITLES.not_found": {
+    "text": "Η σελίδα δεν βρέθηκε",
+    "source_hash": "cb2f00d1"
+  },
+  "web.TITLES.organizations_settings": {
+    "text": "Χώροι εργασίας",
+    "source_hash": "1377264b"
+  },
+  "web.TITLES.organization_settings": {
+    "text": "Ρυθμίσεις οργανισμού",
+    "source_hash": "cc1d9e61"
+  },
+  "web.TITLES.pricing": {
+    "text": "Τιμολόγηση",
+    "source_hash": "dfe95783"
+  },
+  "web.ARIA.focus_is_now_in_the_main_text_area": {
+    "text": "Η εστίαση είναι τώρα στην κύρια περιοχή κειμένου",
+    "source_hash": "e00dd260"
+  },
+  "web.INSTRUCTION.sharing_instructions": {
+    "text": "Οδηγίες κοινοποίησης",
+    "source_hash": "1a450046"
+  },
+  "web.INSTRUCTION.share_link_instruction": {
+    "text": "Μοιραστείτε τον σύνδεσμο με τον επιθυμητό παραλήπτη",
+    "source_hash": "43bdee1d"
+  },
+  "web.INSTRUCTION.share_passphrase_instruction": {
+    "text": "Μοιραστείτε τη φράση πρόσβασης ξεχωριστά μέσω ασφαλούς καναλιού",
+    "source_hash": "c348d386"
+  },
+  "web.INSTRUCTION.secure_channel_instruction": {
+    "text": "Χρησιμοποιήστε διαφορετικό ασφαλές κανάλι για να μοιραστείτε ευαίσθητες πληροφορίες",
+    "source_hash": "fc78d9cb"
+  },
+  "web.INSTRUCTION.phishing_warning": {
+    "text": "Επαληθεύετε πάντα ότι βρίσκεστε στον επίσημο ιστότοπο του {product_name}. Οι απατεώνες ενίοτε δημιουργούν ψεύτικους ιστότοπους που μοιάζουν ακριβώς με το {product_name} για να κλέψουν τα μυστικά σας. Για να αποφύγετε τις επιθέσεις phishing, επαληθεύστε τον τομέα της περιοχής στη γραμμή διευθύνσεων πριν δημιουργήσετε νέους συνδέσμους.",
+    "source_hash": "2e3b856e"
+  },
+  "web.pricing.title": {
+    "text": "Απλή, διαφανής τιμολόγηση",
+    "source_hash": "97e283c7"
+  },
+  "web.pricing.subtitle": {
+    "text": "Επιλέξτε το πλάνο που ταιριάζει στις ανάγκες σας. Όλα τα πλάνα περιλαμβάνουν απεριόριστη κοινοποίηση μυστικών και σχεδιασμό με προτεραιότητα στο απόρρητο.",
+    "source_hash": "9204dff4"
+  },
+  "web.pricing.get_started_free": {
+    "text": "Ξεκινήστε δωρεάν",
+    "source_hash": "6bb5a4a7"
+  },
+  "web.pricing.start_trial": {
+    "text": "Ξεκινήστε",
+    "source_hash": "983f3110"
+  },
+  "web.pricing.already_have_account": {
+    "text": "Έχετε ήδη λογαριασμό;",
+    "source_hash": "e77fea93"
+  },
+  "web.pricing.sign_in": {
+    "text": "Σύνδεση",
+    "source_hash": "bfd402b2"
+  },
+  "web.pricing.recommended_for_you": {
+    "text": "Προτείνεται για εσάς",
+    "source_hash": "00093fbd"
+  },
+  "web.COMMON.received": {
+    "text": "Παραλήφθηκε",
+    "source_hash": "49f19bee"
+  },
+  "web.LABELS.add_note": {
+    "text": "Προσθήκη σημείωσης...",
+    "source_hash": "32738894"
+  },
+  "web.LABELS.edit_note": {
+    "text": "Επεξεργασία σημείωσης",
+    "source_hash": "299e604c"
+  },
+  "web.LABELS.add_memo": {
+    "text": "Προσθήκη υπομνήματος...",
+    "source_hash": "02384c53"
+  },
+  "web.LABELS.edit_memo": {
+    "text": "Επεξεργασία υπομνήματος",
+    "source_hash": "0ec1a5db"
+  },
+  "web.pricing.free_tier_description": {
+    "text": "Δημιουργήστε και μοιραστείτε μυστικά με βασικές λειτουργίες. Δεν απαιτείται πιστωτική κάρτα.",
+    "source_hash": "3a4f2bc0"
+  },
+  "web.COMMON.enter_password_to_continue": {
+    "text": "Εισάγετε τον κωδικό πρόσβασής σας για να συνεχίσετε",
+    "context": "Prompt for password confirmation modal",
+    "source_hash": "09055357"
+  },
+  "web.COMMON.password_required_for_action": {
+    "text": "Απαιτείται ο κωδικός πρόσβασής σας για να ολοκληρωθεί αυτή η ενέργεια",
+    "context": "Description for password confirmation modal",
+    "source_hash": "cc078766"
+  },
+  "api.errors.unexpected_error": {
+    "text": "Παρουσιάστηκε απρόσμενο σφάλμα",
+    "context": "Generic error message for unhandled exceptions in API",
+    "source_hash": "6615bf1c"
+  },
+  "api.errors.service_unavailable": {
+    "text": "Η υπηρεσία είναι προσωρινά μη διαθέσιμη. Παρακαλώ δοκιμάστε ξανά σε λίγο.",
+    "context": "Error message when database connection fails",
+    "source_hash": "343ccdcb"
+  },
+  "api.errors.request_processing_error": {
+    "text": "Δεν είναι δυνατή η επεξεργασία του αιτήματός σας αυτή τη στιγμή",
+    "context": "Error message for recoverable server errors",
+    "source_hash": "fb961f3f"
+  },
+  "web.COMMON.upgrade_description": {
+    "text": "Αναβαθμίστε για να ξεκλειδώσετε περισσότερες δυνατότητες",
+    "context": "Description shown for free plan users encouraging upgrade",
+    "source_hash": "783f174c"
+  },
+  "api.errors.authentication_required": {
+    "text": "Απαιτείται έλεγχος ταυτότητας",
+    "source_hash": "0fcfb12d"
+  },
+  "api.errors.sso_only_action_blocked": {
+    "text": "Αυτή η ενέργεια δεν είναι διαθέσιμη σε λειτουργία μόνο SSO",
+    "source_hash": "9bc26394"
+  },
+  "web.COMMON.configure": {
+    "text": "Διαμόρφωση",
+    "source_hash": "6defafa2"
+  },
+  "web.COMMON.copy_to_clipboard": {
+    "text": "Αντιγραφή στο πρόχειρο",
+    "source_hash": "b749e205"
+  },
+  "web.COMMON.add": {
+    "text": "Προσθήκη",
+    "source_hash": "9fd728c6"
+  },
+  "web.COMMON.enabled": {
+    "text": "Ενεργοποιημένο",
+    "source_hash": "92c1cdfd"
+  },
+  "web.COMMON.disabled": {
+    "text": "Απενεργοποιημένο",
+    "source_hash": "75081b59"
+  },
+  "web.COMMON.yes_delete": {
+    "text": "Ναι, διαγραφή",
+    "source_hash": "7b05a8e3"
+  },
+  "web.COMMON.error_code": {
+    "text": "Κωδικός σφάλματος",
+    "source_hash": "46832415"
+  },
+  "web.COMMON.http_status": {
+    "text": "Κατάσταση HTTP",
+    "source_hash": "b2a629f2"
+  },
+  "web.COMMON.details": {
+    "text": "Λεπτομέρειες",
+    "source_hash": "45989de4"
+  },
+  "web.COMMON.field_confirm_password": {
+    "text": "Επιβεβαίωση κωδικού πρόσβασης",
+    "source_hash": "c292210c"
+  },
+  "web.COMMON.passwords_must_match": {
+    "text": "Οι κωδικοί πρόσβασης πρέπει να ταιριάζουν",
+    "source_hash": "0c060bd4"
+  },
+  "web.COMMON.and": {
+    "text": "και",
+    "source_hash": "6201111b"
+  },
+  "web.COMMON.or": {
+    "text": "ή",
+    "source_hash": "7175517a"
+  },
+  "web.COMMON.copied": {
+    "text": "Αντιγράφηκε",
+    "source_hash": "8d525e5f"
+  },
+  "web.COMMON.copy": {
+    "text": "Αντιγραφή",
+    "source_hash": "e21f935f"
+  },
+  "web.COMMON.copy_email": {
+    "text": "Αντιγραφή διεύθυνσης email",
+    "source_hash": "61b94846"
+  },
+  "web.COMMON.copy_id": {
+    "text": "Αντιγραφή αναγνωριστικού λογαριασμού",
+    "source_hash": "fd493ffd"
+  },
+  "web.COMMON.org_id_tooltip": {
+    "text": "Το μοναδικό αναγνωριστικό του οργανισμού σας",
+    "source_hash": "c8c08d29"
+  },
+  "web.COMMON.success": {
+    "text": "Επιτυχία",
+    "source_hash": "c88a0b90"
+  },
+  "web.COMMON.need_help": {
+    "text": "Χρειάζεστε βοήθεια",
+    "source_hash": "4ca0ca38"
+  },
+  "web.COMMON.open_help_dialog": {
+    "text": "Άνοιγμα παραθύρου βοήθειας",
+    "source_hash": "55cd1515"
+  },
+  "web.COMMON.focus_is_now_in_the_main_text_area": {
+    "text": "Η εστίαση βρίσκεται τώρα στην κύρια περιοχή κειμένου",
+    "source_hash": "e00dd260"
+  },
+  "web.LABELS.show_passphrase": {
+    "text": "Εμφάνιση φράσης πρόσβασης",
+    "source_hash": "76880d38"
+  },
+  "web.LABELS.hide_passphrase": {
+    "text": "Απόκρυψη φράσης πρόσβασης",
+    "source_hash": "8ecdc98c"
+  },
+  "web.LABELS.copy_icon": {
+    "text": "Εικονίδιο αντιγραφής",
+    "source_hash": "d1a5fc0c"
+  },
+  "web.LABELS.copied_icon": {
+    "text": "Εικονίδιο «αντιγράφηκε»",
+    "source_hash": "90a4b4f1"
+  },
+  "web.STATUS.unverified": {
+    "text": "Μη επαληθευμένο",
+    "source_hash": "33c8e8de"
+  },
+  "web.TITLES.domain_detail": {
+    "text": "Ρυθμίσεις τομέα",
+    "source_hash": "e24f338d"
+  },
+  "web.TITLES.domain_signin": {
+    "text": "Διαμόρφωση σύνδεσης",
+    "source_hash": "2da38c03"
+  },
+  "web.TITLES.domain_signup": {
+    "text": "Επικύρωση εγγραφής τομέα",
+    "source_hash": "c8ce809a"
+  },
+  "web.TITLES.domain_email": {
+    "text": "Διαμόρφωση email",
+    "source_hash": "6f38aa51"
+  },
+  "web.TITLES.domain_incoming": {
+    "text": "Εισερχόμενα μυστικά",
+    "source_hash": "883dbca9"
+  },
+  "web.LABELS.update": {
+    "text": "Ενημέρωση",
+    "source_hash": "c1c1009d"
+  },
+  "web.LABELS.updating": {
+    "text": "Ενημέρωση...",
+    "source_hash": "0a4e0b71"
+  },
+  "web.TITLES.check_email": {
+    "text": "Ελέγξτε το email σας",
+    "source_hash": "0e5fc27d"
+  },
+  "web.TITLES.domain_dns": {
+    "text": "Ρύθμιση DNS",
+    "source_hash": "6c63df31"
+  },
+  "web.TITLES.connected_identities": {
+    "text": "Συνδεδεμένες Ταυτότητες",
+    "source_hash": "e132c4d9"
+  },
+  "web.COMMON.field": {
+    "text": "Πεδίο",
+    "source_hash": "f45fc1df"
+  },
+  "web.COMMON.unknown": {
+    "text": "Άγνωστο",
+    "source_hash": "b764cdc0"
+  },
+  "web.STATUS.pending_ssl": {
+    "text": "Εκκρεμεί πιστοποιητικό",
+    "source_hash": "dd34f305"
+  }
+}

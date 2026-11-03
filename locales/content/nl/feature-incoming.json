@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "Een bericht versturen",
+    "source_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "Deel gevoelige informatie veilig met ons ondersteuningsteam",
+    "source_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "Laden...",
+    "source_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "Configuratie laden mislukt",
+    "source_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "Functie niet beschikbaar",
+    "source_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "Deze functie is momenteel uitgeschakeld. Neem contact op met de ondersteuning voor hulp.",
+    "source_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "Memo",
+    "source_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "Korte beschrijving (bijv. Wachtwoord-resetverzoek)",
+    "source_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "Help ons je bericht naar de juiste persoon te sturen",
+    "source_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "Verzenden naar",
+    "source_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "Selecteer een ontvanger",
+    "source_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "Selecteer een ontvanger voor dit bericht",
+    "source_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "Kies wie dit beveiligde bericht ontvangt",
+    "source_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "Geen ontvangers beschikbaar",
+    "source_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "Berichtinformatie",
+    "source_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "Plak hier gevoelige informatie (wachtwoorden, sleutels, etc.)",
+    "source_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "Deze informatie wordt versleuteld en is slechts één keer te bekijken",
+    "source_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "Bericht versturen",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "Bericht versturen",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "Verzenden...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "Verzenden...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "Formulier wissen",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "Formulier wissen",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "Succesvol verzonden",
+    "source_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "Je beveiligde bericht is afgeleverd.",
+    "source_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "Referentie-ID",
+    "source_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "Wat gebeurt er nu?",
+    "source_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "De ontvanger kan dit bericht slechts één keer bekijken. Nadat ze het hebben bekeken, wordt het bericht permanent verwijderd.",
+    "source_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "Nog een bericht versturen",
+    "source_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "Deel gevoelige informatie veilig",
+    "source_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "Houd wachtwoorden en privégegevens uit e-mail- en chatlogs",
+    "source_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "Sla je {receipt} op voor je administratie.",
+    "source_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "ontvangstbewijs",
+    "source_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "Upgrade vereist",
+    "source_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "Deze functie vereist een planupgrade. Neem contact op met de accounteigenaar om inkomende berichten in te schakelen.",
+    "source_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "Memo moet {max} tekens of minder zijn",
+    "source_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "Berichtinhoud is vereist",
+    "source_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "Selecteer een ontvanger",
+    "source_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "Inkomende berichtenfunctie is niet ingeschakeld",
+    "source_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "Controleer het formulier op fouten",
+    "source_hash": "9056e064"
+  }
+}

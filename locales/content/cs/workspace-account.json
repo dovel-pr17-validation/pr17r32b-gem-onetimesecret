@@ -1,0 +1,726 @@
+{
+  "web.account.settings": {
+    "text": "Nastavení",
+    "source_hash": "74a883a0"
+  },
+  "web.account.change_password": {
+    "text": "Změnit heslo",
+    "source_hash": "a949f462"
+  },
+  "web.account.close_account": {
+    "text": "Zrušit účet",
+    "source_hash": "e1513814"
+  },
+  "web.account.verify_account": {
+    "text": "Ověřit účet",
+    "source_hash": "2f3ea760"
+  },
+  "web.account.subscription_title": {
+    "text": "Předplatné",
+    "source_hash": "4999c6c6"
+  },
+  "web.account.manage_subscription": {
+    "text": "Spravovat předplatné",
+    "source_hash": "cbc4ef92"
+  },
+  "web.account.customer_information": {
+    "text": "Informace o zákazníkovi",
+    "source_hash": "8258db6d"
+  },
+  "web.account.customer_since": {
+    "text": "Zákazníkem od:",
+    "source_hash": "0b37cff3"
+  },
+  "web.account.email": {
+    "text": "E-mail:",
+    "source_hash": "17507dcf"
+  },
+  "web.account.region": {
+    "text": "Region",
+    "source_hash": "d3a008ef"
+  },
+  "web.account.account_balance": {
+    "text": "Zůstatek:",
+    "source_hash": "e0351221"
+  },
+  "web.account.default_payment_method": {
+    "text": "Výchozí platební metoda",
+    "source_hash": "c60f014b"
+  },
+  "web.account.card_ending": {
+    "text": "končící na",
+    "source_hash": "0195bccf"
+  },
+  "web.account.subscriptions_title": {
+    "text": "Předplatná",
+    "source_hash": "a151f2e9"
+  },
+  "web.account.quantity": {
+    "text": "Množství:",
+    "source_hash": "d4b2cb96"
+  },
+  "web.account.next_billing_date": {
+    "text": "Další datum fakturace:",
+    "source_hash": "8e6f9cfe"
+  },
+  "web.account.changePassword.username": {
+    "text": "Uživatelské jméno",
+    "source_hash": "e3b89e9d"
+  },
+  "web.account.changePassword.currentPassword": {
+    "text": "Aktuální heslo",
+    "source_hash": "8ac76099"
+  },
+  "web.account.changePassword.newPassword": {
+    "text": "Nové heslo",
+    "source_hash": "7c451e0f"
+  },
+  "web.account.changePassword.confirmPassword": {
+    "text": "Potvrdit",
+    "source_hash": "eebdd24a"
+  },
+  "web.account.changePassword.updatePassword": {
+    "text": "Aktualizovat heslo",
+    "source_hash": "557be0da"
+  },
+  "web.account.changePassword.updating": {
+    "text": "Aktualizace...",
+    "source_hash": "0a4e0b71"
+  },
+  "web.account.timezone": {
+    "text": "Časové pásmo",
+    "source_hash": "4ceca1d5"
+  },
+  "web.account.customer_id": {
+    "text": "ID zákazníka",
+    "source_hash": "62566c64"
+  },
+  "web.account.account_id_customerid": {
+    "text": "ID účtu",
+    "source_hash": "919bb4cb"
+  },
+  "web.account.created_windowprops_cust_secrets_created_secrets": {
+    "text": "Vytvořil jsi {0} tajemství od {1}.",
+    "source_hash": "8cb99810"
+  },
+  "web.account.delete_account": {
+    "text": "Smazat účet",
+    "source_hash": "c031bf99"
+  },
+  "web.account.api_key": {
+    "text": "API klíč",
+    "source_hash": "23189d55"
+  },
+  "web.account.account_type_windowprops_plan_options_name": {
+    "text": "Typ účtu: {0}",
+    "source_hash": "617bfe67"
+  },
+  "web.account.your_account": {
+    "text": "Tvůj účet",
+    "source_hash": "89e60bfb"
+  },
+  "web.account.support_details": {
+    "text": "Podrobnosti podpory",
+    "source_hash": "cbad8751"
+  },
+  "web.account.back_to_details": {
+    "text": "Zpět na podrobnosti",
+    "source_hash": "f6f841b9"
+  },
+  "web.account.customer_id_cust_custid": {
+    "text": "ID zákazníka: {0}",
+    "source_hash": "7e2d4201"
+  },
+  "web.account.token_generated": {
+    "text": "Token vygenerován.",
+    "source_hash": "05986d95"
+  },
+  "web.account.keep_this_token_secure_it_provides_full_access_t": {
+    "text": "Uchovávej tento token v bezpečí. Lze jej použít k vytváření a správě tajemství přes API.",
+    "source_hash": "a63cc8ec"
+  },
+  "web.account.confirm_with_your_password": {
+    "text": "Potvrď svým heslem",
+    "source_hash": "ff2147fd"
+  },
+  "web.account.are_you_sure_you_want_to_permanently_delete_your": {
+    "text": "Opravdu chceš trvale smazat svůj účet? Tuto akci nelze vrátit zpět.",
+    "source_hash": "4fa3e4b8"
+  },
+  "web.account.confirm_account_deletion": {
+    "text": "Potvrdit smazání účtu",
+    "source_hash": "bb3fc7e5"
+  },
+  "web.account.deleting_cust_custid": {
+    "text": "Mazání {0}",
+    "source_hash": "81d21828"
+  },
+  "web.account.deleting_ellipsis": {
+    "text": "Mazání...",
+    "source_hash": "685ecb98"
+  },
+  "web.account.permanently_delete_account": {
+    "text": "Trvale smazat účet",
+    "source_hash": "f894e42c"
+  },
+  "web.account.permanent_and_non_reversible": {
+    "text": "trvalé a nevratné.",
+    "source_hash": "6121225e"
+  },
+  "web.account.deleting_your_account_is": {
+    "text": "Smazání tvého účtu je",
+    "source_hash": "ec31577b"
+  },
+  "web.account.burn_them_before_continuing": {
+    "text": "trvale je smaž před pokračováním",
+    "source_hash": "f89a5794"
+  },
+  "web.account.any_secrets_you_wish_to_remove": {
+    "text": "Jakákoli tajemství, která chceš odstranit,",
+    "source_hash": "b45e2dd5"
+  },
+  "web.account.secrets_will_remain_active_until_they_expire": {
+    "text": "Tajemství zůstanou aktivní, dokud nevyprší.",
+    "source_hash": "ddb4e2b5"
+  },
+  "web.account.please_be_advised": {
+    "text": "Upozornění:",
+    "source_hash": "086020fd"
+  },
+  "web.account.account_deleted_successfully": {
+    "text": "Účet byl úspěšně smazán.",
+    "source_hash": "afcfdd58"
+  },
+  "web.account.deactivate": {
+    "text": "Deaktivovat",
+    "source_hash": "fb1e6fa5"
+  },
+  "web.account.are_you_sure_you_want_to_deactivate_your_account": {
+    "text": "Opravdu chceš deaktivovat svůj účet? Všechna tvá data budou navždy trvale odstraněna z našich serverů. Tuto akci nelze vrátit zpět.",
+    "source_hash": "4940e20a"
+  },
+  "web.account.deactivate_account": {
+    "text": "Deaktivovat účet",
+    "source_hash": "5e31b73d"
+  },
+  "web.settings.title": {
+    "text": "Nastavení",
+    "source_hash": "74a883a0"
+  },
+  "web.settings.description": {
+    "text": "Spravuj nastavení a předvolby svého účtu",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.manage_your_account_settings_and_preferences": {
+    "text": "Spravuj nastavení svého účtu a předvolby",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.back_to_dashboard": {
+    "text": "Zpět na přehled",
+    "source_hash": "97ba1d39"
+  },
+  "web.settings.sections.account": {
+    "text": "Účet",
+    "source_hash": "7e1b0d56"
+  },
+  "web.settings.sections.billing": {
+    "text": "Fakturace",
+    "source_hash": "3ac8bbca"
+  },
+  "web.settings.sections.advanced": {
+    "text": "Pokročilé",
+    "source_hash": "9f088dbe"
+  },
+  "web.settings.general": {
+    "text": "Obecné",
+    "source_hash": "c910d474"
+  },
+  "web.settings.preferences": {
+    "text": "Předvolby",
+    "source_hash": "66962f72"
+  },
+  "web.settings.appearance": {
+    "text": "Vzhled",
+    "source_hash": "3907fa7f"
+  },
+  "web.settings.theme.title": {
+    "text": "Téma",
+    "source_hash": "efb52e71"
+  },
+  "web.settings.theme.description": {
+    "text": "Vyber světlé nebo tmavé téma",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.theme.choose_light_or_dark_theme": {
+    "text": "Vyber světlé nebo tmavé téma",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.language.title": {
+    "text": "Jazyk",
+    "source_hash": "a4fe6526"
+  },
+  "web.settings.language.description": {
+    "text": "Vyber preferovaný jazyk",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.language.select_your_preferred_language": {
+    "text": "Vyber preferovaný jazyk",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.security_settings_description": {
+    "text": "Spravuj ověřování a zabezpečení účtu",
+    "source_hash": "945109d1"
+  },
+  "web.settings.profile_settings_description": {
+    "text": "Spravuj informace o svém účtu",
+    "source_hash": "4a23a29f"
+  },
+  "web.settings.profile.title": {
+    "text": "Profil",
+    "source_hash": "d696a35b"
+  },
+  "web.settings.profile.change_email": {
+    "text": "Změnit e-mail",
+    "source_hash": "18c3f2d5"
+  },
+  "web.settings.profile.current_email": {
+    "text": "Aktuální e-mail",
+    "source_hash": "5f1cab64"
+  },
+  "web.settings.profile.current_password": {
+    "text": "Aktuální heslo",
+    "source_hash": "8ac76099"
+  },
+  "web.settings.profile.new_email": {
+    "text": "Nový e-mail",
+    "source_hash": "5bafb4be"
+  },
+  "web.settings.profile.enter_password_to_confirm": {
+    "text": "Zadej své aktuální heslo",
+    "source_hash": "27814c03"
+  },
+  "web.settings.profile.password_required_for_security": {
+    "text": "Tvoje heslo je vyžadováno z bezpečnostních důvodů",
+    "source_hash": "d18f62f2"
+  },
+  "web.settings.profile.verification_email_notice": {
+    "text": "Na novou adresu bude odeslán ověřovací e-mail",
+    "source_hash": "575082a1"
+  },
+  "web.settings.profile.update_email": {
+    "text": "Aktualizovat e-mail",
+    "source_hash": "6ec61b2e"
+  },
+  "web.settings.profile.change_email_description": {
+    "text": "Aktualizuj e-mailovou adresu přidruženou k tvému účtu",
+    "source_hash": "636abb16"
+  },
+  "web.settings.profile.all_fields_required": {
+    "text": "Všechna pole jsou povinná",
+    "source_hash": "04814271"
+  },
+  "web.settings.profile.invalid_email": {
+    "text": "Zadej prosím platnou e-mailovou adresu",
+    "source_hash": "b00f7e3a"
+  },
+  "web.settings.profile.email_same_as_current": {
+    "text": "Nový e-mail se musí lišit od aktuálního e-mailu",
+    "source_hash": "f7cfed6e"
+  },
+  "web.settings.profile.email_change_success": {
+    "text": "Ověřovací e-mail odeslán. Zkontroluj prosím svou novou doručenou poštu a kliknutím na potvrzovací odkaz dokonči změnu.",
+    "source_hash": "45f0a4b5"
+  },
+  "web.settings.profile.email_change_error": {
+    "text": "Nepodařilo se aktualizovat e-mail. Zkus to prosím znovu.",
+    "source_hash": "aeba6591"
+  },
+  "web.settings.sessions.title": {
+    "text": "Aktivní relace",
+    "source_hash": "b58fa4e0"
+  },
+  "web.settings.sessions.description": {
+    "text": "Spravuj své aktivní relace",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.sessions.manage_active_sessions": {
+    "text": "Spravuj své aktivní relace",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.password.title": {
+    "text": "Heslo",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.settings.password.description": {
+    "text": "Aktualizovat heslo účtu",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.password.update_account_password": {
+    "text": "Aktualizovat heslo účtu",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.delete_account.title": {
+    "text": "Smazat účet",
+    "source_hash": "c031bf99"
+  },
+  "web.settings.delete_account.description": {
+    "text": "Trvale smazat tvůj účet a všechna data",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.delete_account.permanently_delete_your_account": {
+    "text": "Trvale smazat tvůj účet a všechna data",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.security.security_score": {
+    "text": "Bezpečnostní skóre",
+    "source_hash": "02d2f374"
+  },
+  "web.settings.security.score_description": {
+    "text": "Celkové zdraví zabezpečení tvého účtu",
+    "source_hash": "cf20935e"
+  },
+  "web.settings.security.excellent": {
+    "text": "Výborné",
+    "source_hash": "0dc8ee55"
+  },
+  "web.settings.security.good": {
+    "text": "Dobré",
+    "source_hash": "c939327c"
+  },
+  "web.settings.security.fair": {
+    "text": "Přijatelné",
+    "source_hash": "f7b19afc"
+  },
+  "web.settings.security.weak": {
+    "text": "Slabé",
+    "source_hash": "8d6cea25"
+  },
+  "web.settings.security.improve_security": {
+    "text": "Zlepšete své zabezpečení",
+    "source_hash": "c38bcbf5"
+  },
+  "web.settings.security.enable_mfa_recommendation": {
+    "text": "Povol dvoufaktorové ověření pro silnější ochranu",
+    "source_hash": "6beda528"
+  },
+  "web.settings.security.generate_recovery_codes_recommendation": {
+    "text": "Vygeneruj záložní kódy jako zálohu",
+    "source_hash": "eb5f3ebd"
+  },
+  "web.settings.security.configured": {
+    "text": "Nakonfigurováno",
+    "source_hash": "84aebc69"
+  },
+  "web.settings.security.change": {
+    "text": "Změnit",
+    "source_hash": "c0bf75bd"
+  },
+  "web.settings.security.manage": {
+    "text": "Spravovat",
+    "source_hash": "5a234448"
+  },
+  "web.settings.security.enable": {
+    "text": "Povolit",
+    "source_hash": "5342e09f"
+  },
+  "web.settings.security.codes_available": {
+    "text": "{0} kódů k dispozici",
+    "source_hash": "76d6236d"
+  },
+  "web.settings.security.no_codes": {
+    "text": "Žádné kódy nevygenerovány",
+    "source_hash": "3b2eae20"
+  },
+  "web.settings.security.active_sessions": {
+    "text": "{0} aktivní relace | {0} aktivních relací",
+    "source_hash": "30737484"
+  },
+  "web.settings.security.best_practices": {
+    "text": "Osvědčené bezpečnostní postupy",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.security.use_strong_unique_password": {
+    "text": "Používejte silné a jedinečné heslo pro svůj účet",
+    "source_hash": "5fc8cbf4"
+  },
+  "web.settings.security.enable_mfa_for_protection": {
+    "text": "Povol dvoufaktorové ověření pro další ochranu",
+    "source_hash": "107e4898"
+  },
+  "web.settings.security.save_recovery_codes_safely": {
+    "text": "Ulož si obnovovací kódy na bezpečné místo",
+    "source_hash": "605513fc"
+  },
+  "web.settings.security.review_sessions_regularly": {
+    "text": "Pravidelně kontrolujte a odvolávejte nepoužívané relace",
+    "source_hash": "efe59445"
+  },
+  "web.settings.security.view_details": {
+    "text": "Zobrazit podrobnosti",
+    "source_hash": "d1bf045b"
+  },
+  "web.settings.api.title": {
+    "text": "API a integrace",
+    "source_hash": "21fc84f3"
+  },
+  "web.settings.api.description": {
+    "text": "Správa API klíčů a integrací",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.manage_api_keys": {
+    "text": "Správa API klíčů a integrací",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.documentation": {
+    "text": "API dokumentace",
+    "source_hash": "1cc77e60"
+  },
+  "web.settings.api.documentation_description": {
+    "text": "Zjisti, jak integrovat {product_name} do svých aplikací",
+    "source_hash": "9bba1ae8"
+  },
+  "web.settings.api.rest_api_reference": {
+    "text": "Reference REST API",
+    "source_hash": "26a5af61"
+  },
+  "web.settings.api.complete_api_documentation": {
+    "text": "Kompletní API dokumentace a koncové body",
+    "source_hash": "c1c87ad8"
+  },
+  "web.settings.api.code_examples": {
+    "text": "Příklady kódu",
+    "source_hash": "216d28e4"
+  },
+  "web.settings.api.example_code_and_libraries": {
+    "text": "Příklady kódu a klientské knihovny",
+    "source_hash": "61c5956f"
+  },
+  "web.settings.api.security_best_practices": {
+    "text": "Osvědčené bezpečnostní postupy",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.api.never_commit_api_keys": {
+    "text": "Nikdy neukládejte API klíče do verzovacího systému",
+    "source_hash": "cc8c327e"
+  },
+  "web.settings.api.use_environment_variables": {
+    "text": "Používejte proměnné prostředí pro ukládání API klíčů",
+    "source_hash": "c05e8802"
+  },
+  "web.settings.api.rotate_keys_regularly": {
+    "text": "Pravidelně obměňujte API klíče pro bezpečnost",
+    "source_hash": "eda6a5db"
+  },
+  "web.settings.api.use_https_only": {
+    "text": "Vždy používejte HTTPS při provádění API požadavků",
+    "source_hash": "b3f405ef"
+  },
+  "web.settings.api.monitor_api_usage": {
+    "text": "Sledujte využití API a nastav upozornění",
+    "source_hash": "abb08beb"
+  },
+  "web.settings.api.important_notice": {
+    "text": "Důležité upozornění",
+    "source_hash": "03d3ba93"
+  },
+  "web.settings.api.regenerating_key_warning": {
+    "text": "Regenerace tvého API klíče zneplatní aktuální klíč. Aktualizuj všechny aplikace používající starý klíč.",
+    "source_hash": "ab168f83"
+  },
+  "web.settings.privacy.title": {
+    "text": "Nastavení soukromí",
+    "source_hash": "eefad6ba"
+  },
+  "web.settings.privacy.manage_privacy_settings": {
+    "text": "Spravuj své předvolby soukromí",
+    "source_hash": "add087da"
+  },
+  "web.settings.privacy.your_privacy": {
+    "text": "Tvoje soukromí",
+    "source_hash": "cad972db"
+  },
+  "web.settings.privacy.non_negotiable": {
+    "text": "Bez kompromisů",
+    "source_hash": "ad090a29"
+  },
+  "web.settings.privacy.not_a_setting": {
+    "text": "Není nastavení",
+    "source_hash": "41278ece"
+  },
+  "web.settings.privacy.no_analytics_statement": {
+    "text": "Žádná analytika. Žádné sledování. Tečka.",
+    "source_hash": "3e154b1c"
+  },
+  "web.settings.privacy.explanation": {
+    "text": "Toto není nastavení, protože není co zapínat nebo vypínat. Tvoje soukromí je součástí toho, jak fungujeme.",
+    "source_hash": "ed943792"
+  },
+  "web.settings.notifications.title": {
+    "text": "Nastavení oznámení",
+    "source_hash": "07a063ca"
+  },
+  "web.settings.notifications.description": {
+    "text": "Spravuj způsob přijímání oznámení",
+    "source_hash": "148c5ff6"
+  },
+  "web.settings.notifications.error_updating": {
+    "text": "Nepodařilo se aktualizovat předvolbu oznámení. Zkus to prosím znovu.",
+    "source_hash": "c08abc04"
+  },
+  "web.settings.notifications.reveal_notifications.title": {
+    "text": "Oznámení o odhalení tajemství",
+    "source_hash": "c0fb2e25"
+  },
+  "web.settings.notifications.reveal_notifications.description": {
+    "text": "Obdržet e-mail, když někdo zobrazí tvoje tajemství",
+    "source_hash": "a3a67095"
+  },
+  "web.settings.notifications.reveal_notifications.help": {
+    "text": "Budeš upozorněni pokaždé, když příjemce odhalí jedno z tvých tajemství",
+    "source_hash": "ba93106d"
+  },
+  "web.settings.notifications.privacy_note": {
+    "text": "Notifikační e-maily obsahují pouze časové razítko a ID tajemství. Informace o prohlížeči nejsou nikdy zahrnuty.",
+    "source_hash": "7aac282f"
+  },
+  "web.settings.caution.title": {
+    "text": "Zóna pečlivého zvážení",
+    "source_hash": "fe27a3a8"
+  },
+  "web.settings.caution.description": {
+    "text": "Pokročilá nastavení a správa dat",
+    "source_hash": "223ee55d"
+  },
+  "web.settings.caution.data_export": {
+    "text": "Export dat",
+    "source_hash": "bdcea052"
+  },
+  "web.settings.caution.export_your_data": {
+    "text": "Exportovat data účtu",
+    "source_hash": "dc5ffcb0"
+  },
+  "web.settings.caution.export_description": {
+    "text": "Požádejte o úplnou kopii dat tvého účtu ve strojově čitelném formátu",
+    "source_hash": "369c3391"
+  },
+  "web.settings.caution.request_data_export": {
+    "text": "Požádat o export dat",
+    "source_hash": "902394be"
+  },
+  "web.settings.caution.export_info": {
+    "text": "Doba zpracování exportu",
+    "source_hash": "2ebb2d44"
+  },
+  "web.settings.caution.export_info_description": {
+    "text": "Exporty jsou zpracovány do 24 hodin a odeslány na tvou e-mailovou adresu",
+    "source_hash": "a2f81e3b"
+  },
+  "web.settings.caution.deletion_warning_title": {
+    "text": "Smazání tvého účtu způsobí:",
+    "source_hash": "17a8a676"
+  },
+  "web.settings.caution.deletion_warning_secrets": {
+    "text": "Trvalé smazání všech tvých tajemství",
+    "source_hash": "974ccdb9"
+  },
+  "web.settings.caution.deletion_warning_metadata": {
+    "text": "Odstranění všech metadat a historie tajemství",
+    "source_hash": "ec4ee372"
+  },
+  "web.settings.caution.deletion_warning_api_keys": {
+    "text": "Zneplatnit všechny API klíče",
+    "source_hash": "7581333b"
+  },
+  "web.settings.caution.deletion_warning_irreversible": {
+    "text": "Tuto akci nelze vrátit zpět",
+    "source_hash": "02ccc074"
+  },
+  "web.settings.profile.confirm_email_change_title": {
+    "text": "E-mailová adresa aktualizována",
+    "source_hash": "cf02eb0c"
+  },
+  "web.settings.profile.email_confirmed_success": {
+    "text": "Tvůj e-mail byl úspěšně aktualizován. Přihlas se prosím s novou e-mailovou adresou.",
+    "source_hash": "a84efcea"
+  },
+  "web.settings.profile.email_confirm_verifying": {
+    "text": "Ověřování tvé nové e-mailové adresy...",
+    "source_hash": "a6a4745f"
+  },
+  "web.settings.profile.email_confirm_error_title": {
+    "text": "Změna e-mailu selhala",
+    "source_hash": "953f3936"
+  },
+  "web.settings.profile.email_confirm_invalid": {
+    "text": "Tento ověřovací odkaz je neplatný nebo jeho platnost vypršela.",
+    "source_hash": "f54594c2"
+  },
+  "web.settings.profile.email_confirm_back_to_settings": {
+    "text": "Zpět na nastavení účtu",
+    "source_hash": "fd49b66b"
+  },
+  "web.settings.profile.redirecting_to_signin": {
+    "text": "Přesměrování na přihlášení...",
+    "source_hash": "c65f7dcc"
+  },
+  "web.settings.profile.resend_confirmation": {
+    "text": "Znovu odeslat potvrzovací e-mail",
+    "source_hash": "c617fff7"
+  },
+  "web.settings.profile.resend_confirmation_success": {
+    "text": "Potvrzovací e-mail byl úspěšně znovu odeslán.",
+    "source_hash": "2287783b"
+  },
+  "web.settings.profile.resend_confirmation_sending": {
+    "text": "Odesílání...",
+    "source_hash": "286a3af7"
+  },
+  "web.settings.profile.email_change_pending": {
+    "text": "Ověřovací e-mail byl odeslán. Zkontroluj svou doručenou poštu a klikni na potvrzovací odkaz.",
+    "source_hash": "5806c93f"
+  },
+  "web.settings.profile.didnt_receive_email": {
+    "text": "Nedostal/a jsi e-mail?",
+    "source_hash": "fe3ac3ad"
+  },
+  "web.settings.api.api_disabled_notice": {
+    "text": "Rozhraní API je pro tuto instanci zakázáno.",
+    "source_hash": "66d12d6b"
+  },
+  "web.settings.security.sso_managed_title": {
+    "text": "Zabezpečení spravované přes SSO",
+    "source_hash": "1f6c9472"
+  },
+  "web.settings.security.sso_managed_description": {
+    "text": "Tvůj účet je ověřován prostřednictvím poskytovatele jednotného přihlášení tvé organizace. Heslo, vícefaktorové ověření a obnovovací kódy spravuje tvůj poskytovatel identity.",
+    "source_hash": "cd0cf39f"
+  },
+  "web.settings.api.api_username": {
+    "text": "API uživatelské jméno",
+    "source_hash": "0b3e483e"
+  },
+  "web.settings.api.api_username_description": {
+    "text": "Tvoje uživatelské jméno pro HTTP Basic autentizaci",
+    "source_hash": "f3e65de3"
+  },
+  "web.settings.api.basic_auth_hint": {
+    "text": "Pro HTTP Basic autentizaci použij svůj e-mail účtu nebo toto ID jako uživatelské jméno a tvůj API token jako heslo.",
+    "source_hash": "cfa3806d"
+  },
+  "web.settings.security.set": {
+    "text": "Nastaveno",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.settings.security.not_set": {
+    "text": "Nenastaveno",
+    "source_hash": "4895f731"
+  },
+  "web.settings.security.set_password_title": {
+    "text": "Nastavit heslo",
+    "source_hash": "4e411687"
+  },
+  "web.settings.security.set_password_description": {
+    "text": "Přidej heslo ke svému účtu, abys ses mohl přihlásit i bez poskytovatele identity",
+    "source_hash": "a6970402"
+  }
+}

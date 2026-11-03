@@ -1,0 +1,537 @@
+##
+# Caddy 2 Configuration - One-Time Secret (Updated: 2025-11-09)
+#
+# caddy validate -c etc/examples/Caddyfile-example
+#
+# OR via docker container
+#
+# docker run --rm \
+#   -v $PWD/etc/examples/Caddyfile-example:/etc/caddy/Caddyfile:ro \
+#   onetime-caddy:v2.10.2 \
+#   caddy validate --config /etc/caddy/Caddyfile
+#
+# docker run --rm \
+#   -v $PWD/etc/examples/Caddyfile-example:/etc/caddy/Caddyfile:ro \
+#   onetime-caddy:v2.10.2 \
+#   caddy fmt --config /etc/caddy/Caddyfile
+{
+	# This email address is used for ACME (Let's Encrypt) contacts
+	# and depending on your customer domain privacy settings, may be
+	# publicly visible in the certificate transparency logs.
+	email {$CERTIFICATE_EMAIL:björk@example.com}
+
+	admin off
+
+	log {
+		output stdout
+		format filter {
+			# Match onetime-log-redaction below; global options cannot import
+			# a snippet declared later in the Caddyfile.
+			fields {
+				request>uri regexp "[?].*" ""
+				request>headers>Referer delete
+				resp_headers>Location delete
+				headers>Location delete
+			}
+			wrap json
+		}
+		level INFO
+	}
+
+	# Explicitly set storage path (/data/caddy is default)
+	storage file_system {
+		root /data/caddy
+	}
+
+	# If disabling HTTP challenge (i.e. port 80), uncomment this setting
+	# to use TLS-ALPN challenge instead.
+	#acme_ca https://acme-v02.api.letsencrypt.org/directory
+
+	# For testing first, use staging:
+	#acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+
+	servers {
+		# Optimize keepalive settings
+		keepalive_interval 20s
+		max_header_size 4kb
+
+		# Set explicit timeouts (updated 2025-05-18)
+		timeouts {
+			read_body 30s
+			read_header 10s
+			write 60s
+			idle 5m
+		}
+
+		# Protect against slow DoS attacks
+		protocols h1 h2 h3
+
+		# If we're behind a proxy, this tells caddy that it's not unsafe
+		# to trust the client IP address(es) in the forwarded-for
+		# header. It's a security measure to prevent someone from
+		# spoofing a different IP address than their own.
+		trusted_proxies static private_ranges
+		client_ip_headers X-Forwarded-For X-Real-IP
+	}
+
+	#on_demand_tls {
+	#  # @see allowed-domains
+	#  ask http://localhost:3001/ask
+	#}
+}
+# Strip the whole query rather than selected names: malformed, encoded and
+# duplicate query keys must not expose SAML assertions or transport handles.
+# Filters affect log encoding only, not forwarded requests or client redirects.
+# These filters cover only the configured Caddy log fields. They do not configure
+# upstream ingress, custom request-body capture, APM agents or hosted Sentry.
+# Apply equivalent filtering there: do not record SAMLResponse, callback query
+# strings/handles, Referer or response Location headers. Updating this example
+# does not update an existing deployment's ingress or monitoring configuration.
+(onetime-log-redaction) {
+	fields {
+		request>uri regexp "[?].*" ""
+		request>headers>Referer delete
+		resp_headers>Location delete
+		# reverse_proxy debug records response headers under this field.
+		headers>Location delete
+	}
+}
+
+(onetime-root) {
+	root * {$PUBLIC_DIR:/var/www/public}
+
+	encode {
+		minimum_length 512
+		zstd
+		gzip 7
+	}
+
+	# Block access to sensitive files
+	@sensitive {
+		path */.env* */.git/* */.htaccess
+		path */Gemfile */Gemfile.lock */config.ru
+		path */bin/* */tmp/* */log/*
+	}
+	respond @sensitive 404
+
+	# Block known bad user agents and common attack patterns
+	@blocklist {
+		header_regexp User-Agent (nmap|nikto|sqlmap|gobuster|masscan|zmap|zgrab|dirbuster|metasploit|burp)
+	}
+	respond @blocklist 404
+
+	# Block path traversal attempts
+	@path_traversal {
+		path_regexp (\.\./|\.\.%2[Ff]|%00|%0[Dd]%0[Aa])
+	}
+	respond @path_traversal 400
+
+	# Enhanced rate limiting using caddy-ratelimit plugin
+	# @see https://github.com/mholt/caddy-ratelimit
+	#
+	# Rate limit calculations:
+	#    5r/m =>     300 requests/hour per IP
+	#   10r/s =>  36,000 requests/hour per IP
+	#   20r/s =>  72,000
+	#   30r/s => 108,000
+	#   99r/s => 356,400
+	#
+	# General traffic - applies to all non-matched paths
+	rate_limit {
+		zone general {
+			key {remote_ip}
+			events 20
+			window 1s
+		}
+	}
+
+	# API endpoints - moderate limits
+	@api_paths {
+		path /api/*
+	}
+	rate_limit @api_paths {
+		zone api {
+			key {remote_ip}
+			events 30
+			window 1s
+		}
+	}
+
+	# Auth mutations (login, password changes) - strict limits
+	@auth_mutations {
+		path /auth/login /auth/create-* /auth/reset-* /auth/verify-*
+		path /auth/otp-* /auth/webauthn-* /auth/email-login*
+	}
+	rate_limit @auth_mutations {
+		zone auth_mutations {
+			key {remote_ip}
+			events 5
+			window 1m
+		}
+	}
+
+	# Auth reads (account info, status checks) - moderate limits
+	@auth_reads {
+		path /auth/*
+	}
+	rate_limit @auth_reads {
+		zone auth_reads {
+			key {remote_ip}
+			events 10
+			window 1s
+		}
+	}
+
+	# Static assets - high limits
+	@static {
+		path *.js *.css *.svg *.png *.jpg *.jpeg *.woff *.woff2 *.ico *.pdf *.manifest
+	}
+	rate_limit @static {
+		zone static {
+			key {remote_ip}
+			events 99
+			window 1s
+		}
+	}
+}
+
+(onetime-headers) {
+	# Use the same edge-generated ID for responses, upstream requests and
+	# access logs, including static responses and upstream failures.
+	# Keep O-Request-ID for existing diagnostic consumers.
+	header O-Request-ID "{http.request.uuid}"
+	header X-Request-ID "{http.request.uuid}"
+
+	# Serve build output from disk. ALLOWLIST, not a file-existence test: an
+	# `@exists file` matcher lets any stale file under $PUBLIC_DIR silently
+	# outrank the app's brand resolution (public/branding/<pack>). In
+	# particular /favicon.ico and /site.webmanifest are route-served by the
+	# app so they can vary per custom domain — a file on disk defeats that.
+	# /dist (Vite build output) is the only tree the app itself treats as
+	# never-overlaid (lib/onetime/middleware/static_files.rb).
+	@dist path /dist/*
+	handle @dist {
+		file_server
+	}
+
+	header {
+		# Security headers
+		#
+		# CSP: Handled by application server (apps/web/core/middleware/security_headers.rb)
+		# to maintain centralized policy management.
+		#
+		# HSTS: Configured per-domain in main server block below for flexibility.
+		#
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy ""
+
+		# Prevent caching of sensitive content
+		Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+		Pragma "no-cache"
+
+		# Prevent search engines from indexing
+		X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex"
+
+		# Custom header indicating which Caddy instance/config handled request.
+		# The -{args[0]} syntax removes the header if args[0] is empty, or sets it to
+		# the value passed when importing this snippet (e.g., "import onetime-headers main").
+		# Useful for multi-instance deployments or A/B config testing.
+		O-Via -{args[0]}
+
+		# Remove server identification
+		-Server
+		-X-Powered-By
+	}
+}
+
+# SAML callbacks require both the IdP's POST and the redirected completion GET.
+# Allow both through ingress; preserve the POST body, callback query string and
+# browser-facing Location header. Remove sensitive values from logs, not traffic.
+# Use a secure, host-only SameSite=Lax session cookie; SameSite=None; Secure is
+# also compatible. Do not rewrite session cookies to SameSite=Strict: completion
+# requires the original session cookie on the redirected GET.
+# See docs/authentication/saml-callback-transport.md for the callback flow, cookie
+# requirements and staging-capacity limits (including 429 admission responses).
+(onetime-proxy) {
+	handle {
+		# Public authority (#4384, docs/operations/proxy-authority-header.md).
+		# The application reads the host the visitor asked for from exactly two
+		# places: X-Forwarded-Host, when the request arrived through a trusted
+		# proxy, and Host. This block is the adapter for everything else. It
+		#
+		#   - overwrites X-Forwarded-Host with one value on every request, so a
+		#     client-supplied or appended value never reaches the application;
+		#   - removes Apx-Incoming-Host, X-Original-Host and RFC 7239 Forwarded,
+		#     which the application does not read.
+		#
+		# With Caddy as the edge, the host it received is the public one.
+		vars ots_public_host {http.request.host}
+		#
+		# Behind Approximated? It puts the origin target in Host and the
+		# visitor's hostname in Apx-Incoming-Host. Translate that header into
+		# X-Forwarded-Host here, and only for requests that come from
+		# Approximated: replace the `vars` line above with the block below,
+		# using the egress range from your Approximated dashboard. `route`
+		# keeps the two assignments in this order.
+		#
+		#   @from_apx {
+		#       remote_ip 198.51.100.0/24
+		#       header Apx-Incoming-Host *
+		#   }
+		#   route {
+		#       vars ots_public_host {http.request.host}
+		#       vars @from_apx ots_public_host {http.request.header.Apx-Incoming-Host}
+		#   }
+		#
+		# Any other layer in front of Caddy that rewrites Host gets the same
+		# treatment: match its source range, and copy the header it uses into
+		# ots_public_host.
+
+		# Forward all other requests to backend
+		reverse_proxy {
+			# Rack::RequestId preserves this ID and returns it as x-request-id.
+			# Replace any caller-supplied ID with this request's Caddy UUID.
+			header_up X-Request-ID {http.request.uuid}
+			# Pass relevant headers to backend
+			# Preserves the Host this Caddy received. If a layer in FRONT of Caddy
+			# rewrote it, Rack's request.host is the origin target for the whole
+			# app, including mounted gems such as Rodauth (#4221). Onetime's own
+			# code reads env['onetime.display_domain'] instead of request.host for
+			# that reason (#4224); the display domain comes from the
+			# X-Forwarded-Host set below.
+			header_up Host {http.request.host}
+			header_up X-Forwarded-Host {vars.ots_public_host}
+			# Caddy does not manage X-Forwarded-Port, so a client's value would
+			# pass through and Rack would use it as the port of generated URLs
+			# whenever Host carries none. Host is preserved above and already
+			# carries a non-default public port.
+			header_up -X-Forwarded-Port
+			header_up -Apx-Incoming-Host
+			header_up -X-Original-Host
+			header_up CF-ASN {http.request.header.CF-ASN}
+			header_up CF-IPContinent {http.request.header.CF-IPContinent}
+			header_up CloudFront-Viewer-Country {http.request.header.CloudFront-Viewer-Country}
+			header_up Fastly-Geo-Country {http.request.header.Fastly-Geo-Country}
+			header_up O-API-Key {http.request.header.O-API-Key}
+			header_up O-Geo-Country {http.request.header.O-Geo-Country}
+			header_up Via {http.request.header.Via}
+			header_up X-API-Key {http.request.header.X-API-Key}
+			# Host detection (#4224, #4384):
+			# Rack::DetectHost resolves the visitor's public host into
+			# env['onetime.display_domain'], the value every custom-domain surface
+			# keys on (tenant SSO, sign-in gating, restrict_to, CSP form-action).
+			# It reads a single-valued X-Forwarded-Host, then Host, and takes the
+			# first syntactically valid hostname -- it does not check whether that
+			# domain is one this install knows. A client-supplied X-Forwarded-Host
+			# passed through would let a visitor name a different host, including
+			# another tenant's registered domain, so the header is always
+			# overwritten above. A comma-separated value (a proxy that appended) is
+			# not read at all: the request resolves on Host and the application
+			# logs a WARN.
+			# RFC 7239 Forwarded is not part of the contract either. Remove it.
+			header_up -Forwarded
+			header_up X-Forwarded-Proto {http.request.scheme}
+			header_up X-Geo-Country {http.request.header.X-Geo-Country}
+
+			# IP Forwarding & TRUSTED_PROXY_ENABLED security:
+			# To safely use TRUSTED_PROXY_ENABLED=true (default 'filter' mode), we must
+			# explicitly overwrite X-Forwarded-For and X-Real-IP with Caddy's resolved
+			# client IP. If we do not overwrite X-Forwarded-For, Caddy's default behavior
+			# of appending the client IP allows clients to inject/spoof arbitrary leftmost
+			# IPs into the forwarded header.
+			#
+			# {client_ip} honours Caddy's own `trusted_proxies` setting: with none
+			# configured it equals the direct peer ({remote_host}); with a CDN's ranges
+			# declared there it resolves to the real visitor. If Caddy sits behind
+			# another proxy, declare that proxy in `trusted_proxies` or this writes the
+			# upstream's address as the client IP.
+			#
+			# Correct for filter mode AND for TRUSTED_PROXY_MODE=depth with
+			# TRUSTED_PROXY_DEPTH=1: the overwrite leaves exactly one attested entry
+			# (Caddy's resolved client), which depth 1 selects — the safest
+			# single-proxy depth config. With a depth of 2 or more, collapsing
+			# X-Forwarded-For to a single entry leaves fewer hops than the count and
+			# resolution falls back to the peer — IP rate limits, audit attribution,
+			# and network restrictions then key on a proxy, not the user. Running
+			# depth >= 2? Drop the X-Forwarded-For line below and let Caddy append,
+			# preserving the hop chain, and set TRUSTED_PROXY_DEPTH to the number of
+			# hops your topology puts in the chain (see .env.reference).
+			# Depth mode tolerates untrusted leftmost entries (selection is anchored
+			# at the right, so left-side padding never shifts it), but the count must
+			# match the topology: a chain shorter than the depth falls back to the
+			# peer, and a depth larger than the real hop count selects a
+			# client-supplied entry.
+			header_up X-Forwarded-For {client_ip}
+			header_up X-Real-IP {client_ip}
+
+			# Filter request headers to prevent header smuggling
+			header_down -Server
+			# The response already has Caddy's canonical ID. Remove the app's
+			# echo before proxying response headers to avoid duplicate values.
+			header_down -X-Request-ID
+
+			# Ruby application container. Needs to match the docker name.
+			# Explicit http:// scheme to prevent h2c negotiation
+			to http://{$UPSTREAM_HOST:onetime-app}:{$UPSTREAM_PORT:3000}
+
+			# Load Balancer
+			#
+			# @see https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#load-balancing
+			lb_policy least_conn
+
+			# How many times to retry selecting available backends (default: 0).
+			# retries may stop early if the duration is reached. In other words,
+			# the retry duration takes precedence over the retry count.
+			#lb_retries 1
+
+			# how long to try selecting available backends for each request if
+			# the next available host is down. (default: 0)
+			#lb_try_duration 5s
+
+			# Active health checking
+			#
+			# @see https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#active-health-checks
+			#
+			# DISABLED: Health checks were causing HTTP/2 (PRI method) requests to Puma
+			# which doesn't support HTTP/2. Caddy's health check client may attempt
+			# protocol negotiation independently of the transport settings.
+			#
+			# TODO: Re-enable with explicit HTTP/1.1 constraint once Caddy supports
+			# per-health-check transport configuration.
+			#
+			# health_uri /api/v2/status
+			# health_body nominal
+			# health_interval 20s
+			# health_passes 2
+			# health_fails 2
+			# health_timeout 5s
+
+			# Passive health checks (ENABLED)
+			#
+			# @see https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#passive-health-checks
+			#
+			# Passive health checks monitor actual traffic and don't make separate
+			# HTTP requests, so they don't suffer from the HTTP/2 protocol issue
+			# that affects active health checks.
+
+			# How long to remember a failed request; a duration > 0 enables
+			# passive health checking. (default: 30s)
+			fail_duration 30s
+
+			# Maximum number of unhealthy requests to tolerate before marking
+			# the backend as down (optional, uses default if not specified)
+			# unhealthy_request_count 3
+
+			transport http {
+				# Internet → Caddy → Puma
+				#         (h1/h2/h3) (HTTP/1.1)
+				# Puma doesn't support HTTP/2
+				versions 1.1
+				compression off
+
+				# There's an issue with Caddy losing connection with the application
+				# server intermittently so we keep this off even though there is
+				# performance benefit.
+				keepalive off
+
+				read_timeout 15s
+				write_timeout 60s
+				dial_timeout 5s
+			}
+		}
+	}
+}
+
+(onetime-logging) {
+	log_append request_id {http.request.uuid}
+
+	# Site-wide logging configuration
+	# https://github.com/caddyserver/transform-encoder
+	log {
+		output stdout
+		format filter {
+			import onetime-log-redaction
+			wrap json {
+				time_format unix_milli_float
+				duration_format string
+			}
+		}
+		level INFO
+	}
+
+	@secrets_timeline {
+		path /api/v3/secret /api/v2/secret /api/v1/share /api/v1/generate
+	}
+
+	# Timeline of events affecting secrets
+	log @secrets_timeline {
+		output stdout
+		format filter {
+			import onetime-log-redaction
+			wrap transform "{ts} {request>method} {request>uri} {status} {duration}" {
+				time_format "2006-01-02 15:04:05"
+				time_local
+			}
+		}
+		level INFO
+	}
+}
+
+######################################################################
+#                                                                    #
+#        SERVER SETTINGS BELOW THIS LINE -- THAR SHE BELOWS          #
+#                                                                    #
+######################################################################
+
+{$DOMAIN}:443 {
+	tls {
+		protocols tls1.3
+
+		# When using CloudFlare Proxy DNS (Orange Cloud is on), it helps to
+		# explicitly disable http certificate validation since the incoming
+		# requests are blocked and never make it through.
+		#
+		# Disable HTTP-01, use only TLS-ALPN-01
+		issuer acme {
+			disable_http_challenge
+		}
+	}
+
+	import onetime-root
+	import onetime-headers main
+	import onetime-proxy
+	import onetime-logging
+
+	# HSTS configuration
+	# Commented out: CloudFlare proxy overrides these settings via SSL/TLS Dashboard.
+	# For direct (non-proxied) deployments, uncomment and configure per-domain.
+	# Test thoroughly before enabling includeSubDomains to avoid lockout scenarios.
+	#
+	#@hsts_domains {
+	#  host {$DOMAIN}
+	#}
+	#header @hsts_domains Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+}
+
+# Verify the http-01 challenge is configured correctly:
+#
+#   # This should serve the challenge (or 404 if no active challenge)
+#   $ curl -v http://example.com/.well-known/acme-challenge/test
+#
+#   # This should redirect to https
+#   $ curl -I http://example.com/anything-else
+#
+http:// {
+	# ACME http challenge path - no redirect
+	handle /.well-known/acme-challenge/* {
+		file_server
+	}
+
+	# Everything else - redirect to HTTPS
+	handle {
+		redir https://{host}{uri} permanent
+	}
+}

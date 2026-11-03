@@ -1,0 +1,296 @@
+# apps/web/core/spec/controllers/authentication_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+RSpec.describe Core::Controllers::Authentication do
+  subject(:controller) { described_class.new(req, res) }
+
+  let(:session_data) { {} }
+  let(:session_id) { double('SessionId', public_id: 'sess_abc123') }
+  let(:rack_session) do
+    # Create a proper double that supports both Hash-like access and session methods
+    session                                                          = double('RackSession')
+    allow(session).to receive(:id).and_return(session_id)
+    allow(session).to receive(:clear) { session_data.clear }
+    allow(session).to receive(:[]) { |key| session_data[key] }
+    allow(session).to receive(:[]=) { |key, value| session_data[key] = value }
+    allow(session).to receive(:delete) { |key| session_data.delete(key) }
+    session
+  end
+  let(:session_options) { {} }
+  let(:env) do
+    {
+      'rack.session' => rack_session,
+      'rack.session.options' => session_options,
+      'HTTP_ACCEPT' => 'text/html',
+      'REMOTE_ADDR' => '127.0.0.1',
+    }
+  end
+  let(:req) do
+    request = double('Request')
+    allow(request).to receive_messages(env: env, ip: '127.0.0.1', locale: 'en')
+    allow(request).to receive(:app_path) { |path| path }
+    request
+  end
+  let(:res) do
+    response = double('Response')
+    allow(response).to receive(:do_not_cache!)
+    allow(response).to receive(:redirect)
+    allow(response).to receive(:status=)
+    response
+  end
+
+  before do
+    # Stub logging methods
+    allow(controller).to receive(:auth_logger).and_return(double('Logger', debug: nil, info: nil))
+  end
+
+  describe '#authenticate' do
+    it 'records the establishing surface after a successful simple-mode login' do
+      customer = instance_double(
+        Onetime::Customer,
+        extid: 'ur_abc123',
+        email: 'test@example.com',
+        role: 'customer',
+        custid: 'cust_abc123',
+        obscure_email: 't***@example.com',
+      )
+      allow(customer).to receive(:role?).with(:colonel).and_return(false)
+      logic = instance_double(
+        Core::Logic::Authentication::AuthenticateSession,
+        raise_concerns: nil,
+        process: nil,
+        cust: customer,
+      )
+      allow(Core::Logic::Authentication::AuthenticateSession).to receive(:new).and_return(logic)
+      allow(req).to receive_messages(
+        post?: true,
+        params: { 'login' => 'test@example.com', 'password' => 'correct-password' },
+      )
+      env.merge!(
+        'HTTP_ACCEPT' => 'application/json',
+        'onetime.domain_strategy' => :custom,
+        'onetime.display_domain' => 'secrets.acme.com',
+        'onetime.custom_domain_id' => 'domain-abc',
+      )
+
+      controller.send(:perform_authentication)
+
+      expect(session_data['authenticated_surface']).to eq(
+        'kind' => 'custom',
+        'id' => 'domain-abc',
+      )
+    end
+
+    # #4466: the logic raises Incomplete when the session id the request
+    # arrived with could not be ended. The login fails; no identity is written.
+    context 'when the logic refuses to sign in on a session it could not rotate' do
+      let(:message) { 'We could not sign you in. Please try again.' }
+
+      before do
+        logic = instance_double(Core::Logic::Authentication::AuthenticateSession, raise_concerns: nil)
+        allow(logic).to receive(:process).and_raise(
+          Onetime::SessionRotation::Incomplete, 'session id rotation incomplete (marker_not_written); login refused'
+        )
+        allow(Core::Logic::Authentication::AuthenticateSession).to receive(:new).and_return(logic)
+        allow(req).to receive_messages(
+          post?: true,
+          params: { 'login' => 'test@example.com', 'password' => 'correct-password' },
+        )
+      end
+
+      it 'answers a JSON client with a 503 error', :aggregate_failures do
+        env['HTTP_ACCEPT'] = 'application/json'
+
+        result = controller.send(:perform_authentication)
+
+        expect(res).to have_received(:status=).with(503)
+        expect(result).to eq(error: message)
+        expect(session_data).not_to have_key('authenticated')
+        expect(session_data).not_to have_key('external_id')
+      end
+
+      it 'sends an HTML client back to the sign-in page with the message', :aggregate_failures do
+        controller.send(:perform_authentication)
+
+        expect(res).to have_received(:redirect).with('/signin')
+        expect(session_data['error_message']).to eq(message)
+        expect(session_data).not_to have_key('authenticated')
+      end
+    end
+  end
+
+  describe '#logout' do
+    context 'with authenticated session' do
+      let(:session_data) do
+        {
+          'external_id' => 'ur_abc123',
+          'email' => 'test@example.com',
+          'role' => 'customer',
+          'authenticated' => true,
+          'authenticated_at' => Time.now.to_i,
+        }
+      end
+
+      it 'clears the session data' do
+        expect(rack_session).to receive(:clear)
+        controller.logout
+      end
+
+      it 'sets cache headers to prevent caching' do
+        expect(res).to receive(:do_not_cache!)
+        controller.logout
+      end
+
+      it 'sets session renew option to regenerate session ID' do
+        controller.logout
+        expect(session_options[:renew]).to be true
+      end
+
+      it 'logs session destruction initiation' do
+        logger = double('Logger')
+        allow(controller).to receive(:auth_logger).and_return(logger)
+
+        expect(logger).to receive(:debug).with(
+          'Session destruction initiated',
+          hash_including(customer_id: 'ur_abc123', ip: '127.0.0.1'),
+        )
+        expect(logger).to receive(:info).with(
+          'Session destroyed',
+          hash_including(customer_id: 'ur_abc123', ip: '127.0.0.1'),
+        )
+
+        controller.logout
+      end
+
+      context 'with HTML request' do
+        let(:env) { super().merge('HTTP_ACCEPT' => 'text/html') }
+
+        it 'redirects to home page' do
+          expect(res).to receive(:redirect).with('/')
+          controller.logout
+        end
+
+        it 'sets success message in session' do
+          controller.logout
+          expect(session_data['success_message']).to eq('You have been logged out')
+        end
+      end
+
+      context 'with JSON request' do
+        let(:env) { super().merge('HTTP_ACCEPT' => 'application/json') }
+
+        it 'returns JSON success response' do
+          expect(res).to receive(:status=).with(200)
+          result = controller.logout
+          expect(result).to eq({ success: 'You have been logged out' })
+        end
+
+        it 'does not redirect' do
+          expect(res).not_to receive(:redirect)
+          controller.logout
+        end
+      end
+    end
+
+    context 'without authenticated session (idempotent)' do
+      let(:session_data) { {} }
+
+      it 'succeeds without error' do
+        expect { controller.logout }.not_to raise_error
+      end
+
+      it 'still clears the session' do
+        expect(rack_session).to receive(:clear)
+        controller.logout
+      end
+
+      it 'still sets renew option' do
+        controller.logout
+        expect(session_options[:renew]).to be true
+      end
+
+      it 'logs with nil customer_id' do
+        logger = double('Logger')
+        allow(controller).to receive(:auth_logger).and_return(logger)
+
+        expect(logger).to receive(:debug).with(
+          'Session destruction initiated',
+          hash_including(customer_id: nil),
+        )
+        expect(logger).to receive(:info).with(
+          'Session destroyed',
+          hash_including(customer_id: nil),
+        )
+
+        controller.logout
+      end
+    end
+
+    context 'when rack.session.options is not available' do
+      let(:env) { super().tap { |e| e.delete('rack.session.options') } }
+
+      it 'does not raise error' do
+        expect { controller.logout }.not_to raise_error
+      end
+
+      it 'still clears session' do
+        expect(rack_session).to receive(:clear)
+        controller.logout
+      end
+    end
+
+    context 'when session.id raises error' do
+      before do
+        allow(rack_session).to receive(:id).and_raise(StandardError.new('no session id'))
+      end
+
+      it 'handles the error gracefully and continues' do
+        expect { controller.logout }.not_to raise_error
+      end
+    end
+  end
+
+  describe 'security considerations' do
+    let(:session_data) do
+      {
+        'external_id' => 'ur_secret123',
+        'email' => 'sensitive@example.com',
+        'authenticated' => true,
+      }
+    end
+
+    it 'captures session info before clearing for accurate logging' do
+      logger = double('Logger')
+      allow(controller).to receive(:auth_logger).and_return(logger)
+
+      # The customer_id should be captured BEFORE clear is called
+      expect(logger).to receive(:debug).with(
+        'Session destruction initiated',
+        hash_including(customer_id: 'ur_secret123'),
+      )
+      expect(logger).to receive(:info)
+
+      controller.logout
+    end
+
+    it 'ensures session is cleared even if logging fails' do
+      logger = double('Logger')
+      allow(controller).to receive(:auth_logger).and_return(logger)
+      allow(logger).to receive(:debug)
+      allow(logger).to receive(:info).and_raise(StandardError.new('logging failed'))
+
+      # Session should still be cleared before the error propagates
+      expect(rack_session).to receive(:clear).ordered
+
+      expect { controller.logout }.to raise_error(StandardError, 'logging failed')
+    end
+
+    it 'regenerates session ID to prevent session fixation' do
+      controller.logout
+      expect(session_options[:renew]).to be true
+    end
+  end
+end

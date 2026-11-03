@@ -1,0 +1,491 @@
+# spec/support/auth_mode_helpers.rb
+#
+# frozen_string_literal: true
+
+# Helper module for configuring authentication mode in specs via AuthConfig mocks.
+#
+# The mock is set up in before(:context) so it's in place BEFORE Onetime.boot! runs.
+# This ensures the entire application stack sees the mocked auth mode.
+#
+# Usage in spec files:
+#
+#   RSpec.describe 'My Test', :full_auth_mode do
+#     before(:all) do
+#       Onetime.boot! :test  # This will use the mocked auth_config
+#     end
+#     # ...
+#   end
+#
+module AuthModeHelpers
+  VALID_MODES = %w[simple full disabled].freeze
+
+  # Mock object that responds to all AuthConfig methods
+  class MockAuthConfig
+    attr_reader :mode
+
+    def initialize(mode, **options)
+      @mode = mode.to_s
+      @lockout_enabled = options.fetch(:lockout_enabled, true)
+      @password_requirements_enabled = options.fetch(:password_requirements_enabled, true)
+      @active_sessions_enabled = options.fetch(:active_sessions_enabled, true)
+      @remember_me_enabled = options.fetch(:remember_me_enabled, true)
+      # Off in tests unless the full-mfa lane exports AUTH_VERIFY_ACCOUNT_ENABLED,
+      # for the same one-shot reason as email_auth and webauthn below.
+      @verify_account_enabled = options.fetch(:verify_account_enabled) { ENV['AUTH_VERIFY_ACCOUNT_ENABLED'] == 'true' }
+      # On unless a lane exports AUTH_MFA_ENABLED=false: full-webauthn-verify
+      # boots production's MFA default (off). Every other lane leaves it unset.
+      @mfa_enabled = options.fetch(:mfa_enabled) { ENV['AUTH_MFA_ENABLED'] != 'false' }
+      # Magic links and passkeys default OFF, but honor env the same way the
+      # SSO flags below do: this mock is what config.rb reads at the one-shot
+      # boot of a :full_auth_mode process, so the full-mfa lane (which exports
+      # AUTH_EMAIL_AUTH_ENABLED=true and AUTH_WEBAUTHN_ENABLED=true; the passkey
+      # specs also set the latter at load time via support/webauthn_flow_helper.rb)
+      # is the only process that loads the Rodauth email_auth and webauthn
+      # feature sets. Unset env preserves the old false; == 'true' semantics
+      # match etc/defaults/auth.defaults.yaml.
+      @email_auth_enabled = options.fetch(:email_auth_enabled) { ENV['AUTH_EMAIL_AUTH_ENABLED'] == 'true' }
+      @webauthn_enabled = options.fetch(:webauthn_enabled) { ENV['AUTH_WEBAUTHN_ENABLED'] == 'true' }
+      # Passkey signup (Rodauth webauthn_verify_account), read the same way:
+      # the full-webauthn-verify lane exports AUTH_WEBAUTHN_VERIFY_ACCOUNT=true
+      # with webauthn on and verify_account off, the one process that loads
+      # verify_account through the sub-feature alone.
+      @webauthn_verify_account_enabled = options.fetch(:webauthn_verify_account_enabled) do
+        ENV['AUTH_WEBAUTHN_VERIFY_ACCOUNT'] == 'true'
+      end
+      # SSO flags default OFF in tests, but honor env so the per-mode rake
+      # batches (which run integration/full/ with provider env set) can exercise
+      # the real omniauth route registration. Unset env preserves the old false.
+      @sso_enabled = options.fetch(:sso_enabled) { ENV['AUTH_SSO_ENABLED'] == 'true' }
+      @orgs_sso_enabled = options.fetch(:orgs_sso_enabled) { ENV['ORGS_SSO_ENABLED'] == 'true' }
+      @restrict_to = options.fetch(:restrict_to, nil)  # nil = show all enabled methods
+      @omniauth_provider_name = options.fetch(:omniauth_provider_name, nil)
+    end
+
+    def full_enabled?
+      @mode == 'full'
+    end
+
+    def simple_enabled?
+      @mode == 'simple'
+    end
+
+    # Mirrors Onetime::AuthConfig#simple_by_default?: true only when simple
+    # mode is in force and nothing in the environment chose it.
+    def simple_by_default?
+      simple_enabled? && ENV['AUTHENTICATION_MODE'].to_s.strip.empty?
+    end
+
+    def configured?
+      true
+    end
+
+    def disabled?
+      @mode == 'disabled'
+    end
+
+    # Predicate methods matching AuthConfig interface
+    def lockout_enabled?
+      @lockout_enabled
+    end
+
+    def password_requirements_enabled?
+      @password_requirements_enabled
+    end
+
+    def active_sessions_enabled?
+      @active_sessions_enabled
+    end
+
+    def remember_me_enabled?
+      @remember_me_enabled
+    end
+
+    def remember_me_sessions_enabled?
+      (full_enabled? || simple_enabled?) && @remember_me_enabled
+    end
+
+    def verify_account_enabled?
+      @verify_account_enabled
+    end
+
+    # Mirrors Onetime::AuthConfig#verify_account_loaded?. Calls the three
+    # predicates rather than reading the ivars, so a spec that stubs one of
+    # them on this mock (allow(Onetime.auth_config).to receive(...)) is seen
+    # here as well.
+    def verify_account_loaded?
+      !!(verify_account_enabled? || (webauthn_enabled? && webauthn_verify_account_enabled?))
+    end
+
+    def mfa_enabled?
+      @mfa_enabled
+    end
+
+    def email_auth_enabled?
+      @email_auth_enabled
+    end
+
+    def webauthn_enabled?
+      @webauthn_enabled
+    end
+
+    # The two WebAuthn sub-features config/features/webauthn.rb consults at
+    # configure time. Both are separate opt-ins in production
+    # (AUTH_WEBAUTHN_VERIFY_ACCOUNT / AUTH_WEBAUTHN_AUTOFILL). Autofill is off
+    # here; passkey signup follows the env (initialize, above).
+    def webauthn_verify_account_enabled?
+      @webauthn_verify_account_enabled
+    end
+
+    def webauthn_autofill_enabled?
+      false
+    end
+
+    def sso_enabled?
+      @sso_enabled
+    end
+
+    # Domain-level SSO for custom domains (ORGS_SSO_ENABLED)
+    # Allows SSO routes to be registered even when platform AUTH_SSO_ENABLED=false,
+    # with credentials injected at runtime by OmniAuthTenant hook.
+    def orgs_sso_enabled?
+      @orgs_sso_enabled
+    end
+
+    # DEPRECATED: Alias for sso_enabled? — retained for Rodauth integration
+    alias omniauth_enabled? sso_enabled?
+
+    # #3836 Phase 1: opt-in, per-provider "trusted IdP email-linking" escape
+    # hatch. Mirrors Onetime::AuthConfig#trust_email_for_linking? /
+    # #trust_email_for_linking_enabled?. Default OFF in tests (matches the real
+    # default). The boot-time "Check Tenant Sso Trust" health check calls
+    # trust_email_for_linking_enabled?, and the account_from_omniauth hook calls
+    # trust_email_for_linking?(provider) — without these, every full-mode boot
+    # logs a NoMethodError and the trusted-link path cannot be exercised. Specs
+    # that need the flag ON stub it per-example (allow(Onetime.auth_config).to
+    # receive(:trust_email_for_linking?).with('oidc').and_return(true)).
+    def trust_email_for_linking?(_route_name)
+      false
+    end
+
+    def trust_email_for_linking_enabled?
+      false
+    end
+
+    # Whether custom domains without their own CustomDomain::SsoConfig
+    # can fall back to platform ENV-based SSO credentials.
+    # Mirrors Onetime::AuthConfig#allow_platform_fallback_for_tenants?.
+    # Defaults to false; specs that need a non-canonical host to reach
+    # downstream auth hooks must stub this to true.
+    def allow_platform_fallback_for_tenants?
+      false
+    end
+
+    def restrict_to
+      return nil unless full_enabled?
+
+      @restrict_to
+    end
+
+    # Boot-time validation of the global restriction
+    # (ADR-034#degradation-is-fail-closed, #4140).
+    # The ValidateAuthConfig initializer calls this on EVERY boot, so a mock
+    # without it fails the whole full-mode suite at Onetime.boot! with a
+    # NoMethodError that reads as a harness break rather than a config error.
+    #
+    # The mock's @restrict_to is set by the spec that built it, not parsed from
+    # config, so there is nothing to reject: mirror the real method's return
+    # contract (the validated restriction, or nil) and never raise.
+    def validate_restrict_to!
+      restrict_to
+    end
+
+    # Runtime availability of the configured restriction
+    # (ADR-034#degradation-is-fail-closed, runtime half). Consumed by the
+    # restrict_to route gate
+    # (apps/web/auth/config/hooks/restrict_to.rb, #4139) to degrade fail-closed.
+    # A mock restriction is available by construction — a spec that needs the
+    # unavailable path stubs this.
+    def restrict_to_available?
+      true
+    end
+
+    def sso_only_enabled?
+      return false unless sso_enabled?
+
+      restrict_to == 'sso'
+    end
+
+    def password_only_enabled?
+      restrict_to == 'password'
+    end
+
+    def email_auth_only_enabled?
+      return false unless email_auth_enabled?
+
+      restrict_to == 'email_auth'
+    end
+
+    def webauthn_only_enabled?
+      return false unless webauthn_enabled?
+
+      restrict_to == 'webauthn'
+    end
+
+    def omniauth_provider_name
+      return nil unless sso_enabled?
+
+      @omniauth_provider_name
+    end
+
+    def magic_links_enabled?
+      email_auth_enabled?
+    end
+
+    # Argon2 secret key (pepper) for password hashing defense-in-depth.
+    # Returns nil in tests (argon2id works fine without a pepper).
+    def argon2_secret
+      nil
+    end
+
+    # Feature flags hash (empty in tests; individual flags are set via options)
+    def features
+      {}
+    end
+
+    # SSO display name (nil unless SSO is enabled and configured)
+    def sso_display_name
+      return nil unless sso_enabled?
+
+      @omniauth_provider_name
+    end
+
+    # OmniAuth route name for SSO callback URL
+    def omniauth_route_name
+      return nil unless sso_enabled?
+
+      'oidc'
+    end
+
+    # All configured SSO providers for the platform.
+    # Returns array of hashes: [{ 'route_name' => 'oidc', 'display_name' => 'SSO' }, ...]
+    # Returns empty array in tests unless sso_enabled.
+    def sso_providers
+      return [] unless sso_enabled?
+
+      [{
+        'route_name' => omniauth_route_name,
+        'display_name' => sso_display_name || 'SSO',
+      }]
+    end
+
+    def database_url
+      @mode == 'full' ? 'sqlite::memory:' : nil
+    end
+
+    def database_url_migrations
+      # In tests, migration connection is same as regular connection
+      database_url
+    end
+
+    def full
+      @mode == 'full' ? { 'database_url' => 'sqlite::memory:' } : {}
+    end
+
+    def simple
+      {}
+    end
+
+    def session
+      {
+        'secret' => 'test-secret-minimum-64-characters-for-secure-sessions-testing',
+        'key' => 'onetime.session',  # Cookie name - REQUIRED
+        'expire_after' => 86400,
+        'secure' => false,
+        'httponly' => true,
+        'same_site' => 'lax'
+      }
+    end
+
+    def reload!
+      self
+    end
+
+    # Mirrors Onetime::AuthConfig#sso_form_action_origins. Tests don't set
+    # provider env vars, so this only reflects the SSO_FORM_ACTION_ORIGINS
+    # override — enough for router/CSP boot specs that just need the method
+    # to respond without raising. Applies the same .uniq the production method
+    # does so a duplicated override doesn't yield a duplicated CSP source list.
+    # (Token http(s)/injection validation is intentionally not replicated here:
+    # boot specs don't set malformed overrides, and duplicating that logic would
+    # drift from the single source of truth in AuthConfig#origin_from_url.)
+    def sso_form_action_origins
+      ENV.fetch('SSO_FORM_ACTION_ORIGINS', '').to_s.split.uniq
+    end
+
+    # Onetime::AuthConfig#sso_idp_origins (#4450): the PLATFORM IdP origins a
+    # cross-site POST callback may carry as Origin
+    # (Onetime::Middleware::HttpOriginOptions.sso_callback_from_configured_idp?).
+    # Env-aware like the flags above: production's own gate (sso_enabled?,
+    # then the definition's required vars present and :vars_valid) and
+    # production's own per-definition derivation (provider_origin ->
+    # origin_from_url), delegated to the real methods so the mock cannot
+    # drift, over the raw registry (the display-name rewrite
+    # provider_definitions applies to OIDC does not touch origins). The
+    # full-saml-platform lane is the one process that boots with a platform
+    # provider's vars set and needs its HTTP-POST callback admitted.
+    def sso_idp_origins
+      override = sso_form_action_origins
+      return override unless sso_enabled?
+
+      derived = Onetime::SsoProvider::Registry::DEFINITIONS.filter_map do |defn|
+        next unless tenant_origin_delegate.send(:provider_active?, defn)
+
+        tenant_origin_delegate.send(:provider_origin, defn)
+      end
+
+      (derived + override).uniq
+    end
+
+    # Onetime::AuthConfig#tenant_idp_origin (#4173), delegated to the REAL
+    # pure function so specs that mount Onetime::Middleware::TenantCspExtras
+    # don't NoMethodError — and so the mock can never drift from production's
+    # origin_from_url hardening (a hand-rolled URI extraction here diverged
+    # on exactly the hostile inputs the funnel exists to reject, e.g. a
+    # `;`-bearing host). tenant_idp_origin and its private helpers never
+    # touch loaded config, so an allocated (uninitialized) AuthConfig gives
+    # the production behavior without booting the auth config singleton —
+    # the same allocate technique tenant_csp_extras_spec uses.
+    def tenant_idp_origin(sso_config, env: nil)
+      tenant_origin_delegate.tenant_idp_origin(sso_config, env: env)
+    end
+
+    # Onetime::AuthConfig#tenant_origin_source (#4173) — the dispatch
+    # tenant_idp_origin itself runs, delegated for the same reason: the
+    # middleware asks which provider types read the tenant issuer, and a
+    # second copy of that answer here would be exactly the drift the shared
+    # method exists to prevent.
+    def tenant_origin_source(sso_config, env: nil)
+      tenant_origin_delegate.tenant_origin_source(sso_config, env: env)
+    end
+
+    # Onetime::AuthConfig#install_discovery_issuer_for_route (#4513),
+    # delegated to the real method for the same no-drift reason: the
+    # omniauth_setup issuer check reads it on every platform-path request,
+    # and it depends only on the registry and ENV, not on loaded config.
+    def install_discovery_issuer_for_route(route_name)
+      tenant_origin_delegate.install_discovery_issuer_for_route(route_name)
+    end
+
+    def tenant_origin_delegate
+      # AuthConfig includes Singleton, which makes .allocate private.
+      @tenant_origin_delegate ||= Onetime::AuthConfig.send(:allocate)
+    end
+  end
+
+  # Mutex for thread-safe singleton method modification
+  @install_mutex = Mutex.new
+
+  # Install mock for a given mode - replaces Onetime.auth_config at module level
+  # Returns the mock instance for further configuration if needed
+  #
+  # Thread safety: Uses mutex to prevent race conditions when parallel tests
+  # attempt to modify Onetime.auth_config singleton method simultaneously.
+  def self.install_mock(mode, context_metadata, **options)
+    @install_mutex.synchronize do
+      # Store the REAL original method in the context metadata (not module-level)
+      # This prevents leaks between test contexts
+      unless context_metadata[:auth_mode_original_method]
+        if Onetime.respond_to?(:auth_config) && !Onetime.method(:auth_config).owner.equal?(Onetime.singleton_class)
+          context_metadata[:auth_mode_original_method] = Onetime.method(:auth_config)
+        end
+      end
+
+      mock = MockAuthConfig.new(mode, **options)
+      context_metadata[:auth_mode_current_mock] = mock
+      context_metadata[:auth_mode_current_mode] = mode
+      Onetime.define_singleton_method(:auth_config) { mock }
+      mock
+    end
+  end
+
+  # Restore original auth_config method
+  # Thread safety: Uses same mutex as install_mock to prevent race conditions
+  def self.restore_original(context_metadata)
+    @install_mutex.synchronize do
+      context_metadata[:auth_mode_current_mock] = nil
+      context_metadata[:auth_mode_current_mode] = nil
+
+      # Only restore if we have the real original stored in this context
+      original_method = context_metadata[:auth_mode_original_method]
+      return unless original_method
+
+      begin
+        Onetime.define_singleton_method(:auth_config, original_method)
+      rescue => e
+        warn "Failed to restore original auth_config method: #{e.message}"
+        raise
+      ensure
+        context_metadata[:auth_mode_original_method] = nil
+      end
+    end
+  end
+
+  # Get current mock mode (useful for debugging)
+  def self.current_mode(context_metadata)
+    context_metadata[:auth_mode_current_mode]
+  end
+
+  # Check if a mock is currently installed
+  def self.mock_installed?(context_metadata)
+    !context_metadata[:auth_mode_current_mock].nil?
+  end
+
+  # Reset cached database connection (call before tests that need fresh connection)
+  def self.reset_database_connection!
+    return unless defined?(Auth::Database)
+
+    # Use the new reset_connection! method if available (supports LazyConnection cleanup)
+    if Auth::Database.respond_to?(:reset_connection!)
+      Auth::Database.reset_connection!
+    else
+      Auth::Database.instance_variable_set(:@connection, nil)
+    end
+  end
+end
+
+RSpec.configure do |config|
+  # Full auth mode - install mock BEFORE any setup runs
+  # Skip for :postgres_database specs — they manage their own DB lifecycle
+  config.before(:context, :full_auth_mode) do
+    next if self.class.metadata[:postgres_database]
+
+    AuthModeHelpers.install_mock('full', self.class.metadata)
+  end
+
+  config.after(:context, :full_auth_mode) do
+    next if self.class.metadata[:postgres_database]
+
+    AuthModeHelpers.reset_database_connection!
+    AuthModeHelpers.restore_original(self.class.metadata)
+  end
+
+  # Simple auth mode - install mock BEFORE any setup runs
+  config.before(:context, :simple_auth_mode) do
+    AuthModeHelpers.install_mock('simple', self.class.metadata)
+  end
+
+  config.after(:context, :simple_auth_mode) do
+    AuthModeHelpers.reset_database_connection!
+    AuthModeHelpers.restore_original(self.class.metadata)
+  end
+
+  # Disabled auth mode - install mock BEFORE any setup runs
+  config.before(:context, :disabled_auth_mode) do
+    AuthModeHelpers.install_mock('disabled', self.class.metadata)
+  end
+
+  config.after(:context, :disabled_auth_mode) do
+    AuthModeHelpers.reset_database_connection!
+    AuthModeHelpers.restore_original(self.class.metadata)
+  end
+end

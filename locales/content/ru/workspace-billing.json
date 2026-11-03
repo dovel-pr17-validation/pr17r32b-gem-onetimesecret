@@ -1,0 +1,1064 @@
+{
+  "web.billing.subscription_synced_title": {
+    "text": "Подписка синхронизирована",
+    "source_hash": "3086ef43"
+  },
+  "web.billing.subscription_synced_description": {
+    "text": "Преимущества Вашей подписки были синхронизированы из другого региона.",
+    "source_hash": "a99b7a98"
+  },
+  "web.billing.upgrade.required": {
+    "text": "Требуется обновление",
+    "source_hash": "16487236"
+  },
+  "web.billing.upgrade.viewPlans": {
+    "text": "Просмотреть планы",
+    "source_hash": "a865d424"
+  },
+  "web.billing.upgrade.needTeams": {
+    "text": "Управление командами требует Identity Plus или выше",
+    "source_hash": "95bdda65"
+  },
+  "web.billing.upgrade.needCustomDomains": {
+    "text": "Пользовательские домены требуют Identity Plus или выше",
+    "source_hash": "e8af8484"
+  },
+  "web.billing.upgrade.needApiAccess": {
+    "text": "Доступ к API требует Identity Plus или выше",
+    "source_hash": "ab8be865"
+  },
+  "web.billing.upgrade.needAuditLogs": {
+    "text": "Журналы аудита требуют Multi-Team или выше",
+    "source_hash": "91df96b0"
+  },
+  "web.billing.manage_subscription_and_billing": {
+    "text": "Управление подпиской, организациями и настройками оплаты",
+    "source_hash": "3995095c"
+  },
+  "web.billing.overview.title": {
+    "text": "Обзор оплаты",
+    "source_hash": "479a3c4c"
+  },
+  "web.billing.overview.description": {
+    "text": "Просмотр и управление подпиской и платёжными данными",
+    "source_hash": "60e5a00e"
+  },
+  "web.billing.overview.billing_for_organization": {
+    "text": "Оплата для этой организации",
+    "source_hash": "21806992"
+  },
+  "web.billing.overview.current_plan": {
+    "text": "Текущий план",
+    "source_hash": "5d856320"
+  },
+  "web.billing.overview.plan_features": {
+    "text": "Возможности плана",
+    "source_hash": "fbab9086"
+  },
+  "web.billing.overview.payment_method": {
+    "text": "Способ оплаты",
+    "source_hash": "f89a4e17"
+  },
+  "web.billing.overview.next_billing_date": {
+    "text": "Следующая дата оплаты",
+    "source_hash": "3d1df54e"
+  },
+  "web.billing.overview.quick_actions": {
+    "text": "Быстрые действия",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.billing.overview.manage_billing": {
+    "text": "Управление оплатой",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.view_invoices": {
+    "text": "Просмотреть счета",
+    "source_hash": "cfc0404e"
+  },
+  "web.billing.overview.upgrade_plan": {
+    "text": "Обновить план",
+    "source_hash": "17787ab7"
+  },
+  "web.billing.overview.change_plan": {
+    "text": "Сменить план",
+    "source_hash": "2d0b195b"
+  },
+  "web.billing.overview.manage_subscription": {
+    "text": "Управление подпиской",
+    "source_hash": "cbc4ef92"
+  },
+  "web.billing.plans.legacy_plan_info": {
+    "text": "Вы используете устаревший план с особыми условиями.",
+    "source_hash": "e9aa8bf0"
+  },
+  "web.billing.plans.early_supporter_plan": {
+    "text": "Identity Plus (Ранний пользователь)",
+    "source_hash": "f37cd0d9"
+  },
+  "web.billing.plans.legacy_plan_warning": {
+    "text": "Смена плана приведёт к потере Ваших особых условий. Это действие нельзя отменить.",
+    "source_hash": "eda13d64"
+  },
+  "web.billing.overview.no_payment_method": {
+    "text": "Способ оплаты не указан",
+    "source_hash": "77f71037"
+  },
+  "web.billing.overview.no_upcoming_billing": {
+    "text": "Нет предстоящих платежей",
+    "source_hash": "746314de"
+  },
+  "web.billing.overview.days_remaining": {
+    "text": "дней осталось",
+    "source_hash": "385438a3"
+  },
+  "web.billing.overview.billing_on": {
+    "text": "Оплата {date}",
+    "source_hash": "40dcb7cf"
+  },
+  "web.billing.overview.view_plans_action": {
+    "text": "Просмотреть планы",
+    "source_hash": "a865d424"
+  },
+  "web.billing.overview.view_plans_description": {
+    "text": "Сравнить и обновить",
+    "source_hash": "40e02bff"
+  },
+  "web.billing.overview.view_invoices_action": {
+    "text": "Просмотреть счета",
+    "source_hash": "cfc0404e"
+  },
+  "web.billing.overview.view_invoices_description": {
+    "text": "Скачать историю",
+    "source_hash": "b8ff5cac"
+  },
+  "web.billing.overview.manage_billing_action": {
+    "text": "Управление оплатой",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.manage_billing_description": {
+    "text": "Обновить платёжные данные",
+    "source_hash": "1f981aaf"
+  },
+  "web.billing.overview.no_organizations_title": {
+    "text": "Нет рабочих пространств",
+    "source_hash": "c7f70723"
+  },
+  "web.billing.overview.no_organizations_description": {
+    "text": "Создайте рабочее пространство, чтобы управлять оплатой и подпиской",
+    "source_hash": "e0fd27a5"
+  },
+  "web.billing.overview.load_error": {
+    "text": "Не удалось загрузить платёжную информацию",
+    "source_hash": "3bc44882"
+  },
+  "web.billing.overview.upgrade_success": {
+    "text": "Ваш план успешно обновлён",
+    "source_hash": "00ac43f8"
+  },
+  "web.billing.overview.upgrade_success_description": {
+    "text": "Ваш новый план теперь активен. Благодарим за покупку.",
+    "source_hash": "fd1caeb1"
+  },
+  "web.billing.overview.billing_contact": {
+    "text": "Контакт для оплаты",
+    "source_hash": "8f782ad8"
+  },
+  "web.billing.overview.entitlements.create_secrets": {
+    "text": "Создание секретов",
+    "source_hash": "0320541d"
+  },
+  "web.billing.overview.entitlements.view_receipt": {
+    "text": "Просмотр квитанций",
+    "source_hash": "6c664c31"
+  },
+  "web.billing.overview.entitlements.api_access": {
+    "text": "Доступ к API",
+    "source_hash": "5f31cc2f"
+  },
+  "web.billing.overview.entitlements.custom_domains": {
+    "text": "Пользовательские домены",
+    "source_hash": "6170ab94"
+  },
+  "web.billing.overview.entitlements.custom_privacy_defaults": {
+    "text": "Настройки конфиденциальности по умолчанию",
+    "source_hash": "e677e27d"
+  },
+  "web.billing.overview.entitlements.extended_default_expiration": {
+    "text": "Расширенный срок действия по умолчанию",
+    "source_hash": "19b19637"
+  },
+  "web.billing.overview.entitlements.custom_mail_sender": {
+    "text": "Настройки почты по умолчанию",
+    "source_hash": "95aebfb9"
+  },
+  "web.billing.overview.entitlements.custom_branding": {
+    "text": "Пользовательский брендинг",
+    "source_hash": "237dabec"
+  },
+  "web.billing.overview.entitlements.homepage_secrets": {
+    "text": "Секреты на главной",
+    "source_hash": "6360f7ec"
+  },
+  "web.billing.overview.entitlements.incoming_secrets": {
+    "text": "Входящие секреты",
+    "source_hash": "883dbca9"
+  },
+  "web.billing.overview.entitlements.manage_org": {
+    "text": "Управление организацией",
+    "source_hash": "f03a4985"
+  },
+  "web.billing.overview.entitlements.manage_teams": {
+    "text": "Управление командами",
+    "source_hash": "2a52d5b4"
+  },
+  "web.billing.overview.entitlements.manage_members": {
+    "text": "Управление участниками",
+    "source_hash": "af812b01"
+  },
+  "web.billing.overview.entitlements.audit_logs": {
+    "text": "Журналы аудита",
+    "source_hash": "5428d7fe"
+  },
+  "web.billing.overview.entitlements.sso": {
+    "text": "Единый вход (SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.billing.overview.entitlements.priority_support": {
+    "text": "Приоритетная поддержка",
+    "source_hash": "ed8a65c8"
+  },
+  "web.billing.overview.entitlements.sla": {
+    "text": "Соглашение об уровне обслуживания",
+    "source_hash": "436f2550"
+  },
+  "web.billing.overview.entitlements_load_error": {
+    "text": "Не удалось загрузить детали функций",
+    "source_hash": "c350973c"
+  },
+  "web.billing.overview.no_entitlements": {
+    "text": "Нет доступных функций",
+    "source_hash": "03d195e8"
+  },
+  "web.billing.features.create_secrets": {
+    "text": "Создание и передача секретов",
+    "source_hash": "303f9386"
+  },
+  "web.billing.features.api_access": {
+    "text": "Доступ к API",
+    "source_hash": "5f31cc2f"
+  },
+  "web.billing.features.custom_domains": {
+    "text": "Пользовательские домены",
+    "source_hash": "6170ab94"
+  },
+  "web.billing.features.custom_domain": {
+    "text": "1 пользовательский домен",
+    "source_hash": "6a6be744"
+  },
+  "web.billing.features.unlimited_custom_domains": {
+    "text": "Неограниченные пользовательские домены",
+    "source_hash": "53eb7521"
+  },
+  "web.billing.features.custom_branding": {
+    "text": "Пользовательский брендинг",
+    "source_hash": "237dabec"
+  },
+  "web.billing.features.homepage_secrets": {
+    "text": "Секреты на главной",
+    "source_hash": "6360f7ec"
+  },
+  "web.billing.features.manage_teams": {
+    "text": "Управление командами",
+    "source_hash": "6bcbac8f"
+  },
+  "web.billing.features.manage_members": {
+    "text": "Управление участниками",
+    "source_hash": "b38b89db"
+  },
+  "web.billing.features.audit_logs": {
+    "text": "Журналы аудита",
+    "source_hash": "5428d7fe"
+  },
+  "web.billing.features.sso": {
+    "text": "SSO",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.billing.features.priority_support": {
+    "text": "Приоритетная поддержка",
+    "source_hash": "ed8a65c8"
+  },
+  "web.billing.features.sla": {
+    "text": "Соглашение об уровне обслуживания",
+    "source_hash": "436f2550"
+  },
+  "web.billing.features.centralized_billing": {
+    "text": "Централизованная оплата",
+    "source_hash": "62042d3b"
+  },
+  "web.billing.features.audit_trail": {
+    "text": "Аудиторский след",
+    "source_hash": "d52b4039"
+  },
+  "web.billing.features.activity_stream": {
+    "text": "Лента активности",
+    "source_hash": "b9c6cba7"
+  },
+  "web.billing.features.handoff_workflows": {
+    "text": "Рабочие процессы передачи",
+    "source_hash": "07202af3"
+  },
+  "web.billing.plans.title": {
+    "text": "Выберите план",
+    "source_hash": "79506c82"
+  },
+  "web.billing.plans.choose_plan": {
+    "text": "Выберите план, который Вам подходит",
+    "source_hash": "5f039cb9"
+  },
+  "web.billing.plans.subtitle": {
+    "text": "Выберите идеальный план для Вашей организации",
+    "source_hash": "308076f2"
+  },
+  "web.billing.plans.current": {
+    "text": "Текущий план",
+    "source_hash": "5d856320"
+  },
+  "web.billing.plans.current_badge": {
+    "text": "Текущий",
+    "source_hash": "e0d1b682"
+  },
+  "web.billing.plans.upgrade": {
+    "text": "Обновить",
+    "source_hash": "7ec0261b"
+  },
+  "web.billing.plans.downgrade": {
+    "text": "Понизить",
+    "source_hash": "d955b7e8"
+  },
+  "web.billing.plans.cancel_to_downgrade": {
+    "text": "Отменить для смены",
+    "source_hash": "1c4cda89"
+  },
+  "web.billing.plans.monthly": {
+    "text": "Ежемесячно",
+    "source_hash": "9b11f6b7"
+  },
+  "web.billing.plans.yearly": {
+    "text": "Ежегодно",
+    "source_hash": "6e69b59e"
+  },
+  "web.billing.plans.per_month": {
+    "text": "/месяц",
+    "source_hash": "eec5d08b"
+  },
+  "web.billing.plans.save_yearly": {
+    "text": "Экономьте {percent}% при годовой оплате",
+    "source_hash": "88c451f2"
+  },
+  "web.billing.plans.free_plan": {
+    "text": "Бесплатный",
+    "source_hash": "f411a1fb"
+  },
+  "web.billing.plans.single_team_plan": {
+    "text": "Single Team",
+    "source_hash": "267ad4cf"
+  },
+  "web.billing.plans.multi_team_plan": {
+    "text": "Multi Team",
+    "source_hash": "ffc73d2c"
+  },
+  "web.billing.plans.individual_account": {
+    "text": "Личный аккаунт",
+    "source_hash": "324221e2"
+  },
+  "web.billing.plans.team_account": {
+    "text": "Командный аккаунт",
+    "source_hash": "44e90aad"
+  },
+  "web.billing.plans.multi_team_account": {
+    "text": "Аккаунт организации",
+    "source_hash": "86e3a165"
+  },
+  "web.billing.plans.features": {
+    "text": "Возможности",
+    "source_hash": "5697d03d"
+  },
+  "web.billing.plans.unlimited_secrets": {
+    "text": "Неограниченные секреты",
+    "source_hash": "0f077568"
+  },
+  "web.billing.plans.api_access": {
+    "text": "Доступ к API",
+    "source_hash": "923fd434"
+  },
+  "web.billing.plans.priority_support": {
+    "text": "Приоритетная поддержка",
+    "source_hash": "acea4b40"
+  },
+  "web.billing.plans.select_plan": {
+    "text": "Выбрать план",
+    "source_hash": "8709f894"
+  },
+  "web.billing.plans.contact_sales": {
+    "text": "Связаться с отделом продаж",
+    "source_hash": "484aa053"
+  },
+  "web.billing.plans.custom_needs_title": {
+    "text": "Есть вопросы или нужно что-то особенное?",
+    "source_hash": "2f68484c"
+  },
+  "web.billing.plans.custom_needs_description": {
+    "text": "Мы будем рады услышать от Вас. Расскажите, что Вы ищете.",
+    "source_hash": "a6b7f407"
+  },
+  "web.billing.plans.teams_limit": {
+    "text": "{count} команда | {count} команды | {count} команд",
+    "source_hash": "a83641bc"
+  },
+  "web.billing.plans.members_limit": {
+    "text": "{count} участник в команде | {count} участника в команде | {count} участников в команде",
+    "source_hash": "54fb2b4b"
+  },
+  "web.billing.plans.unlimited_teams": {
+    "text": "Неограниченные команды",
+    "source_hash": "6d9fde65"
+  },
+  "web.billing.plans.unlimited_members": {
+    "text": "Неограниченное количество участников в команде",
+    "source_hash": "728ecef0"
+  },
+  "web.billing.plans.most_popular": {
+    "text": "Самый популярный",
+    "source_hash": "9e1006a4"
+  },
+  "web.billing.plans.suggested": {
+    "text": "Рекомендуется",
+    "source_hash": "93b63bab"
+  },
+  "web.billing.plans.everything_in": {
+    "text": "Включает всё из {plan}",
+    "source_hash": "1c73c298"
+  },
+  "web.billing.plans.no_plans_available": {
+    "text": "Нет доступных {interval} планов в данный момент.",
+    "source_hash": "d8454436"
+  },
+  "web.billing.plans.load_error": {
+    "text": "Не удалось загрузить планы",
+    "source_hash": "a37d4d9a"
+  },
+  "web.billing.plans.change_immediate": {
+    "text": "Ваш план изменится немедленно.",
+    "source_hash": "889d13be"
+  },
+  "web.billing.plans.current_plan_label": {
+    "text": "Текущий план:",
+    "source_hash": "648a0ab2"
+  },
+  "web.billing.plans.new_plan_label": {
+    "text": "Новый план:",
+    "source_hash": "edb868c4"
+  },
+  "web.billing.plans.credit_label": {
+    "text": "Кредит за неиспользованное время:",
+    "source_hash": "001e4901"
+  },
+  "web.billing.plans.due_today": {
+    "text": "К оплате сегодня:",
+    "source_hash": "e370e3aa"
+  },
+  "web.billing.plans.next_billing": {
+    "text": "Следующая оплата ({date}):",
+    "source_hash": "a6846a85"
+  },
+  "web.billing.plans.next_invoice": {
+    "text": "Следующий счёт",
+    "source_hash": "5670e027"
+  },
+  "web.billing.plans.limits_update_notice": {
+    "text": "Лимиты функций обновятся сразу после изменения плана.",
+    "source_hash": "9cb09f73"
+  },
+  "web.billing.plans.change_failed": {
+    "text": "Не удалось изменить план. Попробуйте ещё раз.",
+    "source_hash": "a4e86372"
+  },
+  "web.billing.plans.confirm_upgrade": {
+    "text": "Подтвердить обновление",
+    "source_hash": "71a4ab02"
+  },
+  "web.billing.plans.confirm_downgrade": {
+    "text": "Подтвердить понижение",
+    "source_hash": "deaf8189"
+  },
+  "web.billing.plans.upgrade_to": {
+    "text": "Перейти на {plan}?",
+    "source_hash": "b1e4e88c"
+  },
+  "web.billing.plans.downgrade_to": {
+    "text": "Понизить до {plan}?",
+    "source_hash": "8eb8ea81"
+  },
+  "web.billing.plans.credit_applies_heading": {
+    "text": "Как применяется Ваш кредит:",
+    "source_hash": "a0943c3b"
+  },
+  "web.billing.plans.next_bill_amount": {
+    "text": "Сумма следующего счёта:",
+    "source_hash": "526ad28f"
+  },
+  "web.billing.plans.credit_applied_to_bill": {
+    "text": "Применённый кредит:",
+    "source_hash": "e5f2e81a"
+  },
+  "web.billing.plans.amount_due_next_billing": {
+    "text": "К оплате при следующем расчёте:",
+    "source_hash": "22ee868a"
+  },
+  "web.billing.plans.remaining_account_credit": {
+    "text": "Остаток кредита на аккаунте:",
+    "source_hash": "eedd0c0a"
+  },
+  "web.billing.plans.credit_future_note": {
+    "text": "Применяется к будущим счетам",
+    "source_hash": "5007add6"
+  },
+  "web.billing.invoices.title": {
+    "text": "История оплаты",
+    "source_hash": "5ade0861"
+  },
+  "web.billing.invoices.view_history": {
+    "text": "Просмотр истории оплаты и скачивание счетов",
+    "source_hash": "eb72573c"
+  },
+  "web.billing.invoices.invoice_date": {
+    "text": "Дата",
+    "source_hash": "99c40ab4"
+  },
+  "web.billing.invoices.invoice_amount": {
+    "text": "Сумма",
+    "source_hash": "49e96d7c"
+  },
+  "web.billing.invoices.invoice_status": {
+    "text": "Статус",
+    "source_hash": "920e413c"
+  },
+  "web.billing.invoices.invoice_download": {
+    "text": "Скачать",
+    "source_hash": "d6eafe82"
+  },
+  "web.billing.invoices.invoice_number": {
+    "text": "Счёт №",
+    "source_hash": "48a67cac"
+  },
+  "web.billing.invoices.no_invoices": {
+    "text": "Счетов пока нет",
+    "source_hash": "92d2d0ce"
+  },
+  "web.billing.invoices.no_invoices_description": {
+    "text": "Ваши счета появятся здесь после перехода на платный план",
+    "source_hash": "7f16be70"
+  },
+  "web.billing.invoices.view_plans": {
+    "text": "Просмотреть планы",
+    "source_hash": "a865d424"
+  },
+  "web.billing.invoices.paid": {
+    "text": "Оплачено",
+    "source_hash": "fb81b961"
+  },
+  "web.billing.invoices.pending": {
+    "text": "В ожидании",
+    "source_hash": "331551b0"
+  },
+  "web.billing.invoices.failed": {
+    "text": "Не удалось",
+    "source_hash": "031a8f0f"
+  },
+  "web.billing.invoices.draft": {
+    "text": "Черновик",
+    "source_hash": "ebf12ef4"
+  },
+  "web.billing.invoices.open": {
+    "text": "Открыт",
+    "source_hash": "ed077f3d"
+  },
+  "web.billing.invoices.uncollectible": {
+    "text": "Невозможно взыскать",
+    "source_hash": "c8d3b241"
+  },
+  "web.billing.invoices.void": {
+    "text": "Аннулирован",
+    "source_hash": "4e7ba403"
+  },
+  "web.billing.invoices.load_error": {
+    "text": "Не удалось загрузить счета",
+    "source_hash": "0b0cb3f7"
+  },
+  "web.billing.notices.org_managed": {
+    "text": "Оплата управляется {orgName}",
+    "source_hash": "6cfe0fb4"
+  },
+  "web.billing.notices.view_org_billing": {
+    "text": "Просмотреть оплату организации",
+    "source_hash": "2ae16262"
+  },
+  "web.billing.limits.members_reached": {
+    "text": "Вы достигли лимита участников для этой команды",
+    "source_hash": "ce8f2a24"
+  },
+  "web.billing.limits.members_upgrade": {
+    "text": "Обновите план, чтобы добавить больше участников",
+    "source_hash": "602bdef4"
+  },
+  "web.billing.subscription.title": {
+    "text": "Подписка",
+    "source_hash": "4999c6c6"
+  },
+  "web.billing.subscription.status": {
+    "text": "Статус подписки",
+    "source_hash": "c7a08e1d"
+  },
+  "web.billing.subscription.active": {
+    "text": "Активна",
+    "source_hash": "92340695"
+  },
+  "web.billing.subscription.inactive": {
+    "text": "Неактивна",
+    "source_hash": "ac7c949f"
+  },
+  "web.billing.subscription.past_due": {
+    "text": "Просрочена",
+    "source_hash": "2bda1c7b"
+  },
+  "web.billing.subscription.canceled": {
+    "text": "Отменена",
+    "source_hash": "13ca2ee2"
+  },
+  "web.billing.subscription.catalog_name": {
+    "text": "План",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.billing.subscription.team_usage": {
+    "text": "Использование команд",
+    "source_hash": "f9989642"
+  },
+  "web.billing.subscription.teams_used": {
+    "text": "{used} из {limit} команд",
+    "source_hash": "1db6b53c"
+  },
+  "web.billing.portal.title": {
+    "text": "Портал оплаты",
+    "source_hash": "9baaf69e"
+  },
+  "web.billing.portal.description": {
+    "text": "Управление подпиской, способами оплаты и историей платежей",
+    "source_hash": "1a8f3c19"
+  },
+  "web.billing.portal.open_portal": {
+    "text": "Открыть портал оплаты",
+    "source_hash": "23fbfa2b"
+  },
+  "web.billing.portal.redirecting": {
+    "text": "Перенаправление на портал оплаты...",
+    "source_hash": "b6f47df3"
+  },
+  "web.billing.start_today": {
+    "text": "Начните сегодня",
+    "source_hash": "80e73fc7"
+  },
+  "web.billing.start_today_with_identity_plus": {
+    "text": "Начните сегодня с Identity Plus",
+    "source_hash": "cce4c7d7"
+  },
+  "web.billing.per_month": {
+    "text": "в месяц",
+    "source_hash": "88b1d1a6"
+  },
+  "web.billing.full_api_access": {
+    "text": "Полный доступ к API",
+    "source_hash": "f5bedf1c"
+  },
+  "web.billing.privacy_first_design": {
+    "text": "Конфиденциальность прежде всего",
+    "source_hash": "587d738c"
+  },
+  "web.billing.identity_plus": {
+    "text": "Identity Plus",
+    "source_hash": "bb273516"
+  },
+  "web.billing.click_this_lightning_bolt_to_upgrade_for_custom_domains": {
+    "text": "Нажмите на этот значок молнии, чтобы перейти на тариф с пользовательскими доменами",
+    "source_hash": "84cb4258"
+  },
+  "web.billing.maybe_later": {
+    "text": "Может быть, позже",
+    "source_hash": "166b26ab"
+  },
+  "web.billing.upgrade_account": {
+    "text": "Обновить аккаунт",
+    "source_hash": "4799b02e"
+  },
+  "web.billing.upgrade_to_identity_plus": {
+    "text": "Перейти на Identity Plus",
+    "source_hash": "272d3c80"
+  },
+  "web.billing.upgrade_for_teams": {
+    "text": "Обновить для команд",
+    "source_hash": "90dfb533"
+  },
+  "web.billing.benefits_of": {
+    "text": "Преимущества",
+    "source_hash": "75403743"
+  },
+  "web.billing.t_benefits_of_identity_plus": {
+    "text": "{0}: Identity Plus",
+    "source_hash": "f13e5f3e"
+  },
+  "web.billing.upgrade_to": {
+    "text": "Перейти на",
+    "source_hash": "2ecdd437"
+  },
+  "web.billing.upgrade_for_yourdomain": {
+    "text": "Обновить для secrets.yourdomain.com",
+    "source_hash": "8e4d766a"
+  },
+  "web.billing.includes_all_features_and_unlimited_sharing_capa": {
+    "text": "Все тарифы включают функции конфиденциальности и неограниченные возможности обмена",
+    "source_hash": "e728e4e1"
+  },
+  "web.billing.includes_all_data_locality_options": {
+    "text": "Все планы включают выбор региона данных: {0} регионов",
+    "source_hash": "22a60b49"
+  },
+  "web.billing.get_started": {
+    "text": "Начать",
+    "source_hash": "61e8d44a"
+  },
+  "web.billing.frequency_value_annually_annual_monthly_subscrip": {
+    "text": "Подписка {0}",
+    "source_hash": "eaf5e2ef"
+  },
+  "web.billing.elevate_your_secure_sharing_with_custom_domains_": {
+    "text": "Поднимите Ваш безопасный обмен на новый уровень с пользовательскими доменами, неограниченными возможностями и функциями корпоративного уровня.",
+    "source_hash": "db458d30"
+  },
+  "web.billing.payment_frequency": {
+    "text": "Периодичность оплаты",
+    "source_hash": "b2c87e39"
+  },
+  "web.billing.secure_your_brand_and_build_customer_trust_with_": {
+    "text": "Защитите свой бренд и завоюйте доверие клиентов с помощью ссылок из Вашего домена. Идеально подходит для компаний, которые ценят конфиденциальность и профессионализм.",
+    "source_hash": "c07cd25c"
+  },
+  "web.billing.secure_links_stronger_connections": {
+    "text": "Безопасные ссылки, крепкие связи",
+    "source_hash": "dd8dae5d"
+  },
+  "web.billing.identity_tier_not_found_in_product_tiers": {
+    "text": "Уровень Identity не найден в уровнях продукта",
+    "source_hash": "d0204fc4"
+  },
+  "web.billing.cancel.link_text": {
+    "text": "Отменить подписку",
+    "context": "Link text shown below the plan selector for paid users",
+    "source_hash": "3f85967f"
+  },
+  "web.billing.cancel.title": {
+    "text": "Отмена подписки",
+    "context": "Modal dialog heading/title",
+    "source_hash": "882e0c83"
+  },
+  "web.billing.cancel.confirmation": {
+    "text": "Вы уверены, что хотите отменить подписку {plan}?",
+    "source_hash": "f4d1b6ee"
+  },
+  "web.billing.cancel.what_happens": {
+    "text": "Что произойдёт при отмене:",
+    "source_hash": "4d8f5751"
+  },
+  "web.billing.cancel.access_until": {
+    "text": "Вы сохраните доступ ко всем функциям до {date}",
+    "source_hash": "eab1efe3"
+  },
+  "web.billing.cancel.access_until_period_end": {
+    "text": "Вы сохраните доступ до конца текущего расчётного периода",
+    "source_hash": "1b07a54a"
+  },
+  "web.billing.cancel.no_future_charges": {
+    "text": "С Вас больше не будет взиматься плата",
+    "source_hash": "a01cdc16"
+  },
+  "web.billing.cancel.downgrade_to_free": {
+    "text": "Ваш аккаунт перейдёт на бесплатный план",
+    "source_hash": "e01b3fc3"
+  },
+  "web.billing.cancel.keep_subscription": {
+    "text": "Сохранить подписку",
+    "context": "Secondary button in modal - keeps subscription active",
+    "source_hash": "31e80c41"
+  },
+  "web.billing.cancel.confirm_cancel": {
+    "text": "Отменить подписку",
+    "context": "Primary action button in modal - confirms the cancellation",
+    "source_hash": "882e0c83"
+  },
+  "web.billing.cancel.success": {
+    "text": "Ваша подписка отменена. Вы сохраните доступ до конца расчётного периода.",
+    "source_hash": "e18fd9d5"
+  },
+  "web.billing.cancel.error": {
+    "text": "Не удалось отменить подписку. Попробуйте ещё раз.",
+    "source_hash": "68e8bdde"
+  },
+  "web.billing.cancel.scheduled_title": {
+    "text": "Отмена подписки запланирована",
+    "context": "Alert banner heading shown when cancellation is pending",
+    "source_hash": "1427d139"
+  },
+  "web.billing.cancel.scheduled_description": {
+    "text": "Ваша подписка будет активна до {date}. До этого времени у Вас будет полный доступ ко всем функциям.",
+    "context": "Alert banner description explaining continued access",
+    "source_hash": "aab4b1dc"
+  },
+  "web.billing.cancel.scheduled_note": {
+    "text": "Передумали? Вы можете возобновить подписку в любое время до даты отмены.",
+    "context": "Alert banner note encouraging reactivation",
+    "source_hash": "c94d5527"
+  },
+  "web.billing.overview.entitlements.notifications": {
+    "text": "Уведомления по почте",
+    "source_hash": "04e0f1e9"
+  },
+  "web.billing.overview.entitlements.ip_access_rules": {
+    "text": "Правила доступа по IP",
+    "source_hash": "db966d47"
+  },
+  "web.billing.overview.entitlements.workspace_branding": {
+    "text": "Брендинг рабочего пространства",
+    "source_hash": "e7acbf6f"
+  },
+  "web.billing.features.extended_retention": {
+    "text": "30-дневное хранение секретов",
+    "source_hash": "21d6d514"
+  },
+  "web.billing.features.incoming_secrets": {
+    "text": "Входящие секреты",
+    "source_hash": "883dbca9"
+  },
+  "web.billing.features.team_members_5": {
+    "text": "До 5 участников команды",
+    "source_hash": "e7518d07"
+  },
+  "web.billing.features.team_members_10": {
+    "text": "До 10 участников команды",
+    "source_hash": "0c64c064"
+  },
+  "web.billing.features.team_members_25": {
+    "text": "До 25 участников команды",
+    "source_hash": "bf3b84c8"
+  },
+  "web.billing.features.team_members_50": {
+    "text": "До 50 участников команды",
+    "source_hash": "3c2d9a14"
+  },
+  "web.billing.features.unlimited_members": {
+    "text": "Неограниченное количество участников",
+    "source_hash": "b7491ee9"
+  },
+  "web.billing.features.notifications": {
+    "text": "Уведомления по почте",
+    "source_hash": "04e0f1e9"
+  },
+  "web.billing.features.ip_access_rules": {
+    "text": "Правила доступа по IP",
+    "source_hash": "db966d47"
+  },
+  "web.billing.features.workspace_branding": {
+    "text": "Брендинг рабочего пространства",
+    "source_hash": "e7acbf6f"
+  },
+  "web.billing.features.dedicated_infrastructure": {
+    "text": "Выделенная инфраструктура",
+    "source_hash": "0c10aea7"
+  },
+  "web.billing.features.shared_workflows": {
+    "text": "Общие рабочие процессы",
+    "source_hash": "158f558e"
+  },
+  "web.billing.currency_migration.title": {
+    "text": "Требуется смена валюты",
+    "context": "Modal title when plan requires different currency than current subscription",
+    "source_hash": "2cd800c5"
+  },
+  "web.billing.currency_migration.description": {
+    "text": "Ваша текущая подписка использует {from}. Выбранный план оплачивается в {to}. Для этого требуется перевести подписку на новую валюту.",
+    "source_hash": "f0cdf727"
+  },
+  "web.billing.currency_migration.current_plan": {
+    "text": "Текущий план:",
+    "source_hash": "648a0ab2"
+  },
+  "web.billing.currency_migration.new_plan": {
+    "text": "Новый план:",
+    "source_hash": "edb868c4"
+  },
+  "web.billing.currency_migration.current_period_ends": {
+    "text": "Текущий период заканчивается:",
+    "source_hash": "2e20e596"
+  },
+  "web.billing.currency_migration.choose_timing": {
+    "text": "Когда выполнить переключение?",
+    "source_hash": "f4aabb13"
+  },
+  "web.billing.currency_migration.graceful_title": {
+    "text": "Переключить в конце расчётного периода",
+    "source_hash": "55cd980b"
+  },
+  "web.billing.currency_migration.graceful_description": {
+    "text": "Ваш текущий план остаётся активным до {date}. После этого Вам нужно будет оформить новый план.",
+    "source_hash": "b8661418"
+  },
+  "web.billing.currency_migration.immediate_title": {
+    "text": "Переключить сейчас",
+    "source_hash": "e9d0ba59"
+  },
+  "web.billing.currency_migration.immediate_description": {
+    "text": "Ваш текущий план отменяется сейчас. Вы получите возврат за неиспользованное время и оформите новый план.",
+    "source_hash": "b08de0ca"
+  },
+  "web.billing.currency_migration.confirm": {
+    "text": "Подтвердить смену валюты",
+    "source_hash": "1edc1c78"
+  },
+  "web.billing.currency_migration.error": {
+    "text": "Ошибка миграции валюты. Пожалуйста, попробуйте снова.",
+    "source_hash": "4a6e1ced"
+  },
+  "web.billing.currency_migration.success": {
+    "text": "Валюта Вашей подписки успешно обновлена.",
+    "source_hash": "a8bf437e"
+  },
+  "web.billing.currency_migration.graceful_success": {
+    "text": "Ваш текущий план останется активным до конца расчётного периода. После этого Вам будет предложено оформить новый план.",
+    "source_hash": "15d41483"
+  },
+  "web.billing.currency_migration.warning_credit_balance": {
+    "text": "У Вас есть кредитный баланс в {currency}, который нельзя перевести в новую валюту.",
+    "source_hash": "aa15be91"
+  },
+  "web.billing.currency_migration.warning_pending_items": {
+    "text": "У Вас есть незавершённые позиции в счёте, которые необходимо обработать перед миграцией.",
+    "source_hash": "7b4c5e10"
+  },
+  "web.billing.currency_migration.warning_coupons": {
+    "text": "Активные купоны в Вашем аккаунте могут быть несовместимы с новой валютой.",
+    "source_hash": "f572ee81"
+  },
+  "web.billing.currency_migration.pending_title": {
+    "text": "Ожидается миграция валюты",
+    "context": "Banner heading when graceful migration is scheduled",
+    "source_hash": "018ae653"
+  },
+  "web.billing.currency_migration.pending_description": {
+    "text": "Ваш текущий план заканчивается {date}. Завершите переход на {plan} ({currency}).",
+    "source_hash": "998ba4ab"
+  },
+  "web.billing.currency_migration.complete_migration": {
+    "text": "Завершить миграцию",
+    "context": "Button to start checkout for the new currency plan",
+    "source_hash": "fa794e0c"
+  },
+  "web.billing.checkout_session_failed": {
+    "text": "Не удалось создать сессию оплаты",
+    "context": "Error when Stripe checkout session creation returns no URL",
+    "source_hash": "a53f6fa3"
+  },
+  "web.billing.checkout_initiate_failed": {
+    "text": "Не удалось начать оформление оплаты",
+    "context": "Fallback error for checkout failures",
+    "source_hash": "3ff06e41"
+  },
+  "web.billing.plan_switch_success": {
+    "text": "Успешный переход на {plan}",
+    "context": "Success message after plan change",
+    "source_hash": "ab7c715c"
+  },
+  "web.billing.plan_unavailable_region_mismatch": {
+    "text": "Доступно только в регионе Вашей исходной подписки",
+    "context": "Hint shown on plan cards when currency does not match active subscription",
+    "source_hash": "10de32e5"
+  },
+  "web.billing.already_subscribed": {
+    "text": "Вы уже подписаны на этот план.",
+    "source_hash": "2b02438b"
+  },
+  "web.billing.cancel.reactivate_button": {
+    "text": "Возобновить подписку",
+    "source_hash": "aa036442"
+  },
+  "web.billing.cancel.reactivate_success": {
+    "text": "Ваша подписка возобновлена. Списание средств продолжится в обычном режиме.",
+    "source_hash": "523bf7bf"
+  },
+  "web.billing.cancel.reactivate_error": {
+    "text": "Не удалось возобновить подписку. Пожалуйста, попробуйте ещё раз или обратитесь в службу поддержки.",
+    "source_hash": "d0c79bd4"
+  },
+  "web.billing.features.manage_orgs": {
+    "text": "Управление организациями",
+    "source_hash": "780ad17c"
+  },
+  "web.billing.features.flexible_from_domain": {
+    "text": "Гибкий домен отправителя писем",
+    "source_hash": "607572c3"
+  },
+  "web.billing.features.unlimited_admins": {
+    "text": "Неограниченное число администраторов",
+    "source_hash": "5871a536"
+  },
+  "web.billing.features.manage_sso": {
+    "text": "SSO",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.billing.overview.entitlements.flexible_from_domain": {
+    "text": "Гибкий домен отправителя писем",
+    "source_hash": "607572c3"
+  },
+  "web.billing.overview.entitlements.manage_orgs": {
+    "text": "Управление организациями",
+    "source_hash": "be0fe4c3"
+  },
+  "web.billing.overview.entitlements.manage_sso": {
+    "text": "Единый вход (SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.billing.overview.entitlements.manage_billing": {
+    "text": "Управление оплатой",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.entitlements.custom_signup_validation": {
+    "text": "Настраиваемая проверка при регистрации",
+    "source_hash": "0ff55bfa"
+  },
+  "web.billing.plans.reactivate": {
+    "text": "Возобновить",
+    "source_hash": "2dc7478f"
+  },
+  "web.billing.currency_migration.refund_failed_warning": {
+    "text": "Ваш предыдущий план был отменён, но мы не смогли автоматически оформить возврат за неиспользованное время. Пожалуйста, обратитесь в службу поддержки для получения возврата. Вам всё ещё необходимо завершить оформление заказа для активации Вашего нового плана.",
+    "source_hash": "a390c498"
+  },
+  "web.billing.currency_migration.refund_failed_continue": {
+    "text": "Перейти к оформлению",
+    "source_hash": "eccdb8aa"
+  },
+  "web.billing.plans.per_year": {
+    "text": "/год",
+    "source_hash": "a2d5f1bc"
+  },
+  "web.billing.plans.billing_interval": {
+    "text": "Интервал оплаты",
+    "source_hash": "3ce28209"
+  }
+}

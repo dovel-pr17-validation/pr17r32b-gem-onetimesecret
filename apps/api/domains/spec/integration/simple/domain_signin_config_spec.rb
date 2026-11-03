@@ -1,0 +1,494 @@
+# apps/api/domains/spec/integration/simple/domain_signin_config_spec.rb
+#
+# frozen_string_literal: true
+
+# =============================================================================
+# TEST TYPE: Integration Tests for Domain Signin Config API Endpoints
+# =============================================================================
+#
+# Issue: #3814 - Sign-In settings seeded from the wrong resolver
+#
+# Focused HTTP-surface proof that every signin-config response carries the
+# resolution `details` (ADR-024) computed by the CUSTOM-DOMAIN resolver
+# (default OFF, opt-in — #3814), not the canonical follows-global resolver:
+#
+#   GET    /api/domains/:extid/signin-config   (unconfigured -> effective_enabled: false)
+#   PUT    /api/domains/:extid/signin-config   (enabled + signin_enabled -> true)
+#   DELETE /api/domains/:extid/signin-config   (revert -> false)
+#
+# Resolver branch coverage (SSO carve-out, explicit signin_enabled=false,
+# etc.) lives at the logic level in
+# try/integration/api/domains/put_signin_config_try.rb (section 11) — this
+# file only pins the HTTP wiring of the three handlers.
+#
+# REQUIREMENTS:
+# - Valkey running on port 2163: pnpm run test:database:start
+# - AUTHENTICATION_MODE=simple (login_as creates a Valkey-backed Customer
+#   with a passphrase; full mode routes /auth/login through Rodauth, which
+#   has no matching account row, so every login 401s)
+#
+# RUN:
+#   RACK_ENV=test AUTHENTICATION_MODE=simple bundle exec rspec apps/api/domains/spec/integration/simple/domain_signin_config_spec.rb
+#
+# NOTE: living under integration/simple/ puts this file in the rake
+# spec:integration:simple lane (glob apps/*/*/spec/integration/simple), which
+# CI runs in the blocking ruby-integration-simple job. The path also derives
+# the :simple_auth_mode tag (spec/spec_helper.rb), pinning the simple-mode
+# mock auth config.
+#
+# =============================================================================
+
+require_relative File.join(Onetime::HOME, 'spec', 'integration', 'integration_spec_helper')
+require 'climate_control'
+# SAML certificate fixture (#4604): generated at runtime, nothing checked in.
+require_relative File.join(Onetime::HOME, 'apps', 'web', 'auth', 'spec', 'support', 'domain_sso_test_fixtures')
+
+RSpec.describe 'Domain Signin Config API', type: :integration do
+  include Rack::Test::Methods
+  include CsrfTestHelpers
+
+  # Use the full Rack::URLMap so requests traverse the complete middleware
+  # stack (including CSRF bypass for /api/* paths) exactly as in production.
+  def app
+    @rack_app ||= begin
+      Onetime::Application::Registry.reset!
+      Onetime::Application::Registry.prepare_application_registry
+      Onetime::Application::Registry.generate_rack_url_map
+    end
+  end
+
+  before(:all) do
+    Onetime.boot! :test
+  end
+
+  let(:test_run_id) { SecureRandom.hex(8) }
+  let(:test_email) { "owner-#{test_run_id}@test.local" }
+  let(:test_password) { 'Test123!@#' }
+  let(:tenant_domain) { "signin-#{test_run_id}.acme-corp.example.com" }
+
+  let!(:test_owner) do
+    customer = Onetime::Customer.new(email: test_email)
+    customer.update_passphrase(test_password)
+    customer.verified = 'true'
+    customer.role = 'customer'
+    customer.save
+    customer
+  end
+
+  # Note: In standalone/test mode (billing disabled), all orgs get
+  # STANDALONE_ENTITLEMENTS which includes custom_signin_config automatically.
+  let!(:test_organization) do
+    Onetime::Organization.create!(
+      "Test Org #{test_run_id}",
+      test_owner,
+      "contact-#{test_run_id}@test.local",
+    )
+  end
+
+  let!(:test_custom_domain) do
+    domain = Onetime::CustomDomain.new(
+      display_domain: tenant_domain,
+      org_id: test_organization.org_id,
+    )
+    domain.save
+    Onetime::CustomDomain.display_domain_index.put(tenant_domain, domain.domainid)
+    domain
+  end
+
+  after do
+    Onetime::CustomDomain::SsoConfig.delete_for_domain!(test_custom_domain.identifier) rescue nil
+    Onetime::CustomDomain::SigninConfig.delete_for_domain!(test_custom_domain.identifier) rescue nil
+    Onetime::CustomDomain.display_domain_index.remove(tenant_domain) rescue nil
+    test_custom_domain&.destroy! rescue nil
+    test_organization&.destroy! rescue nil
+    test_owner&.destroy! rescue nil
+  end
+
+  def api_path(domain_extid)
+    "/api/domains/#{domain_extid}/signin-config"
+  end
+
+  def login_as(customer)
+    reset_csrf_token
+    csrf_post '/auth/login', {
+      login: customer.email,
+      password: test_password,
+    }
+    # Refresh CSRF token after login (session regeneration)
+    reset_csrf_token
+  end
+
+  def json_get(path)
+    header 'Accept', 'application/json'
+    header 'Content-Type', nil
+    get path
+  end
+
+  def json_body
+    JSON.parse(last_response.body)
+  end
+
+  describe 'GET /api/domains/:extid/signin-config' do
+    context 'when the domain is unconfigured' do
+      before do
+        login_as(test_owner)
+      end
+
+      # Unconfigured is a first-class state (ADR-024): 200 with record: null,
+      # not 404, so the settings UI can render the inherited global state.
+      it 'returns 200 with a null record' do
+        json_get api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        expect(body).to have_key('record')
+        expect(body['record']).to be_nil
+      end
+
+      # #3814: custom domains are default-OFF opt-in for sign-in. With no
+      # SigninConfig and no tenant SSO, effective_enabled must be false even
+      # while the canonical site's sign-in is globally enabled (signin: true
+      # in spec/config.test.yaml). This is the seed the settings UI displays;
+      # before #3814 it leaked the follows-global resolver's true.
+      it 'reports effective_enabled false while global signin is enabled' do
+        json_get api_path(test_custom_domain.extid)
+
+        details = json_body['details']
+        expect(details).not_to be_nil
+        expect(details['global_enabled']).to be true
+        expect(details['effective_enabled']).to be false
+        expect(details).to have_key('global_restrict_to')
+      end
+    end
+  end
+
+  describe 'PUT /api/domains/:extid/signin-config' do
+    before do
+      login_as(test_owner)
+    end
+
+    context 'opting the domain in (enabled + signin_enabled)' do
+      it 'reports effective_enabled true in the PUT response and subsequent GET' do
+        csrf_put api_path(test_custom_domain.extid), {
+          enabled: true,
+          signin_enabled: true,
+        }
+
+        expect(last_response.status).to eq(200)
+
+        body = json_body
+        expect(body['record']['enabled']).to be true
+        expect(body['record']['signin_enabled']).to be true
+        expect(body['details']['effective_enabled']).to be true
+
+        json_get api_path(test_custom_domain.extid)
+
+        expect(last_response.status).to eq(200)
+        expect(json_body['details']['effective_enabled']).to be true
+      end
+    end
+  end
+
+  describe 'DELETE /api/domains/:extid/signin-config' do
+    before do
+      login_as(test_owner)
+      Onetime::CustomDomain::SigninConfig.create!(
+        domain_id: test_custom_domain.identifier,
+        enabled: true,
+        signin_enabled: true,
+      )
+    end
+
+    # Post-delete resolution truth (ADR-024): the response carries details so
+    # the settings UI can re-render without a refetch; the domain reverts to
+    # default-OFF (#3814).
+    it 'reports effective_enabled false after deleting the config' do
+      csrf_delete api_path(test_custom_domain.extid)
+
+      expect(last_response.status).to eq(200)
+
+      body = json_body
+      expect(body['success']).to be true
+      expect(body['details']['effective_enabled']).to be false
+      expect(body['details']['global_enabled']).to be true
+    end
+  end
+
+  # ===========================================================================
+  # ADR-034#settings-api-serializes-effective-restrict-to — details carries
+  # the RESOLVED restriction, not just the raw
+  # global. Every state of SigninConfig.resolve_restrict_to must survive the
+  # HTTP boundary intact; the settings UI reads this instead of re-deriving.
+  # ===========================================================================
+  describe 'details.effective_restrict_to' do
+    before { login_as(test_owner) }
+
+    def effective_restrict_to
+      json_get api_path(test_custom_domain.extid)
+      expect(last_response.status).to eq(200)
+      json_body['details']['effective_restrict_to']
+    end
+
+    context 'unconfigured domain, no global restriction' do
+      it 'resolves unrestricted from the global source' do
+        expect(effective_restrict_to).to eq(
+          'state' => 'unrestricted', 'restrict_to' => nil, 'source' => 'global',
+        )
+      end
+    end
+
+    # An INHERITED restriction is narrowed by the domain's own capabilities,
+    # exactly as it is at request time (#4139). These settings describe a
+    # custom domain, where password and email-auth default OFF, so an
+    # unconfigured domain cannot honor a global 'password' restriction — the
+    # route gate 404s it. Reporting `restricted` here was the settings-API half
+    # of the display/gate drift: the page showed a method whose routes were
+    # already dark, and the UI seeded a form from it.
+    # Tenant SSO needs a verified domain (#4517). The 'sso' host pin stays
+    # without an availability proof until the domain verifies, so the host
+    # offers nothing rather than inheriting the operator's empty restriction,
+    # which would reopen password signup there.
+    context 'unconfigured domain whose tenant SSO waits on domain verification' do
+      before do
+        Onetime::CustomDomain::SsoConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          provider_type: 'oidc',
+          enabled: true,
+          issuer: 'https://idp.example.com',
+          client_id: 'tenant-client-id',
+        )
+      end
+
+      it "keeps the 'sso' pin and reports :unavailable" do
+        expect(effective_restrict_to).to eq(
+          'state' => 'unavailable', 'restrict_to' => 'sso', 'source' => 'global',
+        )
+      end
+    end
+
+    context 'unconfigured domain under a global restriction' do
+      before { allow(Onetime.auth_config).to receive(:restrict_to).and_return('password') }
+
+      it 'reports :unavailable — the domain never opted sign-in in, so the method is dark here' do
+        expect(effective_restrict_to).to eq(
+          'state' => 'unavailable', 'restrict_to' => 'password', 'source' => 'global',
+        )
+        expect(json_body['details']['global_restrict_to']).to eq('password')
+      end
+    end
+
+    context 'domain that opted sign-in in, under a global restriction' do
+      before do
+        allow(Onetime.auth_config).to receive(:restrict_to).and_return('password')
+        Onetime::CustomDomain::SigninConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          enabled: true,
+          signin_enabled: true,
+        )
+      end
+
+      it 'inherits the global restriction and names its source' do
+        expect(effective_restrict_to).to eq(
+          'state' => 'restricted', 'restrict_to' => 'password', 'source' => 'global',
+        )
+      end
+    end
+
+    context 'enabled domain config naming a method' do
+      before do
+        Onetime::CustomDomain::SigninConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          enabled: true,
+          signin_enabled: true,
+          restrict_to: 'password',
+        )
+      end
+
+      it 'resolves the domain restriction from the domain source' do
+        expect(effective_restrict_to).to eq(
+          'state' => 'restricted', 'restrict_to' => 'password', 'source' => 'domain',
+        )
+      end
+    end
+
+    # A domain restriction is subject to the same fail-closed degradation
+    # (ADR-034#degradation-is-fail-closed) as an
+    # inherited one: 'sso' with no tenant SsoConfig and no platform fallback
+    # names a method this host cannot serve, so it fails closed rather than
+    # reporting a restriction the omniauth routes would refuse.
+    context 'enabled domain config naming a method with no backing credentials' do
+      before do
+        Onetime::CustomDomain::SigninConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          enabled: true,
+          signin_enabled: true,
+          sso_enabled: true,
+          restrict_to: 'sso',
+        )
+      end
+
+      it 'reports :unavailable and still names the method' do
+        expect(effective_restrict_to).to eq(
+          'state' => 'unavailable', 'restrict_to' => 'sso', 'source' => 'domain',
+        )
+      end
+    end
+
+    context 'domain and global each naming a different method' do
+      before do
+        Onetime::CustomDomain::SigninConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          enabled: true,
+          signin_enabled: true,
+          restrict_to: 'sso',
+        )
+        allow(Onetime.auth_config).to receive(:restrict_to).and_return('password')
+      end
+
+      # Two single-method restrictions have no intersection, so the pair
+      # fails closed and names the GLOBAL method
+      # (ADR-034#resolution-intersects-never-widens). This is the
+      # case the client could not have derived from global_restrict_to alone.
+      it 'reports :unavailable with the conflict source' do
+        expect(effective_restrict_to).to eq(
+          'state' => 'unavailable', 'restrict_to' => 'password', 'source' => 'conflict',
+        )
+        expect(json_body['details']['global_restrict_to']).to eq('password')
+      end
+    end
+
+    context 'enabled domain config naming a method that cannot run here' do
+      before do
+        # webauthn is host-scoped: PUT rejects new writes, but a value
+        # persisted earlier must resolve :unavailable — fail closed, never
+        # widening to unrestricted (ADR-034#degradation-is-fail-closed).
+        Onetime::CustomDomain::SigninConfig.create!(
+          domain_id: test_custom_domain.identifier,
+          enabled: true,
+          signin_enabled: true,
+          restrict_to: 'webauthn',
+        )
+      end
+
+      it 'reports :unavailable and still names the method' do
+        expect(effective_restrict_to).to eq(
+          'state' => 'unavailable', 'restrict_to' => 'webauthn', 'source' => 'domain',
+        )
+      end
+    end
+
+    it 'accompanies every response shape (PUT included)' do
+      csrf_put api_path(test_custom_domain.extid), {
+        enabled: true,
+        signin_enabled: true,
+        restrict_to: 'password',
+      }
+
+      expect(last_response.status).to eq(200)
+      expect(json_body['details']['effective_restrict_to']).to eq(
+        'state' => 'restricted', 'restrict_to' => 'password', 'source' => 'domain',
+      )
+    end
+  end
+
+  # ===========================================================================
+  # #4111 — the tenant-SSO availability verdict, serialized once by the
+  # server so the settings UI can report WHY SSO is (not) offered.
+  # ===========================================================================
+  describe 'details.tenant_sso' do
+    before { login_as(test_owner) }
+
+    it 'reports the blocking rung for a domain with no SSO credentials' do
+      json_get api_path(test_custom_domain.extid)
+
+      expect(last_response.status).to eq(200)
+      expect(json_body['details']['tenant_sso']).to eq(
+        'available' => false, 'unavailable_reason' => 'no_sso_config',
+      )
+    end
+
+    # The install-wide SAML switch (#4604): the simple lane does not set
+    # SAML_ENABLED, so this is the default-off state an operator sees.
+    it 'reports saml_disabled for an enabled saml record while SAML_ENABLED is off' do
+      Onetime::CustomDomain::SsoConfig.create!(
+        domain_id: test_custom_domain.identifier,
+        provider_type: 'saml',
+        enabled: true,
+        idp_sso_service_url: 'https://idp.example.com/saml/sso',
+        idp_entity_id: 'https://idp.example.com/saml/metadata',
+        idp_cert: DomainSsoTestFixtures.saml_cert_pem,
+      )
+
+      ClimateControl.modify(SAML_ENABLED: nil) { json_get api_path(test_custom_domain.extid) }
+
+      expect(last_response.status).to eq(200)
+      expect(json_body['details']['tenant_sso']).to eq(
+        'available' => false, 'unavailable_reason' => 'saml_disabled',
+      )
+    end
+
+    it 'reports domain_unverified for enabled credentials on an unverified domain' do
+      Onetime::CustomDomain::SsoConfig.create!(
+        domain_id: test_custom_domain.identifier,
+        provider_type: 'oidc',
+        enabled: true,
+        issuer: 'https://idp.example.com',
+        client_id: 'tenant-client-id',
+      )
+
+      json_get api_path(test_custom_domain.extid)
+
+      expect(json_body['details']['tenant_sso']).to eq(
+        'available' => false, 'unavailable_reason' => 'domain_unverified',
+      )
+    end
+  end
+
+  # ===========================================================================
+  # A concurrent writer of the same record (GuardedConfigWrites): PUT
+  # decides and audits against the record it replaces, not the one
+  # raise_concerns loaded.
+  # ===========================================================================
+  describe 'with a concurrent writer' do
+    include ConcurrentConfigWriterHelpers
+
+    let(:model) { Onetime::CustomDomain::SigninConfig }
+    let(:audit_events) { [] }
+
+    before do
+      login_as(test_owner)
+      allow(OT).to receive(:info).and_wrap_original do |original, *args, **kwargs|
+        prefix = args.first.to_s
+        audit_events << prefix.delete_prefix('[DOMAIN_SIGNIN_CHANGE] ') if prefix.start_with?('[DOMAIN_SIGNIN_CHANGE] ')
+        original.call(*args, **kwargs)
+      end
+    end
+
+    def stored = model.find_by_domain_id(test_custom_domain.identifier)
+
+    it 'refuses webauthn when the stored value it would carry over was changed after the load' do
+      model.create!(domain_id: test_custom_domain.identifier, enabled: true, signin_enabled: true, restrict_to: 'webauthn')
+      after_config_load(model) do
+        write_config_concurrently(model, test_custom_domain.identifier, restrict_to: 'password')
+      end
+
+      csrf_put api_path(test_custom_domain.extid), { enabled: true, signin_enabled: true, restrict_to: 'webauthn' }
+
+      expect(last_response.status).to eq(422), last_response.body
+      expect(json_body['field']).to eq('restrict_to')
+      expect(stored.restrict_to).to eq('password')
+      expect(audit_events).to be_empty
+    end
+
+    it 'compares the enabled event with the record it replaced' do
+      model.create!(domain_id: test_custom_domain.identifier, enabled: false, signin_enabled: true)
+      after_config_load(model) { write_config_concurrently(model, test_custom_domain.identifier, enabled: true) }
+
+      csrf_put api_path(test_custom_domain.extid), { enabled: true, signin_enabled: true }
+
+      expect(last_response.status).to eq(200), last_response.body
+      expect(audit_events).to eq(['domain_signin_config_replaced'])
+    end
+  end
+end

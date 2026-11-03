@@ -1,0 +1,1064 @@
+{
+  "web.billing.subscription_synced_title": {
+    "text": "サブスクリプションが同期されました",
+    "source_hash": "3086ef43"
+  },
+  "web.billing.subscription_synced_description": {
+    "text": "サブスクリプションの特典が別のリージョンから同期されました。",
+    "source_hash": "a99b7a98"
+  },
+  "web.billing.upgrade.required": {
+    "text": "アップグレードが必要です",
+    "source_hash": "16487236"
+  },
+  "web.billing.upgrade.viewPlans": {
+    "text": "プランを見る",
+    "source_hash": "a865d424"
+  },
+  "web.billing.upgrade.needTeams": {
+    "text": "チーム管理にはIdentity Plus以上が必要です",
+    "source_hash": "95bdda65"
+  },
+  "web.billing.upgrade.needCustomDomains": {
+    "text": "カスタムドメインにはIdentity Plus以上が必要です",
+    "source_hash": "e8af8484"
+  },
+  "web.billing.upgrade.needApiAccess": {
+    "text": "APIアクセスにはIdentity Plus以上が必要です",
+    "source_hash": "ab8be865"
+  },
+  "web.billing.upgrade.needAuditLogs": {
+    "text": "監査ログにはマルチチームプラン以上が必要です",
+    "source_hash": "91df96b0"
+  },
+  "web.billing.manage_subscription_and_billing": {
+    "text": "サブスクリプション、組織、請求設定を管理できます",
+    "source_hash": "3995095c"
+  },
+  "web.billing.overview.title": {
+    "text": "請求の概要",
+    "source_hash": "479a3c4c"
+  },
+  "web.billing.overview.description": {
+    "text": "サブスクリプションと支払いの詳細を確認・管理できます",
+    "source_hash": "60e5a00e"
+  },
+  "web.billing.overview.billing_for_organization": {
+    "text": "この組織の請求",
+    "source_hash": "21806992"
+  },
+  "web.billing.overview.current_plan": {
+    "text": "現在のプラン",
+    "source_hash": "5d856320"
+  },
+  "web.billing.overview.plan_features": {
+    "text": "プランの機能",
+    "source_hash": "fbab9086"
+  },
+  "web.billing.overview.payment_method": {
+    "text": "支払い方法",
+    "source_hash": "f89a4e17"
+  },
+  "web.billing.overview.next_billing_date": {
+    "text": "次回請求日",
+    "source_hash": "3d1df54e"
+  },
+  "web.billing.overview.quick_actions": {
+    "text": "クイックアクション",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.billing.overview.manage_billing": {
+    "text": "請求を管理",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.view_invoices": {
+    "text": "請求書を見る",
+    "source_hash": "cfc0404e"
+  },
+  "web.billing.overview.upgrade_plan": {
+    "text": "プランをアップグレード",
+    "source_hash": "17787ab7"
+  },
+  "web.billing.overview.change_plan": {
+    "text": "プランを変更",
+    "source_hash": "2d0b195b"
+  },
+  "web.billing.overview.manage_subscription": {
+    "text": "サブスクリプションを管理",
+    "source_hash": "cbc4ef92"
+  },
+  "web.billing.plans.legacy_plan_info": {
+    "text": "特別価格の旧プランをご利用中です。",
+    "source_hash": "e9aa8bf0"
+  },
+  "web.billing.plans.early_supporter_plan": {
+    "text": "Identity Plus(早期サポーター)",
+    "source_hash": "f37cd0d9"
+  },
+  "web.billing.plans.legacy_plan_warning": {
+    "text": "プランを切り替えると、旧プランの料金は失われます。この操作は取り消せません。",
+    "source_hash": "eda13d64"
+  },
+  "web.billing.overview.no_payment_method": {
+    "text": "支払い方法が登録されていません",
+    "source_hash": "77f71037"
+  },
+  "web.billing.overview.no_upcoming_billing": {
+    "text": "今後の請求はありません",
+    "source_hash": "746314de"
+  },
+  "web.billing.overview.days_remaining": {
+    "text": "日残り",
+    "source_hash": "385438a3"
+  },
+  "web.billing.overview.billing_on": {
+    "text": "{date}に請求",
+    "source_hash": "40dcb7cf"
+  },
+  "web.billing.overview.view_plans_action": {
+    "text": "プランを見る",
+    "source_hash": "a865d424"
+  },
+  "web.billing.overview.view_plans_description": {
+    "text": "比較してアップグレード",
+    "source_hash": "40e02bff"
+  },
+  "web.billing.overview.view_invoices_action": {
+    "text": "請求書を見る",
+    "source_hash": "cfc0404e"
+  },
+  "web.billing.overview.view_invoices_description": {
+    "text": "履歴をダウンロード",
+    "source_hash": "b8ff5cac"
+  },
+  "web.billing.overview.manage_billing_action": {
+    "text": "請求を管理",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.manage_billing_description": {
+    "text": "支払い情報を更新",
+    "source_hash": "1f981aaf"
+  },
+  "web.billing.overview.no_organizations_title": {
+    "text": "ワークスペースがありません",
+    "source_hash": "c7f70723"
+  },
+  "web.billing.overview.no_organizations_description": {
+    "text": "請求とサブスクリプションを管理するにはワークスペースを作成してください",
+    "source_hash": "e0fd27a5"
+  },
+  "web.billing.overview.load_error": {
+    "text": "請求情報の読み込みに失敗しました",
+    "source_hash": "3bc44882"
+  },
+  "web.billing.overview.upgrade_success": {
+    "text": "プランが正常にアップグレードされました",
+    "source_hash": "00ac43f8"
+  },
+  "web.billing.overview.upgrade_success_description": {
+    "text": "新しいプランが有効になりました。ご購入ありがとうございます。",
+    "source_hash": "fd1caeb1"
+  },
+  "web.billing.overview.billing_contact": {
+    "text": "請求担当者",
+    "source_hash": "8f782ad8"
+  },
+  "web.billing.overview.entitlements.create_secrets": {
+    "text": "シークレットを作成",
+    "source_hash": "0320541d"
+  },
+  "web.billing.overview.entitlements.view_receipt": {
+    "text": "受領書を見る",
+    "source_hash": "6c664c31"
+  },
+  "web.billing.overview.entitlements.api_access": {
+    "text": "APIアクセス",
+    "source_hash": "5f31cc2f"
+  },
+  "web.billing.overview.entitlements.custom_domains": {
+    "text": "カスタムドメイン",
+    "source_hash": "6170ab94"
+  },
+  "web.billing.overview.entitlements.custom_privacy_defaults": {
+    "text": "カスタムプライバシーデフォルト",
+    "source_hash": "e677e27d"
+  },
+  "web.billing.overview.entitlements.extended_default_expiration": {
+    "text": "延長デフォルト有効期限",
+    "source_hash": "19b19637"
+  },
+  "web.billing.overview.entitlements.custom_mail_sender": {
+    "text": "カスタムメールデフォルト",
+    "source_hash": "95aebfb9"
+  },
+  "web.billing.overview.entitlements.custom_branding": {
+    "text": "カスタムブランディング",
+    "source_hash": "237dabec"
+  },
+  "web.billing.overview.entitlements.homepage_secrets": {
+    "text": "ホームページシークレット",
+    "source_hash": "6360f7ec"
+  },
+  "web.billing.overview.entitlements.incoming_secrets": {
+    "text": "受信シークレット",
+    "source_hash": "883dbca9"
+  },
+  "web.billing.overview.entitlements.manage_org": {
+    "text": "組織を管理",
+    "source_hash": "f03a4985"
+  },
+  "web.billing.overview.entitlements.manage_teams": {
+    "text": "チームを管理",
+    "source_hash": "2a52d5b4"
+  },
+  "web.billing.overview.entitlements.manage_members": {
+    "text": "メンバーを管理",
+    "source_hash": "af812b01"
+  },
+  "web.billing.overview.entitlements.audit_logs": {
+    "text": "監査ログ",
+    "source_hash": "5428d7fe"
+  },
+  "web.billing.overview.entitlements.sso": {
+    "text": "シングルサインオン(SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.billing.overview.entitlements.priority_support": {
+    "text": "優先サポート",
+    "source_hash": "ed8a65c8"
+  },
+  "web.billing.overview.entitlements.sla": {
+    "text": "サービスレベル契約",
+    "source_hash": "436f2550"
+  },
+  "web.billing.overview.entitlements_load_error": {
+    "text": "機能の詳細を読み込めませんでした",
+    "source_hash": "c350973c"
+  },
+  "web.billing.overview.no_entitlements": {
+    "text": "利用可能な機能がありません",
+    "source_hash": "03d195e8"
+  },
+  "web.billing.features.create_secrets": {
+    "text": "シークレットの作成と共有",
+    "source_hash": "303f9386"
+  },
+  "web.billing.features.api_access": {
+    "text": "APIアクセス",
+    "source_hash": "5f31cc2f"
+  },
+  "web.billing.features.custom_domains": {
+    "text": "カスタムドメイン",
+    "source_hash": "6170ab94"
+  },
+  "web.billing.features.custom_domain": {
+    "text": "カスタムドメイン1つ",
+    "source_hash": "6a6be744"
+  },
+  "web.billing.features.unlimited_custom_domains": {
+    "text": "カスタムドメイン無制限",
+    "source_hash": "53eb7521"
+  },
+  "web.billing.features.custom_branding": {
+    "text": "カスタムブランディング",
+    "source_hash": "237dabec"
+  },
+  "web.billing.features.homepage_secrets": {
+    "text": "ホームページシークレット",
+    "source_hash": "6360f7ec"
+  },
+  "web.billing.features.manage_teams": {
+    "text": "チーム管理",
+    "source_hash": "6bcbac8f"
+  },
+  "web.billing.features.manage_members": {
+    "text": "メンバー管理",
+    "source_hash": "b38b89db"
+  },
+  "web.billing.features.audit_logs": {
+    "text": "監査ログ",
+    "source_hash": "5428d7fe"
+  },
+  "web.billing.features.sso": {
+    "text": "SSO",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.billing.features.priority_support": {
+    "text": "優先サポート",
+    "source_hash": "ed8a65c8"
+  },
+  "web.billing.features.sla": {
+    "text": "サービスレベル契約",
+    "source_hash": "436f2550"
+  },
+  "web.billing.features.centralized_billing": {
+    "text": "一元的な請求管理",
+    "source_hash": "62042d3b"
+  },
+  "web.billing.features.audit_trail": {
+    "text": "監査証跡",
+    "source_hash": "d52b4039"
+  },
+  "web.billing.features.activity_stream": {
+    "text": "アクティビティストリーム",
+    "source_hash": "b9c6cba7"
+  },
+  "web.billing.features.handoff_workflows": {
+    "text": "引き継ぎワークフロー",
+    "source_hash": "07202af3"
+  },
+  "web.billing.plans.title": {
+    "text": "プランを選択",
+    "source_hash": "79506c82"
+  },
+  "web.billing.plans.choose_plan": {
+    "text": "ニーズに合ったプランを選択してください",
+    "source_hash": "5f039cb9"
+  },
+  "web.billing.plans.subtitle": {
+    "text": "組織に最適なプランを選択してください",
+    "source_hash": "308076f2"
+  },
+  "web.billing.plans.current": {
+    "text": "現在のプラン",
+    "source_hash": "5d856320"
+  },
+  "web.billing.plans.current_badge": {
+    "text": "現在",
+    "source_hash": "e0d1b682"
+  },
+  "web.billing.plans.upgrade": {
+    "text": "アップグレード",
+    "source_hash": "7ec0261b"
+  },
+  "web.billing.plans.downgrade": {
+    "text": "ダウングレード",
+    "source_hash": "d955b7e8"
+  },
+  "web.billing.plans.cancel_to_downgrade": {
+    "text": "キャンセルして切り替え",
+    "source_hash": "1c4cda89"
+  },
+  "web.billing.plans.monthly": {
+    "text": "月額",
+    "source_hash": "9b11f6b7"
+  },
+  "web.billing.plans.yearly": {
+    "text": "年額",
+    "source_hash": "6e69b59e"
+  },
+  "web.billing.plans.per_month": {
+    "text": "/月",
+    "source_hash": "eec5d08b"
+  },
+  "web.billing.plans.save_yearly": {
+    "text": "年額請求で{percent}%お得",
+    "source_hash": "88c451f2"
+  },
+  "web.billing.plans.free_plan": {
+    "text": "無料",
+    "source_hash": "f411a1fb"
+  },
+  "web.billing.plans.single_team_plan": {
+    "text": "シングルチーム",
+    "source_hash": "267ad4cf"
+  },
+  "web.billing.plans.multi_team_plan": {
+    "text": "マルチチーム",
+    "source_hash": "ffc73d2c"
+  },
+  "web.billing.plans.individual_account": {
+    "text": "個人アカウント",
+    "source_hash": "324221e2"
+  },
+  "web.billing.plans.team_account": {
+    "text": "チームアカウント",
+    "source_hash": "44e90aad"
+  },
+  "web.billing.plans.multi_team_account": {
+    "text": "組織アカウント",
+    "source_hash": "86e3a165"
+  },
+  "web.billing.plans.features": {
+    "text": "機能",
+    "source_hash": "5697d03d"
+  },
+  "web.billing.plans.unlimited_secrets": {
+    "text": "シークレット無制限",
+    "source_hash": "0f077568"
+  },
+  "web.billing.plans.api_access": {
+    "text": "APIアクセス",
+    "source_hash": "923fd434"
+  },
+  "web.billing.plans.priority_support": {
+    "text": "優先サポート",
+    "source_hash": "acea4b40"
+  },
+  "web.billing.plans.select_plan": {
+    "text": "プランを選択",
+    "source_hash": "8709f894"
+  },
+  "web.billing.plans.contact_sales": {
+    "text": "お問い合わせ",
+    "source_hash": "484aa053"
+  },
+  "web.billing.plans.custom_needs_title": {
+    "text": "ご質問やカスタムのご要望がありますか?",
+    "source_hash": "2f68484c"
+  },
+  "web.billing.plans.custom_needs_description": {
+    "text": "ぜひお聞かせください。ご要望をお知らせください。",
+    "source_hash": "a6b7f407"
+  },
+  "web.billing.plans.teams_limit": {
+    "text": "{count}チーム",
+    "source_hash": "a83641bc"
+  },
+  "web.billing.plans.members_limit": {
+    "text": "チームあたり{count}名",
+    "source_hash": "54fb2b4b"
+  },
+  "web.billing.plans.unlimited_teams": {
+    "text": "チーム数無制限",
+    "source_hash": "6d9fde65"
+  },
+  "web.billing.plans.unlimited_members": {
+    "text": "チームメンバー無制限",
+    "source_hash": "728ecef0"
+  },
+  "web.billing.plans.most_popular": {
+    "text": "人気",
+    "source_hash": "9e1006a4"
+  },
+  "web.billing.plans.suggested": {
+    "text": "おすすめ",
+    "source_hash": "93b63bab"
+  },
+  "web.billing.plans.everything_in": {
+    "text": "{plan}のすべてを含む",
+    "source_hash": "1c73c298"
+  },
+  "web.billing.plans.no_plans_available": {
+    "text": "現在、{interval}プランはご利用いただけません。",
+    "source_hash": "d8454436"
+  },
+  "web.billing.plans.load_error": {
+    "text": "プランの読み込みに失敗しました",
+    "source_hash": "a37d4d9a"
+  },
+  "web.billing.plans.change_immediate": {
+    "text": "プランは即座に変更されます。",
+    "source_hash": "889d13be"
+  },
+  "web.billing.plans.current_plan_label": {
+    "text": "現在のプラン:",
+    "source_hash": "648a0ab2"
+  },
+  "web.billing.plans.new_plan_label": {
+    "text": "新しいプラン:",
+    "source_hash": "edb868c4"
+  },
+  "web.billing.plans.credit_label": {
+    "text": "未使用期間のクレジット:",
+    "source_hash": "001e4901"
+  },
+  "web.billing.plans.due_today": {
+    "text": "本日のお支払い:",
+    "source_hash": "e370e3aa"
+  },
+  "web.billing.plans.next_billing": {
+    "text": "次回請求({date}):",
+    "source_hash": "a6846a85"
+  },
+  "web.billing.plans.next_invoice": {
+    "text": "次回請求書",
+    "source_hash": "5670e027"
+  },
+  "web.billing.plans.limits_update_notice": {
+    "text": "プラン変更後、機能の制限は即座に更新されます。",
+    "source_hash": "9cb09f73"
+  },
+  "web.billing.plans.change_failed": {
+    "text": "プランの変更に失敗しました。もう一度お試しください。",
+    "source_hash": "a4e86372"
+  },
+  "web.billing.plans.confirm_upgrade": {
+    "text": "アップグレードを確認",
+    "source_hash": "71a4ab02"
+  },
+  "web.billing.plans.confirm_downgrade": {
+    "text": "ダウングレードを確認",
+    "source_hash": "deaf8189"
+  },
+  "web.billing.plans.upgrade_to": {
+    "text": "{plan}にアップグレードしますか?",
+    "source_hash": "b1e4e88c"
+  },
+  "web.billing.plans.downgrade_to": {
+    "text": "{plan}にダウングレードしますか?",
+    "source_hash": "8eb8ea81"
+  },
+  "web.billing.plans.credit_applies_heading": {
+    "text": "クレジットの適用方法:",
+    "source_hash": "a0943c3b"
+  },
+  "web.billing.plans.next_bill_amount": {
+    "text": "次回請求額:",
+    "source_hash": "526ad28f"
+  },
+  "web.billing.plans.credit_applied_to_bill": {
+    "text": "適用されたクレジット:",
+    "source_hash": "e5f2e81a"
+  },
+  "web.billing.plans.amount_due_next_billing": {
+    "text": "次回請求時のお支払い額:",
+    "source_hash": "22ee868a"
+  },
+  "web.billing.plans.remaining_account_credit": {
+    "text": "残りのアカウントクレジット:",
+    "source_hash": "eedd0c0a"
+  },
+  "web.billing.plans.credit_future_note": {
+    "text": "将来の請求書に適用されます",
+    "source_hash": "5007add6"
+  },
+  "web.billing.invoices.title": {
+    "text": "請求履歴",
+    "source_hash": "5ade0861"
+  },
+  "web.billing.invoices.view_history": {
+    "text": "請求履歴を確認し、請求書をダウンロードできます",
+    "source_hash": "eb72573c"
+  },
+  "web.billing.invoices.invoice_date": {
+    "text": "日付",
+    "source_hash": "99c40ab4"
+  },
+  "web.billing.invoices.invoice_amount": {
+    "text": "金額",
+    "source_hash": "49e96d7c"
+  },
+  "web.billing.invoices.invoice_status": {
+    "text": "ステータス",
+    "source_hash": "920e413c"
+  },
+  "web.billing.invoices.invoice_download": {
+    "text": "ダウンロード",
+    "source_hash": "d6eafe82"
+  },
+  "web.billing.invoices.invoice_number": {
+    "text": "請求書番号",
+    "source_hash": "48a67cac"
+  },
+  "web.billing.invoices.no_invoices": {
+    "text": "請求書がありません",
+    "source_hash": "92d2d0ce"
+  },
+  "web.billing.invoices.no_invoices_description": {
+    "text": "有料プランにアップグレードすると、請求書がここに表示されます",
+    "source_hash": "7f16be70"
+  },
+  "web.billing.invoices.view_plans": {
+    "text": "プランを見る",
+    "source_hash": "a865d424"
+  },
+  "web.billing.invoices.paid": {
+    "text": "支払済み",
+    "source_hash": "fb81b961"
+  },
+  "web.billing.invoices.pending": {
+    "text": "保留中",
+    "source_hash": "331551b0"
+  },
+  "web.billing.invoices.failed": {
+    "text": "失敗",
+    "source_hash": "031a8f0f"
+  },
+  "web.billing.invoices.draft": {
+    "text": "下書き",
+    "source_hash": "ebf12ef4"
+  },
+  "web.billing.invoices.open": {
+    "text": "未払い",
+    "source_hash": "ed077f3d"
+  },
+  "web.billing.invoices.uncollectible": {
+    "text": "回収不能",
+    "source_hash": "c8d3b241"
+  },
+  "web.billing.invoices.void": {
+    "text": "無効",
+    "source_hash": "4e7ba403"
+  },
+  "web.billing.invoices.load_error": {
+    "text": "請求書の読み込みに失敗しました",
+    "source_hash": "0b0cb3f7"
+  },
+  "web.billing.notices.org_managed": {
+    "text": "請求は{orgName}によって管理されています",
+    "source_hash": "6cfe0fb4"
+  },
+  "web.billing.notices.view_org_billing": {
+    "text": "組織の請求を見る",
+    "source_hash": "2ae16262"
+  },
+  "web.billing.limits.members_reached": {
+    "text": "このチームのメンバー上限に達しました",
+    "source_hash": "ce8f2a24"
+  },
+  "web.billing.limits.members_upgrade": {
+    "text": "メンバーを追加するにはアップグレードしてください",
+    "source_hash": "602bdef4"
+  },
+  "web.billing.subscription.title": {
+    "text": "サブスクリプション",
+    "source_hash": "4999c6c6"
+  },
+  "web.billing.subscription.status": {
+    "text": "サブスクリプションのステータス",
+    "source_hash": "c7a08e1d"
+  },
+  "web.billing.subscription.active": {
+    "text": "アクティブ",
+    "source_hash": "92340695"
+  },
+  "web.billing.subscription.inactive": {
+    "text": "非アクティブ",
+    "source_hash": "ac7c949f"
+  },
+  "web.billing.subscription.past_due": {
+    "text": "支払い遅延",
+    "source_hash": "2bda1c7b"
+  },
+  "web.billing.subscription.canceled": {
+    "text": "キャンセル済み",
+    "source_hash": "13ca2ee2"
+  },
+  "web.billing.subscription.catalog_name": {
+    "text": "プラン",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.billing.subscription.team_usage": {
+    "text": "チーム使用状況",
+    "source_hash": "f9989642"
+  },
+  "web.billing.subscription.teams_used": {
+    "text": "{limit}チーム中{used}チーム使用中",
+    "source_hash": "1db6b53c"
+  },
+  "web.billing.portal.title": {
+    "text": "請求ポータル",
+    "source_hash": "9baaf69e"
+  },
+  "web.billing.portal.description": {
+    "text": "サブスクリプション、支払い方法、請求履歴を管理できます",
+    "source_hash": "1a8f3c19"
+  },
+  "web.billing.portal.open_portal": {
+    "text": "請求ポータルを開く",
+    "source_hash": "23fbfa2b"
+  },
+  "web.billing.portal.redirecting": {
+    "text": "請求ポータルにリダイレクトしています...",
+    "source_hash": "b6f47df3"
+  },
+  "web.billing.start_today": {
+    "text": "今すぐ始める",
+    "source_hash": "80e73fc7"
+  },
+  "web.billing.start_today_with_identity_plus": {
+    "text": "今すぐIdentity Plusを始める",
+    "source_hash": "cce4c7d7"
+  },
+  "web.billing.per_month": {
+    "text": "月額",
+    "source_hash": "88b1d1a6"
+  },
+  "web.billing.full_api_access": {
+    "text": "フルAPIアクセス",
+    "source_hash": "f5bedf1c"
+  },
+  "web.billing.privacy_first_design": {
+    "text": "プライバシー優先の設計",
+    "source_hash": "587d738c"
+  },
+  "web.billing.identity_plus": {
+    "text": "Identity Plus",
+    "source_hash": "bb273516"
+  },
+  "web.billing.click_this_lightning_bolt_to_upgrade_for_custom_domains": {
+    "text": "カスタムドメインにアップグレードするには、この稲妻をクリックしてください",
+    "source_hash": "84cb4258"
+  },
+  "web.billing.maybe_later": {
+    "text": "また後で",
+    "source_hash": "166b26ab"
+  },
+  "web.billing.upgrade_account": {
+    "text": "アカウントをアップグレード",
+    "source_hash": "4799b02e"
+  },
+  "web.billing.upgrade_to_identity_plus": {
+    "text": "Identity Plusにアップグレード",
+    "source_hash": "272d3c80"
+  },
+  "web.billing.upgrade_for_teams": {
+    "text": "チーム向けにアップグレード",
+    "source_hash": "90dfb533"
+  },
+  "web.billing.benefits_of": {
+    "text": "特典",
+    "source_hash": "75403743"
+  },
+  "web.billing.t_benefits_of_identity_plus": {
+    "text": "{0}: Identity Plus",
+    "source_hash": "f13e5f3e"
+  },
+  "web.billing.upgrade_to": {
+    "text": "アップグレード",
+    "source_hash": "2ecdd437"
+  },
+  "web.billing.upgrade_for_yourdomain": {
+    "text": "secrets.yourdomain.comにアップグレード",
+    "source_hash": "8e4d766a"
+  },
+  "web.billing.includes_all_features_and_unlimited_sharing_capa": {
+    "text": "すべてのプランにプライバシー機能と無制限の共有容量が含まれます",
+    "source_hash": "e728e4e1"
+  },
+  "web.billing.includes_all_data_locality_options": {
+    "text": "すべてのプランに{0}リージョンのデータロケーション選択が含まれます",
+    "source_hash": "22a60b49"
+  },
+  "web.billing.get_started": {
+    "text": "始める",
+    "source_hash": "61e8d44a"
+  },
+  "web.billing.frequency_value_annually_annual_monthly_subscrip": {
+    "text": "{0}サブスクリプション",
+    "source_hash": "eaf5e2ef"
+  },
+  "web.billing.elevate_your_secure_sharing_with_custom_domains_": {
+    "text": "カスタムドメイン、無制限の容量、エンタープライズグレードの機能で安全な共有を向上させましょう。",
+    "source_hash": "db458d30"
+  },
+  "web.billing.payment_frequency": {
+    "text": "支払い頻度",
+    "source_hash": "b2c87e39"
+  },
+  "web.billing.secure_your_brand_and_build_customer_trust_with_": {
+    "text": "独自ドメインのリンクでブランドを守り、顧客の信頼を築きましょう。プライバシーとプロフェッショナリズムを重視する企業に最適です。",
+    "source_hash": "c07cd25c"
+  },
+  "web.billing.secure_links_stronger_connections": {
+    "text": "安全なリンクで、より強いつながりを",
+    "source_hash": "dd8dae5d"
+  },
+  "web.billing.identity_tier_not_found_in_product_tiers": {
+    "text": "プロダクトティアにIdentityティアが見つかりません",
+    "source_hash": "d0204fc4"
+  },
+  "web.billing.cancel.link_text": {
+    "text": "サブスクリプションをキャンセル",
+    "context": "Link text shown below the plan selector for paid users",
+    "source_hash": "3f85967f"
+  },
+  "web.billing.cancel.title": {
+    "text": "サブスクリプションをキャンセル",
+    "context": "Modal dialog heading/title",
+    "source_hash": "882e0c83"
+  },
+  "web.billing.cancel.confirmation": {
+    "text": "{plan}サブスクリプションをキャンセルしてもよろしいですか?",
+    "source_hash": "f4d1b6ee"
+  },
+  "web.billing.cancel.what_happens": {
+    "text": "キャンセルすると:",
+    "source_hash": "4d8f5751"
+  },
+  "web.billing.cancel.access_until": {
+    "text": "{date}まですべての機能にアクセスできます",
+    "source_hash": "eab1efe3"
+  },
+  "web.billing.cancel.access_until_period_end": {
+    "text": "現在の請求期間が終了するまでアクセスできます",
+    "source_hash": "1b07a54a"
+  },
+  "web.billing.cancel.no_future_charges": {
+    "text": "今後の請求はありません",
+    "source_hash": "a01cdc16"
+  },
+  "web.billing.cancel.downgrade_to_free": {
+    "text": "アカウントは無料プランに戻ります",
+    "source_hash": "e01b3fc3"
+  },
+  "web.billing.cancel.keep_subscription": {
+    "text": "サブスクリプションを維持",
+    "context": "Secondary button in modal - keeps subscription active",
+    "source_hash": "31e80c41"
+  },
+  "web.billing.cancel.confirm_cancel": {
+    "text": "サブスクリプションをキャンセル",
+    "context": "Primary action button in modal - confirms the cancellation",
+    "source_hash": "882e0c83"
+  },
+  "web.billing.cancel.success": {
+    "text": "サブスクリプションがキャンセルされました。請求期間の終了までアクセスを維持できます。",
+    "source_hash": "e18fd9d5"
+  },
+  "web.billing.cancel.error": {
+    "text": "サブスクリプションのキャンセルに失敗しました。もう一度お試しください。",
+    "source_hash": "68e8bdde"
+  },
+  "web.billing.cancel.scheduled_title": {
+    "text": "サブスクリプションのキャンセルが予定されました",
+    "context": "Alert banner heading shown when cancellation is pending",
+    "source_hash": "1427d139"
+  },
+  "web.billing.cancel.scheduled_description": {
+    "text": "サブスクリプションは{date}までアクティブのままです。それまですべての機能に完全にアクセスできます。",
+    "context": "Alert banner description explaining continued access",
+    "source_hash": "aab4b1dc"
+  },
+  "web.billing.cancel.scheduled_note": {
+    "text": "お気が変わりましたか?キャンセル日の前ならいつでもサブスクリプションを再開できます。",
+    "context": "Alert banner note encouraging reactivation",
+    "source_hash": "c94d5527"
+  },
+  "web.billing.overview.entitlements.notifications": {
+    "text": "メール通知",
+    "source_hash": "04e0f1e9"
+  },
+  "web.billing.overview.entitlements.ip_access_rules": {
+    "text": "IPアクセスルール",
+    "source_hash": "db966d47"
+  },
+  "web.billing.overview.entitlements.workspace_branding": {
+    "text": "ワークスペースブランディング",
+    "source_hash": "e7acbf6f"
+  },
+  "web.billing.features.extended_retention": {
+    "text": "30日間のシークレット保持",
+    "source_hash": "21d6d514"
+  },
+  "web.billing.features.incoming_secrets": {
+    "text": "受信シークレット",
+    "source_hash": "883dbca9"
+  },
+  "web.billing.features.team_members_5": {
+    "text": "最大5名のチームメンバー",
+    "source_hash": "e7518d07"
+  },
+  "web.billing.features.team_members_10": {
+    "text": "最大10名のチームメンバー",
+    "source_hash": "0c64c064"
+  },
+  "web.billing.features.team_members_25": {
+    "text": "最大25名のチームメンバー",
+    "source_hash": "bf3b84c8"
+  },
+  "web.billing.features.team_members_50": {
+    "text": "最大50名のチームメンバー",
+    "source_hash": "3c2d9a14"
+  },
+  "web.billing.features.unlimited_members": {
+    "text": "チームメンバー無制限",
+    "source_hash": "b7491ee9"
+  },
+  "web.billing.features.notifications": {
+    "text": "メール通知",
+    "source_hash": "04e0f1e9"
+  },
+  "web.billing.features.ip_access_rules": {
+    "text": "IPアクセスルール",
+    "source_hash": "db966d47"
+  },
+  "web.billing.features.workspace_branding": {
+    "text": "ワークスペースブランディング",
+    "source_hash": "e7acbf6f"
+  },
+  "web.billing.features.dedicated_infrastructure": {
+    "text": "専用インフラストラクチャ",
+    "source_hash": "0c10aea7"
+  },
+  "web.billing.features.shared_workflows": {
+    "text": "共有ワークフロー",
+    "source_hash": "158f558e"
+  },
+  "web.billing.currency_migration.title": {
+    "text": "通貨の変更が必要です",
+    "context": "Modal title when plan requires different currency than current subscription",
+    "source_hash": "2cd800c5"
+  },
+  "web.billing.currency_migration.description": {
+    "text": "現在のサブスクリプションは{from}を使用しています。選択したプランは{to}で請求されます。サブスクリプションを新しい通貨に移行する必要があります。",
+    "source_hash": "f0cdf727"
+  },
+  "web.billing.currency_migration.current_plan": {
+    "text": "現在のプラン:",
+    "source_hash": "648a0ab2"
+  },
+  "web.billing.currency_migration.new_plan": {
+    "text": "新しいプラン:",
+    "source_hash": "edb868c4"
+  },
+  "web.billing.currency_migration.current_period_ends": {
+    "text": "現在の期間の終了日:",
+    "source_hash": "2e20e596"
+  },
+  "web.billing.currency_migration.choose_timing": {
+    "text": "いつ切り替えますか?",
+    "source_hash": "f4aabb13"
+  },
+  "web.billing.currency_migration.graceful_title": {
+    "text": "請求期間の終了時に切り替える",
+    "source_hash": "55cd980b"
+  },
+  "web.billing.currency_migration.graceful_description": {
+    "text": "現在のプランは{date}までアクティブのままです。その後、新しいプランのチェックアウトを完了できます。",
+    "source_hash": "b8661418"
+  },
+  "web.billing.currency_migration.immediate_title": {
+    "text": "今すぐ切り替える",
+    "source_hash": "e9d0ba59"
+  },
+  "web.billing.currency_migration.immediate_description": {
+    "text": "現在のプランは今すぐキャンセルされます。未使用期間の返金を受け取り、新しいプランのチェックアウトを完了できます。",
+    "source_hash": "b08de0ca"
+  },
+  "web.billing.currency_migration.confirm": {
+    "text": "通貨の変更を確認",
+    "source_hash": "1edc1c78"
+  },
+  "web.billing.currency_migration.error": {
+    "text": "通貨の移行に失敗しました。もう一度お試しください。",
+    "source_hash": "4a6e1ced"
+  },
+  "web.billing.currency_migration.success": {
+    "text": "サブスクリプションの通貨が正常に更新されました。",
+    "source_hash": "a8bf437e"
+  },
+  "web.billing.currency_migration.graceful_success": {
+    "text": "現在のプランは請求期間の終了までアクティブのままです。その後、新しいプランのチェックアウトを完了するよう案内されます。",
+    "source_hash": "15d41483"
+  },
+  "web.billing.currency_migration.warning_credit_balance": {
+    "text": "{currency}のクレジット残高があり、新しい通貨に移行できません。",
+    "source_hash": "aa15be91"
+  },
+  "web.billing.currency_migration.warning_pending_items": {
+    "text": "移行前に解決する必要がある未処理の請求項目があります。",
+    "source_hash": "7b4c5e10"
+  },
+  "web.billing.currency_migration.warning_coupons": {
+    "text": "アカウントのアクティブなクーポンは新しい通貨と互換性がない場合があります。",
+    "source_hash": "f572ee81"
+  },
+  "web.billing.currency_migration.pending_title": {
+    "text": "通貨の移行が保留中です",
+    "context": "Banner heading when graceful migration is scheduled",
+    "source_hash": "018ae653"
+  },
+  "web.billing.currency_migration.pending_description": {
+    "text": "現在のプランは{date}に終了します。{plan}({currency})への切り替えを完了してください。",
+    "source_hash": "998ba4ab"
+  },
+  "web.billing.currency_migration.complete_migration": {
+    "text": "移行を完了",
+    "context": "Button to start checkout for the new currency plan",
+    "source_hash": "fa794e0c"
+  },
+  "web.billing.checkout_session_failed": {
+    "text": "チェックアウトセッションの作成に失敗しました",
+    "context": "Error when Stripe checkout session creation returns no URL",
+    "source_hash": "a53f6fa3"
+  },
+  "web.billing.checkout_initiate_failed": {
+    "text": "チェックアウトの開始に失敗しました",
+    "context": "Fallback error for checkout failures",
+    "source_hash": "3ff06e41"
+  },
+  "web.billing.plan_switch_success": {
+    "text": "{plan}への切り替えに成功しました",
+    "context": "Success message after plan change",
+    "source_hash": "ab7c715c"
+  },
+  "web.billing.plan_unavailable_region_mismatch": {
+    "text": "元のサブスクリプションリージョンでのみ利用可能です",
+    "context": "Hint shown on plan cards when currency does not match active subscription",
+    "source_hash": "10de32e5"
+  },
+  "web.billing.already_subscribed": {
+    "text": "すでにこのプランに登録されています。",
+    "source_hash": "2b02438b"
+  },
+  "web.billing.cancel.reactivate_button": {
+    "text": "サブスクリプションを再開",
+    "source_hash": "aa036442"
+  },
+  "web.billing.cancel.reactivate_success": {
+    "text": "サブスクリプションが再開されました。通常通り請求が継続されます。",
+    "source_hash": "523bf7bf"
+  },
+  "web.billing.cancel.reactivate_error": {
+    "text": "サブスクリプションの再開に失敗しました。もう一度お試しいただくか、サポートにお問い合わせください。",
+    "source_hash": "d0c79bd4"
+  },
+  "web.billing.features.manage_orgs": {
+    "text": "組織管理",
+    "source_hash": "780ad17c"
+  },
+  "web.billing.features.flexible_from_domain": {
+    "text": "柔軟なメール送信ドメイン",
+    "source_hash": "607572c3"
+  },
+  "web.billing.features.unlimited_admins": {
+    "text": "管理者無制限",
+    "source_hash": "5871a536"
+  },
+  "web.billing.features.manage_sso": {
+    "text": "SSO",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.billing.overview.entitlements.flexible_from_domain": {
+    "text": "柔軟なメール送信ドメイン",
+    "source_hash": "607572c3"
+  },
+  "web.billing.overview.entitlements.manage_orgs": {
+    "text": "組織を管理",
+    "source_hash": "be0fe4c3"
+  },
+  "web.billing.overview.entitlements.manage_sso": {
+    "text": "シングルサインオン(SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.billing.overview.entitlements.manage_billing": {
+    "text": "請求を管理",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.entitlements.custom_signup_validation": {
+    "text": "カスタムサインアップ検証",
+    "source_hash": "0ff55bfa"
+  },
+  "web.billing.plans.reactivate": {
+    "text": "再開",
+    "source_hash": "2dc7478f"
+  },
+  "web.billing.currency_migration.refund_failed_warning": {
+    "text": "以前のプランはキャンセルされましたが、未使用期間の返金を自動的に発行できませんでした。返金を受け取るにはサポートにお問い合わせください。新しいプランを有効にするには、チェックアウトを完了する必要があります。",
+    "source_hash": "a390c498"
+  },
+  "web.billing.currency_migration.refund_failed_continue": {
+    "text": "チェックアウトに進む",
+    "source_hash": "eccdb8aa"
+  },
+  "web.billing.plans.per_year": {
+    "text": "/年",
+    "source_hash": "a2d5f1bc"
+  },
+  "web.billing.plans.billing_interval": {
+    "text": "請求間隔",
+    "source_hash": "3ce28209"
+  }
+}

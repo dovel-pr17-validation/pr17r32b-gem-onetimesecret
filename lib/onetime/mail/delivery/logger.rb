@@ -1,0 +1,70 @@
+# lib/onetime/mail/delivery/logger.rb
+#
+# frozen_string_literal: true
+
+require_relative 'base'
+
+module Onetime
+  module Mail
+    module Delivery
+      # Logger delivery backend for development and testing.
+      # Outputs email content to logs instead of sending.
+      #
+      class Logger < Base
+        class << self
+          # Where delivered emails are written. A test run that keeps them
+          # off the console points this at a file instead of stubbing `puts`.
+          # nil puts the default back.
+          attr_writer :output
+
+          # Read per delivery, so a reassigned $stdout is honored.
+          def output
+            @output || $stdout
+          end
+
+          # Write to +io+ for the duration of the block, then put back
+          # whatever was set before. nil selects the default for the block.
+          def with_output(io)
+            previous = @output
+            @output  = io
+            yield
+          ensure
+            @output = previous
+          end
+        end
+
+        def perform_delivery(email)
+          output = <<~EMAIL
+            === EMAIL (Logger) ===
+            To: #{email[:to]}
+            From: #{email[:from]}
+            Reply-To: #{email[:reply_to] || '(none)'}
+            Subject: #{email[:subject]}
+            --- Text Body ---
+            #{email[:text_body]}
+            --- HTML Body ---
+            #{email[:html_body].to_s.empty? ? '(none)' : email[:html_body]}
+            === END EMAIL ===
+          EMAIL
+
+          # Log straight to standard out, bypassing our centralized semantic
+          # logger. This avoids confusing scenarios where nothing appears in
+          # the logs b/c the log level was set incorrectly.
+          self.class.output.puts output
+
+          # Base#deliver wraps this in NotTransmitted: the message was
+          # written to the log, not sent.
+          { status: 'logged', to: email[:to] }
+        end
+
+        def delivery_log_status
+          'logged'
+        end
+
+        def not_transmitted_reason
+          'log_only'
+        end
+      end
+    end
+  end
+end

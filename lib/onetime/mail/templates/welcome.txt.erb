@@ -1,0 +1,9 @@
+<%= t('email.welcome.title', product_name: product_name) %>
+
+<%= t('email.welcome.verify_prompt') %>
+
+<%= verification_url %>
+
+<%= signature_name || t('email.welcome.signature') %>
+
+<%= t('email.welcome.postscript', email_address: email_address) %>

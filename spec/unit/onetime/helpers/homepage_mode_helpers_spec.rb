@@ -1,0 +1,1008 @@
+# spec/unit/onetime/helpers/homepage_mode_helpers_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+require 'ipaddr'
+
+# Test class that includes the module for testing
+class HomepageModeTestClass
+  include Onetime::Helpers::HomepageModeHelpers
+  attr_accessor :req, :http_logger
+
+  def initialize(req = nil, logger = nil)
+    @req = req
+    @http_logger = logger || NullLogger.new
+  end
+
+  # Null logger that silently discards all log messages
+  class NullLogger
+    def debug(*args); end
+    def info(*args); end
+    def warn(*args); end
+    def error(*args); end
+  end
+end
+
+RSpec.describe Onetime::Helpers::HomepageModeHelpers do
+  let(:test_instance) { HomepageModeTestClass.new }
+
+  describe '#validate_cidr_privacy' do
+    context 'with IPv4 CIDR blocks' do
+      context 'with broad ranges (MORE PRIVATE - should be ACCEPTED)' do
+        it 'accepts /8 CIDR (16,777,214 IPs) - very broad, very private' do
+          cidr = IPAddr.new('10.0.0.0/8')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected /8 to be accepted (broad = private)"
+        end
+
+        it 'accepts /16 CIDR (65,534 IPs) - broad, privacy-preserving' do
+          cidr = IPAddr.new('192.168.0.0/16')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected /16 to be accepted (broad = private)"
+        end
+
+        it 'accepts /17 CIDR (32,766 IPs) - broad, privacy-preserving' do
+          cidr = IPAddr.new('172.116.128.0/17')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected /17 to be accepted (broad = private)"
+        end
+
+        it 'accepts /20 CIDR (4,094 IPs) - broad, privacy-preserving' do
+          cidr = IPAddr.new('10.105.64.0/20')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected /20 to be accepted (broad = private)"
+        end
+
+        it 'accepts /23 CIDR (510 IPs) - reasonably broad' do
+          cidr = IPAddr.new('192.168.1.0/23')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected /23 to be accepted (reasonably broad)"
+        end
+
+        it 'accepts /24 CIDR (254 IPs) - minimum acceptable breadth' do
+          cidr = IPAddr.new('192.168.1.0/24')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected /24 to be accepted (minimum threshold)"
+        end
+      end
+
+      context 'with narrow ranges (LESS PRIVATE - should be REJECTED)' do
+        it 'rejects /25 CIDR (126 IPs) - too narrow, insufficient privacy' do
+          cidr = IPAddr.new('192.168.1.0/25')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(false), "Expected /25 to be rejected (too narrow)"
+        end
+
+        it 'rejects /28 CIDR (14 IPs) - very narrow, can target small groups' do
+          cidr = IPAddr.new('192.168.1.0/28')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(false), "Expected /28 to be rejected (very narrow)"
+        end
+
+        it 'rejects /30 CIDR (2 IPs) - extremely narrow, point-to-point link' do
+          cidr = IPAddr.new('192.168.1.0/30')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(false), "Expected /30 to be rejected (extremely narrow)"
+        end
+
+        it 'rejects /31 CIDR (2 IPs for point-to-point) - RFC 3021 point-to-point' do
+          cidr = IPAddr.new('192.168.1.0/31')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(false), "Expected /31 to be rejected (point-to-point link)"
+        end
+
+        it 'rejects /32 CIDR (1 IP) - single host, no privacy protection' do
+          cidr = IPAddr.new('192.168.1.1/32')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(false), "Expected /32 to be rejected (single host, no privacy)"
+        end
+      end
+
+      context 'with real-world examples from the bug report' do
+        it 'accepts X.105.64.0/20 (4,094 IPs) - currently being REJECTED incorrectly' do
+          cidr = IPAddr.new('10.105.64.0/20')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected /20 to be accepted - currently failing due to bug"
+        end
+
+        it 'accepts A.116.128.0/17 (32,766 IPs) - currently being REJECTED incorrectly' do
+          cidr = IPAddr.new('172.116.128.0/17')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected /17 to be accepted - currently failing due to bug"
+        end
+
+        it 'accepts B.10.0.0/17 (32,766 IPs) - currently being REJECTED incorrectly' do
+          cidr = IPAddr.new('192.10.0.0/17')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected /17 to be accepted - currently failing due to bug"
+        end
+      end
+    end
+
+    context 'with IPv6 CIDR blocks' do
+      context 'with broad ranges (MORE PRIVATE - should be ACCEPTED)' do
+        it 'accepts /32 IPv6 CIDR - broad allocation' do
+          cidr = IPAddr.new('2001:db8::/32')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected IPv6 /32 to be accepted (broad)"
+        end
+
+        it 'accepts /40 IPv6 CIDR - large organizational block' do
+          cidr = IPAddr.new('2001:db8:1234::/40')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected IPv6 /40 to be accepted (large org)"
+        end
+
+        it 'accepts /48 IPv6 CIDR - standard site allocation, minimum acceptable' do
+          cidr = IPAddr.new('2001:db8:1234::/48')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(true), "Expected IPv6 /48 to be accepted (minimum threshold)"
+        end
+      end
+
+      context 'with narrow ranges (LESS PRIVATE - should be REJECTED)' do
+        it 'rejects /56 IPv6 CIDR - too narrow for privacy' do
+          cidr = IPAddr.new('2001:db8:1234::/56')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(false), "Expected IPv6 /56 to be rejected (too narrow)"
+        end
+
+        it 'rejects /64 IPv6 CIDR - single subnet, insufficient privacy' do
+          cidr = IPAddr.new('2001:db8:1234:5678::/64')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(false), "Expected IPv6 /64 to be rejected (single subnet)"
+        end
+
+        it 'rejects /80 IPv6 CIDR - very narrow range' do
+          cidr = IPAddr.new('2001:db8:1234:5678:9abc::/80')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(false), "Expected IPv6 /80 to be rejected (very narrow)"
+        end
+
+        it 'rejects /128 IPv6 CIDR - single host, no privacy' do
+          cidr = IPAddr.new('2001:db8::1/128')
+          result = test_instance.send(:validate_cidr_privacy, cidr)
+          expect(result).to eq(false), "Expected IPv6 /128 to be rejected (single host)"
+        end
+      end
+    end
+
+    context 'with edge cases' do
+      it 'accepts IPv4 /0 (entire internet) - maximally broad' do
+        cidr = IPAddr.new('0.0.0.0/0')
+        result = test_instance.send(:validate_cidr_privacy, cidr)
+        expect(result).to eq(true), "Expected /0 to be accepted (maximally broad)"
+      end
+
+      it 'accepts IPv6 /0 (entire internet) - maximally broad' do
+        cidr = IPAddr.new('::/0')
+        result = test_instance.send(:validate_cidr_privacy, cidr)
+        expect(result).to eq(true), "Expected IPv6 /0 to be accepted (maximally broad)"
+      end
+    end
+  end
+
+  describe '#compile_homepage_cidrs' do
+    let(:mock_req) { double('request', env: {}) }
+
+    let(:mock_logger) { instance_double(HomepageModeTestClass::NullLogger) }
+
+    before do
+      test_instance.req = mock_req
+      test_instance.http_logger = mock_logger
+      # Suppress logging during tests
+      allow(mock_logger).to receive(:debug)
+      allow(mock_logger).to receive(:info)
+      allow(mock_logger).to receive(:warn)
+      allow(mock_logger).to receive(:error)
+    end
+
+    context 'with valid privacy-preserving CIDRs' do
+      it 'compiles broad IPv4 ranges that should be accepted' do
+        config = {
+          'matching_cidrs' => [
+            '10.0.0.0/8',      # Very broad - should be accepted
+            '172.16.0.0/16',   # Broad - should be accepted
+            '192.168.0.0/24',  # Minimum acceptable - should be accepted
+          ]
+        }
+
+        result = test_instance.send(:compile_homepage_cidrs, config)
+
+        expect(result).to be_an(Array)
+        expect(result.length).to eq(3), "Expected all 3 broad CIDRs to be accepted"
+        expect(result.all? { |cidr| cidr.is_a?(IPAddr) }).to be true
+      end
+
+      it 'compiles the real-world CIDRs from the bug report' do
+        config = {
+          'matching_cidrs' => [
+            '10.105.64.0/20',    # 4,094 IPs - should be accepted
+            '172.116.128.0/17',  # 32,766 IPs - should be accepted
+            '192.10.0.0/17',     # 32,766 IPs - should be accepted
+          ]
+        }
+
+        result = test_instance.send(:compile_homepage_cidrs, config)
+
+        # The inverted prefix check once rejected all three.
+        expect(result).to be_an(Array)
+        expect(result.length).to eq(3), "Expected all 3 broad CIDRs from logs to be accepted"
+      end
+
+      it 'compiles broad IPv6 ranges that should be accepted' do
+        config = {
+          'matching_cidrs' => [
+            '2001:db8::/32',     # Very broad - should be accepted
+            '2001:db8:1234::/48', # Minimum acceptable - should be accepted
+          ]
+        }
+
+        result = test_instance.send(:compile_homepage_cidrs, config)
+
+        expect(result).to be_an(Array)
+        expect(result.length).to eq(2), "Expected both broad IPv6 CIDRs to be accepted"
+      end
+    end
+
+    # #4056: narrow entries are no longer dropped at compile. They are judged
+    # through env['otto.ip_match'] at full precision; only the no-closure
+    # fallback skips them (see "CIDR matching at /32 precision" below).
+    context 'with CIDRs narrower than the IP-privacy mask' do
+      it 'keeps narrow IPv4 and IPv6 ranges without a privacy warning' do
+        config = {
+          'matching_cidrs' => [
+            '192.168.1.1/32',
+            '192.168.1.0/28',
+            '2001:db8::1/128',
+            '2001:db8:1234::/64',
+          ],
+        }
+
+        expect(mock_logger).not_to receive(:warn)
+
+        result = test_instance.send(:compile_homepage_cidrs, config)
+
+        expect(result.map(&:prefix)).to eq([32, 28, 128, 64])
+      end
+    end
+
+    context 'with mixed broad and narrow CIDRs' do
+      it 'keeps every entry that parses, in order' do
+        config = {
+          'matching_cidrs' => [
+            '10.0.0.0/16',       # Broad
+            '192.168.1.1/32',    # Single host
+            '172.16.0.0/20',     # Broad
+            '192.168.2.0/28',    # Narrow
+            '10.10.0.0/24',      # At the mask
+          ]
+        }
+
+        expect(mock_logger).not_to receive(:warn)
+
+        result = test_instance.send(:compile_homepage_cidrs, config)
+
+        expect(result.map(&:prefix)).to eq([16, 32, 20, 28, 24])
+      end
+    end
+
+    context 'with invalid CIDR strings' do
+      it 'handles invalid CIDR syntax gracefully' do
+        config = {
+          'matching_cidrs' => [
+            'not-a-cidr',
+            '999.999.999.999/24',
+            'invalid',
+          ]
+        }
+
+        expect(mock_logger).to receive(:error).with('[homepage_mode] Invalid CIDR', hash_including(:cidr, :error)).at_least(3).times
+
+        result = test_instance.send(:compile_homepage_cidrs, config)
+
+        expect(result).to be_an(Array)
+        expect(result).to be_empty
+      end
+
+      it 'continues processing valid CIDRs after encountering invalid ones' do
+        config = {
+          'matching_cidrs' => [
+            '10.0.0.0/16',       # Valid broad - should be accepted
+            'invalid-cidr',      # Invalid - should be skipped
+            '172.16.0.0/20',     # Valid broad - should be accepted
+          ]
+        }
+
+        expect(mock_logger).to receive(:error).with('[homepage_mode] Invalid CIDR', hash_including(:cidr)).once
+
+        result = test_instance.send(:compile_homepage_cidrs, config)
+
+        expect(result).to be_an(Array)
+        expect(result.length).to eq(2), "Expected 2 valid CIDRs to be compiled despite invalid one"
+      end
+    end
+
+    context 'with empty or missing configuration' do
+      it 'returns empty array when matching_cidrs is empty' do
+        config = { matching_cidrs: [] }
+        result = test_instance.send(:compile_homepage_cidrs, config)
+        expect(result).to eq([])
+      end
+
+      it 'returns empty array when matching_cidrs is nil' do
+        config = { matching_cidrs: nil }
+        result = test_instance.send(:compile_homepage_cidrs, config)
+        expect(result).to eq([])
+      end
+
+      it 'returns empty array when matching_cidrs key is missing' do
+        config = {}
+        result = test_instance.send(:compile_homepage_cidrs, config)
+        expect(result).to eq([])
+      end
+    end
+  end
+
+  describe 'CIDR privacy logic explanation' do
+    it 'documents the correct understanding of CIDR prefix numbers' do
+      # This test documents the correct understanding for future reference
+      #
+      # CIDR PREFIX LOGIC (smaller number = broader range = MORE PRIVATE):
+      #
+      # IPv4:
+      # /8  = 16,777,214 IPs = VERY BROAD   = VERY PRIVATE     ✓ Accept
+      # /16 = 65,534 IPs     = BROAD        = VERY PRIVATE     ✓ Accept
+      # /17 = 32,766 IPs     = BROAD        = VERY PRIVATE     ✓ Accept
+      # /20 = 4,094 IPs      = BROAD        = PRIVACY OK       ✓ Accept
+      # /24 = 254 IPs        = NARROW       = MINIMUM PRIVACY  ✓ Accept (threshold)
+      # /28 = 14 IPs         = VERY NARROW  = INSUFFICIENT     ✗ Reject
+      # /32 = 1 IP           = SINGLE HOST  = NO PRIVACY       ✗ Reject
+      #
+      # IPv6:
+      # /32 = 2^96 IPs       = VERY BROAD   = VERY PRIVATE     ✓ Accept
+      # /48 = 2^80 IPs       = BROAD        = MINIMUM PRIVACY  ✓ Accept (threshold)
+      # /64 = 2^64 IPs       = NARROW       = INSUFFICIENT     ✗ Reject
+      # /128 = 1 IP          = SINGLE HOST  = NO PRIVACY       ✗ Reject
+      #
+      # THE RULE: prefix <= max_prefix (not >= min_prefix)
+      #           For IPv4: prefix <= 24 (accepts /1 through /24, rejects /25 through /32)
+      #           For IPv6: prefix <= 48 (accepts /1 through /48, rejects /49 through /128)
+
+      expect(true).to eq(true) # This test exists for documentation
+    end
+  end
+
+  describe '#extract_client_ip_for_homepage' do
+    it 'delegates to Rack::Request#ip' do
+      mock_req = double('request')
+      allow(mock_req).to receive(:ip).and_return('203.0.113.42')
+      test_instance.req = mock_req
+
+      expect(test_instance.send(:extract_client_ip_for_homepage)).to eq('203.0.113.42')
+    end
+
+    it 'returns whatever Rack::Request#ip resolves, including nil' do
+      mock_req = double('request')
+      allow(mock_req).to receive(:ip).and_return(nil)
+      test_instance.req = mock_req
+
+      expect(test_instance.send(:extract_client_ip_for_homepage)).to be_nil
+    end
+  end
+
+  describe '#ip_matches_homepage_cidrs?' do
+    before do
+      test_instance.instance_variable_set(:@cidr_matchers, [
+        IPAddr.new('10.0.0.0/8'),
+        IPAddr.new('192.168.1.0/24'),
+        IPAddr.new('2001:db8::/32')
+      ])
+      allow(OT).to receive(:le)
+    end
+
+    context 'with matching IPs' do
+      it 'matches IP in first CIDR range' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, '10.1.2.3')).to be true
+      end
+
+      it 'matches IP in second CIDR range' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, '192.168.1.100')).to be true
+      end
+
+      it 'matches IPv6 address in CIDR range' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, '2001:db8::1')).to be true
+      end
+
+      it 'matches IP at the edge of CIDR range' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, '192.168.1.1')).to be true
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, '192.168.1.254')).to be true
+      end
+    end
+
+    context 'with non-matching IPs' do
+      it 'does not match IP outside all CIDR ranges' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, '203.0.113.0')).to be false
+      end
+
+      it 'does not match IP just outside CIDR range' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, '192.168.2.1')).to be false
+      end
+
+      it 'does not match IPv6 address outside CIDR range' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, '2001:db9::1')).to be false
+      end
+    end
+
+    context 'with invalid inputs' do
+      it 'returns false for empty string' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, '')).to be false
+      end
+
+      it 'returns false for nil' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, nil)).to be false
+      end
+
+      it 'returns false for invalid IP address' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, 'not-an-ip')).to be false
+      end
+    end
+
+    context 'with empty CIDR matchers' do
+      before do
+        test_instance.instance_variable_set(:@cidr_matchers, [])
+      end
+
+      it 'returns false when no CIDRs are configured' do
+        expect(test_instance.send(:ip_matches_homepage_cidrs?, '10.1.2.3')).to be false
+      end
+    end
+  end
+
+  # ===========================================================================
+  # CIDR matching at /32 precision (#4056)
+  # ===========================================================================
+  #
+  # Homepage CIDRs are judged through env['otto.ip_match'], the verdict-only
+  # closure IPPrivacyMiddleware installs over the PRE-MASK client IP. req.ip
+  # is already masked to the /24 (IPv6: /48) by then. The env below comes from
+  # the real universal mount (MiddlewareStack.ip_privacy_security_config), so
+  # the masking is the production one, not a stub.
+  #
+  # Both directions are pinned, and both flip if matching ever goes back to
+  # the masked value:
+  #   203.0.113.9/32 — full precision MATCHES its own client.
+  #   203.0.113.0/32 — full precision does NOT match .9, which masks to .0.
+  describe 'CIDR matching at /32 precision (#4056)' do
+    let(:log) { [] }
+    let(:logger) do
+      sink = log
+      Object.new.tap do |l|
+        %i[debug info warn error].each do |level|
+          l.define_singleton_method(level) { |*args| sink << [level, *args] }
+        end
+      end
+    end
+
+    def homepage_conf(cidrs, mode)
+      {
+        'site' => {
+          'network' => {}, # no trusted proxy: the client is REMOTE_ADDR
+          'interface' => {
+            'ui' => {
+              'homepage' => {
+                'mode' => mode,
+                'matching_cidrs' => cidrs,
+                'mode_header' => 'O-Homepage-Mode',
+              },
+            },
+          },
+        },
+      }
+    end
+
+    # The env the app sees after the universal IPPrivacyMiddleware mount.
+    def through_mount(env)
+      captured = {}
+      app      = ->(e) {
+        captured[:env] = e
+        [200, {}, ['ok']]
+      }
+      security_config = Onetime::Application::MiddlewareStack.ip_privacy_security_config
+      Otto::Security::Middleware::IPPrivacyMiddleware.new(app, security_config).call(env)
+      captured[:env]
+    end
+
+    def mode_for(cidrs, remote_addr, mode: 'external')
+      allow(OT).to receive(:conf).and_return(homepage_conf(cidrs, mode))
+      env = through_mount('REMOTE_ADDR' => remote_addr)
+      HomepageModeTestClass.new(Otto::Request.new(env), logger).determine_homepage_mode
+    end
+
+    # Same config, but the request never passed IPPrivacyMiddleware.
+    def mode_without_mount(cidrs, env, mode: 'external')
+      allow(OT).to receive(:conf).and_return(homepage_conf(cidrs, mode))
+      HomepageModeTestClass.new(Otto::Request.new(env), logger).determine_homepage_mode
+    end
+
+    it 'runs against a masked req.ip with the closure installed' do
+      allow(OT).to receive(:conf).and_return(homepage_conf([], 'external'))
+      env = through_mount('REMOTE_ADDR' => '203.0.113.9')
+
+      expect(Otto::Request.new(env).ip).to eq('203.0.113.0')
+      expect(env['otto.ip_match']).to respond_to(:call)
+    end
+
+    context 'with otto.ip_match present' do
+      it 'matches a /32 entry for its own client' do
+        expect(mode_for(['203.0.113.9/32'], '203.0.113.9')).to eq('external')
+        expect(mode_for(['203.0.113.9/32'], '203.0.113.9', mode: 'internal')).to eq('internal')
+      end
+
+      it 'does not match a /32 entry for a neighbour in the same masked /24' do
+        expect(mode_for(['203.0.113.9/32'], '203.0.113.7')).to be_nil
+      end
+
+      it 'does not match the /32 of the masked network address' do
+        expect(mode_for(['203.0.113.0/32'], '203.0.113.9')).to be_nil
+      end
+
+      it 'matches a /128 entry for its own client only' do
+        expect(mode_for(['2001:db8:1:2::9/128'], '2001:db8:1:2::9')).to eq('external')
+        expect(mode_for(['2001:db8:1:2::9/128'], '2001:db8:1:2::7')).to be_nil
+      end
+
+      it 'still matches ranges at or above the mask' do
+        expect(mode_for(['203.0.113.0/24'], '203.0.113.9')).to eq('external')
+        expect(mode_for(['198.51.100.0/24'], '203.0.113.9')).to be_nil
+      end
+
+      it 'never logs the unmasked client IP' do
+        mode_for(['203.0.113.9/32'], '203.0.113.9')
+        mode_for(['203.0.113.9/32'], '203.0.113.7')
+
+        expect(log).not_to be_empty
+        expect(log.inspect).not_to include('203.0.113.9')
+        expect(log.inspect).not_to include('203.0.113.7')
+      end
+    end
+
+    # No closure: same behaviour as before #4056. The resolved IP is compared,
+    # and only entries at or above the /24 (/48) floor are judged, because
+    # this path cannot tell a masked IP from a real one.
+    context 'with otto.ip_match absent' do
+      it 'does not judge entries finer than the mask' do
+        env = { 'REMOTE_ADDR' => '203.0.113.9' }
+        expect(mode_without_mount(['203.0.113.9/32'], env)).to be_nil
+      end
+
+      it 'compares the resolved IP against ranges at or above the mask' do
+        env = { 'REMOTE_ADDR' => '203.0.113.9' }
+        expect(mode_without_mount(['203.0.113.0/24'], env)).to eq('external')
+      end
+
+      it 'treats a non-callable value the same way, without calling it' do
+        env = { 'REMOTE_ADDR' => '203.0.113.9', 'otto.ip_match' => 'true' }
+        expect(mode_without_mount(['203.0.113.9/32'], env)).to be_nil
+        expect(mode_without_mount(['203.0.113.0/24'], env)).to eq('external')
+      end
+    end
+
+    context 'with malformed config or a failing matcher' do
+      it 'drops a malformed entry and still judges the valid ones' do
+        expect(mode_for(['not-a-cidr', '203.0.113.9/32'], '203.0.113.9')).to eq('external')
+        expect(log.map(&:first)).to include(:error)
+      end
+
+      it 'does not match when every entry is malformed' do
+        expect(mode_for(['not-a-cidr', '203.0.113.9/33'], '203.0.113.9')).to be_nil
+      end
+
+      it 'treats a raising matcher as no match and logs no address' do
+        raising = ->(_cidrs) { raise IPAddr::InvalidAddressError, 'invalid address: 203.0.113.9' }
+        env     = { 'otto.client_ip' => '203.0.113.0', 'otto.ip_match' => raising }
+
+        expect(mode_without_mount(['203.0.113.0/24'], env)).to be_nil
+        expect(log.map(&:first)).to include(:warn)
+        expect(log.inspect).not_to include('203.0.113.9')
+      end
+
+      it 'treats a non-boolean verdict as no match' do
+        env = { 'otto.client_ip' => '203.0.113.0', 'otto.ip_match' => ->(_cidrs) { 'yes' } }
+        expect(mode_without_mount(['203.0.113.0/24'], env)).to be_nil
+      end
+    end
+  end
+
+  describe '#header_matches_mode?' do
+    let(:mock_req) { double('request', env: {}) }
+
+    before do
+      test_instance.req = mock_req
+    end
+
+    context 'with matching header' do
+      it 'matches when header value equals expected mode' do
+        mock_req.env['HTTP_O_HOMEPAGE_MODE'] = 'internal'
+        result = test_instance.send(:header_matches_mode?, 'O-Homepage-Mode', 'internal')
+        expect(result).to be true
+      end
+
+      it 'handles header with HTTP_ prefix already present' do
+        mock_req.env['HTTP_X_CUSTOM_MODE'] = 'external'
+        result = test_instance.send(:header_matches_mode?, 'HTTP_X_CUSTOM_MODE', 'external')
+        expect(result).to be true
+      end
+
+      it 'converts dashes to underscores in header name' do
+        mock_req.env['HTTP_X_CUSTOM_HOMEPAGE_MODE'] = 'internal'
+        result = test_instance.send(:header_matches_mode?, 'X-Custom-Homepage-Mode', 'internal')
+        expect(result).to be true
+      end
+    end
+
+    context 'with non-matching header' do
+      it 'returns false when header value differs from expected mode' do
+        mock_req.env['HTTP_O_HOMEPAGE_MODE'] = 'external'
+        result = test_instance.send(:header_matches_mode?, 'O-Homepage-Mode', 'internal')
+        expect(result).to be false
+      end
+
+      it 'returns false when header is not present' do
+        result = test_instance.send(:header_matches_mode?, 'O-Homepage-Mode', 'internal')
+        expect(result).to be false
+      end
+
+      it 'returns false when header is empty' do
+        mock_req.env['HTTP_O_HOMEPAGE_MODE'] = ''
+        result = test_instance.send(:header_matches_mode?, 'O-Homepage-Mode', 'internal')
+        expect(result).to be false
+      end
+    end
+
+    context 'with invalid inputs' do
+      it 'returns false when header_name is nil' do
+        result = test_instance.send(:header_matches_mode?, nil, 'internal')
+        expect(result).to be false
+      end
+
+      it 'returns false when header_name is empty' do
+        result = test_instance.send(:header_matches_mode?, '', 'internal')
+        expect(result).to be false
+      end
+    end
+  end
+
+  describe 'integration with determine_homepage_mode' do
+    before do
+      allow(OT).to receive(:info)
+      allow(OT).to receive(:ld)
+    end
+
+    context 'with CIDR matching (priority 1)' do
+      let(:mock_req) do
+        double('request', ip: '10.105.64.100', env: {
+          'REMOTE_ADDR' => '10.105.64.100',
+          'HTTP_X_FORWARDED_FOR' => nil
+        })
+      end
+
+      before do
+        test_instance.req = mock_req
+      end
+
+      it 'returns internal mode when client IP matches configured CIDR' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'internal',
+                  'matching_cidrs' => ['10.105.64.0/20'], # From the bug report - now fixed!
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to eq('internal')
+      end
+
+      it 'returns external mode when client IP matches configured CIDR' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'external',
+                  'matching_cidrs' => ['10.105.64.0/20'],
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to eq('external')
+      end
+
+      it 'returns nil when client IP does not match any CIDR' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'internal',
+                  'matching_cidrs' => ['192.168.1.0/24'], # Different range
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to be_nil
+      end
+
+      it 'matches against multiple configured CIDRs' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'internal',
+                  'matching_cidrs' => [
+                    '192.168.1.0/24',    # Does not match
+                    '10.105.64.0/20',    # Matches!
+                    '172.16.0.0/16'      # Does not match
+                  ],
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to eq('internal')
+      end
+    end
+
+    context 'with header matching (priority 2 - fallback)' do
+      let(:mock_req) do
+        double('request', ip: '203.0.113.0', env: {
+          'REMOTE_ADDR' => '203.0.113.0',  # Public IP not in CIDR
+          'HTTP_O_HOMEPAGE_MODE' => 'internal'
+        })
+      end
+
+      before do
+        test_instance.req = mock_req
+      end
+
+      it 'falls back to header when CIDR does not match' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'internal',
+                  'matching_cidrs' => ['10.0.0.0/8'],        # Does not match
+                  'mode_header' => 'O-Homepage-Mode'
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to eq('internal')
+      end
+
+      it 'returns nil when header does not match expected mode' do
+        mock_req.env['HTTP_O_HOMEPAGE_MODE'] = 'external'  # Header says external
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'internal',  # Config expects internal
+                  'matching_cidrs' => ['10.0.0.0/8'],
+                  'mode_header' => 'O-Homepage-Mode'
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to be_nil
+      end
+    end
+
+    context 'with CIDR priority over header' do
+      let(:mock_req) do
+        double('request', ip: '10.105.64.100', env: {
+          'REMOTE_ADDR' => '10.105.64.100',
+          'HTTP_O_HOMEPAGE_MODE' => 'external'  # Header says external
+        })
+      end
+
+      before do
+        test_instance.req = mock_req
+      end
+
+      it 'CIDR match takes priority over header' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'internal',
+                  'matching_cidrs' => ['10.105.64.0/20'],  # IP matches this
+                  'mode_header' => 'O-Homepage-Mode'
+                }
+              }
+            }
+          }
+        })
+
+        # Even though header says 'external', CIDR match should win
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to eq('internal')
+      end
+    end
+
+    context 'with invalid configuration' do
+      let(:mock_req) do
+        double('request', ip: '10.105.64.100', env: {
+          'REMOTE_ADDR' => '10.105.64.100'
+        })
+      end
+
+      before do
+        test_instance.req = mock_req
+      end
+
+      it 'returns nil when mode is not internal or external' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'invalid-mode',
+                  'matching_cidrs' => ['10.105.64.0/20']
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to be_nil
+      end
+
+      it 'returns nil when homepage config is missing' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {}
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to be_nil
+      end
+
+      it 'returns nil when ui config is missing' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {}
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to be_nil
+      end
+
+      it 'returns nil when mode is nil' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => nil,
+                  'matching_cidrs' => ['10.105.64.0/20']
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to be_nil
+      end
+    end
+
+    context 'with no matches' do
+      let(:mock_req) do
+        double('request', ip: '203.0.113.0', env: {
+          'REMOTE_ADDR' => '203.0.113.0'  # Public IP not in CIDR
+        })
+      end
+
+      before do
+        test_instance.req = mock_req
+      end
+
+      it 'returns nil when neither CIDR nor header match' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'internal',
+                  'matching_cidrs' => ['10.0.0.0/8'],
+                  'mode_header' => 'O-Homepage-Mode'
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to be_nil
+      end
+    end
+
+    context 'with narrow CIDRs and no otto.ip_match in env' do
+      let(:mock_req) do
+        double('request', ip: '192.168.1.1', env: {
+          'REMOTE_ADDR' => '192.168.1.1'
+        })
+      end
+
+      before do
+        test_instance.req = mock_req
+      end
+
+      it 'does not judge a /32 CIDR on the fallback and returns nil' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'internal',
+                  'matching_cidrs' => ['192.168.1.1/32']  # Finer than the mask
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to be_nil  # Fallback skips it, no match
+      end
+
+      it 'does not judge a /28 CIDR on the fallback and returns nil' do
+        allow(OT).to receive(:conf).and_return({
+          'site' => {
+            'interface' => {
+              'ui' => {
+                'homepage' => {
+                  'mode' => 'internal',
+                  'matching_cidrs' => ['192.168.1.0/28']  # Finer than the mask
+                }
+              }
+            }
+          }
+        })
+
+        mode = test_instance.determine_homepage_mode
+        expect(mode).to be_nil
+      end
+    end
+  end
+end

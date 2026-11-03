@@ -1,0 +1,265 @@
+# apps/api/v2/logic/secrets/burn_secret.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/security/passphrase_rate_limiter'
+
+module V2::Logic
+  module Secrets
+    using Familia::Refinements::TimeLiterals
+
+    # Burn Secret
+    #
+    # @api Permanently destroys a secret before its expiration time. Requires
+    #   the receipt identifier and a passphrase if one was set. Returns the
+    #   updated receipt record with burn confirmation and related URLs.
+    #
+    # SECURITY NOTE: Ownership Not Required
+    # =====================================
+    # This endpoint intentionally does NOT check ownership. Any user (or anonymous
+    # visitor) with the receipt identifier can burn a secret. This is by-design for
+    # the one-time secret sharing model:
+    #
+    # - The receipt URL is the credential for accessing/burning the secret
+    # - Secrets are meant to be burned by the recipient, not the creator
+    # - Passphrase protection provides an additional layer if needed
+    # - The secret creator shares the receipt URL and trusts the recipient
+    #
+    # If ownership-restricted burning is desired, use the owner-facing burn
+    # endpoint on the receipt page (which requires session authentication).
+    class BurnSecret < V2::Logic::Base
+      include Onetime::LoggerMethods
+      include Onetime::Logic::GuestRouteGating
+      include Onetime::Security::PassphraseRateLimiter
+      include ActorAttribution
+
+      SCHEMAS = { response: 'receipt' }.freeze
+
+      attr_reader :identifier, :passphrase, :continue, :receipt, :secret, :correct_passphrase, :greenlighted
+
+      def process_params
+        @identifier = sanitize_identifier(params['identifier'])
+        @receipt    = Onetime::Receipt.load identifier
+        @passphrase = params['passphrase'].to_s
+        @continue   = [true, 'true'].include?(params['continue'])
+      end
+
+      def raise_concerns
+        require_guest_route_enabled!(:burn)
+        require_entitlement!('api_access')
+        raise OT::MissingSecret if receipt.nil?
+
+        # Check passphrase rate limit before allowing passphrase attempts.
+        # Burn is the same brute-force oracle as show/reveal: each wrong
+        # guess confirms the passphrase is wrong, and a correct guess
+        # destroys the secret. The gate belongs here, alongside ShowSecret's
+        # and RevealSecret's, so it cannot be stranded behind a guard clause
+        # that a later edit to #process moves ahead of it.
+        check_passphrase_rate_limit!(potential_secret.identifier, passphrase_client_ip) if potential_secret&.has_passphrase?
+      end
+
+      def process
+        return unless potential_secret
+
+        # Verify the passphrase ONLY on a committed burn (continue=true): a
+        # request that is not going through with the burn must never learn
+        # whether a guess was right, and never accrues or clears rate-limit
+        # state -- nothing was checked.
+        #
+        # `continue` is the parsed boolean (true / 'true' only), never the raw
+        # param: the raw value treats any non-empty string as truthy, so a
+        # deliberate `continue=false` would burn the secret anyway. Folding it
+        # into correct_passphrase also keeps the wrong-passphrase branch below
+        # from firing on a request that never committed to the burn.
+        @correct_passphrase = continue && (!potential_secret.has_passphrase? || potential_secret.passphrase?(passphrase))
+        viewable            = potential_secret.viewable?
+        @greenlighted       = viewable && correct_passphrase
+
+        secret_logger.debug 'Secret burn initiated',
+          {
+            receipt_identifier: receipt.shortid,
+            secret_identifier: potential_secret.shortid,
+            viewable: viewable,
+            has_passphrase: potential_secret.has_passphrase?,
+            # nil when continue=false: the guess was never checked.
+            passphrase_correct: (correct_passphrase if continue),
+            continue: continue,
+            # extid, never custid: custid holds the email address on legacy
+            # (pre-v0.22) records, which would put PII in the payload.
+            user_id: cust&.extid,
+          }
+
+        if greenlighted
+          @secret = potential_secret
+
+          # Clear any rate limit state on successful passphrase entry
+          clear_passphrase_rate_limit!(secret.identifier, passphrase_client_ip) if secret.has_passphrase?
+
+          # Attribute the burn BEFORE burned! consumes the secret: owner?(cust)
+          # reads the still-in-memory owner_id, so the 'burned' audit event
+          # records who acted (#3639). Anonymous guard in lifecycle_actor_context.
+          actor_context = lifecycle_actor_context(secret)
+
+          # Gate all bookkeeping on winning the atomic burn claim: burned!
+          # returns true only for the single caller that flips the state. When
+          # a concurrent reveal or burn already consumed the secret, this
+          # request lost the race -- it must not count the burn, log success,
+          # or report success to the client.
+          @greenlighted = secret.burned!(actor_context: actor_context)
+
+          # burned! cascades through its own freshly loaded receipt, so the
+          # instance from process_params still holds the pre-burn state
+          # (state: new, is_burned: false). Reload it so success_data reports
+          # what was persisted (#4835): burned for the winner, and whatever
+          # the concurrent winner left (e.g. revealed) for a loser.
+          persisted_receipt = Onetime::Receipt.load(receipt.identifier)
+
+          if greenlighted
+            owner = secret.load_owner
+            owner&.increment_field :secrets_burned unless owner&.anonymous?
+            Onetime::Customer.secrets_burned.increment
+
+            secret_logger.info 'Secret burned successfully',
+              {
+                secret_identifier: secret.shortid,
+                receipt_identifier: receipt.shortid,
+                owner_id: owner&.extid,
+                user_id: cust&.extid,
+                action: 'burn',
+                result: :success,
+              }
+          else
+            secret_logger.warn 'Burn failed - secret already consumed',
+              {
+                secret_identifier: secret.shortid,
+                receipt_identifier: receipt.shortid,
+                user_id: cust&.extid,
+                action: 'burn',
+                result: :already_consumed,
+              }
+          end
+
+          # The receipt expired or was deleted while the burn ran. The
+          # in-memory instance still shows the pre-burn state and a link to
+          # the destroyed secret, and saving it would recreate the record.
+          # Answer as a follow-up fetch would: not found. A winner's
+          # bookkeeping above has already run, because the secret is destroyed
+          # regardless of what is left to report.
+          raise OT::MissingSecret if persisted_receipt.nil?
+
+          @receipt = persisted_receipt
+
+        elsif continue && !correct_passphrase
+          # Record failed attempt for rate limiting. Only a committed burn
+          # reaches this branch: without the continue guard a probe with a
+          # wrong guess raised while a right one did not, which leaked the
+          # verdict through the HTTP status alone.
+          attempt_count = record_failed_passphrase_attempt!(potential_secret.identifier, passphrase_client_ip)
+
+          secret_logger.warn 'Burn failed - incorrect passphrase',
+            {
+              receipt_identifier: receipt.shortid,
+              secret_identifier: potential_secret.shortid,
+              user_id: cust&.extid,
+              action: 'burn',
+              result: :passphrase_failed,
+              attempt_count: attempt_count,
+            }
+
+          message = I18n.t('web.COMMON.error_passphrase', locale: locale, default: 'Incorrect passphrase')
+          raise_form_error message
+
+        end
+
+        success_data
+      end
+
+      def success_data
+        # Get base receipt attributes
+        attributes = receipt.safe_dump
+
+        # Same share-link gate as ShowReceipt: no link (or bearer key) for a
+        # provenance that withholds it, e.g. an incoming secret answered with
+        # continue=false, or for a burned secret with nothing left to link to.
+        link_visible = receipt.share_link_available?
+
+        # secret_identifier as its own field follows ShowReceipt's stricter
+        # rule: only while the receipt still offers the secret (no passphrase,
+        # not previewed). share_url keeps the id either way, as ShowReceipt's
+        # does. After a burn, link_visible is already false.
+        attributes.delete(:secret_identifier) unless link_visible && receipt.offers_secret?(potential_secret)
+
+        # Resolve the domain for URL generation: use the custom domain
+        # the secret was created on when available, otherwise canonical.
+        domain     = if domains_enabled && !receipt.share_domain.to_s.empty?
+                   receipt.share_domain
+                 else
+                   site_host
+                 end
+        domain_uri = [base_scheme, domain].join
+
+        # Add required URL fields
+        attributes.merge!(
+          {
+            # secret_state: 'burned',
+            natural_expiration: natural_duration(receipt.default_expiration.to_i),
+            expiration: (receipt.default_expiration.to_i + receipt.created.to_i),
+            expiration_in_seconds: receipt.default_expiration.to_i,
+            share_path: (build_path(:secret, receipt.secret_identifier) if link_visible),
+            burn_path: build_path(:receipt, receipt.identifier, 'burn'),
+            receipt_path: build_path(:receipt, receipt.identifier),
+            metadata_path: build_path(:receipt, receipt.identifier), # V2 backward-compat alias
+            share_url: (build_url(domain_uri, build_path(:secret, receipt.secret_identifier)) if link_visible),
+            receipt_url: build_url(domain_uri, build_path(:receipt, receipt.identifier)),
+            metadata_url: build_url(domain_uri, build_path(:receipt, receipt.identifier)), # V2 backward-compat alias
+            burn_url: build_url(domain_uri, build_path(:receipt, receipt.identifier, 'burn')),
+          },
+        )
+
+        {
+          success: greenlighted,
+          record: attributes,
+          details: {
+            type: 'record',
+            title: 'Secret burned',
+            display_lines: 0,
+            display_feedback: false,
+            no_cache: true,
+            view_count: 0,
+            has_passphrase: false,
+            can_decrypt: false,
+            show_secret: false,
+            show_secret_link: false,
+            show_receipt_link: false, # maintain public API
+            show_receipt: true, # maintain public API
+            show_recipients: !receipt.recipients.to_s.empty?,
+            is_orphaned: false,
+          },
+        }
+      end
+
+      private
+
+      # The secret behind the receipt, loaded once and memoized: raise_concerns
+      # needs it for the rate-limit gate and #process needs it again. nil when
+      # the secret is already gone (revealed, burned, or expired).
+      def potential_secret
+        return @potential_secret if defined?(@potential_secret)
+
+        @potential_secret = receipt&.load_secret
+      end
+
+      # Client IP for the per-secret+IP passphrase rate-limit tier (M-8). Sourced
+      # from strategy_result metadata (set for both anonymous and authenticated
+      # callers). nil when unavailable, in which case the limiter falls back to
+      # the global per-secret backstop rather than collapsing every caller into
+      # one shared IP bucket. Do NOT use session['ip_address'] here -- it is
+      # absent for the anonymous recipients who are the primary threat model.
+      def passphrase_client_ip
+        return unless respond_to?(:strategy_result)
+
+        strategy_result&.metadata&.[](:ip)
+      end
+    end
+  end
+end

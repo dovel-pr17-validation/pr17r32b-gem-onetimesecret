@@ -1,0 +1,465 @@
+# lib/onetime/models/receipt.rb
+#
+# frozen_string_literal: true
+
+module Onetime
+  class Receipt < Familia::Horreum
+    include Familia::Features::Autoloader
+    include Onetime::LoggerMethods
+
+    SCHEMA = 'models/receipt'
+
+    using Familia::Refinements::TimeLiterals
+
+    feature :object_identifier,
+      generator: proc { Familia::VerifiableIdentifier.generate_verifiable_id }
+    feature :safe_dump_fields
+    feature :expiration
+    feature :access_timeline
+    feature :relationships
+    feature :required_fields
+    feature :housekeeping
+    feature :state_cas
+    feature :deprecated_fields
+
+    # Migration features - REMOVE after v1→v2 migration complete
+    feature :with_migration_fields
+    feature :receipt_migration_fields
+
+    default_expiration 14.days # by default 2x Secret.default_expiration
+    prefix :receipt
+
+    identifier_field :objid
+
+    field :owner_id
+    field :state
+    field :secret_identifier
+    field :secret_shortid
+    field :secret_ttl
+    field :lifespan
+    field :share_domain
+    field :has_passphrase
+    field :kind
+
+    # Submission provenance — how the underlying secret entered the system.
+    # Stamped once at creation (init defaults 'standard'; Incoming forms set
+    # 'incoming' in create_incoming_secret) and never inferred at read time.
+    # One of SOURCES; drives the share-link withholding gate via
+    # #shows_share_link?.
+    field :source
+
+    # Organization and domain tracking for scoped receipt queries
+    field :org_id      # Organization objid (current context when created)
+    field :domain_id   # CustomDomain objid (when using registered custom domain)
+
+    # Observability only (#3633): epoch seconds of the FIRST receipt/metadata
+    # page load, set once by record_receipt_view!. It bounds the org audit
+    # trail's 'receipt_viewed' events to one per receipt and is NOT a lifecycle
+    # state — it gates nothing (viewable?/reveal/burn are untouched) and does
+    # not feed is_previewed (which derives from the access timeline).
+    field :receipt_viewed_at
+
+    # Consumption gate (#3633): epoch seconds when the secret's plaintext value
+    # was displayed to its creator on the receipt page, claimed exactly once by
+    # claim_secret_value_display! (atomic HSETNX). It enforces the "one time"
+    # guarantee for the creator-side preview — generated passwords are shown
+    # nowhere else, and a repeated or concurrent receipt load must never
+    # re-reveal the value. Like receipt_viewed_at this is NOT a lifecycle state:
+    # it gates only the one-shot value display, never viewable?/reveal/burn.
+    field :secret_value_shown_at
+
+    # Familia v2 relationships - enables org.receipts and custom_domain.receipts queries
+    # These auto-generate sorted_set collections on the target models
+    # NOTE: Uses full class names (Onetime::X) to ensure Familia can resolve the target class
+    participates_in Onetime::Organization, :receipts, score: :created
+    participates_in Onetime::CustomDomain, :receipts, score: :created
+
+    # NOTE: There is no `expired` timestamp field since we can calculate
+    # that based on the `secret_ttl` and the `created` timestamp. See
+    # the secret_expired? and expiration methods.
+    field :recipients
+    field :recipient_name  # Display name for incoming-secret recipients (preferred over obscured email)
+    field :memo  # Optional memo/subject for incoming secrets
+
+    # Closed value space for the :source discriminator. Kept as strings to
+    # match the :kind / :state convention; extend here (e.g. 'api', 'import')
+    # without a schema change.
+    SOURCES = %w[standard incoming].freeze
+
+    # Source-dependent behaviour, keyed by :source. The single source of truth
+    # for what each provenance permits; read via .shows_share_link_for?. Mirrors
+    # CustomDomain::SignupConfig::STRATEGY_METADATA. Unmapped (non-empty)
+    # values fall through to WITHHELD_CAPABILITIES — fail closed.
+    SOURCE_CAPABILITIES = {
+      'standard' => { shows_share_link: true }.freeze,
+      'incoming' => { shows_share_link: false }.freeze,
+    }.freeze
+
+    # Fallback for any :source value not in SOURCE_CAPABILITIES (a typo or an
+    # unshipped future source): withhold the link. A nil/empty source (legacy
+    # pre-field receipt) is handled separately in .shows_share_link_for?.
+    WITHHELD_CAPABILITIES = { shows_share_link: false }.freeze
+
+    # States in which the secret no longer exists (the receipt's is_destroyed).
+    # Every transition into one clears secret_identifier; 'received' is the
+    # legacy name for 'revealed'. Shared by safe_dump and the V1 serializer so
+    # the API versions agree on when a receipt may still carry a secret key.
+    TERMINAL_STATES = %w[revealed received burned expired orphaned].freeze
+
+    # States in which the receipt no longer offers its secret (#offers_secret?):
+    # every terminal state, plus 'previewed' and its legacy name 'viewed'.
+    SECRET_WITHDRAWN_STATES = (TERMINAL_STATES + %w[previewed viewed]).freeze
+
+    # Provenance gate on the share link, by :source value. See
+    # #shows_share_link?; class-level so a serializer working from a raw field
+    # hash (V1 receipt_hsh) applies the same rule.
+    #
+    # @param source [String, nil]
+    # @return [Boolean]
+    def self.shows_share_link_for?(source)
+      return true if source.to_s.empty?
+
+      SOURCE_CAPABILITIES.fetch(source.to_s, WITHHELD_CAPABILITIES)[:shows_share_link]
+    end
+
+    # Class-level collections for expiration warning feature
+    # Sorted set: score = expiration timestamp, member = receipt identifier
+    class_sorted_set :expiration_timeline
+    # Set for tracking which secrets have already received warnings
+    class_set :warnings_sent
+
+    def init
+      self.state  ||= 'new'
+      self.source ||= 'standard'
+    end
+
+    # Whether this receipt's payload may carry the share link and its
+    # secret_identifier bearer key. Incoming secrets withhold both from their
+    # creator (a guest on a custom domain), so opening the receipt can't spend
+    # the secret's one view.
+    #
+    # Legacy receipts created before the :source field read as nil; they are
+    # overwhelmingly 'standard', so an empty source is treated as standard
+    # (link shown). Any non-empty but unrecognized value fails closed.
+    #
+    # @return [Boolean]
+    def shows_share_link?
+      self.class.shows_share_link_for?(source)
+    end
+
+    # Whether a receipt payload should carry a share link at all: the
+    # provenance permits it (#shows_share_link?) and there is still a secret
+    # to link to. Every terminal transition (revealed!, burned!, expired!,
+    # orphaned!) clears secret_identifier, so a consumed receipt would
+    # otherwise emit a dangling "secret/" path. Shared by ShowReceipt and
+    # BurnSecret so a burn response and a later fetch agree (#4835).
+    #
+    # @return [Boolean]
+    def share_link_available?
+      shows_share_link? && !secret_identifier.to_s.empty?
+    end
+
+    # Whether the receipt still offers its secret (ShowReceipt's show_secret):
+    # the secret exists, has no passphrase, and the receipt has not been
+    # previewed or consumed. A response includes secret_identifier as its own
+    # field only when this and #share_link_available? are both true. Shared
+    # by ShowReceipt and BurnSecret so a burn that does not commit
+    # (continue=false) and a later fetch agree on it (#4835).
+    #
+    # @param secret [Onetime::Secret, nil] this receipt's loaded secret
+    # @return [Boolean]
+    def offers_secret?(secret)
+      return false if secret.nil? || secret.has_passphrase?
+
+      !SECRET_WITHDRAWN_STATES.include?(state.to_s)
+    end
+
+    # Clean up class-level collections before destroying the object.
+    # Familia's base destroy! handles the main key and related fields,
+    # but class-level sorted sets and sets need explicit cleanup.
+    def destroy!
+      # Remove from organization participations before Familia cleanup
+      organization_instances.each do |o|
+        remove_from_organization_receipts(o)
+      end
+
+      # Remove from custom domain participations before Familia cleanup
+      custom_domain_instances.each do |domain|
+        remove_from_custom_domain_receipts(domain)
+      end
+
+      # Call Familia's built-in destroy first. If it fails, we won't proceed
+      # with cleaning up the class-level collections, leaving the system in
+      # a more consistent state. Handles: main object key deletion, related
+      # fields cleanup, instances collection removal, objid/extid lookup cleanup.
+      super
+
+      # If super succeeds, clean up our custom class-level collections
+      # Remove from expiration timeline tracking (sorted set)
+      self.class.expiration_timeline.remove_element(identifier)
+
+      # Remove from warnings_sent tracking (set)
+      self.class.warnings_sent.remove_element(identifier)
+    end
+
+    def age
+      @age ||= Familia.now.to_i - updated
+      @age
+    end
+
+    def receipt_ttl
+      # Stay alive for twice as long as the secret so that we can
+      # provide the receipt page even after the secret is gone.
+      (secret_ttl.to_i * 2) if secret_ttl.to_i > 0
+    end
+    alias expiration_in_seconds receipt_ttl
+
+    def expiration
+      # Unix timestamp of when the receipt will expire. Based on
+      # the secret_ttl and the created time of the receipt.
+      receipt_ttl.to_i + created.to_i if receipt_ttl
+    end
+
+    def natural_duration
+      # Colloquial representation of the TTL. e.g. "1 day"
+      OT::Utils::TimeUtils.natural_duration receipt_ttl
+    end
+
+    def secret_expiration
+      # Unix timestamp of when the secret will expire. Based on
+      # the secret_ttl and the created time of the receipt
+      # (which should be identical. See Secret.spawn_pair).
+      secret_ttl.to_i + created.to_i if secret_ttl
+    end
+
+    def secret_natural_duration
+      # Colloquial representation of the TTL. e.g. "1 day"
+      OT::Utils::TimeUtils.natural_duration secret_ttl.to_i if secret_ttl
+    end
+
+    def secret_expired?
+      Familia.now.to_i >= (secret_expiration || 0)
+    end
+
+    def older_than?(seconds)
+      age > seconds
+    end
+
+    def shortid
+      identifier.slice(0, 8)
+    end
+
+    def anonymous?
+      owner_id.to_s == 'anon'
+    end
+
+    def owner?(fobj)
+      !!(fobj && !anonymous? && (fobj.objid == owner_id))
+    end
+
+    def valid?
+      exists?
+    end
+
+    def has_passphrase?
+      !has_passphrase.nil? && has_passphrase
+    end
+
+    def load_owner
+      Onetime::Customer.load owner_id
+    end
+
+    def load_secret
+      Onetime::Secret.load secret_identifier
+    end
+
+    # Register this receipt for expiration notifications
+    # Called during secret creation to track secrets that should receive warnings
+    # @return [Boolean] true if registered, false if skipped
+    def register_for_expiration_notifications
+      return false unless secret_expiration
+      return false if secret_ttl.to_i < self.class.min_warning_ttl
+
+      self.class.expiration_timeline.add(identifier, secret_expiration.to_f)
+      true
+    end
+
+    class << self
+      def generate_id
+        Familia.generate_id
+      end
+
+      def count
+        instances.count # e.g. zcard dbkey
+      end
+
+      # Creates a linked Secret and Receipt pair for secure content storage.
+      #
+      # SECURITY CONTRACT: Callers must validate domain and passphrase before
+      # calling this method:
+      #
+      # - domain: NOT a cryptographic input. The AAD for ciphertext is bound
+      #   automatically by Familia's encrypted_field and is exactly
+      #   "Onetime::Secret:ciphertext:<objid>" (class, field, identifier);
+      #   Secret declares no aad_fields, so the share domain is not part of
+      #   the AAD, and ciphertext_domain is a transient field that no code
+      #   reads back. Domain validation (process_share_domain,
+      #   validate_domain_access, validate_domain_permissions) is an
+      #   authorization control, not an encryption binding.
+      #
+      # - passphrase: An access-control gate, not an encryption input. It is
+      #   hashed with argon2id (passphrase_hashing feature) and verified
+      #   before decryption is attempted; it does not participate in key
+      #   derivation. API callers validate via: validate_passphrase (min/max
+      #   length) and validate_passphrase_complexity (when enforce_complexity
+      #   enabled).
+      #
+      # See: apps/api/v2/logic/secrets/base_secret_action.rb for validation.
+      #
+      # - display_type: A presentation hint for the recipient's client, one of
+      #   Secret.display_types (the display_type feature). Callers validate
+      #   (validate_display_type in the API logic); nil leaves the field
+      #   unset, which reads as 'text'. It is not an encryption input and does
+      #   not change what is stored.
+      #
+      def spawn_pair(owner_id, lifespan, content, passphrase: nil, domain: nil, kind: nil, display_type: nil)
+        # Coerce at the single creation choke point so lifespan is always stored
+        # as an Integer (#3299). Familia v2 storage is type-preserving, so a
+        # String here ("604800" from unconverted ERB/params) would hydrate back
+        # as a String and trip the strict z.number() V3 contract — and worse,
+        # `lifespan * 2` below would string-multiply ("604800604800") instead of
+        # doubling. to_i is lossless for healthy integer-second values.
+        lifespan = lifespan.to_i
+
+        secret  = Onetime::Secret.new(owner_id: owner_id)
+        receipt = Onetime::Receipt.new(owner_id: owner_id)
+
+        # Link the pair (objids exist at new-time, no save needed)
+        receipt.secret_identifier  = secret.objid
+        receipt.default_expiration = lifespan * 2
+
+        secret.default_expiration = lifespan
+        secret.lifespan           = lifespan
+        secret.receipt_identifier = receipt.objid
+        secret.ciphertext_domain  = domain
+        secret.share_domain       = domain
+        secret.ciphertext         = content
+        secret.display_type       = display_type.to_s unless display_type.to_s.empty?
+
+        unless passphrase.to_s.empty?
+          secret.update_passphrase passphrase
+          receipt.has_passphrase = true
+        end
+
+        secret.save
+
+        # Single save with all fields populated — no partial-state window
+        receipt.secret_shortid = secret.shortid
+        receipt.secret_ttl     = lifespan
+        receipt.lifespan       = lifespan
+        receipt.share_domain   = domain
+        receipt.kind           = kind
+        receipt.save
+
+        receipt.register_for_expiration_notifications
+
+        # Maintain the owner's live-secret counter at THE single secret-creation
+        # chokepoint (#60). Every path that mints a secret — the API secret
+        # actions, incoming secrets, password-reset and billing-welcome secrets —
+        # funnels through spawn_pair, so counting here (rather than in each Logic
+        # class) guarantees exactly one increment per created secret and no path
+        # is missed. Anonymous/ownerless creates are skipped inside the helper.
+        # The mirror decrement fires at the single early-destruction chokepoint
+        # (Secret#destroy! — reveal, burn, and admin delete all funnel through
+        # it). The remaining drift source is TTL expiry, where Redis drops the
+        # key silently and no application code runs; that is corrected by the
+        # nightly SecretCountReconcileJob — see counter_fields.rb.
+        #
+        # The same call maintains the owner's per-secret index
+        # (customer:<objid>:secrets, member = secret objid, score = created), so
+        # the colonel customer-detail view can list a customer's secrets without
+        # walking the whole `secret:*:object` keyspace. Index and counter are
+        # written together here so they can only drift together.
+        Onetime::Customer.increment_secrets_active(
+          owner_id, secret_id: secret.objid, score: secret.created
+        )
+
+        # Count the creation in today's daily-trend bucket (admin dashboard).
+        # Same chokepoint rationale as the counter above; fire-and-forget —
+        # DailyMetric.increment swallows its own errors and can never fail
+        # the secret creation.
+        Onetime::DailyMetric.increment(:secrets_created)
+
+        [receipt, secret]
+      end
+
+      # Minimum TTL (in seconds) for secrets to be eligible for expiration warnings
+      # Secrets with shorter TTL won't receive warnings to avoid spam
+      # @return [Integer] TTL in seconds
+      def min_warning_ttl
+        hours = OT.conf.dig('jobs', 'expiration_warnings', 'min_ttl_hours').to_i
+        hours = 48 if hours <= 0
+        hours * 3600
+      end
+
+      # Find receipt IDs for secrets expiring within the given time window
+      # @param seconds [Integer] Time window in seconds from now
+      # @return [Array<String>] Receipt identifiers
+      def expiring_within(seconds)
+        now = Familia.now.to_f
+        expiration_timeline.rangebyscore(now, now + seconds)
+      end
+
+      # Check if a warning has already been sent for this receipt
+      # @param receipt_id [String] Receipt identifier
+      # @return [Boolean]
+      def warning_sent?(receipt_id)
+        warnings_sent.member?(receipt_id)
+      end
+
+      # Mark that a warning has been sent for this receipt
+      # @param receipt_id [String] Receipt identifier
+      # @return [Boolean]
+      def mark_warning_sent(receipt_id)
+        warnings_sent.add(receipt_id)
+      end
+
+      # Remove expired entries from the timeline (self-cleaning)
+      # @param before_timestamp [Float] Remove entries with score before this timestamp
+      # @return [Integer] Number of entries removed
+      def cleanup_expired_from_timeline(before_timestamp)
+        expiration_timeline.remrangebyscore(0, before_timestamp)
+      end
+
+      # Clean up orphaned entries from warnings_sent that no longer exist in expiration_timeline
+      # Should be called periodically (e.g., daily) to prevent unbounded growth
+      # @param batch_size [Integer] Number of entries to check per batch (default 1000)
+      # @return [Integer] Number of orphaned entries removed
+      def cleanup_orphaned_warnings(batch_size: 1000)
+        removed_count = 0
+        cursor        = '0'
+
+        loop do
+          # SSCAN through warnings_sent in batches - returns raw string values
+          cursor, members = warnings_sent.dbclient.sscan(warnings_sent.dbkey, cursor, count: batch_size)
+
+          members.each do |receipt_id|
+            # Check if this receipt_id still exists in expiration_timeline
+            # Use ZSCORE directly since we have raw string from SSCAN
+            # (expiration_timeline.score would serialize the value again)
+            score          = expiration_timeline.dbclient.zscore(expiration_timeline.dbkey, receipt_id)
+            next if score
+
+            # Use SREM directly since we have raw string from SSCAN
+            warnings_sent.dbclient.srem(warnings_sent.dbkey, receipt_id)
+            removed_count += 1
+          end
+
+          break if cursor == '0'
+        end
+
+        removed_count
+      end
+    end
+  end
+end

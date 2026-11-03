@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "Отправить секрет",
+    "source_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "Безопасная передача конфиденциальной информации нашей службе поддержки",
+    "source_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "Загрузка...",
+    "source_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "Не удалось загрузить конфигурацию",
+    "source_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "Функция недоступна",
+    "source_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "Эта функция в настоящее время отключена. Пожалуйста, свяжитесь со службой поддержки.",
+    "source_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "Примечание",
+    "source_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "Краткое описание (напр., Запрос на сброс пароля)",
+    "source_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "Помогите нам направить Ваше сообщение нужному человеку",
+    "source_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "Отправить",
+    "source_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "Выберите получателя",
+    "source_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "Выберите получателя для этого секрета",
+    "source_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "Выберите, кто получит это защищённое сообщение",
+    "source_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "Нет доступных получателей",
+    "source_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "Секретная информация",
+    "source_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "Вставьте конфиденциальную информацию сюда (пароли, ключи и т.д.)",
+    "source_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "Эта информация будет зашифрована и доступна для просмотра только один раз",
+    "source_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "Отправить секрет",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "Отправить секрет",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "Отправка...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "Отправка...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "Очистить форму",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "Очистить форму",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "Успешно отправлено",
+    "source_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "Ваше защищённое сообщение доставлено.",
+    "source_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "Идентификатор ссылки",
+    "source_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "Что будет дальше?",
+    "source_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "Получатель сможет просмотреть этот секрет только один раз. После просмотра секрет будет безвозвратно удалён.",
+    "source_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "Отправить ещё секрет",
+    "source_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "Безопасная передача конфиденциальной информации",
+    "source_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "Держите пароли и личные данные вне электронной почты и логов чатов",
+    "source_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "Сохраните {receipt} для своих записей.",
+    "source_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "квитанция",
+    "source_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "Требуется переход на более высокий план",
+    "source_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "Для этой функции требуется переход на более высокий план. Пожалуйста, свяжитесь с владельцем аккаунта, чтобы включить входящие секреты.",
+    "source_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "Заметка должна содержать не более {max} символов",
+    "source_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "Необходимо указать содержимое секрета",
+    "source_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "Пожалуйста, выберите получателя",
+    "source_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "Функция входящих секретов не включена",
+    "source_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "Пожалуйста, проверьте форму на наличие ошибок",
+    "source_hash": "9056e064"
+  }
+}

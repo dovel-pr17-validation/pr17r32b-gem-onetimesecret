@@ -1,0 +1,726 @@
+{
+  "web.account.settings": {
+    "text": "Nastavitve",
+    "source_hash": "74a883a0"
+  },
+  "web.account.change_password": {
+    "text": "Spremeni geslo",
+    "source_hash": "a949f462"
+  },
+  "web.account.close_account": {
+    "text": "Zapri račun",
+    "source_hash": "e1513814"
+  },
+  "web.account.verify_account": {
+    "text": "Potrdi račun",
+    "source_hash": "2f3ea760"
+  },
+  "web.account.subscription_title": {
+    "text": "Naročnina",
+    "source_hash": "4999c6c6"
+  },
+  "web.account.manage_subscription": {
+    "text": "Upravljaj naročnino",
+    "source_hash": "cbc4ef92"
+  },
+  "web.account.customer_information": {
+    "text": "Podatki o stranki",
+    "source_hash": "8258db6d"
+  },
+  "web.account.customer_since": {
+    "text": "Stranka od:",
+    "source_hash": "0b37cff3"
+  },
+  "web.account.email": {
+    "text": "E-pošta:",
+    "source_hash": "17507dcf"
+  },
+  "web.account.region": {
+    "text": "Regija",
+    "source_hash": "d3a008ef"
+  },
+  "web.account.account_balance": {
+    "text": "Stanje:",
+    "source_hash": "e0351221"
+  },
+  "web.account.default_payment_method": {
+    "text": "Privzeti način plačila",
+    "source_hash": "c60f014b"
+  },
+  "web.account.card_ending": {
+    "text": "ki se končuje z",
+    "source_hash": "0195bccf"
+  },
+  "web.account.subscriptions_title": {
+    "text": "Naročnine",
+    "source_hash": "a151f2e9"
+  },
+  "web.account.quantity": {
+    "text": "Količina:",
+    "source_hash": "d4b2cb96"
+  },
+  "web.account.next_billing_date": {
+    "text": "Naslednji datum obračuna:",
+    "source_hash": "8e6f9cfe"
+  },
+  "web.account.changePassword.username": {
+    "text": "Uporabniško ime",
+    "source_hash": "e3b89e9d"
+  },
+  "web.account.changePassword.currentPassword": {
+    "text": "Trenutno geslo",
+    "source_hash": "8ac76099"
+  },
+  "web.account.changePassword.newPassword": {
+    "text": "Novo geslo",
+    "source_hash": "7c451e0f"
+  },
+  "web.account.changePassword.confirmPassword": {
+    "text": "Potrdi",
+    "source_hash": "eebdd24a"
+  },
+  "web.account.changePassword.updatePassword": {
+    "text": "Posodobi geslo",
+    "source_hash": "557be0da"
+  },
+  "web.account.changePassword.updating": {
+    "text": "Posodabljanje ...",
+    "source_hash": "0a4e0b71"
+  },
+  "web.account.timezone": {
+    "text": "Časovni pas",
+    "source_hash": "4ceca1d5"
+  },
+  "web.account.customer_id": {
+    "text": "ID stranke",
+    "source_hash": "62566c64"
+  },
+  "web.account.account_id_customerid": {
+    "text": "ID računa",
+    "source_hash": "919bb4cb"
+  },
+  "web.account.created_windowprops_cust_secrets_created_secrets": {
+    "text": "Ustvarili ste {0} skrivnosti od {1}.",
+    "source_hash": "8cb99810"
+  },
+  "web.account.delete_account": {
+    "text": "Izbriši račun",
+    "source_hash": "c031bf99"
+  },
+  "web.account.api_key": {
+    "text": "API ključ",
+    "source_hash": "23189d55"
+  },
+  "web.account.account_type_windowprops_plan_options_name": {
+    "text": "Vrsta računa: {0}",
+    "source_hash": "617bfe67"
+  },
+  "web.account.your_account": {
+    "text": "Vaš račun",
+    "source_hash": "89e60bfb"
+  },
+  "web.account.support_details": {
+    "text": "Podrobnosti podpore",
+    "source_hash": "cbad8751"
+  },
+  "web.account.back_to_details": {
+    "text": "Nazaj na podrobnosti",
+    "source_hash": "f6f841b9"
+  },
+  "web.account.customer_id_cust_custid": {
+    "text": "ID stranke: {0}",
+    "source_hash": "7e2d4201"
+  },
+  "web.account.token_generated": {
+    "text": "Žeton ustvarjen.",
+    "source_hash": "05986d95"
+  },
+  "web.account.keep_this_token_secure_it_provides_full_access_t": {
+    "text": "Ta žeton hranite na varnem. Uporabiti ga je mogoče za ustvarjanje in upravljanje skrivnosti prek API-ja.",
+    "source_hash": "a63cc8ec"
+  },
+  "web.account.confirm_with_your_password": {
+    "text": "Potrdite z vašim geslom",
+    "source_hash": "ff2147fd"
+  },
+  "web.account.are_you_sure_you_want_to_permanently_delete_your": {
+    "text": "Ali ste prepričani, da želite trajno izbrisati svoj račun? Tega dejanja ni mogoče razveljaviti.",
+    "source_hash": "4fa3e4b8"
+  },
+  "web.account.confirm_account_deletion": {
+    "text": "Potrdite izbris računa",
+    "source_hash": "bb3fc7e5"
+  },
+  "web.account.deleting_cust_custid": {
+    "text": "Brisanje {0}",
+    "source_hash": "81d21828"
+  },
+  "web.account.deleting_ellipsis": {
+    "text": "Brisanje ...",
+    "source_hash": "685ecb98"
+  },
+  "web.account.permanently_delete_account": {
+    "text": "Trajno izbriši račun",
+    "source_hash": "f894e42c"
+  },
+  "web.account.permanent_and_non_reversible": {
+    "text": "trajen in nepovraten.",
+    "source_hash": "6121225e"
+  },
+  "web.account.deleting_your_account_is": {
+    "text": "Izbris vašega računa je",
+    "source_hash": "ec31577b"
+  },
+  "web.account.burn_them_before_continuing": {
+    "text": "jih trajno izbrišite, preden nadaljujete",
+    "source_hash": "f89a5794"
+  },
+  "web.account.any_secrets_you_wish_to_remove": {
+    "text": "Vse skrivnosti, ki jih želite odstraniti,",
+    "source_hash": "b45e2dd5"
+  },
+  "web.account.secrets_will_remain_active_until_they_expire": {
+    "text": "Skrivnosti bodo ostale aktivne, dokler ne potečejo.",
+    "source_hash": "ddb4e2b5"
+  },
+  "web.account.please_be_advised": {
+    "text": "Upoštevajte naslednje:",
+    "source_hash": "086020fd"
+  },
+  "web.account.account_deleted_successfully": {
+    "text": "Račun uspešno izbrisan.",
+    "source_hash": "afcfdd58"
+  },
+  "web.account.deactivate": {
+    "text": "Deaktiviraj",
+    "source_hash": "fb1e6fa5"
+  },
+  "web.account.are_you_sure_you_want_to_deactivate_your_account": {
+    "text": "Ali ste prepričani, da želite deaktivirati svoj račun? Vsi vaši podatki bodo trajno odstranjeni z naših strežnikov za vedno. Tega dejanja ni mogoče razveljaviti.",
+    "source_hash": "4940e20a"
+  },
+  "web.account.deactivate_account": {
+    "text": "Deaktiviraj račun",
+    "source_hash": "5e31b73d"
+  },
+  "web.settings.title": {
+    "text": "Nastavitve",
+    "source_hash": "74a883a0"
+  },
+  "web.settings.description": {
+    "text": "Upravljajte nastavitve in preference svojega računa",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.manage_your_account_settings_and_preferences": {
+    "text": "Upravljajte nastavitve svojega računa in preference",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.back_to_dashboard": {
+    "text": "Nazaj na nadzorno ploščo",
+    "source_hash": "97ba1d39"
+  },
+  "web.settings.sections.account": {
+    "text": "Račun",
+    "source_hash": "7e1b0d56"
+  },
+  "web.settings.sections.billing": {
+    "text": "Obračunavanje",
+    "source_hash": "3ac8bbca"
+  },
+  "web.settings.sections.advanced": {
+    "text": "Napredno",
+    "source_hash": "9f088dbe"
+  },
+  "web.settings.general": {
+    "text": "Splošno",
+    "source_hash": "c910d474"
+  },
+  "web.settings.preferences": {
+    "text": "Nastavitve",
+    "source_hash": "66962f72"
+  },
+  "web.settings.appearance": {
+    "text": "Videz",
+    "source_hash": "3907fa7f"
+  },
+  "web.settings.theme.title": {
+    "text": "Tema",
+    "source_hash": "efb52e71"
+  },
+  "web.settings.theme.description": {
+    "text": "Izberite svetlo ali temno temo",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.theme.choose_light_or_dark_theme": {
+    "text": "Izberite svetlo ali temno temo",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.language.title": {
+    "text": "Jezik",
+    "source_hash": "a4fe6526"
+  },
+  "web.settings.language.description": {
+    "text": "Izberite želeni jezik",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.language.select_your_preferred_language": {
+    "text": "Izberite želeni jezik",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.security_settings_description": {
+    "text": "Upravljajte avtentikacijo in varnost računa",
+    "source_hash": "945109d1"
+  },
+  "web.settings.profile_settings_description": {
+    "text": "Upravljajte podatke o vašem računu",
+    "source_hash": "4a23a29f"
+  },
+  "web.settings.profile.title": {
+    "text": "Profil",
+    "source_hash": "d696a35b"
+  },
+  "web.settings.profile.change_email": {
+    "text": "Spremeni e-pošto",
+    "source_hash": "18c3f2d5"
+  },
+  "web.settings.profile.current_email": {
+    "text": "Trenutna e-pošta",
+    "source_hash": "5f1cab64"
+  },
+  "web.settings.profile.current_password": {
+    "text": "Trenutno geslo",
+    "source_hash": "8ac76099"
+  },
+  "web.settings.profile.new_email": {
+    "text": "Nova e-pošta",
+    "source_hash": "5bafb4be"
+  },
+  "web.settings.profile.enter_password_to_confirm": {
+    "text": "Vnesite trenutno geslo",
+    "source_hash": "27814c03"
+  },
+  "web.settings.profile.password_required_for_security": {
+    "text": "Vaše geslo je potrebno iz varnostnih razlogov",
+    "source_hash": "d18f62f2"
+  },
+  "web.settings.profile.verification_email_notice": {
+    "text": "Na nov naslov bo poslana potrditvena e-pošta",
+    "source_hash": "575082a1"
+  },
+  "web.settings.profile.update_email": {
+    "text": "Posodobi e-pošto",
+    "source_hash": "6ec61b2e"
+  },
+  "web.settings.profile.change_email_description": {
+    "text": "Posodobite e-poštni naslov, povezan z vašim računom",
+    "source_hash": "636abb16"
+  },
+  "web.settings.profile.all_fields_required": {
+    "text": "Vsa polja so obvezna",
+    "source_hash": "04814271"
+  },
+  "web.settings.profile.invalid_email": {
+    "text": "Vnesite veljaven e-poštni naslov",
+    "source_hash": "b00f7e3a"
+  },
+  "web.settings.profile.email_same_as_current": {
+    "text": "Nova e-pošta mora biti drugačna od trenutne",
+    "source_hash": "f7cfed6e"
+  },
+  "web.settings.profile.email_change_success": {
+    "text": "E-poštno sporočilo za preverjanje poslano. Preverite svojo novo mapo prejetih in kliknite potrditveno povezavo za dokončanje spremembe.",
+    "source_hash": "45f0a4b5"
+  },
+  "web.settings.profile.email_change_error": {
+    "text": "Posodobitev e-pošte ni uspela. Poskusite znova.",
+    "source_hash": "aeba6591"
+  },
+  "web.settings.sessions.title": {
+    "text": "Aktivne seje",
+    "source_hash": "b58fa4e0"
+  },
+  "web.settings.sessions.description": {
+    "text": "Upravljajte svoje aktivne seje",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.sessions.manage_active_sessions": {
+    "text": "Upravljajte svoje aktivne seje",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.password.title": {
+    "text": "Geslo",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.settings.password.description": {
+    "text": "Posodobite geslo svojega računa",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.password.update_account_password": {
+    "text": "Posodobite geslo svojega računa",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.delete_account.title": {
+    "text": "Izbriši račun",
+    "source_hash": "c031bf99"
+  },
+  "web.settings.delete_account.description": {
+    "text": "Trajno izbrišite svoj račun in vse podatke",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.delete_account.permanently_delete_your_account": {
+    "text": "Trajno izbrišite svoj račun in vse podatke",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.security.security_score": {
+    "text": "Ocena varnosti",
+    "source_hash": "02d2f374"
+  },
+  "web.settings.security.score_description": {
+    "text": "Skupna ocena varnosti vašega računa",
+    "source_hash": "cf20935e"
+  },
+  "web.settings.security.excellent": {
+    "text": "Odlično",
+    "source_hash": "0dc8ee55"
+  },
+  "web.settings.security.good": {
+    "text": "Dobro",
+    "source_hash": "c939327c"
+  },
+  "web.settings.security.fair": {
+    "text": "Zadovoljivo",
+    "source_hash": "f7b19afc"
+  },
+  "web.settings.security.weak": {
+    "text": "Šibko",
+    "source_hash": "8d6cea25"
+  },
+  "web.settings.security.improve_security": {
+    "text": "Izboljšajte svojo varnost",
+    "source_hash": "c38bcbf5"
+  },
+  "web.settings.security.enable_mfa_recommendation": {
+    "text": "Omogočite dvofaktorsko avtentikacijo za močnejšo zaščito",
+    "source_hash": "6beda528"
+  },
+  "web.settings.security.generate_recovery_codes_recommendation": {
+    "text": "Generirajte obnovitvene kode kot varnostno kopijo",
+    "source_hash": "eb5f3ebd"
+  },
+  "web.settings.security.configured": {
+    "text": "Nastavljeno",
+    "source_hash": "84aebc69"
+  },
+  "web.settings.security.change": {
+    "text": "Spremeni",
+    "source_hash": "c0bf75bd"
+  },
+  "web.settings.security.manage": {
+    "text": "Upravljaj",
+    "source_hash": "5a234448"
+  },
+  "web.settings.security.enable": {
+    "text": "Omogoči",
+    "source_hash": "5342e09f"
+  },
+  "web.settings.security.codes_available": {
+    "text": "{0} kod na voljo",
+    "source_hash": "76d6236d"
+  },
+  "web.settings.security.no_codes": {
+    "text": "Ni ustvarjenih kod",
+    "source_hash": "3b2eae20"
+  },
+  "web.settings.security.active_sessions": {
+    "text": "{0} aktivna seja | {0} aktivni seji | {0} aktivne seje | {0} aktivnih sej",
+    "source_hash": "30737484"
+  },
+  "web.settings.security.best_practices": {
+    "text": "Najboljše varnostne prakse",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.security.use_strong_unique_password": {
+    "text": "Uporabite močno, edinstveno geslo za svoj račun",
+    "source_hash": "5fc8cbf4"
+  },
+  "web.settings.security.enable_mfa_for_protection": {
+    "text": "Omogočite dvofaktorsko avtentikacijo za dodatno zaščito",
+    "source_hash": "107e4898"
+  },
+  "web.settings.security.save_recovery_codes_safely": {
+    "text": "Shranite obnovitvene kode na varno mesto",
+    "source_hash": "605513fc"
+  },
+  "web.settings.security.review_sessions_regularly": {
+    "text": "Redno pregledujte in prekličite neuporabljene seje",
+    "source_hash": "efe59445"
+  },
+  "web.settings.security.view_details": {
+    "text": "Ogled podrobnosti",
+    "source_hash": "d1bf045b"
+  },
+  "web.settings.api.title": {
+    "text": "API in integracije",
+    "source_hash": "21fc84f3"
+  },
+  "web.settings.api.description": {
+    "text": "Upravljajte API ključe in integracije",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.manage_api_keys": {
+    "text": "Upravljajte API ključe in integracije",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.documentation": {
+    "text": "API dokumentacija",
+    "source_hash": "1cc77e60"
+  },
+  "web.settings.api.documentation_description": {
+    "text": "Naučite se, kako {product_name} vključiti v svoje aplikacije",
+    "source_hash": "9bba1ae8"
+  },
+  "web.settings.api.rest_api_reference": {
+    "text": "Referenca REST API",
+    "source_hash": "26a5af61"
+  },
+  "web.settings.api.complete_api_documentation": {
+    "text": "Popolna API dokumentacija in končne točke",
+    "source_hash": "c1c87ad8"
+  },
+  "web.settings.api.code_examples": {
+    "text": "Primeri kode",
+    "source_hash": "216d28e4"
+  },
+  "web.settings.api.example_code_and_libraries": {
+    "text": "Primeri kode in odjemalske knjižnice",
+    "source_hash": "61c5956f"
+  },
+  "web.settings.api.security_best_practices": {
+    "text": "Najboljše varnostne prakse",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.api.never_commit_api_keys": {
+    "text": "Nikoli ne shranjujte API ključev v nadzor različic",
+    "source_hash": "cc8c327e"
+  },
+  "web.settings.api.use_environment_variables": {
+    "text": "Za shranjevanje API ključev uporabljajte okoljske spremenljivke",
+    "source_hash": "c05e8802"
+  },
+  "web.settings.api.rotate_keys_regularly": {
+    "text": "Redno menjajte API ključe za večjo varnost",
+    "source_hash": "eda6a5db"
+  },
+  "web.settings.api.use_https_only": {
+    "text": "Pri API zahtevah vedno uporabljajte HTTPS",
+    "source_hash": "b3f405ef"
+  },
+  "web.settings.api.monitor_api_usage": {
+    "text": "Spremljajte uporabo API-ja in nastavite opozorila",
+    "source_hash": "abb08beb"
+  },
+  "web.settings.api.important_notice": {
+    "text": "Pomembno obvestilo",
+    "source_hash": "03d3ba93"
+  },
+  "web.settings.api.regenerating_key_warning": {
+    "text": "Z regeneracijo API ključa bo trenutni ključ razveljavljen. Posodobite vse aplikacije, ki uporabljajo stari ključ.",
+    "source_hash": "ab168f83"
+  },
+  "web.settings.privacy.title": {
+    "text": "Nastavitve zasebnosti",
+    "source_hash": "eefad6ba"
+  },
+  "web.settings.privacy.manage_privacy_settings": {
+    "text": "Upravljajte nastavitve zasebnosti",
+    "source_hash": "add087da"
+  },
+  "web.settings.privacy.your_privacy": {
+    "text": "Vaša zasebnost",
+    "source_hash": "cad972db"
+  },
+  "web.settings.privacy.non_negotiable": {
+    "text": "Brez kompromisov",
+    "source_hash": "ad090a29"
+  },
+  "web.settings.privacy.not_a_setting": {
+    "text": "Ni nastavitev",
+    "source_hash": "41278ece"
+  },
+  "web.settings.privacy.no_analytics_statement": {
+    "text": "Brez analitike. Brez sledenja. Pika.",
+    "source_hash": "3e154b1c"
+  },
+  "web.settings.privacy.explanation": {
+    "text": "To ni nastavitev, ker ni ničesar za vklopiti ali izklopiti. Vaša zasebnost je vgrajena v naš način delovanja.",
+    "source_hash": "ed943792"
+  },
+  "web.settings.notifications.title": {
+    "text": "Nastavitve obvestil",
+    "source_hash": "07a063ca"
+  },
+  "web.settings.notifications.description": {
+    "text": "Upravljajte, kako prejemate obvestila",
+    "source_hash": "148c5ff6"
+  },
+  "web.settings.notifications.error_updating": {
+    "text": "Posodobitev nastavitev obvestil ni uspela. Poskusite znova.",
+    "source_hash": "c08abc04"
+  },
+  "web.settings.notifications.reveal_notifications.title": {
+    "text": "Obvestila o razkritju skrivnosti",
+    "source_hash": "c0fb2e25"
+  },
+  "web.settings.notifications.reveal_notifications.description": {
+    "text": "Prejmite e-pošto, ko nekdo ogleda vašo skrivnost",
+    "source_hash": "a3a67095"
+  },
+  "web.settings.notifications.reveal_notifications.help": {
+    "text": "Obveščeni boste vsakič, ko prejemnik razkrije eno od vaših skrivnosti",
+    "source_hash": "ba93106d"
+  },
+  "web.settings.notifications.privacy_note": {
+    "text": "E-poštna obvestila vključujejo samo časovni žig in ID skrivnosti. Podatki o gledalcu niso nikoli vključeni.",
+    "source_hash": "7aac282f"
+  },
+  "web.settings.caution.title": {
+    "text": "Območje previdnosti",
+    "source_hash": "fe27a3a8"
+  },
+  "web.settings.caution.description": {
+    "text": "Napredne nastavitve in upravljanje podatkov",
+    "source_hash": "223ee55d"
+  },
+  "web.settings.caution.data_export": {
+    "text": "Izvoz podatkov",
+    "source_hash": "bdcea052"
+  },
+  "web.settings.caution.export_your_data": {
+    "text": "Izvozite podatke svojega računa",
+    "source_hash": "dc5ffcb0"
+  },
+  "web.settings.caution.export_description": {
+    "text": "Zahtevajte popolno kopijo podatkov vašega računa v strojno berljivem formatu",
+    "source_hash": "369c3391"
+  },
+  "web.settings.caution.request_data_export": {
+    "text": "Zahtevaj izvoz podatkov",
+    "source_hash": "902394be"
+  },
+  "web.settings.caution.export_info": {
+    "text": "Čas obdelave izvoza",
+    "source_hash": "2ebb2d44"
+  },
+  "web.settings.caution.export_info_description": {
+    "text": "Izvozi so obdelani v 24 urah in poslani na vaš e-poštni naslov",
+    "source_hash": "a2f81e3b"
+  },
+  "web.settings.caution.deletion_warning_title": {
+    "text": "Z izbrisom računa boste:",
+    "source_hash": "17a8a676"
+  },
+  "web.settings.caution.deletion_warning_secrets": {
+    "text": "Trajno izbrisali vse svoje skrivnosti",
+    "source_hash": "974ccdb9"
+  },
+  "web.settings.caution.deletion_warning_metadata": {
+    "text": "Odstranili vse metapodatke in zgodovino skrivnosti",
+    "source_hash": "ec4ee372"
+  },
+  "web.settings.caution.deletion_warning_api_keys": {
+    "text": "Razveljavite vse API ključe",
+    "source_hash": "7581333b"
+  },
+  "web.settings.caution.deletion_warning_irreversible": {
+    "text": "Tega dejanja ni mogoče razveljaviti",
+    "source_hash": "02ccc074"
+  },
+  "web.settings.profile.confirm_email_change_title": {
+    "text": "E-poštni naslov posodobljen",
+    "source_hash": "cf02eb0c"
+  },
+  "web.settings.profile.email_confirmed_success": {
+    "text": "Vaša e-pošta je bila uspešno posodobljena. Prijavite se z novim e-poštnim naslovom.",
+    "source_hash": "a84efcea"
+  },
+  "web.settings.profile.email_confirm_verifying": {
+    "text": "Preverjanje vašega novega e-poštnega naslova...",
+    "source_hash": "a6a4745f"
+  },
+  "web.settings.profile.email_confirm_error_title": {
+    "text": "Sprememba e-pošte ni uspela",
+    "source_hash": "953f3936"
+  },
+  "web.settings.profile.email_confirm_invalid": {
+    "text": "Ta potrditvena povezava ni veljavna ali je potekla.",
+    "source_hash": "f54594c2"
+  },
+  "web.settings.profile.email_confirm_back_to_settings": {
+    "text": "Nazaj na nastavitve računa",
+    "source_hash": "fd49b66b"
+  },
+  "web.settings.profile.redirecting_to_signin": {
+    "text": "Preusmeritev na prijavo...",
+    "source_hash": "c65f7dcc"
+  },
+  "web.settings.profile.resend_confirmation": {
+    "text": "Ponovno pošlji potrditveno e-sporočilo",
+    "source_hash": "c617fff7"
+  },
+  "web.settings.profile.resend_confirmation_success": {
+    "text": "Potrditveno e-sporočilo uspešno ponovno poslano.",
+    "source_hash": "2287783b"
+  },
+  "web.settings.profile.resend_confirmation_sending": {
+    "text": "Pošiljanje...",
+    "source_hash": "286a3af7"
+  },
+  "web.settings.profile.email_change_pending": {
+    "text": "Potrditveno e-sporočilo je bilo poslano. Preverite svoj nabiralnik in kliknite potrditveno povezavo.",
+    "source_hash": "5806c93f"
+  },
+  "web.settings.profile.didnt_receive_email": {
+    "text": "Niste prejeli e-sporočila?",
+    "source_hash": "fe3ac3ad"
+  },
+  "web.settings.api.api_disabled_notice": {
+    "text": "API je onemogočen za to instanco.",
+    "source_hash": "66d12d6b"
+  },
+  "web.settings.security.sso_managed_title": {
+    "text": "Varnost upravlja SSO",
+    "source_hash": "1f6c9472"
+  },
+  "web.settings.security.sso_managed_description": {
+    "text": "Vaš račun je overjen prek ponudnika enotne prijave (SSO) vaše organizacije. Geslo, večstopenjsko avtentikacijo in obnovitvene kode upravlja vaš ponudnik identitete.",
+    "source_hash": "cd0cf39f"
+  },
+  "web.settings.api.api_username": {
+    "text": "Uporabniško ime API",
+    "source_hash": "0b3e483e"
+  },
+  "web.settings.api.api_username_description": {
+    "text": "Vaše uporabniško ime za osnovno avtentikacijo HTTP",
+    "source_hash": "f3e65de3"
+  },
+  "web.settings.api.basic_auth_hint": {
+    "text": "Za osnovno avtentikacijo HTTP uporabite e-pošto svojega računa ali ta ID kot uporabniško ime in svoj žeton API kot geslo.",
+    "source_hash": "cfa3806d"
+  },
+  "web.settings.security.set": {
+    "text": "Nastavljeno",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.settings.security.not_set": {
+    "text": "Ni nastavljeno",
+    "source_hash": "4895f731"
+  },
+  "web.settings.security.set_password_title": {
+    "text": "Nastavi geslo",
+    "source_hash": "4e411687"
+  },
+  "web.settings.security.set_password_description": {
+    "text": "Dodajte geslo svojemu računu, da se boste lahko prijavili tudi brez ponudnika identitete",
+    "source_hash": "a6970402"
+  }
+}

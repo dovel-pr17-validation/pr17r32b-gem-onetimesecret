@@ -1,0 +1,279 @@
+# spec/integration/full/hooks/orphaned_session_spec.rb
+#
+# frozen_string_literal: true
+
+# =============================================================================
+# TEST TYPE: Integration (Edge Case - Orphaned Sessions)
+# =============================================================================
+#
+# Tests behavior when a user's session outlives their account deletion.
+# This occurs when an admin deletes an account or account closure completes
+# while the user still has an active session cookie.
+#
+# The audit_logging hook attempts to INSERT into account_authentication_audit_logs
+# which has a FK constraint to accounts. With the account deleted, this causes
+# a PG::ForeignKeyViolation and 500 error.
+#
+# EXPECTED BEHAVIOR: Graceful logout (200/302), not 500 error
+#
+# REQUIREMENTS:
+# - Valkey running on port 2163: pnpm run test:database:start
+# - AUTH_DATABASE_URL set (SQLite or PostgreSQL)
+# - AUTHENTICATION_MODE=full
+#
+# TEST SETUP NOTES:
+# - Clear Content-Type before GET (Rack::Test persists it after POST)
+# - Fetch CSRF token AFTER login (session regeneration invalidates prior tokens)
+# - Memoize app with @app ||= (multiple URL map generation corrupts state)
+#
+# RUN:
+#   VALKEY_URL='valkey://127.0.0.1:2163/0' AUTH_DATABASE_URL='sqlite://data/test_auth.db' \
+#     pnpm run test:rspec apps/web/auth/spec/hooks/orphaned_session_spec.rb
+#
+# =============================================================================
+
+require_relative '../../integration_spec_helper'
+require 'json'
+require 'securerandom'
+
+RSpec.describe 'Orphaned Session Handling', :shared_db_state, type: :integration do
+  include Rack::Test::Methods
+
+  def app
+    # MUST memoize - calling generate_rack_url_map multiple times corrupts app state
+    @app ||= Onetime::Application::Registry.generate_rack_url_map
+  end
+
+  def json_get(path)
+    header 'Content-Type', nil  # Clear Content-Type from previous POST requests
+    header 'Accept', 'application/json'
+    get path
+  end
+
+  # Fetch a fresh CSRF token for the current session
+  def fetch_csrf_token
+    header 'Content-Type', nil  # Clear Content-Type from previous POST requests
+    header 'Accept', 'application/json'
+    get '/auth'
+    last_response.headers['X-CSRF-Token']
+  end
+
+  # POST with CSRF token, optionally using a pre-stored token
+  # When use_stored_token is true, uses @last_csrf_token without fetching
+  # (useful when account is deleted but session still exists)
+  def json_post(path, params = {}, use_stored_token: false)
+    csrf_token = if use_stored_token && @last_csrf_token
+      @last_csrf_token
+    else
+      fetch_csrf_token
+    end
+
+    header 'Content-Type', 'application/json'
+    header 'Accept', 'application/json'
+    header 'X-CSRF-Token', csrf_token if csrf_token
+    post path, JSON.generate(params.merge(shrimp: csrf_token))
+  end
+
+  # Access the Rodauth/Sequel auth database
+  def auth_db
+    Auth::Database.connection
+  end
+
+  before(:all) do
+    # Set full mode before loading the application
+    ENV['AUTHENTICATION_MODE'] = 'full'
+
+    # Reset registry to clear state from previous test runs
+    Onetime::Application::Registry.reset!
+
+    # Reload auth config to pick up AUTHENTICATION_MODE env var
+    Onetime.auth_config.reload!
+
+    # Boot application
+    Onetime.boot! :test
+
+    # Prepare the application registry
+    Onetime::Application::Registry.prepare_application_registry
+  end
+
+  after(:all) do
+    ENV.delete('AUTHENTICATION_MODE')
+  end
+
+  let(:test_email) { "orphan-#{SecureRandom.hex(8)}@example.com" }
+  let(:valid_password) { 'SecureP@ss123!' }
+
+  # Creates account and logs in, returning the account record
+  # After login, fetches and stores a fresh CSRF token for the authenticated session
+  def create_and_login_account(email:, password:)
+    json_post '/auth/create-account', {
+      login: email,
+      'login-confirm': email,
+      password: password,
+      'password-confirm': password,
+    }
+    expect(last_response.status).to be_between(200, 299),
+      "Account creation failed: #{last_response.body[0..500]}"
+
+    json_post '/auth/login', { login: email, password: password }
+    expect(last_response.status).to eq(200),
+      "Login failed: #{last_response.body[0..500]}"
+
+    # Fetch fresh CSRF token for the authenticated session (after session regeneration)
+    # This token will be valid for requests with this session
+    @last_csrf_token = fetch_csrf_token
+
+    find_account_by_email(email)
+  end
+
+  def find_account_by_email(email)
+    auth_db[:accounts].where(email: email).first
+  end
+
+  # Deletes account and related records in correct FK order
+  # This simulates admin deletion while user has active session
+  def delete_account_from_db(account_id)
+    # Delete in correct order to respect FK constraints
+    # Tables with account_id foreign key
+    auth_db[:account_authentication_audit_logs].where(account_id: account_id).delete
+    auth_db[:account_active_session_keys].where(account_id: account_id).delete
+    auth_db[:account_jwt_refresh_keys].where(account_id: account_id).delete rescue nil
+    auth_db[:account_webauthn_keys].where(account_id: account_id).delete rescue nil
+    auth_db[:account_previous_password_hashes].where(account_id: account_id).delete rescue nil
+
+    # Tables with id foreign key (id = account_id)
+    auth_db[:account_session_keys].where(id: account_id).delete rescue nil
+    auth_db[:account_login_failures].where(id: account_id).delete rescue nil
+    auth_db[:account_lockouts].where(id: account_id).delete rescue nil
+    auth_db[:account_otp_keys].where(id: account_id).delete rescue nil
+    auth_db[:account_otp_unlocks].where(id: account_id).delete rescue nil
+    auth_db[:account_recovery_codes].where(id: account_id).delete rescue nil
+    auth_db[:account_remember_keys].where(id: account_id).delete rescue nil
+    auth_db[:account_password_hashes].where(id: account_id).delete
+    auth_db[:account_password_reset_keys].where(id: account_id).delete rescue nil
+    auth_db[:account_verification_keys].where(id: account_id).delete rescue nil
+    auth_db[:account_login_change_keys].where(id: account_id).delete rescue nil
+    auth_db[:account_email_auth_keys].where(id: account_id).delete rescue nil
+    auth_db[:account_password_change_times].where(id: account_id).delete rescue nil
+    auth_db[:account_activity_times].where(id: account_id).delete rescue nil
+    auth_db[:account_webauthn_user_ids].where(id: account_id).delete rescue nil
+    auth_db[:account_sms_codes].where(id: account_id).delete rescue nil
+
+    # Finally delete the account
+    auth_db[:accounts].where(id: account_id).delete
+  end
+
+  describe 'POST /auth/logout with deleted account' do
+    it 'handles logout gracefully when account no longer exists' do
+      # Skip: Requires special session handling for orphaned session scenarios
+      # The test infrastructure flushes Redis between tests which breaks session state
+      # pending 'Orphaned session tests require dedicated session isolation'
+
+      account = create_and_login_account(email: test_email, password: valid_password)
+
+      # Simulate account deletion while session is active
+      delete_account_from_db(account[:id])
+
+      # Verify account is gone
+      expect(find_account_by_email(test_email)).to be_nil,
+        'Account should be deleted from database'
+
+      # Attempt logout using stored token (cannot fetch new one - account deleted)
+      json_post '/auth/logout', {}, use_stored_token: true
+
+      expect([200, 302]).to include(last_response.status),
+        "Expected graceful logout (200/302) but got #{last_response.status}: #{last_response.body[0..500]}"
+    end
+  end
+
+  describe 'POST /auth/logout with deleted account, ahead of Rodauth' do
+    it 'is caught by the active-session gate before any audit INSERT or FK rescue path' do
+      # Deleting the account deletes its active-session rows, so
+      # Onetime::ActiveSessionGate (consulted by the router ahead of
+      # r.rodauth) sees the orphaned Rack session as :revoked and clears it
+      # before Rodauth's logout runs, answering the logout itself with
+      # success. No audit INSERT is attempted for the missing account, so
+      # neither the audit_logging override's skip
+      # (:audit_log_skipped_orphaned_account) nor the around_rodauth FK
+      # rescue (:orphaned_session_detected) has anything to do. Both stay in
+      # place for Rack sessions the gate cannot join (no join key).
+      allow(Auth::Logging).to receive(:log_auth_event).and_call_original
+
+      account = create_and_login_account(email: test_email, password: valid_password)
+      delete_account_from_db(account[:id])
+
+      json_post '/auth/logout', {}, use_stored_token: true
+
+      expect([200, 302]).to include(last_response.status),
+        "Expected graceful logout but got #{last_response.status}: #{last_response.body[0..500]}"
+
+      expect(Auth::Logging).to have_received(:log_auth_event)
+        .with(:active_session_revoked, hash_including(path: '/logout'))
+      expect(Auth::Logging).not_to have_received(:log_auth_event)
+        .with(:orphaned_session_detected, any_args)
+      expect(Auth::Logging).not_to have_received(:log_auth_event)
+        .with(:audit_log_skipped_orphaned_account, any_args)
+    end
+  end
+
+  describe 'GET /auth/account with deleted account' do
+    it 'returns 401 when account no longer exists' do
+      account = create_and_login_account(email: test_email, password: valid_password)
+      delete_account_from_db(account[:id])
+
+      json_get '/auth/account'
+
+      expect(last_response.status).to eq(401),
+        "Expected 401 but got #{last_response.status}: #{last_response.body[0..500]}"
+
+      body = JSON.parse(last_response.body)
+      expect(body['error']).to eq('web.auth.security.session_expired')
+    end
+  end
+
+  describe 'GET /auth/mfa-status with deleted account' do
+    it 'returns 401 when account no longer exists' do
+      account = create_and_login_account(email: test_email, password: valid_password)
+      delete_account_from_db(account[:id])
+
+      json_get '/auth/mfa-status'
+
+      expect(last_response.status).to eq(401),
+        "Expected 401 but got #{last_response.status}: #{last_response.body[0..500]}"
+
+      body = JSON.parse(last_response.body)
+      expect(body['error']).to eq('web.auth.security.session_expired')
+    end
+  end
+
+  describe 'POST /auth/change-password with deleted account' do
+    it 'fails gracefully when account no longer exists' do
+      account = create_and_login_account(email: test_email, password: valid_password)
+      delete_account_from_db(account[:id])
+
+      # Use stored token since account is deleted and cannot fetch new one
+      json_post '/auth/change-password', {
+        password: valid_password,
+        'new-password': 'NewP@ss456!',
+        'password-confirm': 'NewP@ss456!',
+      }, use_stored_token: true
+
+      expect(last_response.status).not_to eq(500),
+        "Expected non-500 error but got 500: #{last_response.body[0..500]}"
+    end
+  end
+
+  describe 'multiple requests with orphaned session' do
+    it 'returns 401 on repeated requests without database errors' do
+      account = create_and_login_account(email: test_email, password: valid_password)
+      delete_account_from_db(account[:id])
+
+      # Multiple requests should all return 401 gracefully
+      3.times do
+        json_get '/auth/account'
+        expect(last_response.status).to eq(401),
+          "Expected 401 but got #{last_response.status}: #{last_response.body[0..500]}"
+      end
+    end
+  end
+end

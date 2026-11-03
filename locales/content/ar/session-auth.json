@@ -1,0 +1,551 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "هل تحتاج حساباً؟",
+    "source_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "سجّل.",
+    "source_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "نسيت كلمة المرور؟",
+    "source_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "تسجيل الدخول",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "أدخل بيانات اعتمادك",
+    "source_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "تذكرني",
+    "source_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "إرسال رابط تسجيل الدخول",
+    "source_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "سيتم إرسال رابط آمن إلى بريدك الإلكتروني.",
+    "source_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "أو",
+    "source_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "تسجيل الدخول بكلمة المرور",
+    "source_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "استخدم تسجيل الدخول بدون كلمة مرور",
+    "source_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "إنشاء حساب",
+    "source_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "العودة للرئيسية",
+    "source_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "كلمة المرور",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "الرابط السحري",
+    "source_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "مفتاح المرور",
+    "source_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "هل تحتاج مساعدة؟",
+    "source_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "أو المتابعة باستخدام",
+    "source_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "تسجيل الدخول عبر SSO",
+    "source_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "تسجيل الدخول باستخدام {provider}",
+    "source_hash": "b8794f11"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "جارٍ إعادة التوجيه إلى مزود الهوية...",
+    "source_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "فشل تسجيل الدخول عبر SSO. يرجى المحاولة مرة أخرى.",
+    "source_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "فشلت مصادقة SSO. يرجى المحاولة مرة أخرى أو استخدام تسجيل الدخول بكلمة المرور.",
+    "source_hash": "13a2210a"
+  },
+  "web.login.errors.token_missing": {
+    "text": "رابط المصادقة غير مكتمل. يرجى طلب رابط تسجيل دخول جديد.",
+    "source_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "انتهت صلاحية رابط تسجيل الدخول هذا. يرجى طلب رابط جديد.",
+    "source_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "رابط تسجيل الدخول هذا غير صالح. يرجى طلب رابط جديد.",
+    "source_hash": "270c6401"
+  },
+  "web.signup.create_your_account": {
+    "text": "أنشئ حسابك",
+    "source_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "لديك حساب بالفعل؟",
+    "source_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "سجّل دخولك.",
+    "source_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "خطأ في إنشاء الحساب",
+    "source_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "كلمة المرور",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "البريد الإلكتروني",
+    "source_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": ""
+  },
+  "web.auth.verify.title": {
+    "text": "تأكيد حسابك",
+    "source_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "تم تأكيد حسابك بنجاح",
+    "source_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "مفتاح التحقق غير صالح أو منتهي الصلاحية",
+    "source_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "انتهت صلاحية رابط التحقق هذا. يرجى طلب رابط جديد.",
+    "source_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "تم تأكيد هذا الحساب بالفعل. يمكنك تسجيل الدخول الآن.",
+    "source_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "تعذر تأكيد الحساب. يرجى المحاولة مرة أخرى أو الاتصال بالدعم.",
+    "source_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "يرجى التحقق من بريدك الإلكتروني للحصول على رابط التحقق",
+    "source_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "فشل تأكيد الحساب. يرجى التحقق من رابط التحقق أو طلب رابط جديد.",
+    "source_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "فشل التحقق",
+    "source_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "ماذا يجب أن أفعل؟",
+    "source_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "تحقق من بريدك الإلكتروني للحصول على أحدث رابط تحقق",
+    "source_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "تحقق من مجلد البريد العشوائي/غير المرغوب فيه إذا لم تجد البريد",
+    "source_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "اتصل بالدعم إذا استمرت المشاكل",
+    "source_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "رابط التحقق مطلوب",
+    "source_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "يرجى استخدام رابط التحقق المرسل إلى بريدك الإلكتروني لتأكيد حسابك.",
+    "source_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "إنشاء حساب جديد",
+    "source_hash": "0e24ec84"
+  },
+  "web.auth.change_password.title": {
+    "text": "تغيير كلمة المرور",
+    "source_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "كلمة المرور الحالية",
+    "source_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "كلمة المرور الجديدة",
+    "source_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "تأكيد كلمة المرور الجديدة",
+    "source_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "تم تغيير كلمة المرور بنجاح",
+    "source_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "فشل تغيير كلمة المرور. يرجى التحقق من كلمة المرور الحالية والمحاولة مرة أخرى.",
+    "source_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "إغلاق الحساب",
+    "source_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع أسرارك نهائياً.",
+    "source_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "أفهم أن هذا الإجراء نهائي",
+    "source_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "أدخل كلمة المرور للتأكيد",
+    "source_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "إغلاق الحساب نهائياً",
+    "source_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "إلغاء",
+    "source_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "طلب إعادة تعيين كلمة المرور",
+    "source_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "أدخل بريدك الإلكتروني أدناه وسنرسل لك رابطاً لإعادة تعيين كلمة المرور",
+    "source_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "إرسال رابط إعادة التعيين",
+    "source_hash": "7d5f16d4"
+  },
+  "web.auth.password_reset.title": {
+    "text": "اختر كلمة مرور جديدة",
+    "context": "",
+    "source_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "يرجى إدخال كلمة المرور الجديدة أدناه. تأكد من أنها قوية وفريدة لحماية حسابك.",
+    "source_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "تم إرسال بريد إلكتروني إليك يحتوي على رابط لإعادة تعيين كلمة المرور لحسابك",
+    "source_hash": "63a6af45"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "أوافق على",
+    "source_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "معلومات الحساب",
+    "context": "",
+    "source_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "البريد الإلكتروني",
+    "source_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "تاريخ إنشاء الحساب",
+    "source_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "البريد الإلكتروني موثق",
+    "source_hash": "bc512ab0"
+  },
+  "web.auth.account.region": {
+    "text": "المنطقة",
+    "source_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "البريد الإلكتروني غير موثق",
+    "source_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "تأكيد البريد الإلكتروني",
+    "source_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "المصادقة الثنائية",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "مُفعّل",
+    "source_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "مُعطّل",
+    "source_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "الجلسات النشطة",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "{count} جلسة (جلسات) نشطة",
+    "source_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "إجراءات سريعة",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "إدارة المصادقة الثنائية",
+    "source_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "إدارة الجلسات النشطة",
+    "source_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "تغيير كلمة المرور",
+    "source_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "إغلاق الحساب",
+    "source_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "المساعدة والدعم",
+    "source_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "استكشاف مشاكل تسجيل الدخول",
+    "source_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "الرابط السحري لا يصل؟",
+    "source_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "تحقق من مجلد البريد العشوائي أو غير المرغوب فيه",
+    "source_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "تأكد من إدخال بريدك الإلكتروني بشكل صحيح",
+    "source_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "انتظر بضع دقائق - قد تتأخر رسائل البريد الإلكتروني أحياناً",
+    "source_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "حاول طلب رابط جديد إذا مرت أكثر من 10 دقائق",
+    "source_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "نسيت كلمة المرور؟",
+    "source_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "يمكنك طلب رابط إعادة تعيين كلمة المرور لإنشاء كلمة مرور جديدة.",
+    "source_hash": "3c3eabad"
+  },
+  "web.help.account_locked": {
+    "text": "الحساب مقفل مؤقتاً؟",
+    "source_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "بعد عدة محاولات فاشلة لتسجيل الدخول، يتم قفل الحسابات مؤقتاً للأمان. انتظر 15 دقيقة وحاول مرة أخرى، أو استخدم الرابط السحري لتسجيل الدخول.",
+    "source_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "هل لا تزال بحاجة إلى مساعدة؟",
+    "source_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "إذا كنت لا تزال تواجه مشاكل، نحن هنا للمساعدة. أرسل لنا رسالة وسنرد عليك في أقرب وقت ممكن.",
+    "source_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "الاتصال بالدعم",
+    "source_hash": "f8d47b82"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "حساب تسجيل الدخول الموحّد (SSO)",
+    "source_hash": "b8f4c728"
+  },
+  "web.help.reset_password_link": {
+    "text": "إعادة تعيين كلمة المرور",
+    "source_hash": "e0edfeb3"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "تسجيل الدخول الموحّد (SSO) متاح لهذا النطاق",
+    "source_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "يمكن لمسؤول المؤسسة تفعيل تسجيل الدخول الموحّد (SSO) للسماح لأعضاء الفريق بتسجيل الدخول هنا. تواصل مع المسؤول للحصول على صلاحية الوصول.",
+    "source_hash": "f3726509"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "تسجيل الدخول غير متاح",
+    "source_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "تسجيل الدخول غير متاح حالياً على هذا النطاق.",
+    "source_hash": "b681c35d"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "تسجيل الدخول الموحّد (SSO) غير مُعدّ لهذا النطاق. يرجى التواصل مع المسؤول.",
+    "source_hash": "b39ef93e"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "عنوان البريد الإلكتروني الوارد من موفّر الهوية غير صالح. يرجى التواصل مع المسؤول.",
+    "source_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "نطاق بريدك الإلكتروني غير مصرّح له بالتسجيل عبر تسجيل الدخول الموحّد (SSO). يرجى التواصل مع المسؤول.",
+    "source_hash": "87603782"
+  },
+  "web.auth.check_email.title": {
+    "text": "تحقّق من بريدك الإلكتروني",
+    "source_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "أرسلنا رابط تحقق إلى:",
+    "source_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "أرسلنا رابط تحقق إلى عنوان بريدك الإلكتروني.",
+    "source_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "انقر على الرابط في البريد الإلكتروني لتفعيل حسابك.",
+    "source_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "لا يمكنك العثور عليه؟ تحقّق من مجلد البريد العشوائي.",
+    "source_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "أدخلت عنواناً خاطئاً؟",
+    "source_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "البدء من جديد",
+    "source_hash": "5eed7e9f"
+  },
+  "web.auth.field-errors.password": {
+    "text": "كلمة المرور",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "لم تستلم بريد التحقق؟ أدخل بريدك الإلكتروني لإعادة إرساله.",
+    "source_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "إعادة إرسال بريد التحقق",
+    "source_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "إذا كان أحد الحسابات يحتاج إلى تحقق، فقد تم إرسال بريد إلكتروني جديد. يرجى التحقق من صندوق الوارد ومجلد البريد العشوائي.",
+    "source_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "تعذّر إرسال بريد التحقق. يرجى التحقق من اتصالك والمحاولة مرة أخرى.",
+    "source_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "إعادة إرسال البريد",
+    "source_hash": "4f44603e"
+  },
+  "web.login.verified_notice": {
+    "text": "تم التحقق من بريدك الإلكتروني — يمكنك الآن تسجيل الدخول.",
+    "source_hash": "c8d4b5a8"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "تعيين كلمة مرور",
+    "source_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "حسابك ليس لديه كلمة مرور بعد. سنرسل لك رابطاً آمناً بالبريد الإلكتروني لتعيين واحدة حتى تتمكن أيضاً من تسجيل الدخول مباشرة.",
+    "source_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "إرسال رابط الإعداد",
+    "source_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "تم إرسال بريد إلكتروني إليك يحتوي على رابط لتعيين كلمة مرور لحسابك",
+    "source_hash": "82b686c7"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "يوجد حساب بهذا العنوان البريدي بالفعل لكنه غير مرتبط بطريقة تسجيل الدخول هذه. سجل الدخول بطريقتك الحالية، ثم اربط هذا المزود ضمن إعدادات الأمان ← الهويات المرتبطة.",
+    "source_hash": "7fbbb7e7"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "تعذّر ربط هذه الهوية. قد تكون تابعة بالفعل لحساب آخر.",
+    "source_hash": "d8b71cf8"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "تعذر إكمال إضافتك إلى مؤسستك. يرجى الاتصال بالمشرف.",
+    "source_hash": "155e71bb"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "تعذر ربط طريقة تسجيل الدخول تلك. سجل الدخول بكلمة المرور الحالية، ثم اربط هذا المزود ضمن إعدادات الأمان ← الهويات المرتبطة.",
+    "source_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "تحقق من بريدك الوارد — أرسلنا لك رابطاً بالبريد الإلكتروني لتأكيد ربط حسابك. افتحه لإكمال تسجيل الدخول.",
+    "source_hash": "b251c8f3"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "تم إلغاء تسجيل الدخول. يمكنك المحاولة مرة أخرى في أي وقت.",
+    "source_hash": "b5f3d3ec"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "تسجيل الدخول عبر هذا الموفّر غير مُعدّ بشكل صحيح. يرجى التواصل مع المسؤول.",
+    "source_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "تسجيل الدخول الموحّد (SSO) لهذا النطاق مُعدّ لكنه غير قابل للاستخدام حالياً. تواصل مع مسؤول مؤسستك.",
+    "source_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "تسجيل الدخول الموحّد (SSO) لهذا النطاق غير نشط بعد لأن النطاق لم يُكمل عملية التحقق. يرجى التواصل مع المسؤول.",
+    "source_hash": "bd981480"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "هذه الهوية غير مرتبطة بحساب على هذا النطاق. إذا كان بإمكانك تسجيل الدخول على هذا النطاق بحساب ينتمي إلى هذه المؤسسة، فاربطها من صفحة الهويات المرتبطة. وإلا، فاطلب من أحد مالكي المؤسسة دعوة هوية SSO هذه، أو تواصل مع الدعم.",
+    "source_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "تعذّر ربط هذه الهوية على هذا النطاق. ابدأ عملية الربط من الموقع الذي سجّلت الدخول إليه؛ وعلى نطاق أي مؤسسة، يجب أن يكون حسابك منتمياً بالفعل إلى تلك المؤسسة.",
+    "source_hash": "d967c761"
+  }
+}

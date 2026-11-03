@@ -1,0 +1,178 @@
+# spec/integration/integration_spec_helper.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+require 'rack/test'
+require 'json'
+
+# Integration tests use REAL Valkey/Redis on port 2163
+# The ConfigureFamilia initializer enforces this for safety (prevents
+# accidentally writing to production Redis on default port 6379).
+#
+# To run integration tests:
+#   pnpm run test:database:start  # Start Valkey on port 2163
+#   pnpm run test:rspec:integration   # rake spec:integration:all
+#
+# FakeRedis is NOT used for integration tests because:
+# 1. Integration tests require full application boot (Onetime.boot!)
+# 2. Rodauth requires real database transactions
+# 3. Session storage needs real Redis operations
+# 4. FakeRedis 0.1.4 is incompatible with Redis 5.x client
+
+RSpec.configure do |config|
+  config.include Rack::Test::Methods, type: :request
+  config.include Rack::Test::Methods, type: :integration
+
+  # Parse Redis URI once at configuration time for robust port checking
+  redis_uri_string = OT.conf&.dig('redis', 'uri')
+  test_redis_port = begin
+    URI.parse(redis_uri_string).port if redis_uri_string
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  # Clean Valkey database before all integration tests in a group
+  # Skip if :shared_db_state metadata is set (for specs using before(:all) shared setup)
+  # Skip if :billing metadata is set (billing tests manage their own plan data)
+  config.before(:all, type: :integration) do |context|
+    next if context.class.metadata[:shared_db_state]
+    next if context.class.metadata[:billing]
+
+    if test_redis_port == 2163
+      begin
+        Familia.dbclient.flushdb
+      rescue StandardError => e
+        warn "Failed to clean test database before all: #{e.message}"
+        warn e.backtrace.join("\n") if ENV['ONETIME_DEBUG']
+      end
+    end
+  end
+
+  # Clean Valkey database before each integration test
+  # Skip if :shared_db_state metadata is set (for specs using before(:all) shared setup)
+  # Skip if :billing metadata is set (billing tests manage their own plan data)
+  #
+  # prepend_before, NOT before. A config-level `before` normally runs ahead of
+  # every group-level hook, but only for groups that were DEFINED AFTER it was
+  # registered. This file is required by spec/integration/**, which rspec loads
+  # after apps/**, so in a merged run (rake spec:integration:full passes
+  # `apps/web/auth/spec/integration/full spec/integration/full
+  # spec/integration/all` to ONE process) every auth group is already defined
+  # by the time this hook exists — and RSpec then runs it AFTER those groups'
+  # own hooks. That flushed the datastore out from under any auth spec that
+  # builds fixtures in `let!` (tenant_sso_proxy_host_spec.rb,
+  # public_host_email_link_spec.rb), between the fixture write and the request:
+  # the CustomDomain lookup missed, DomainStrategy answered :invalid, and the
+  # examples failed as "tenant not resolved" with the fixture visibly present a
+  # hook earlier. Prepending pins it to the front regardless of load order,
+  # which is what "before each integration test" was always meant to mean.
+  config.prepend_before(:each, type: :integration) do |example|
+    next if example.metadata[:shared_db_state]
+    next if example.metadata[:billing]
+
+    if test_redis_port == 2163
+      begin
+        Familia.dbclient.flushdb
+      rescue StandardError => e
+        warn "Failed to clean test database: #{e.message}"
+        warn e.backtrace.join("\n") if ENV['ONETIME_DEBUG']
+      end
+    end
+  end
+
+  # NOTE: after(:each) cleanup is handled centrally in spec/spec_helper.rb
+  # to ensure ALL integration tests get cleanup regardless of which helper they load.
+end
+
+# CSRF Token Helper Module for Integration Tests
+#
+# Provides helpers for making POST/PUT/DELETE requests with CSRF tokens.
+# Auth routes require CSRF tokens (like all browser-facing routes).
+# These helpers establish a session, extract the CSRF token from the
+# X-CSRF-Token response header, and include it in subsequent requests.
+#
+# PITFALLS:
+# 1. Content-Type persistence: After JSON POST, Rack::Test keeps Content-Type
+#    header. Clear it before GET: `header 'Content-Type', nil`
+# 2. Session regeneration: Login/account-creation regenerate sessions, invalidating
+#    CSRF tokens. Fetch fresh token AFTER login completes.
+# 3. App memoization: Use `@app ||=` in def app - multiple generate_rack_url_map
+#    calls corrupt middleware state.
+#
+# Usage:
+#   include CsrfTestHelpers
+#
+#   it 'posts with csrf' do
+#     csrf_post '/auth/login', { login: 'test@example.com', password: 'secret' }
+#     expect(last_response.status).to eq(401)  # Invalid credentials, not 403 CSRF
+#   end
+#
+module CsrfTestHelpers
+  # Establish a session and retrieve CSRF token
+  #
+  # Makes a GET request to /auth to initialize a session and retrieve
+  # the CSRF token from the X-CSRF-Token response header.
+  #
+  # @return [String, nil] The CSRF token or nil if not present
+  def ensure_csrf_token
+    return @csrf_token if defined?(@csrf_token) && @csrf_token
+
+    # Clear Content-Type from previous POST (Rack::Parser chokes on nil body with JSON type)
+    header 'Content-Type', nil
+    header 'Accept', 'application/json'
+    get '/auth'
+    @csrf_token = last_response.headers['X-CSRF-Token']
+    @csrf_token
+  end
+
+  # Reset CSRF token (useful between test examples)
+  def reset_csrf_token
+    @csrf_token = nil
+  end
+
+  # POST with JSON content and CSRF token
+  #
+  # @param path [String] Request path
+  # @param params [Hash] Request parameters (will be JSON-encoded)
+  # @param headers [Hash] Additional headers
+  def csrf_post(path, params = {}, headers = {})
+    csrf_token = ensure_csrf_token
+
+    header 'Content-Type', 'application/json'
+    header 'Accept', 'application/json'
+    header 'X-CSRF-Token', csrf_token if csrf_token
+
+    # Include shrimp in body (mirrors frontend behavior)
+    post path, JSON.generate(params.merge(shrimp: csrf_token)), headers
+  end
+
+  # PUT with JSON content and CSRF token
+  #
+  # @param path [String] Request path
+  # @param params [Hash] Request parameters (will be JSON-encoded)
+  # @param headers [Hash] Additional headers
+  def csrf_put(path, params = {}, headers = {})
+    csrf_token = ensure_csrf_token
+
+    header 'Content-Type', 'application/json'
+    header 'Accept', 'application/json'
+    header 'X-CSRF-Token', csrf_token if csrf_token
+
+    put path, JSON.generate(params.merge(shrimp: csrf_token)), headers
+  end
+
+  # DELETE with CSRF token
+  #
+  # @param path [String] Request path
+  # @param params [Hash] Request parameters
+  # @param headers [Hash] Additional headers
+  def csrf_delete(path, params = {}, headers = {})
+    csrf_token = ensure_csrf_token
+
+    header 'Accept', 'application/json'
+    header 'X-CSRF-Token', csrf_token if csrf_token
+
+    delete path, params.merge(shrimp: csrf_token), headers
+  end
+end

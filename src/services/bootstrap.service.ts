@@ -1,0 +1,236 @@
+// src/services/bootstrap.service.ts
+
+import type { BootstrapPayload } from '@/schemas/contracts/bootstrap';
+import { loggingService } from '@/services/logging.service';
+import { debugLog } from '@/utils/debug';
+
+/**
+ * Bootstrap Service - Pre-Pinia State Access
+ *
+ * This service provides access to server-injected window state BEFORE Pinia
+ * is installed. It is used by early-initialization code that runs before
+ * the Vue app and Pinia are fully set up.
+ *
+ * Lifecycle:
+ * 1. Server injects state into window.__BOOTSTRAP_ME__
+ * 2. consumeBootstrapData() reads and deletes it (prevents memory leaks)
+ * 3. getBootstrapValue() provides key access during initialization
+ * 4. bootstrapStore.init() hydrates from getBootstrapSnapshot()
+ * 5. After init, all access goes through bootstrapStore
+ *
+ * Consumers (pre-Pinia):
+ * - i18n.ts (lines 141-145): locale, supported_locales, fallback_locale
+ * - appInitializer.ts (lines 43-46): diagnostics, d9s_enabled, display_domain
+ */
+
+const BOOTSTRAP_KEY = '__BOOTSTRAP_ME__' as const;
+
+// Internal storage after consumption
+let bootstrapSnapshot: Partial<BootstrapPayload> | null = null;
+let consumed = false;
+
+/**
+ * Reads window.__BOOTSTRAP_ME__, stores it internally, and replaces
+ * the window property with a `true` marker to signal consumption.
+ *
+ * This function should be called once during app initialization, before
+ * Pinia is installed but after the DOM is ready.
+ *
+ * @returns The bootstrap data snapshot, or null if already consumed or unavailable
+ */
+export function consumeBootstrapData(): Partial<BootstrapPayload> | null {
+  if (consumed) {
+    loggingService.debug('[BootstrapService] Data already consumed');
+    return bootstrapSnapshot;
+  }
+
+  if (typeof window === 'undefined') {
+    loggingService.debug('[BootstrapService] Window not defined (SSR?)');
+    consumed = true;
+    return null;
+  }
+
+  const windowWithState = window as Window & { [BOOTSTRAP_KEY]?: BootstrapPayload };
+  const state = windowWithState[BOOTSTRAP_KEY];
+
+  if (!state) {
+    loggingService.debug('[BootstrapService] No bootstrap state found on window');
+    consumed = true;
+    return null;
+  }
+
+  // Store snapshot and replace with marker (true = consumed successfully)
+  // This allows memory to be reclaimed while preserving a testable marker
+  const snapshot: Partial<BootstrapPayload> = { ...state };
+  bootstrapSnapshot = snapshot;
+  (window as unknown as Record<string, unknown>)[BOOTSTRAP_KEY] = true;
+  consumed = true;
+
+  loggingService.debug('[BootstrapService] Consumed bootstrap data', {
+    authenticated: snapshot.authenticated,
+    locale: snapshot.locale,
+    keysCount: Object.keys(snapshot).length,
+  });
+
+  return snapshot;
+}
+
+/**
+ * Gets a single value from bootstrap state.
+ * Works both before and after consumption.
+ *
+ * Pre-consumption: reads from window.__BOOTSTRAP_ME__
+ * Post-consumption: reads from internal snapshot
+ *
+ * @param key - The BootstrapPayload property to retrieve
+ * @returns The value or undefined if not found
+ */
+export function getBootstrapValue<K extends keyof BootstrapPayload>(
+  key: K
+): BootstrapPayload[K] | undefined {
+  // If already consumed, use snapshot
+  if (consumed && bootstrapSnapshot) {
+    const value = bootstrapSnapshot[key] as BootstrapPayload[K] | undefined;
+    debugLog.features('BootstrapService.getBootstrapValue', { source: 'snapshot', key, value });
+    return value;
+  }
+
+  // Pre-consumption: read directly from window
+  if (typeof window !== 'undefined') {
+    const windowWithState = window as Window & { [BOOTSTRAP_KEY]?: BootstrapPayload };
+    const state = windowWithState[BOOTSTRAP_KEY];
+    if (state) {
+      const value = state[key];
+      debugLog.features('BootstrapService.getBootstrapValue', { source: 'window', key, value });
+      return value;
+    }
+  }
+
+  debugLog.features('BootstrapService.getBootstrapValue', { source: 'not-found', key, consumed, hasSnapshot: !!bootstrapSnapshot });
+  return undefined;
+}
+
+/**
+ * Gets the full bootstrap snapshot for Pinia store hydration.
+ * Call this during bootstrapStore.init() to get all values at once.
+ *
+ * If data hasn't been consumed yet, this will consume it first.
+ *
+ * @returns The full bootstrap data snapshot, or null if unavailable
+ */
+export function getBootstrapSnapshot(): Partial<BootstrapPayload> | null {
+  if (!consumed) {
+    return consumeBootstrapData();
+  }
+  return bootstrapSnapshot;
+}
+
+/**
+ * Merges new values into the bootstrap snapshot.
+ * Called by bootstrapStore.update() so non-Pinia readers (features.ts:
+ * hasPassword, isSsoOnlyMode, etc.) see fresh values after auth state
+ * mutations like login or password change. Without this, those readers
+ * stay pinned to the values that were on window.__BOOTSTRAP_ME__ at
+ * page load and account-settings tabs go stale until full reload.
+ *
+ * If called before consumeBootstrapData(), the window state is consumed
+ * first so the merge layers on top of server-injected values rather than
+ * shadowing them with an empty snapshot.
+ *
+ * Undefined values are skipped to match update() semantics in bootstrapStore.
+ */
+export function updateBootstrapSnapshot(data: Partial<BootstrapPayload>): void {
+  // Consume window state first so we don't lock out server-injected values
+  // by flipping `consumed` to true with an empty snapshot.
+  if (!consumed) {
+    consumeBootstrapData();
+  }
+  if (!bootstrapSnapshot) {
+    bootstrapSnapshot = {};
+  }
+  const target = bootstrapSnapshot as Record<string, unknown>;
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      target[key] = value;
+    }
+  }
+}
+
+/**
+ * Replaces the bootstrap snapshot with a complete one (#4458).
+ *
+ * `updateBootstrapSnapshot` merges, and a merge cannot express omission: a
+ * key the new snapshot leaves out keeps its previous value. That is wrong for
+ * a COMPLETE snapshot — after an account change or a loss of authority the
+ * previous account's fields must not stay readable through
+ * `getBootstrapValue()`. bootstrapStore.applySnapshot() calls this so the
+ * mirror and the store are replaced in the same step.
+ *
+ * Undefined values are dropped so `key in snapshot` stays honest.
+ */
+export function replaceBootstrapSnapshot(data: Partial<BootstrapPayload>): void {
+  const next: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      next[key] = value;
+    }
+  }
+  bootstrapSnapshot = next as Partial<BootstrapPayload>;
+  consumed = true;
+}
+
+/**
+ * Removes a key from the bootstrap snapshot entirely.
+ *
+ * `updateBootstrapSnapshot` deliberately SKIPS undefined values, so it can
+ * never express "this field went away". That is the right default for the
+ * config fields it was written for, but it is wrong for fields whose ABSENCE
+ * is the signal — `diagnostics_ref` is absent for anonymous sessions, and a
+ * merge that ignores undefined would leave the previous reference readable by
+ * `getBootstrapValue('diagnostics_ref')` after logout or an account change.
+ *
+ * Deleting rather than assigning undefined keeps `key in snapshot` honest for
+ * callers that probe for presence.
+ *
+ * @param key - The BootstrapPayload key to remove from the snapshot.
+ */
+export function clearBootstrapSnapshotKey(key: keyof BootstrapPayload): void {
+  if (!bootstrapSnapshot) {
+    return;
+  }
+  delete (bootstrapSnapshot as Record<string, unknown>)[key as string];
+}
+
+/**
+ * Checks if bootstrap data has been consumed.
+ * Useful for debugging and conditional initialization logic.
+ */
+export function isBootstrapConsumed(): boolean {
+  return consumed;
+}
+
+/**
+ * Resets the bootstrap service state.
+ * Only for use in tests to allow re-consumption.
+ *
+ * @internal
+ */
+export function _resetForTesting(): void {
+  bootstrapSnapshot = null;
+  consumed = false;
+}
+
+/**
+ * Bootstrap Service object for organized access.
+ * Provides the same functions as named exports in an object form.
+ */
+export const BootstrapService = {
+  consume: consumeBootstrapData,
+  get: getBootstrapValue,
+  getSnapshot: getBootstrapSnapshot,
+  updateSnapshot: updateBootstrapSnapshot,
+  replaceSnapshot: replaceBootstrapSnapshot,
+  clearSnapshotKey: clearBootstrapSnapshotKey,
+  isConsumed: isBootstrapConsumed,
+  _resetForTesting,
+};

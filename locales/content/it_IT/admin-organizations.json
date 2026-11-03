@@ -1,0 +1,758 @@
+{
+  "web.admin.organizations.retry": {
+    "text": "Riprova",
+    "source_hash": "942087cc"
+  },
+  "web.admin.organizations.detail.backToList": {
+    "text": "Torna alle organizzazioni",
+    "source_hash": "2257dc4a"
+  },
+  "web.admin.organizations.detail.notFound": {
+    "text": "Organizzazione non trovata",
+    "source_hash": "00c50f7a"
+  },
+  "web.admin.organizations.detail.notFoundDescription": {
+    "text": "Questa organizzazione potrebbe essere stata eliminata, oppure l'id è errato.",
+    "source_hash": "e5459ef5"
+  },
+  "web.admin.organizations.detail.loadError": {
+    "text": "Impossibile caricare questa organizzazione.",
+    "source_hash": "9df8ad50"
+  },
+  "web.admin.organizations.detail.none": {
+    "text": "—",
+    "source_hash": "bda05058"
+  },
+  "web.admin.organizations.detail.badges.default": {
+    "text": "Area di lavoro predefinita",
+    "source_hash": "6d67c6eb"
+  },
+  "web.admin.organizations.detail.badges.archived": {
+    "text": "Archiviata",
+    "source_hash": "bdb86505"
+  },
+  "web.admin.organizations.detail.domains.domain": {
+    "text": "Dominio",
+    "source_hash": "79fa3361"
+  },
+  "web.admin.organizations.detail.domains.state": {
+    "text": "Stato",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.organizations.detail.domains.created": {
+    "text": "Creato",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.organizations.detail.domains.ready": {
+    "text": "Pronto",
+    "source_hash": "5fa7aac5"
+  },
+  "web.admin.organizations.detail.domains.resolving": {
+    "text": "Risoluzione in corso",
+    "source_hash": "3287a034"
+  },
+  "web.admin.organizations.detail.domains.empty": {
+    "text": "Nessun dominio.",
+    "source_hash": "1b840c7e"
+  },
+  "web.admin.organizations.detail.entitlements.description": {
+    "text": "I diritti effettivi si risolvono in (piano ∪ concessioni) − revoche. Esamina il dettaglio prima di applicare un override.",
+    "source_hash": "23080475"
+  },
+  "web.admin.organizations.detail.entitlements.inSync": {
+    "text": "Sincronizzato",
+    "source_hash": "5701958c"
+  },
+  "web.admin.organizations.detail.entitlements.driftBadge": {
+    "text": "Scostamento",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.organizations.detail.entitlements.staleBadge": {
+    "text": "Piano obsoleto",
+    "source_hash": "ffe63800"
+  },
+  "web.admin.organizations.detail.entitlements.driftWarning": {
+    "text": "I diritti materializzati non corrispondono all'insieme previsto. Riconcilia per rimaterializzare.",
+    "source_hash": "4859983a"
+  },
+  "web.admin.organizations.detail.entitlements.driftExtra": {
+    "text": "In eccesso (materializzati, non previsti)",
+    "source_hash": "08d60730"
+  },
+  "web.admin.organizations.detail.entitlements.driftMissing": {
+    "text": "Mancanti (previsti, non materializzati)",
+    "source_hash": "fe12c83a"
+  },
+  "web.admin.organizations.detail.entitlements.plan": {
+    "text": "Dal piano",
+    "source_hash": "1d346b26"
+  },
+  "web.admin.organizations.detail.entitlements.materialized": {
+    "text": "Materializzati (effettivi)",
+    "source_hash": "72ca5f45"
+  },
+  "web.admin.organizations.detail.members.email": {
+    "text": "Membro",
+    "source_hash": "7c968fb7"
+  },
+  "web.admin.organizations.detail.members.role": {
+    "text": "Ruolo",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.organizations.detail.members.status": {
+    "text": "Stato",
+    "source_hash": "920e413c"
+  },
+  "web.admin.organizations.detail.members.joined": {
+    "text": "Iscritto il",
+    "source_hash": "69318b0c"
+  },
+  "web.admin.organizations.detail.members.owner": {
+    "text": "Proprietario",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.empty": {
+    "text": "Nessun membro.",
+    "source_hash": "b99c59dc"
+  },
+  "web.admin.organizations.detail.reconcile.button": {
+    "text": "Riconcilia",
+    "source_hash": "b59be565"
+  },
+  "web.admin.organizations.detail.reconcile.confirmTitle": {
+    "text": "Riconciliare la fatturazione dell'organizzazione?",
+    "source_hash": "fc1a2762"
+  },
+  "web.admin.organizations.detail.reconcile.confirmDescription": {
+    "text": "Questo recupera nuovamente i dati da Stripe e riscrive lo stato di fatturazione e i diritti per {org}. Ridigita l'id dell'organizzazione per confermare.",
+    "source_hash": "b4ef0850"
+  },
+  "web.admin.organizations.detail.reconcile.success": {
+    "text": "Organizzazione riconciliata.",
+    "source_hash": "caf87844"
+  },
+  "web.admin.organizations.detail.reconcile.resultTitle": {
+    "text": "Risultato della riconciliazione",
+    "source_hash": "11f4c6b8"
+  },
+  "web.admin.organizations.detail.reconcile.before": {
+    "text": "Prima",
+    "source_hash": "9bb72500"
+  },
+  "web.admin.organizations.detail.reconcile.after": {
+    "text": "Dopo",
+    "source_hash": "7b68fe55"
+  },
+  "web.admin.organizations.detail.reconcile.materializedCount": {
+    "text": "Numero di diritti",
+    "source_hash": "59cede5c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.stripe_sync": {
+    "text": "Sincronizzazione Stripe",
+    "source_hash": "02f9546c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.entitlements_only": {
+    "text": "Solo diritti",
+    "source_hash": "8cf49a5d"
+  },
+  "web.admin.organizations.detail.sections.billing": {
+    "text": "Fatturazione",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.organizations.detail.sections.members": {
+    "text": "Membri",
+    "source_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.sections.domains": {
+    "text": "Domini",
+    "source_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.sections.investigate": {
+    "text": "Indaga e riconcilia",
+    "source_hash": "b05aa349"
+  },
+  "web.admin.organizations.entitlements.section": {
+    "text": "Override dei diritti",
+    "source_hash": "48812068"
+  },
+  "web.admin.organizations.entitlements.description": {
+    "text": "Concedi o revoca diritti indipendentemente dal piano. Effettivi = diritti del piano + concessioni - revoche.",
+    "source_hash": "4c38425b"
+  },
+  "web.admin.organizations.entitlements.inputLabel": {
+    "text": "Diritto",
+    "source_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.placeholder": {
+    "text": "es. custom_domains",
+    "source_hash": "05346c68"
+  },
+  "web.admin.organizations.entitlements.grant": {
+    "text": "Concedi",
+    "source_hash": "78b7d037"
+  },
+  "web.admin.organizations.entitlements.revoke": {
+    "text": "Revoca",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.organizations.entitlements.clear": {
+    "text": "Cancella tutti gli override",
+    "source_hash": "f0e485c3"
+  },
+  "web.admin.organizations.entitlements.effective": {
+    "text": "Diritti effettivi",
+    "source_hash": "b840f8c8"
+  },
+  "web.admin.organizations.entitlements.grants": {
+    "text": "Concessioni",
+    "source_hash": "b3e1c95a"
+  },
+  "web.admin.organizations.entitlements.revokes": {
+    "text": "Revoche",
+    "source_hash": "f0e69b17"
+  },
+  "web.admin.organizations.entitlements.noOverrides": {
+    "text": "Esegui un'azione per visualizzare lo stato attuale degli override di questa organizzazione.",
+    "source_hash": "98d2e30d"
+  },
+  "web.admin.organizations.entitlements.confirm.grantTitle": {
+    "text": "Concedere il diritto?",
+    "source_hash": "a4b2c57b"
+  },
+  "web.admin.organizations.entitlements.confirm.grantDescription": {
+    "text": "Concedi “{entitlement}” a {org}. Questo modifica i diritti di fatturazione dell'organizzazione.",
+    "source_hash": "542ce26a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeTitle": {
+    "text": "Revocare il diritto?",
+    "source_hash": "c93d520a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeDescription": {
+    "text": "Revoca “{entitlement}” a {org}. Questo modifica i diritti di fatturazione dell'organizzazione.",
+    "source_hash": "a5d2a8a6"
+  },
+  "web.admin.organizations.entitlements.confirm.clearTitle": {
+    "text": "Cancellare tutti gli override dei diritti?",
+    "source_hash": "e36eb218"
+  },
+  "web.admin.organizations.entitlements.confirm.clearDescription": {
+    "text": "Rimuovi ogni override di concessione e revoca per {org}, riportandola ai diritti del suo piano.",
+    "source_hash": "96bad079"
+  },
+  "web.admin.organizations.entitlements.success.granted": {
+    "text": "Diritto “{entitlement}” concesso.",
+    "source_hash": "cf52fb0e"
+  },
+  "web.admin.organizations.entitlements.success.revoked": {
+    "text": "Diritto “{entitlement}” revocato.",
+    "source_hash": "279d425d"
+  },
+  "web.admin.organizations.entitlements.success.cleared": {
+    "text": "Tutti gli override dei diritti sono stati cancellati.",
+    "source_hash": "a482743b"
+  },
+  "web.admin.organizations.fields.contactEmail": {
+    "text": "Email di contatto",
+    "source_hash": "6d7fce11"
+  },
+  "web.admin.organizations.fields.owner": {
+    "text": "Proprietario",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.fields.plan": {
+    "text": "Piano",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.fields.subscription": {
+    "text": "Stato dell'abbonamento",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.organizations.fields.periodEnd": {
+    "text": "Fine del periodo",
+    "source_hash": "eeae9fdd"
+  },
+  "web.admin.organizations.fields.billingEmail": {
+    "text": "Email di fatturazione",
+    "source_hash": "8805b928"
+  },
+  "web.admin.organizations.fields.stripeCustomer": {
+    "text": "Cliente Stripe",
+    "source_hash": "8f169be1"
+  },
+  "web.admin.organizations.fields.stripeSubscription": {
+    "text": "Abbonamento Stripe",
+    "source_hash": "53f71e08"
+  },
+  "web.admin.organizations.fields.orgId": {
+    "text": "ID organizzazione",
+    "source_hash": "1f466322"
+  },
+  "web.admin.organizations.fields.created": {
+    "text": "Creato",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.organizations.fields.updated": {
+    "text": "Aggiornato",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.organizations.investigate.description": {
+    "text": "Confronta lo stato di fatturazione locale con l'abbonamento Stripe attivo.",
+    "source_hash": "d7bbe9ed"
+  },
+  "web.admin.organizations.investigate.rawPayload": {
+    "text": "Payload grezzo dell'indagine",
+    "source_hash": "29ca7df2"
+  },
+  "web.admin.organizations.investigate.parseError": {
+    "text": "La risposta dell'indagine non corrisponde al formato previsto.",
+    "source_hash": "db59cab1"
+  },
+  "web.admin.organizations.list.loadError": {
+    "text": "Impossibile caricare le organizzazioni.",
+    "source_hash": "130d5e70"
+  },
+  "web.admin.organizations.addMember.button": {
+    "text": "Aggiungi un account esistente",
+    "source_hash": "45a3b757"
+  },
+  "web.admin.organizations.addMember.title": {
+    "text": "Aggiungi un account esistente",
+    "source_hash": "2f676a94"
+  },
+  "web.admin.organizations.addMember.description": {
+    "text": "Aggiungi a {org} una persona che ha già un account. Usa questa opzione quando una persona si è registrata autonomamente e non può essere invitata perché l'account esiste già.",
+    "source_hash": "bb41faa6"
+  },
+  "web.admin.organizations.addMember.searchLabel": {
+    "text": "Indirizzo email o ID account",
+    "source_hash": "82b3040b"
+  },
+  "web.admin.organizations.addMember.searchPlaceholder": {
+    "text": "Cerca per indirizzo email",
+    "source_hash": "b75cc66c"
+  },
+  "web.admin.organizations.addMember.searchHint": {
+    "text": "Corrisponde a una parte di un indirizzo email o a un ID account esatto.",
+    "source_hash": "84547a60"
+  },
+  "web.admin.organizations.addMember.searchError": {
+    "text": "Impossibile cercare tra gli account. Controlla la connessione e riprova.",
+    "source_hash": "4b6caa41"
+  },
+  "web.admin.organizations.addMember.searchParseError": {
+    "text": "La ricerca degli account ha restituito una risposta imprevista. I risultati potrebbero essere incompleti.",
+    "source_hash": "0c814231"
+  },
+  "web.admin.organizations.addMember.idle": {
+    "text": "Inserisci un indirizzo email per trovare l'account.",
+    "source_hash": "f6340d35"
+  },
+  "web.admin.organizations.addMember.noResults": {
+    "text": "Nessun account corrisponde a “{term}”.",
+    "source_hash": "199b662a"
+  },
+  "web.admin.organizations.addMember.noResultsHint": {
+    "text": "Qui puoi aggiungere solo account esistenti. Se la persona non si è mai registrata, invitala invece.",
+    "source_hash": "ee90aeeb"
+  },
+  "web.admin.organizations.addMember.select": {
+    "text": "Seleziona",
+    "source_hash": "2a78025d"
+  },
+  "web.admin.organizations.addMember.selectedEyebrow": {
+    "text": "Account selezionato",
+    "source_hash": "8b63d947"
+  },
+  "web.admin.organizations.addMember.change": {
+    "text": "Scegli un altro account",
+    "source_hash": "d4fe39ab"
+  },
+  "web.admin.organizations.addMember.createdOn": {
+    "text": "Registrato il {date}",
+    "source_hash": "cfc0e19f"
+  },
+  "web.admin.organizations.addMember.organizationsUnavailable": {
+    "text": "Impossibile caricare le organizzazioni attuali di questo account.",
+    "source_hash": "a35b6bfc"
+  },
+  "web.admin.organizations.addMember.defaultOrg": {
+    "text": "predefinita",
+    "source_hash": "37a8eec1"
+  },
+  "web.admin.organizations.addMember.roleLabel": {
+    "text": "Ruolo in questa organizzazione",
+    "source_hash": "817475fa"
+  },
+  "web.admin.organizations.addMember.submit": {
+    "text": "Aggiungi all'organizzazione",
+    "source_hash": "0e0cb636"
+  },
+  "web.admin.organizations.addMember.success": {
+    "text": "{account} aggiunto come {role}.",
+    "source_hash": "533be0dc"
+  },
+  "web.admin.organizations.addMember.badges.verified": {
+    "text": "Verificato",
+    "source_hash": "4f783840"
+  },
+  "web.admin.organizations.addMember.badges.unverified": {
+    "text": "Non verificato",
+    "source_hash": "15133907"
+  },
+  "web.admin.organizations.addMember.badges.suspended": {
+    "text": "Sospeso",
+    "source_hash": "e392a389"
+  },
+  "web.admin.organizations.addMember.badges.alreadyMember": {
+    "text": "Già membro",
+    "source_hash": "1739ed7c"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMember": {
+    "text": "Questo account è già membro di questa organizzazione, con il ruolo {role}. L'aggiunta non modifica un ruolo esistente: per farlo usa l'azione di impostazione del ruolo.",
+    "source_hash": "cb6a4774"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMemberUnknownRole": {
+    "text": "Questo account è già membro di questa organizzazione. L'aggiunta non modifica un ruolo esistente.",
+    "source_hash": "035641ec"
+  },
+  "web.admin.organizations.addMember.errors.notFound": {
+    "text": "Quell'account o quell'organizzazione non esistono più. Ripeti la ricerca per confermare l'account.",
+    "source_hash": "bd88db18"
+  },
+  "web.admin.organizations.addMember.errors.invalidRole": {
+    "text": "Quel ruolo è stato rifiutato. Scegli uno dei ruoli elencati e riprova.",
+    "source_hash": "eb696a8f"
+  },
+  "web.admin.organizations.addMember.errors.noSelection": {
+    "text": "Nessun account selezionato.",
+    "source_hash": "dd15bb5b"
+  },
+  "web.admin.organizations.addMember.fields.created": {
+    "text": "Registrato",
+    "source_hash": "486b3fe0"
+  },
+  "web.admin.organizations.addMember.fields.verified": {
+    "text": "Verifica",
+    "source_hash": "7140f4f1"
+  },
+  "web.admin.organizations.addMember.fields.lastLogin": {
+    "text": "Ultimo accesso",
+    "source_hash": "0b70af7a"
+  },
+  "web.admin.organizations.addMember.fields.organizations": {
+    "text": "Organizzazioni attuali",
+    "source_hash": "cbb5b92f"
+  },
+  "web.admin.organizations.addMember.roleHints.member": {
+    "text": "Accesso quotidiano ai segreti e ai domini dell'organizzazione.",
+    "source_hash": "d0c7439e"
+  },
+  "web.admin.organizations.addMember.roleHints.admin": {
+    "text": "Può gestire membri, domini e impostazioni dell'organizzazione.",
+    "source_hash": "beaa50d7"
+  },
+  "web.admin.organizations.addMember.roleHints.owner": {
+    "text": "Controllo completo, inclusa la fatturazione. Concedilo solo su richiesta.",
+    "source_hash": "614ace63"
+  },
+  "web.admin.organizations.addMember.roles.member": {
+    "text": "Membro",
+    "source_hash": "7c968fb7"
+  },
+  "web.admin.organizations.addMember.roles.admin": {
+    "text": "Amministratore",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.organizations.addMember.roles.owner": {
+    "text": "Proprietario",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.openCustomer": {
+    "text": "Apri il record del cliente",
+    "source_hash": "c057ca13"
+  },
+  "web.admin.organizations.detail.reconcile.memberships": {
+    "text": "Iscrizioni rimaterializzate:",
+    "source_hash": "fe7db10c"
+  },
+  "web.admin.organizations.detail.reconcile.membershipsFailed": {
+    "text": "non riuscite, restano diritti obsoleti:",
+    "source_hash": "cc4dae37"
+  },
+  "web.admin.organizations.entitlements.catalogWarning": {
+    "text": "“{entitlement}” non è presente nel catalogo di fatturazione: verifica che non ci siano errori di battitura. L'operazione prosegue comunque: concedere un diritto incluso in un catalogo successivo è supportato e volutamente non bloccato.",
+    "source_hash": "cbde548a"
+  },
+  "web.admin.organizations.entitlements.matrix.caption": {
+    "text": "Matrice di risoluzione dei diritti: piano, concessioni e revoche di override, insieme risolto e ciò che è materializzato.",
+    "source_hash": "9eac8999"
+  },
+  "web.admin.organizations.entitlements.matrix.yes": {
+    "text": "Sì",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.matrix.no": {
+    "text": "No",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.matrix.empty": {
+    "text": "Questa organizzazione non ha diritti derivanti dal suo piano né override.",
+    "source_hash": "f6cf2169"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.entitlement": {
+    "text": "Diritto",
+    "source_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.inPlan": {
+    "text": "Nel piano",
+    "source_hash": "e2222361"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.granted": {
+    "text": "Concesso",
+    "source_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.revoked": {
+    "text": "Revocato",
+    "source_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.expected": {
+    "text": "Previsto",
+    "source_hash": "ca99b7f1"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.materialized": {
+    "text": "Materializzato",
+    "source_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.state": {
+    "text": "Stato",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.formula": {
+    "text": "Risoluzione: previsto = (piano ∪ concessioni) − revoche. Materializzato è ciò che è effettivamente memorizzato nell'organizzazione.",
+    "source_hash": "bc4bff2d"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.orphaned": {
+    "text": "Orfano: materializzato ma non previsto, di solito lasciato da una revoca mai rimaterializzata. La riconciliazione lo rimuove.",
+    "source_hash": "3a27a9af"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.missing": {
+    "text": "Mancante: previsto ma non materializzato. È l'autorizzazione che in questo momento manca davvero ai membri.",
+    "source_hash": "485e44ad"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.revoked": {
+    "text": "Le righe barrate sono revocate da un override amministrativo, che le rimuove dall'insieme previsto.",
+    "source_hash": "89a2e9b6"
+  },
+  "web.admin.organizations.entitlements.matrix.state.plan": {
+    "text": "Dal piano",
+    "source_hash": "1d346b26"
+  },
+  "web.admin.organizations.entitlements.matrix.state.granted": {
+    "text": "Concesso",
+    "source_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.state.revoked": {
+    "text": "Revocato",
+    "source_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.state.orphaned": {
+    "text": "Orfano",
+    "source_hash": "8d827807"
+  },
+  "web.admin.organizations.entitlements.matrix.state.missing": {
+    "text": "Mancante",
+    "source_hash": "6be36ca4"
+  },
+  "web.admin.organizations.entitlements.picker.selectPlaceholder": {
+    "text": "Seleziona un diritto…",
+    "source_hash": "53af3be8"
+  },
+  "web.admin.organizations.entitlements.picker.other": {
+    "text": "Altro: non presente nel catalogo…",
+    "source_hash": "f08bc3a3"
+  },
+  "web.admin.organizations.entitlements.picker.customLabel": {
+    "text": "Nome del diritto (non presente nel catalogo)",
+    "source_hash": "52783229"
+  },
+  "web.admin.organizations.entitlements.picker.backToCatalog": {
+    "text": "Torna al catalogo",
+    "source_hash": "9b727f40"
+  },
+  "web.admin.organizations.entitlements.picker.uncategorized": {
+    "text": "Senza categoria",
+    "source_hash": "8d40d123"
+  },
+  "web.admin.organizations.entitlements.picker.catalogUnavailable": {
+    "text": "Non è stato possibile leggere il catalogo di fatturazione, quindi qui i nomi dei diritti non vengono verificati.",
+    "source_hash": "724869ec"
+  },
+  "web.admin.organizations.entitlements.picker.tags.inPlan": {
+    "text": "nel piano",
+    "source_hash": "5f2251bb"
+  },
+  "web.admin.organizations.entitlements.picker.tags.granted": {
+    "text": "concesso",
+    "source_hash": "dd515d19"
+  },
+  "web.admin.organizations.entitlements.picker.tags.revoked": {
+    "text": "revocato",
+    "source_hash": "4bb47f18"
+  },
+  "web.admin.organizations.entitlements.summary.sync": {
+    "text": "Sincronizzazione",
+    "source_hash": "8d261a37"
+  },
+  "web.admin.organizations.entitlements.summary.materialized": {
+    "text": "Materializzato",
+    "source_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.summary.materializedAt": {
+    "text": "Ultima materializzazione",
+    "source_hash": "9325dce9"
+  },
+  "web.admin.organizations.entitlements.summary.planDefinition": {
+    "text": "Definizione del piano",
+    "source_hash": "6b531454"
+  },
+  "web.admin.organizations.entitlements.summary.yes": {
+    "text": "Sì",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.summary.no": {
+    "text": "No",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.summary.never": {
+    "text": "Mai",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.organizations.entitlements.summary.planStale": {
+    "text": "Modificata dopo la materializzazione",
+    "source_hash": "e682d8a4"
+  },
+  "web.admin.organizations.entitlements.summary.planCurrent": {
+    "text": "Aggiornata",
+    "source_hash": "e0d1b682"
+  },
+  "web.admin.organizations.entitlements.summary.planUnknown": {
+    "text": "Sconosciuta: confronto non riuscito",
+    "source_hash": "b607e540"
+  },
+  "web.admin.organizations.actions.plan.label": {
+    "text": "Piano",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.actions.plan.apply": {
+    "text": "Applica",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.organizations.actions.plan.confirmTitle": {
+    "text": "Cambiare piano?",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.organizations.actions.plan.confirmDescription": {
+    "text": "Cambia {org} al piano {plan}.",
+    "source_hash": "aecf8277"
+  },
+  "web.admin.organizations.actions.plan.success": {
+    "text": "Piano aggiornato.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.organizations.actions.plan.problem": {
+    "text": "Piano salvato, ma i diritti non sono stati aggiornati. Esegui la riconciliazione su questa organizzazione.",
+    "source_hash": "2addb095"
+  },
+  "web.admin.organizations.actions.plan.localConfigWarning": {
+    "text": "Piani caricati dalla configurazione locale: Stripe non è configurato o non è raggiungibile.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.organizations.detail.delete.button": {
+    "text": "Elimina organizzazione",
+    "source_hash": "a70d189a"
+  },
+  "web.admin.organizations.detail.delete.previewing": {
+    "text": "Caricamento del piano di eliminazione…",
+    "source_hash": "c9773eb9"
+  },
+  "web.admin.organizations.detail.delete.warning": {
+    "text": "Elimina definitivamente l'organizzazione, le sue iscrizioni e i suoi inviti in sospeso, e invia un'email agli ex membri. L'operazione non può essere annullata.",
+    "source_hash": "fd314131"
+  },
+  "web.admin.organizations.detail.delete.confirmTitle": {
+    "text": "Eliminare questa organizzazione?",
+    "source_hash": "6a3bba0f"
+  },
+  "web.admin.organizations.detail.delete.confirmDescription": {
+    "text": "Questo elimina definitivamente {org}. Ridigita l'id dell'organizzazione per confermare.",
+    "source_hash": "c63a0221"
+  },
+  "web.admin.organizations.detail.delete.membersLabel": {
+    "text": "Membri",
+    "source_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.delete.invitationsLabel": {
+    "text": "Inviti in sospeso",
+    "source_hash": "76198e63"
+  },
+  "web.admin.organizations.detail.delete.domainsLabel": {
+    "text": "Domini",
+    "source_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.delete.defaultOrgLabel": {
+    "text": "Rimuove l'area di lavoro predefinita per",
+    "source_hash": "d535ac2a"
+  },
+  "web.admin.organizations.detail.delete.forceDefault": {
+    "text": "Questa è l'area di lavoro predefinita (personale) del proprietario. Eliminala comunque.",
+    "source_hash": "1a8b0f7d"
+  },
+  "web.admin.organizations.detail.delete.forceSubscription": {
+    "text": "L'abbonamento è attivo. Elimina comunque: questo non annulla la fatturazione Stripe.",
+    "source_hash": "51cb3456"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsLabel": {
+    "text": "Domini con scostamento",
+    "source_hash": "fef96f49"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsRepair": {
+    "text": "Ripara con: bin/ots domains doctor --all --repair",
+    "source_hash": "14c9c59f"
+  },
+  "web.admin.organizations.detail.delete.success": {
+    "text": "Organizzazione {org} eliminata.",
+    "source_hash": "9cdda5d0"
+  },
+  "web.admin.organizations.detail.delete.blocked.hasDomains": {
+    "text": "Bloccato: rimuovi prima i domini personalizzati ({domains}).",
+    "source_hash": "dc3248b2"
+  },
+  "web.admin.organizations.detail.delete.blocked.driftedDomains": {
+    "text": "Bloccato: questi record di dominio fanno ancora riferimento a questa organizzazione ma mancano dal suo elenco di domini ({domains}). Esegui prima bin/ots domains doctor --all --repair: non è previsto alcun override.",
+    "source_hash": "3136496c"
+  },
+  "web.admin.organizations.detail.delete.blocked.isDefault": {
+    "text": "Bloccato: questa è l'area di lavoro predefinita del proprietario. Seleziona l'override qui sotto per eliminarla comunque.",
+    "source_hash": "09d5baa4"
+  },
+  "web.admin.organizations.detail.delete.blocked.activeSubscription": {
+    "text": "Bloccato: l'organizzazione ha un abbonamento attivo. Annullalo prima in Stripe oppure seleziona l'override qui sotto.",
+    "source_hash": "68663641"
+  },
+  "web.admin.organizations.detail.delete.blocked.lastOrg": {
+    "text": "Bloccato: questa è l'unica organizzazione a cui appartiene {owner} ed eliminarla lascerebbe l'utente senza alcuna area di lavoro. Non è previsto alcun override: crea prima un'organizzazione sostitutiva.",
+    "source_hash": "f09b4f9a"
+  },
+  "web.admin.organizations.detail.delete.errors.planUnreadable": {
+    "text": "Impossibile leggere il piano di eliminazione dal server. Non è stato eliminato nulla.",
+    "source_hash": "91406cbb"
+  },
+  "web.admin.organizations.detail.delete.errors.unverified": {
+    "text": "Non è stato possibile verificare la risposta del server. Ricarica l'elenco delle organizzazioni per controllare se l'eliminazione è stata completata.",
+    "source_hash": "7a261fb0"
+  },
+  "web.admin.organizations.detail.delete.errors.notApplied": {
+    "text": "Il server ha restituito un'anteprima, non un'eliminazione. Non è stato eliminato nulla.",
+    "source_hash": "9d84971d"
+  }
+}

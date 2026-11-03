@@ -1,0 +1,308 @@
+// e2e/full/domain-context-consultant.spec.ts
+
+import { test, expect } from '@playwright/test';
+
+/**
+ * E2E Test: Domain Context Consultant Workflow
+ *
+ * This test validates the domain context feature for users with multiple custom domains.
+ * It tests the consultant workflow where a user needs to switch between different
+ * client domains when creating secrets.
+ *
+ * ## Prerequisites
+ * - Application running (dev server or production)
+ * - Test user account with custom domains configured
+ * - Redis running
+ *
+ * ## Test Scenario
+ * A consultant with multiple client domains (e.g., acme.example.com, widgets.example.com)
+ * needs to create secrets for different clients. They should be able to:
+ * 1. See a domain context indicator in the secret form
+ * 2. Verify the current context shows the correct domain
+ * 3. Create a secret and verify it uses the correct domain context
+ *
+ * ## Setup Instructions
+ *
+ * To run this test, you need a user with custom domains. You can:
+ *
+ * 1. **Option A: Use test fixtures** (recommended for CI)
+ *    - Configure test data in your backend test setup
+ *    - Mocking window.__BOOTSTRAP_ME__ does not work: the SPA reads it once
+ *      at boot and replaces it with `true` (src/services/bootstrap.service.ts)
+ *
+ * 2. **Option B: Manual setup** (for local development)
+ *    ```bash
+ *    # Via ots CLI
+ *    bin/ots console
+ *    > user = Onetime::Customer['testuser@example.com']
+ *    > domain1 = Onetime::CustomDomain.create(...)
+ *    > domain2 = Onetime::CustomDomain.create(...)
+ *    ```
+ *
+ * ## Running the Test
+ *
+ * ```bash
+ * # Against dev server
+ * PLAYWRIGHT_BASE_URL=http://localhost:5173 pnpm test:playwright e2e/full/domain-context-consultant.spec.ts
+ *
+ * # Against production build
+ * pnpm test:playwright e2e/full/domain-context-consultant.spec.ts
+ *
+ * # With UI for debugging
+ * pnpm test:playwright e2e/full/domain-context-consultant.spec.ts --ui
+ * ```
+ *
+ * ## Current Implementation Status
+ *
+ * All components are implemented:
+ * - useDomainContext composable with sessionStorage persistence
+ * - Domain context indicator in SecretForm
+ * - Reactive context updates in form
+ * - DomainContextSwitcher: src/apps/workspace/components/navigation/DomainContextSwitcher.vue
+ *   (Production dropdown with HeadlessUI Menu, route-aware navigation, i18n)
+ *   (The legacy colonel domain-override tool was retired at cutover — see
+ *    docs/specs/colonel-ui/50-cutover-hardening.md.)
+ *
+ * ## Test Blockers
+ *
+ * Most tests are skipped due to backend setup requirements, NOT missing components.
+ * To enable tests:
+ * 1. Configure test user with custom domains in backend fixtures
+ * 2. Set up test authentication flow
+ */
+
+// The seven custom-domain workflow tests below are declarative `test.fixme`
+// placeholders — never implemented, all requiring a custom domain on the test
+// account (E2E remediation plan Phase 2.4 / PR 5, issue #3420; see
+// e2e/QUARANTINE.md). No E2E test covers SecretForm's domain-context
+// indicator without a custom domain. Vitest covers the component's gate, with
+// useDomainContext mocked, in src/tests/components/SecretFormDomainContext.spec.ts:
+// "does not render the indicator when domains are disabled" and "renders the
+// canonical domain when no custom domain is selected". scope-switcher.spec.ts
+// covers the domain switcher, not this indicator: TC-SS-051 asserts that the
+// switcher renders exactly when domains are enabled, and TC-SS-031 asserts the
+// sessionStorage domainContext key after a domain is selected (custom-domain
+// targets only).
+test.describe('Domain Context - Consultant Workflow', () => {
+  test.beforeEach(async ({ page }) => {
+    // Set reasonable timeout for E2E tests
+    page.setDefaultTimeout(15000);
+  });
+
+  test.fixme('displays domain context indicator for user with custom domains', async ({ page }) => {
+    /**
+     * This test validates that the domain context indicator appears when a user
+     * has custom domains configured.
+     *
+     * SKIP REASON: Requires backend setup with custom domains.
+     * Enable this test when you have:
+     * 1. A test user account with custom domains
+     * 2. Login credentials available
+     * 3. Backend API configured for test environment
+     */
+
+    // TODO: Login as user with custom domains
+    await page.goto('/');
+
+    // Navigate to secret creation page (assuming authenticated)
+    // Adjust selector based on your actual UI
+    const createSecretLink = page.locator('a:has-text("Create Secret")');
+    if (await createSecretLink.isVisible()) {
+      await createSecretLink.click();
+    }
+
+    // Verify domain context indicator is visible
+    const contextIndicator = page.locator('[role="status"][aria-label*="context"]');
+    await expect(contextIndicator).toBeVisible();
+
+    // Verify indicator shows a domain name
+    const indicatorText = await contextIndicator.textContent();
+    expect(indicatorText).toBeTruthy();
+    expect(indicatorText?.length).toBeGreaterThan(0);
+  });
+
+  test.fixme('context indicator shows correct styling for custom domain', async ({ page }) => {
+    /**
+     * Validates that custom domains get brand-colored styling
+     * while canonical domain gets neutral gray styling.
+     *
+     * SKIP REASON: Requires backend setup with custom domains.
+     */
+
+    // TODO: Login as user with custom domains
+    await page.goto('/');
+
+    const contextIndicator = page.locator('[role="status"][aria-label*="context"]');
+    await expect(contextIndicator).toBeVisible();
+
+    // Check for brand-colored background (custom domain)
+    const hasCustomStyling = await contextIndicator.evaluate((el) => {
+      const classes = el.className;
+      return classes.includes('bg-brand-50') || classes.includes('text-brand-700');
+    });
+
+    // Should have custom styling if on a custom domain
+    expect(hasCustomStyling).toBe(true);
+  });
+
+  test.fixme('persists domain context selection across page navigation', async ({ page }) => {
+    /**
+     * Validates that domain context persists in sessionStorage and survives
+     * page navigation within the same browser session.
+     *
+     * SKIP REASON: Requires backend test fixtures with custom domains.
+     * DomainContextSwitcher component exists - see navigation/DomainContextSwitcher.vue
+     *
+     * UNIT TEST COVERAGE: sessionStorage persistence tested in useDomainContext.spec.ts
+     */
+
+    // TODO: Login as user with custom domains
+    await page.goto('/');
+
+    // Get initial context
+    const initialContext = await page.evaluate(() => sessionStorage.getItem('domainContext'));
+
+    // Navigate away and back
+    await page.goto('/dashboard'); // Adjust route as needed
+    await page.goto('/'); // Back to secret creation
+
+    // Verify context persisted
+    const persistedContext = await page.evaluate(() => sessionStorage.getItem('domainContext'));
+
+    expect(persistedContext).toBe(initialContext);
+  });
+
+  test.fixme('creates secret with correct domain context', async ({ page }) => {
+    /**
+     * Full consultant workflow: create a secret and verify it uses
+     * the correct domain context.
+     *
+     * SKIP REASON: Requires backend setup with custom domains.
+     */
+
+    // TODO: Login as user with custom domains
+    await page.goto('/');
+
+    // Verify context indicator shows expected domain
+    const contextIndicator = page.locator('[role="status"][aria-label*="context"]');
+    await expect(contextIndicator).toBeVisible();
+    // Note: Domain text verified by visibility check above
+    const _currentDomain = await contextIndicator.textContent();
+
+    // Create a secret
+    const secretInput = page.locator('textarea[aria-labelledby="secretContentLabel"]');
+    await secretInput.fill('Test secret for domain context E2E test');
+
+    const createButton = page.locator('button:has-text("Create Link")');
+    await createButton.click();
+
+    // Should navigate to receipt page
+    await expect(page).toHaveURL(/\/receipt\/.+/);
+
+    // Verify the secret was created under the correct domain
+    // This would require inspecting the API response or metadata page
+    // Adjust based on your actual implementation
+    const metadataPage = page.locator('body');
+    await expect(metadataPage).toBeVisible();
+  });
+
+  test.fixme('context switcher allows changing between domains', async ({ page }) => {
+    /**
+     * Tests the DomainContextSwitcher dropdown interaction.
+     * Component: src/apps/workspace/components/navigation/DomainContextSwitcher.vue
+     *
+     * SKIP REASON: Requires backend test fixtures with custom domains.
+     * Component is implemented with data-testid="domain-context-switcher".
+     *
+     * UNIT TEST COVERAGE: This scenario cannot be unit tested due to Vitest
+     * mock limitations (see src/tests/components/SecretFormDomainContext.spec.ts)
+     */
+
+    // TODO: Login as user with multiple custom domains
+    await page.goto('/');
+
+    // Find the context switcher dropdown/button
+    const contextSwitcher = page.locator('[data-testid="domain-context-switcher"]');
+    await expect(contextSwitcher).toBeVisible();
+
+    // Click to open dropdown
+    await contextSwitcher.click();
+
+    // Select a different domain
+    const domainOption = page.locator('[role="menuitem"]:has-text("widgets.example.com")');
+    await domainOption.click();
+
+    // Verify indicator updates
+    const contextIndicator = page.locator('[role="status"][aria-label*="context"]');
+    await expect(contextIndicator).toContainText('widgets.example.com');
+
+    // Verify sessionStorage updated
+    const storedDomain = await page.evaluate(() => sessionStorage.getItem('domainContext'));
+    expect(storedDomain).toBe('widgets.example.com');
+  });
+
+  test.fixme('context indicator updates when switching domains', async ({ page }) => {
+    /**
+     * Validates real-time reactivity when context changes via DomainContextSwitcher.
+     *
+     * SKIP REASON: Requires backend test fixtures with custom domains.
+     * Component exists at src/apps/workspace/components/navigation/DomainContextSwitcher.vue
+     *
+     * UNIT TEST COVERAGE: Reactivity tested in useDomainContext.spec.ts.
+     * Component-level reactivity cannot be unit tested (Vitest mock limitation).
+     */
+
+    // TODO: Login as user with multiple custom domains
+    await page.goto('/');
+
+    const contextIndicator = page.locator('[role="status"][aria-label*="context"]');
+
+    // Get initial domain
+    const initialDomain = await contextIndicator.textContent();
+
+    // Switch domains (via switcher UI)
+    const contextSwitcher = page.locator('[data-testid="domain-context-switcher"]');
+    await contextSwitcher.click();
+    const differentDomain = page.locator('[role="menuitem"]').nth(1);
+    await differentDomain.click();
+
+    // Verify indicator updated
+    const newDomain = await contextIndicator.textContent();
+    expect(newDomain).not.toBe(initialDomain);
+  });
+
+  test.fixme('canonical domain shows Personal label', async ({ page }) => {
+    /**
+     * Validates that the canonical domain displays as "Personal" with gray styling.
+     *
+     * SKIP REASON: Requires backend test fixtures with custom domains.
+     * DomainContextSwitcher exists and supports canonical domain selection.
+     *
+     * MISSING COVERAGE: Icon verification (user-circle vs building-office).
+     * Consider adding: expect(indicator.html()).toContain('user-circle');
+     */
+
+    // TODO: Login as user with custom domains
+    await page.goto('/');
+
+    // Switch to canonical domain
+    const contextSwitcher = page.locator('[data-testid="domain-context-switcher"]');
+    await contextSwitcher.click();
+
+    // Select "Personal" or canonical domain option
+    const personalOption = page.locator('[role="menuitem"]:has-text("Personal")');
+    await personalOption.click();
+
+    // Verify indicator shows "Personal"
+    const contextIndicator = page.locator('[role="status"][aria-label*="context"]');
+    await expect(contextIndicator).toContainText('Personal');
+
+    // Verify styling is gray (canonical)
+    const hasCanonicalStyling = await contextIndicator.evaluate((el) => {
+      const classes = el.className;
+      return classes.includes('bg-gray-100') && classes.includes('text-gray-700');
+    });
+
+    expect(hasCanonicalStyling).toBe(true);
+  });
+});

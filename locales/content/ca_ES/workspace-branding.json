@@ -1,0 +1,462 @@
+{
+  "web.branding.color_picker": {
+    "text": "Selector de color",
+    "source_hash": "ba42602c"
+  },
+  "web.branding.current_label_modelvalue_click_to_cycle_through_options": {
+    "text": "{0} actual: {1}. Fes clic per recórrer les opcions.",
+    "source_hash": "84bf49e6"
+  },
+  "web.branding.use_setting": {
+    "text": "Utilitzar configuració",
+    "source_hash": "8a18d118"
+  },
+  "web.branding.font_family": {
+    "text": "Família de tipus de lletra",
+    "source_hash": "f81339da"
+  },
+  "web.branding.corner_style": {
+    "text": "Estil de les cantonades",
+    "source_hash": "fcb3ecdf"
+  },
+  "web.branding.brand_color": {
+    "text": "Color de marca",
+    "source_hash": "db3183e3"
+  },
+  "web.branding.preview_of_the_secret_link_page_for_recipients": {
+    "text": "Vista prèvia de la visualització del destinatari en accedir al teu enllaç segur",
+    "source_hash": "199c165f"
+  },
+  "web.branding.preview_and_customize": {
+    "text": "Personalitza i previsualitza",
+    "source_hash": "fc68a28c"
+  },
+  "web.branding.switch_to_safari_browser_view": {
+    "text": "Canviar a vista del navegador Safari",
+    "source_hash": "6e0fe791"
+  },
+  "web.branding.microsoft_edge": {
+    "text": "Microsoft Edge",
+    "source_hash": "951e7f89"
+  },
+  "web.branding.maximize_window": {
+    "text": "Maximitzar finestra",
+    "source_hash": "45d23969"
+  },
+  "web.branding.minimize_window": {
+    "text": "Minimitzar finestra",
+    "source_hash": "5cd54386"
+  },
+  "web.branding.switch_to_edge_browser_view": {
+    "text": "Canviar a vista del navegador Edge",
+    "source_hash": "a8fcd82d"
+  },
+  "web.branding.charactercount_500_characters": {
+    "text": "{0}/500 caràcters",
+    "source_hash": "e36598ef"
+  },
+  "web.branding.example_pre_reveal_instructions": {
+    "text": "p. ex. Utilitza el teu telèfon per escanejar el codi QR",
+    "source_hash": "9cf0caf8"
+  },
+  "web.branding.example_post_reveal_instructions": {
+    "text": "p. ex. Contacta amb onboarding{'@'}example.com per a qualsevol pregunta",
+    "source_hash": "71749811"
+  },
+  "web.branding.these_instructions_will_be_shown_to_recipients_before": {
+    "text": "Aquestes instruccions es mostraran als destinataris abans que revelin el contingut secret",
+    "source_hash": "9d5a6334"
+  },
+  "web.branding.these_instructions_will_be_shown_to_recipients_after": {
+    "text": "Aquestes instruccions es mostraran als destinataris després que revelin el secret",
+    "source_hash": "9f82bd94"
+  },
+  "web.branding.pre_reveal_instructions": {
+    "text": "Instruccions abans de mostrar",
+    "source_hash": "a299422e"
+  },
+  "web.branding.post_reveal_instructions": {
+    "text": "Instruccions després de mostrar",
+    "source_hash": "72ecc23a"
+  },
+  "web.branding.instructions": {
+    "text": "Instruccions",
+    "source_hash": "934652dc"
+  },
+  "web.branding.logo_controls": {
+    "text": "Controls del logotip",
+    "source_hash": "43e9a2d7"
+  },
+  "web.branding.click_to_upload_a_logo_with_recommendation": {
+    "text": "Fes clic per gestionar el teu logotip. Mida recomanada: 128x128 píxels. Mida màxima del fitxer: 1 MB. Formats admesos: PNG, JPG, SVG",
+    "source_hash": "7bb92395"
+  },
+  "web.branding.upload_logo": {
+    "text": "Pujar logotip",
+    "source_hash": "c3330082"
+  },
+  "web.branding.loading_preview": {
+    "text": "Carregant previsualització...",
+    "source_hash": "c02130fa"
+  },
+  "web.branding.preview_how_recipients_will_see_your_secrets": {
+    "text": "Vista prèvia de com els destinataris veuran els teus secrets provant el botó \"Visualitza el secret\"",
+    "source_hash": "3b58a297"
+  },
+  "web.branding.eye_icon": {
+    "text": "Icona d'ull",
+    "source_hash": "7f605d3c"
+  },
+  "web.branding.click_the_preview_image_below_to_update_your_logo": {
+    "text": "Fes clic a la imatge de vista prèvia de sota per actualitzar el teu logotip (mínim 128x128 píxels recomanat, 1 MB màx.)",
+    "source_hash": "77a19049"
+  },
+  "web.branding.image_icon": {
+    "text": "Icona d'imatge",
+    "source_hash": "b0d64fcf"
+  },
+  "web.branding.use_the_controls_above_to_customize_brand_details": {
+    "text": "Utilitza els controls de sobre per personalitzar el color de la marca, els estils i les instruccions per als destinataris",
+    "source_hash": "d6287134"
+  },
+  "web.branding.customization_icon": {
+    "text": "Icona de personalització",
+    "source_hash": "bde04d31"
+  },
+  "web.branding.you_have_unsaved_changes_are_you_sure": {
+    "text": "Tens canvis sense desar. Estàs segur?",
+    "source_hash": "184b6a83"
+  },
+  "web.branding.failed_to_load_brand_settings": {
+    "text": "No s'ha pogut carregar la configuració de marca",
+    "source_hash": "a7a1575e"
+  },
+  "web.branding.this_is_an_interactive_preview_o": {
+    "text": "Aquesta és una previsualització interactiva de com els destinataris veuran els teus missatges segurs. Pots: - Personalitzar colors i tipus de lletra utilitzant els controls de dalt - Pujar un logotip (es recomana mínim 128x128 píxels, màxim 1MB) - Provar la previsualització utilitzant el botó \"Veure secret\"",
+    "source_hash": "3d8b2c0d"
+  },
+  "web.branding.this_is_an_interactive_preview_of_how_recipients": {
+    "text": "Aquesta és una vista prèvia interactiva de com els destinataris veuran els teus missatges segurs. Pots: - Personalitzar colors i tipus de lletra utilitzant els controls de sobre - Carregar un logotip (mínim 128x128 píxels recomanat, 1 MB màx.) - Provar la vista prèvia utilitzant el botó \"Visualitza el secret\"",
+    "source_hash": "3d8b2c0d"
+  },
+  "web.branding.default_logo_icon": {
+    "text": "Kanji japonès '秘' (himitsu) que significa 'secret' o 'confidencial'",
+    "source_hash": "1e04ba2e"
+  },
+  "web.branding.powered_by_onetime_secret": {
+    "text": "Impulsat per {product_name}",
+    "source_hash": "1f393117"
+  },
+  "web.branding.low_contrast_warning": {
+    "text": "Contrast baix",
+    "source_hash": "2d6e7516"
+  },
+  "web.branding.contrast_ratio_label": {
+    "text": "Relació de contrast",
+    "source_hash": "d521a5be"
+  },
+  "web.branding.heading_logo": {
+    "text": "Logotip de {0}",
+    "source_hash": "3a3c98ed"
+  },
+  "web.branding.edge": {
+    "text": "Edge",
+    "source_hash": "0f82fe72"
+  },
+  "web.branding.switch_to_edge_preview": {
+    "text": "Canviar a previsualització d'Edge",
+    "source_hash": "83883d84"
+  },
+  "web.branding.safari": {
+    "text": "Safari",
+    "source_hash": "5f033039"
+  },
+  "web.branding.switch_to_safari_preview": {
+    "text": "Canviar a previsualització de Safari",
+    "source_hash": "f24ac447"
+  },
+  "web.branding.upgrade_to_customize": {
+    "text": "Actualitza el teu pla per personalitzar la marca d'aquest domini.",
+    "source_hash": "9077bf79"
+  },
+  "web.branding.saved_successfully": {
+    "text": "S'ha desat la configuració de la marca correctament",
+    "source_hash": "9960c252"
+  },
+  "web.branding.keyhole_logo_icon": {
+    "text": "Icona de pany que representa la compartició segura i privada",
+    "source_hash": "c868ac60"
+  },
+  "web.branding.secondary_color": {
+    "text": "Color secundari",
+    "source_hash": "1f4728f6"
+  },
+  "web.branding.background_color": {
+    "text": "Color de fons",
+    "source_hash": "b48bc969"
+  },
+  "web.branding.text_color": {
+    "text": "Color del text",
+    "source_hash": "2ea23234"
+  },
+  "web.branding.border_radius": {
+    "text": "Radi de la vora",
+    "source_hash": "e758d7db"
+  },
+  "web.branding.heading_font": {
+    "text": "Tipus de lletra del títol",
+    "source_hash": "6b5d30dc"
+  },
+  "web.branding.theme_presets": {
+    "text": "Configuracions de tema predefinides",
+    "source_hash": "931eeb74"
+  },
+  "web.branding.logo": {
+    "text": "Logotip",
+    "source_hash": "d707dc2f"
+  },
+  "web.branding.replace_logo": {
+    "text": "Substitueix",
+    "source_hash": "95e15439"
+  },
+  "web.branding.logo_field_hint": {
+    "text": "Previsualitza abans que els teus canvis es publiquin.",
+    "source_hash": "e9e222fc"
+  },
+  "web.branding.logo_modal_title": {
+    "text": "Logotip del domini",
+    "source_hash": "5260dda5"
+  },
+  "web.branding.logo_modal_hint": {
+    "text": "PNG, JPG o SVG. Recomanat 128x128px, fins a 1 MB.",
+    "source_hash": "75d00802"
+  },
+  "web.branding.logo_modal_save": {
+    "text": "Desa el logotip",
+    "source_hash": "8b028a6f"
+  },
+  "web.branding.remove_logo": {
+    "text": "Elimina el logotip",
+    "source_hash": "f1c1afa4"
+  },
+  "web.branding.image_upload_choose": {
+    "text": "Tria una imatge",
+    "source_hash": "ceed9fd5"
+  },
+  "web.branding.image_upload_drag_hint": {
+    "text": "o arrossega i deixa anar",
+    "source_hash": "6613b73c"
+  },
+  "web.branding.image_invalid_type": {
+    "text": "Aquest tipus de fitxer no és compatible. Si us plau, tria una imatge.",
+    "source_hash": "50e18866"
+  },
+  "web.branding.image_too_large": {
+    "text": "La imatge és massa gran. La mida màxima és {max}.",
+    "source_hash": "b50b55e2"
+  },
+  "web.branding.image_will_be_removed": {
+    "text": "Aquest logotip s'eliminarà quan desis.",
+    "source_hash": "d94fa99a"
+  },
+  "web.branding.image_upload_failed": {
+    "text": "Alguna cosa ha anat malament. Si us plau, torna-ho a provar.",
+    "source_hash": "3ccd9d65"
+  },
+  "web.branding.undo": {
+    "text": "Desfés",
+    "source_hash": "a8283ade"
+  },
+  "web.branding.low_contrast_text_bg_warning": {
+    "text": "Contrast baix entre text i fons",
+    "source_hash": "1c676370"
+  },
+  "web.branding.path_simple": {
+    "text": "Senzill",
+    "source_hash": "3fee95da"
+  },
+  "web.branding.path_match": {
+    "text": "Fes coincidir amb el meu lloc",
+    "source_hash": "776679cf"
+  },
+  "web.branding.path_advanced": {
+    "text": "Avançat",
+    "source_hash": "9f088dbe"
+  },
+  "web.branding.path_simple_tag": {
+    "text": "Els elements essencials de la teva marca.",
+    "source_hash": "7c9c0cca"
+  },
+  "web.branding.path_match_tag": {
+    "text": "Copia la configuració d'un lloc existent.",
+    "source_hash": "e4b0d1cd"
+  },
+  "web.branding.path_advanced_tag": {
+    "text": "Crea el teu propi CSS de Tailwind v4.",
+    "source_hash": "2405bb6d"
+  },
+  "web.branding.badge_default": {
+    "text": "Per defecte",
+    "source_hash": "21b111cb"
+  },
+  "web.branding.badge_coming_soon": {
+    "text": "Ben aviat",
+    "source_hash": "4f7d6401"
+  },
+  "web.branding.your_brand": {
+    "text": "La teva marca",
+    "source_hash": "406265d3"
+  },
+  "web.branding.your_brand_subtitle": {
+    "text": "Unes quantes opcions ràpides — de la resta ens n'encarreguem nosaltres.",
+    "source_hash": "dbc8ec33"
+  },
+  "web.branding.corners": {
+    "text": "Cantonades",
+    "source_hash": "1d3cc47e"
+  },
+  "web.branding.more_options": {
+    "text": "Més opcions",
+    "source_hash": "bc79cdff"
+  },
+  "web.branding.paths_carryover_hint": {
+    "text": "Aquesta és una previsualització en viu — els teus canvis no seran visibles per als visitants fins que facis clic a Actualitza.",
+    "source_hash": "9a34df71"
+  },
+  "web.branding.coming_soon_match_blurb": {
+    "text": "Indica'ns el teu lloc web i en llegirem els colors i els tipus de lletra, i després tancarem la diferència amb un sol clic.",
+    "source_hash": "42c34cc1"
+  },
+  "web.branding.coming_soon_advanced_blurb": {
+    "text": "Edita directament els testimonis {'@'}theme de Tailwind v4, o enganxa el teu propi full d'estils.",
+    "source_hash": "5a8473f5"
+  },
+  "web.branding.preview_recipient_page": {
+    "text": "Pàgina de destinatari",
+    "source_hash": "de8aa19f"
+  },
+  "web.branding.preview_badge": {
+    "text": "Vista prèvia",
+    "source_hash": "324b134f"
+  },
+  "web.branding.preview_homepage_enabled": {
+    "text": "Pàgina d'inici · activada",
+    "source_hash": "2edd85f1"
+  },
+  "web.branding.preview_homepage_disabled": {
+    "text": "Pàgina d'inici · desactivada",
+    "source_hash": "15d87050"
+  },
+  "web.branding.preview_live": {
+    "text": "Vista prèvia en directe",
+    "source_hash": "f65ddc1f"
+  },
+  "web.branding.tile_share_secret": {
+    "text": "Comparteix un secret",
+    "source_hash": "5384461b"
+  },
+  "web.branding.tile_create_link": {
+    "text": "Crea un enllaç secret",
+    "source_hash": "610fd42e"
+  },
+  "web.branding.tile_delivery_only": {
+    "text": "Només lliurament segur de missatges",
+    "source_hash": "dc24dec2"
+  },
+  "web.branding.tile_no_create": {
+    "text": "Els visitants no poden crear secrets aquí.",
+    "source_hash": "17361d81"
+  },
+  "web.branding.recipient_page_content": {
+    "text": "Contingut de la pàgina de destinatari",
+    "source_hash": "937733bd"
+  },
+  "web.branding.recipient_page_content_hint": {
+    "text": "Idioma i instruccions per mostrar el secret que es mostren als destinataris d'aquest domini.",
+    "source_hash": "04162b70"
+  },
+  "web.branding.tab_brand": {
+    "text": "Marca",
+    "source_hash": "090ed431"
+  },
+  "web.branding.tab_delivery": {
+    "text": "Lliurament",
+    "source_hash": "52bfe584"
+  },
+  "web.branding.delivery_language": {
+    "text": "Idioma",
+    "source_hash": "a4fe6526"
+  },
+  "web.branding.delivery_language_hint": {
+    "text": "Valor per defecte per a les pàgines de destinatari i els correus electrònics d'aquest domini. Els destinataris poden canviar d'idioma a la pàgina.",
+    "source_hash": "bfbc5599"
+  },
+  "web.branding.delivery_reveal_instructions": {
+    "text": "Instruccions per mostrar el secret",
+    "source_hash": "7e1331f7"
+  },
+  "web.branding.delivery_reveal_instructions_hint": {
+    "text": "Es mostra a la pàgina de destinatari. Deixa-ho en blanc per fer servir el text integrat en l'idioma seleccionat.",
+    "source_hash": "51b9811d"
+  },
+  "web.branding.delivery_before_reveal": {
+    "text": "Abans de mostrar",
+    "source_hash": "5ce82b01"
+  },
+  "web.branding.delivery_after_reveal": {
+    "text": "Després de mostrar",
+    "source_hash": "d5bfe7fd"
+  },
+  "web.branding.favicon": {
+    "text": "Favicon",
+    "source_hash": "42955289"
+  },
+  "web.branding.refresh_favicon": {
+    "text": "Actualitza el favicon des del domini",
+    "source_hash": "7cc3d5dc"
+  },
+  "web.branding.refresh_favicon_hint": {
+    "text": "Torna a obtenir el favicon del teu domini. La nova icona apareixerà aviat.",
+    "source_hash": "ee007e44"
+  },
+  "web.branding.refresh_favicon_queued": {
+    "text": "S'està actualitzant el favicon — la nova icona apareixerà aviat.",
+    "source_hash": "6bf38e6e"
+  },
+  "web.branding.refresh_favicon_user_upload_hint": {
+    "text": "Has pujat un favicon personalitzat, així que una icona obtinguda no el substituirà.",
+    "source_hash": "c22e1ed6"
+  },
+  "web.branding.upload_favicon": {
+    "text": "Puja favicon",
+    "source_hash": "ceda39cb"
+  },
+  "web.branding.replace_favicon": {
+    "text": "Substitueix",
+    "source_hash": "95e15439"
+  },
+  "web.branding.remove_favicon": {
+    "text": "Elimina el favicon",
+    "source_hash": "03693698"
+  },
+  "web.branding.favicon_field_hint": {
+    "text": "ICO, PNG o SVG. Pujar substitueix la icona obtinguda.",
+    "source_hash": "dfa0bfcb"
+  },
+  "web.branding.favicon_preview_alt": {
+    "text": "Favicon del domini",
+    "source_hash": "db7dca40"
+  },
+  "web.branding.favicon_modal_title": {
+    "text": "Favicon del domini",
+    "source_hash": "db7dca40"
+  },
+  "web.branding.favicon_modal_hint": {
+    "text": "ICO, PNG o SVG. Fins a 256 KB. Substitueix la icona obtinguda automàticament.",
+    "source_hash": "c9eafc83"
+  },
+  "web.branding.favicon_modal_save": {
+    "text": "Desa el favicon",
+    "source_hash": "c8a1566c"
+  }
+}

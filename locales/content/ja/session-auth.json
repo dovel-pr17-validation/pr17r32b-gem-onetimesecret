@@ -1,0 +1,551 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "アカウントが必要ですか？",
+    "source_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "サインアップ。",
+    "source_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "パスワードを忘れましたか？",
+    "source_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "サインイン",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "資格情報を入力",
+    "source_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "ログイン状態を維持",
+    "source_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "サインインリンクを送信",
+    "source_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "安全なリンクがメールの受信トレイに送信されます。",
+    "source_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "または",
+    "source_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "パスワードでサインイン",
+    "source_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "パスワードなしでサインイン",
+    "source_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "アカウントを作成",
+    "source_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "ホームに戻る",
+    "source_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "パスワード",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "マジックリンク",
+    "source_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "パスキー",
+    "source_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "ヘルプが必要ですか？",
+    "source_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "または以下で続行",
+    "source_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "SSOでサインイン",
+    "source_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "{provider}でサインイン",
+    "source_hash": "b8794f11"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "IDプロバイダーにリダイレクト中...",
+    "source_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "SSOサインインに失敗しました。もう一度お試しください。",
+    "source_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "SSO認証に失敗しました。もう一度試すか、パスワードでログインしてください。",
+    "source_hash": "13a2210a"
+  },
+  "web.login.errors.token_missing": {
+    "text": "認証リンクが不完全です。新しいサインインリンクをリクエストしてください。",
+    "source_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "このサインインリンクは期限切れです。新しいリンクをリクエストしてください。",
+    "source_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "このサインインリンクは無効です。新しいリンクをリクエストしてください。",
+    "source_hash": "270c6401"
+  },
+  "web.signup.create_your_account": {
+    "text": "アカウントを作成",
+    "source_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "すでにアカウントをお持ちですか？",
+    "source_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "サインイン。",
+    "source_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "アカウント作成エラー",
+    "source_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "パスワード",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "メール",
+    "source_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": "Email verification flow after signup"
+  },
+  "web.auth.verify.title": {
+    "text": "アカウントを確認",
+    "source_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "アカウントが正常に確認されました",
+    "source_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "無効または期限切れの確認キー",
+    "source_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "この確認リンクは期限切れです。新しいリンクをリクエストしてください。",
+    "source_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "このアカウントはすでに確認済みです。今すぐサインインできます。",
+    "source_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "アカウントを確認できません。もう一度お試しいただくか、サポートにお問い合わせください。",
+    "source_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "確認リンクについてメールを確認してください",
+    "source_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "アカウントの確認に失敗しました。確認リンクを確認するか、新しいリンクをリクエストしてください。",
+    "source_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "確認に失敗しました",
+    "source_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "どうすればいいですか？",
+    "source_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "最新の確認リンクについてメールを確認してください",
+    "source_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "メールが見つからない場合は、迷惑メールフォルダを確認してください",
+    "source_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "問題が続く場合はサポートにお問い合わせください",
+    "source_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "確認リンクが必要です",
+    "source_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "アカウントを確認するには、メールアドレスに送信された確認リンクを使用してください。",
+    "source_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "新しいアカウントを作成",
+    "source_hash": "0e24ec84"
+  },
+  "web.auth.change_password.title": {
+    "text": "パスワードを変更",
+    "source_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "現在のパスワード",
+    "source_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "新しいパスワード",
+    "source_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "新しいパスワードを確認",
+    "source_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "パスワードが正常に変更されました",
+    "source_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "パスワードの変更に失敗しました。現在のパスワードを確認してもう一度お試しください。",
+    "source_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "アカウントを閉鎖",
+    "source_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "この操作は元に戻せません。すべてのシークレットが完全に削除されます。",
+    "source_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "この操作は永久的であることを理解しています",
+    "source_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "確認のためパスワードを入力",
+    "source_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "アカウントを完全に閉鎖",
+    "source_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "キャンセル",
+    "source_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "パスワードリセットをリクエスト",
+    "source_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "下にメールアドレスを入力すると、パスワードをリセットするためのリンクを送信します",
+    "source_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "リセットリンクを送信",
+    "source_hash": "7d5f16d4"
+  },
+  "web.auth.password_reset.title": {
+    "text": "新しいパスワードを選択",
+    "context": "Password reset request flow - user requests a reset link",
+    "source_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "下に新しいパスワードを入力してください。アカウントを保護するために、強力でユニークなパスワードにしてください。",
+    "source_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "アカウントのパスワードをリセットするためのリンクを含むメールが送信されました",
+    "source_hash": "63a6af45"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "同意します",
+    "source_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "アカウント情報",
+    "context": "User account overview/dashboard section",
+    "source_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "メールアドレス",
+    "source_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "アカウント作成日",
+    "source_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "メール確認済み",
+    "source_hash": "bc512ab0"
+  },
+  "web.auth.account.region": {
+    "text": "リージョン",
+    "source_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "メール未確認",
+    "source_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "メールアドレスを確認",
+    "source_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "二要素認証",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "有効",
+    "source_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "無効",
+    "source_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "アクティブなセッション",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "アクティブなセッション{count}件",
+    "source_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "クイックアクション",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "二要素認証を管理",
+    "source_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "アクティブなセッションを管理",
+    "source_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "パスワードを変更",
+    "source_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "アカウントを閉鎖",
+    "source_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "ヘルプとサポート",
+    "source_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "サインインのトラブルシューティング",
+    "source_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "マジックリンクが届きませんか？",
+    "source_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "迷惑メールフォルダを確認してください",
+    "source_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "メールアドレスを正しく入力したか確認してください",
+    "source_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "数分お待ちください。メールが遅れることがあります",
+    "source_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "10分以上経過した場合は、新しいリンクをリクエストしてみてください",
+    "source_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "パスワードを忘れましたか？",
+    "source_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "パスワードリセットリンクをリクエストして新しいパスワードを作成できます。",
+    "source_hash": "3c3eabad"
+  },
+  "web.help.account_locked": {
+    "text": "アカウントが一時的にロックされていますか？",
+    "source_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "複数回のサインイン失敗後、アカウントはセキュリティのために一時的にロックされます。15分待ってから再試行するか、マジックリンクを使用してサインインしてください。",
+    "source_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "まだお困りですか？",
+    "source_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "まだ問題が解決しない場合は、私たちがお手伝いします。メッセージを送信してください。できるだけ早くご連絡いたします。",
+    "source_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "サポートに連絡",
+    "source_hash": "f8d47b82"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "SSOアカウント",
+    "source_hash": "b8f4c728"
+  },
+  "web.help.reset_password_link": {
+    "text": "パスワードをリセット",
+    "source_hash": "e0edfeb3"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "このドメインではシングルサインオンが利用可能です",
+    "source_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "組織の管理者はSSOを有効にして、チームメンバーがここでサインインできるようにすることができます。アクセスについては管理者にお問い合わせください。",
+    "source_hash": "f3726509"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "サインインは利用できません",
+    "source_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "このドメインでは現在サインインは利用できません。",
+    "source_hash": "b681c35d"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "このドメインではシングルサインオンが設定されていません。管理者にお問い合わせください。",
+    "source_hash": "b39ef93e"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "IDプロバイダーからのメールアドレスが無効です。管理者にお問い合わせください。",
+    "source_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "メールドメインはSSOサインアップに対して承認されていません。管理者にお問い合わせください。",
+    "source_hash": "87603782"
+  },
+  "web.auth.check_email.title": {
+    "text": "メールを確認してください",
+    "source_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "確認リンクの送信先：",
+    "source_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "メールアドレスに確認リンクを送信しました。",
+    "source_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "メール内のリンクをクリックして、アカウントを有効化してください。",
+    "source_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "見つかりませんか？迷惑メールフォルダを確認してください。",
+    "source_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "間違ったアドレスを入力しましたか？",
+    "source_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "最初からやり直す",
+    "source_hash": "5eed7e9f"
+  },
+  "web.auth.field-errors.password": {
+    "text": "パスワード",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "確認メールが届きませんでしたか？メールを入力して再送信してください。",
+    "source_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "確認メールを再送信",
+    "source_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "アカウントに確認が必要な場合は、新しいメールが送信されました。受信トレイと迷惑メールフォルダを確認してください。",
+    "source_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "確認メールを送信できませんでした。接続を確認してもう一度お試しください。",
+    "source_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "メールを再送信",
+    "source_hash": "4f44603e"
+  },
+  "web.login.verified_notice": {
+    "text": "メールが確認されました。今すぐサインインできます。",
+    "source_hash": "c8d4b5a8"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "パスワードを設定",
+    "source_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "アカウントにはまだパスワードがありません。直接サインインできるように、パスワードを設定するための安全なリンクをメールで送信します。",
+    "source_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "設定リンクを送信",
+    "source_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "アカウントにパスワードを設定するためのリンクを含むメールが送信されました",
+    "source_hash": "82b686c7"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "このメールアドレスのアカウントはすでに存在しますが、このサインイン方法にリンクされていません。既存の方法でサインインしてから、セキュリティ設定→接続済みのIDでこのプロバイダーをリンクしてください。",
+    "source_hash": "7fbbb7e7"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "このIDを接続できませんでした。すでに別のアカウントに属している可能性があります。",
+    "source_hash": "d8b71cf8"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "組織への追加を完了できませんでした。管理者にお問い合わせください。",
+    "source_hash": "155e71bb"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "そのサインイン方法をリンクできませんでした。既存のパスワードでサインインしてから、セキュリティ設定→接続済みのIDでこのプロバイダーを接続してください。",
+    "source_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "受信トレイを確認してください。アカウントの接続を確認するためのリンクをメールで送信しました。サインインを完了するには、リンクを開いてください。",
+    "source_hash": "b251c8f3"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "サインインがキャンセルされました。準備ができましたら、いつでももう一度お試しいただけます。",
+    "source_hash": "b5f3d3ec"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "このプロバイダーでのサインインの設定に誤りがあります。管理者にお問い合わせください。",
+    "source_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "このドメインのシングルサインオンは設定されていますが、現在は使用できません。組織の管理者にお問い合わせください。",
+    "source_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "ドメインの検証が完了していないため、このドメインのシングルサインオンはまだ有効になっていません。管理者にお問い合わせください。",
+    "source_hash": "bd981480"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "このIDは、このドメインのアカウントに接続されていません。この組織に属するアカウントでこのドメインにサインインできる場合は、「接続済みのID」から接続してください。それ以外の場合は、組織のオーナーにこのSSO IDを招待するよう依頼するか、サポートにお問い合わせください。",
+    "source_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "このドメインではこのIDを接続できませんでした。サインインしているサイトから接続を開始してください。組織のドメインで接続する場合は、お客様のアカウントがすでにその組織に属している必要があります。",
+    "source_hash": "d967c761"
+  }
+}

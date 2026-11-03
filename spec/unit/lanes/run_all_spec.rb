@@ -1,0 +1,255 @@
+# spec/unit/lanes/run_all_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+require_relative '../../support/lane_probe'
+require 'open3'
+
+# Guard rails for tests/lanes/run-all, the fan-out wrapper over
+# tests/lanes/run. Everything here exercises the wrapper's fail-fast
+# surface — argument validation, the duplicate-lane guard, the parallel
+# preconditions and the dry-run plan — none of which starts a lane or
+# touches a service, so the whole file finishes in well under a second.
+#
+# What is deliberately NOT here: a real fan-out. Running two lanes end to
+# end is minutes of wall clock and belongs in a developer's terminal, not
+# in spec:fast; the pieces a real run composes (isolation key, owner
+# marker, liveness token, codegen phase) each have their own spec next to
+# this one.
+module LaneRunAllProbe
+  extend LaneProbe
+
+  module_function
+
+  def wrapper
+    File.join(repo_root, 'tests', 'lanes', 'run-all')
+  end
+
+  # CI is scrubbed to nil by default: the wrapper reads it for the
+  # --parallel guard, and this spec itself runs under CI — the example
+  # that asserts on that guard sets it explicitly instead of inheriting
+  # whatever the harness happens to carry.
+  def run(*args, env: {})
+    Open3.capture2e({ 'CI' => nil }.merge(env), wrapper, *args, chdir: repo_root)
+  end
+
+  def run_with_readonly_codegen(*args)
+    # A readonly exported name cannot be removed with `unset`, which is the
+    # hostile caller state the wrapper must not inherit while reading lane env.
+    Open3.capture2e(
+      { 'CI' => nil },
+      'bash',
+      '-c',
+      'readonly LANES_CODEGEN=schemas; export LANES_CODEGEN; exec "$@"',
+      'bash',
+      wrapper,
+      *args,
+      chdir: repo_root,
+    )
+  end
+end
+
+RSpec.describe 'tests/lanes/run-all' do
+  let(:probe) { LaneRunAllProbe }
+
+  include_context 'with the lane runner bash'
+
+  it 'prints usage for --help' do
+    output, status = probe.run('--help')
+
+    expect(status).to be_success
+    expect(output).to include('usage: tests/lanes/run-all')
+    expect(output).to include('--skip-codegen')
+    expect(output).to include('--workers 1 under --parallel')
+  end
+
+  it 'rejects an unknown lane before starting anything' do
+    output, status = probe.run('no-such-lane')
+
+    expect(status.exitstatus).to eq(64)
+    expect(output).to include("unknown lane 'no-such-lane'")
+  end
+
+  it 'rejects a duplicate lane before starting anything' do
+    # Two runs of one lane derive the same isolation key, so they would
+    # share a valkey index and a PG database. tests/lanes/run detects the
+    # collision too, but only once it is far enough in to have claimed the
+    # liveness token; a duplicate in argv is a typo, and argv parsing is
+    # where a typo is cheapest to report.
+    output, status = probe.run('unit', 'simple', 'unit')
+
+    expect(status.exitstatus).to eq(64)
+    expect(output).to include("lane 'unit' given twice")
+  end
+
+  it 'refuses to run the smoke lane in parallel' do
+    # pnpm test:smoke regenerates locales inside `pnpm test` no matter what
+    # --skip-codegen says, into the one repo-root generated/ directory the
+    # other lanes read from mid-run.
+    output, status = probe.run('--parallel', 'smoke', 'unit')
+
+    expect(status.exitstatus).to eq(64)
+    expect(output).to include('smoke lane cannot run in parallel')
+  end
+
+  it 'refuses --parallel under CI' do
+    # CI pins every lane to datastore index 0 (the CI branch in
+    # tests/lanes/run), so parallel lanes there would share one datastore —
+    # the exact contamination --parallel depends on not having.
+    output, status = probe.run('--parallel', '--dry-run', 'unit', 'simple', env: { 'CI' => '1' })
+
+    expect(status.exitstatus).to eq(64)
+    expect(output).to include('--parallel with CI set')
+  end
+
+  describe '--dry-run' do
+    it 'plans the default set: one codegen union, every child --skip-codegen' do
+      output, status = probe.run('--dry-run')
+
+      expect(status).to be_success
+      expect(output).to include('lanes:   unit billing simple disabled full-sqlite harness')
+      # The union of what the six lanes declare, generated once up front …
+      expect(output).to include('codegen: locales schemas')
+      # RabbitMQ vhost provisioning is a runner dependency, not a task
+      # dependency: parallel children have autostart disabled, so the wrapper
+      # must preflight the management API as well as AMQP.
+      expect(output).to include('ports:   2163 2156 12156')
+      # … and every child told so. A planned child without the flag is a
+      # child that will regenerate into the shared generated/ mid-fan-out.
+      %w[unit billing simple disabled full-sqlite harness].each do |lane|
+        expect(output).to include("tests/lanes/run #{lane} --skip-codegen")
+      end
+      expect(output).not_to include('tests/lanes/run smoke')
+    end
+
+    # The lanes are the parallelism under --parallel: each child runs its
+    # tasks with one worker instead of its LANES_WORKERS default, or N lanes
+    # would fork N*4 rspec processes and claim as many valkey indexes. A
+    # serial run-all starts one lane at a time and leaves it its default.
+    it 'plans every child with --workers 1 under --parallel, exactly as it will run' do
+      output, status = probe.run('--parallel', '--dry-run', 'unit', 'simple')
+
+      expect(status).to be_success, output
+      expect(output).to include('[run-all] mode:    parallel')
+      %w[unit simple].each do |lane|
+        expect(output).to include("tests/lanes/run #{lane} --skip-codegen --workers 1 ->")
+      end
+      # And the command the wrapper runs is the one it printed.
+      expect(File.read(probe.wrapper)).to include('"${RUNNER}" "${lane}" "${CHILD_ARGS[@]}"')
+    end
+
+    it 'leaves each lane its own worker default in serial mode' do
+      output, status = probe.run('--dry-run', 'unit', 'simple')
+
+      expect(status).to be_success, output
+      expect(output).to include('[run-all] mode:    serial')
+      expect(output).to include('tests/lanes/run unit --skip-codegen ->')
+      expect(output).not_to include('--workers')
+    end
+
+    it 'does not read lane declarations from the calling environment' do
+      # selftest declares no codegen and blanks its service URLs, so caller
+      # values must not fill either back in.
+      output, status = probe.run(
+        '--dry-run', 'selftest',
+        env: {
+          'LANES_CODEGEN' => 'schemas',
+          'AUTH_DATABASE_URL' => 'postgresql://x:y@127.0.0.1:2154/leak',
+        },
+      )
+
+      expect(status).to be_success
+      expect(output).to include('codegen: none')
+      expect(output).to include('ports:   none')
+    end
+
+    it 'does not read readonly exported lane declarations' do
+      output, status = probe.run_with_readonly_codegen('--dry-run', 'selftest')
+
+      expect(status).to be_success
+      expect(output).to include('codegen: none')
+      expect(output).to include('ports:   none')
+    end
+  end
+
+  describe '--changed' do
+    # The selection runs through tests/lanes/ownership with the git diff
+    # replaced by LANES_CHANGED_STUB (a newline-separated path list, honored
+    # only together with --dry-run), so nothing here depends on the branch
+    # the spec happens to run on and nothing is started.
+    def planned_lanes(*paths)
+      output, status = probe.run('--dry-run', '--changed', env: { 'LANES_CHANGED_STUB' => paths.join("\n") })
+      expect(status).to be_success, output
+      output[/^\[run-all\] lanes:   (.*)$/, 1].to_s.split
+    end
+
+    # Every lane directory except smoke, in C byte order: what one shared
+    # path fans out to.
+    let(:all_lanes) do
+      Dir.chdir(probe.repo_root) do
+        Dir.glob('tests/lanes/*/').map { |d| d.split('/').last }
+           .select { |l| File.file?("tests/lanes/#{l}/tasks") && File.file?("tests/lanes/#{l}/env") }
+           .sort - ['smoke']
+      end
+    end
+
+    it 'selects the one lane that runs a changed spec' do
+      expect(planned_lanes('spec/api/v2/x_spec.rb')).to eq(%w[api])
+    end
+
+    it 'selects the browser lane for its JavaScript harness' do
+      expect(planned_lanes('tests/browser/saml_callback.mjs')).to eq(%w[browser])
+    end
+
+    it 'unions the owners of several changed paths and ignores unowned ones' do
+      expect(planned_lanes('spec/api/v2/x_spec.rb', 'apps/api/v1/spec/integration/simple/x_spec.rb', 'docs/x.md', 'try/web/x_try.rb'))
+        .to eq(%w[api simple])
+    end
+
+    it 'selects every mode lane for a spec/integration/all file' do
+      expect(planned_lanes('spec/integration/all/x_spec.rb')).to eq(%w[disabled full-pg-agnostic full-sqlite simple])
+    end
+
+    it 'falls back to every lane for a shared path' do
+      expect(planned_lanes('spec/api/v2/x_spec.rb', 'lib/onetime.rb')).to eq(all_lanes)
+      expect(planned_lanes('Gemfile.lock')).to eq(all_lanes)
+      expect(planned_lanes('tests/lanes/unit/env')).to eq(all_lanes)
+    end
+
+    it 'plans nothing, and exits 0, when no lane runs any changed path' do
+      output, status = probe.run('--dry-run', '--changed', env: { 'LANES_CHANGED_STUB' => "docs/x.md\nsrc/App.vue" })
+      expect(status).to be_success, output
+      expect(output).not_to match(/^\[run-all\] lanes:   \S/)
+    end
+
+    it 'rejects a lane name: the token after --changed is its base argument' do
+      # A lane name after --changed is its base argument; one after
+      # --dry-run is a lane name, and --changed does not take those.
+      _, status = probe.run('--changed', '--dry-run', 'unit', env: { 'LANES_CHANGED_STUB' => 'spec/api/v2/x_spec.rb' })
+      expect(status.exitstatus).to eq(64)
+    end
+
+    it 'honors the stub only with --dry-run' do
+      # Without it a set stub is an error, so a stale shell export can
+      # never stand in for the git diff.
+      output, status = probe.run('--changed', env: { 'LANES_CHANGED_STUB' => 'spec/api/v2/x_spec.rb' })
+      expect(status.exitstatus).to eq(64), output
+      expect(output).to include('LANES_CHANGED_STUB is set')
+    end
+  end
+
+  it 'knows exactly the codegen tokens the runner knows' do
+    # The wrapper duplicates the runner's token -> command mapping because
+    # the runner has no codegen-only entry point to delegate to. This pins
+    # the two case statements to the same token set, so a token added to
+    # one without the other fails here instead of as a silently skipped
+    # prerequisite in a fan-out.
+    tokens = ->(path) { File.read(path).scan(/^\s*(locales|locales-python|schemas)\)\s*$/).flatten.sort }
+    runner_tokens  = tokens.call(File.join(probe.repo_root, 'tests', 'lanes', 'run'))
+    wrapper_tokens = tokens.call(probe.wrapper)
+
+    expect(runner_tokens).to eq(%w[locales locales-python schemas])
+    expect(wrapper_tokens).to eq(runner_tokens)
+  end
+end

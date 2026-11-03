@@ -1,0 +1,107 @@
+# lib/onetime/models/customer/features/deprecated_fields.rb
+#
+# frozen_string_literal: true
+
+module Onetime::Customer::Features
+  module DeprecatedFields
+    using Familia::Refinements::TimeLiterals
+
+    Familia::Base.add_feature self, :deprecated_fields
+
+    def self.included(base)
+      OT.ld "[features] #{base}: #{name}"
+
+      base.extend ClassMethods
+      base.include InstanceMethods
+
+      base.field_group :deprecated_fields do
+        base.field :sessid
+        base.field :apitoken # TODO: use sorted set?
+        base.field :contributor
+
+        # These were used for the old counter fields implementation. We can
+        # remove these after v0.24 upgrade migrations which externalize the
+        # counters to separate keys. @see counter_fields.rb
+        # base.field :secrets_created # regular hashkey string field
+        # base.field :secrets_burned
+        # base.field :secrets_shared
+        # base.field :emails_sent
+
+        # Needed for data migration. Moved to Organization.
+        base.field :stripe_customer_id       # Stripe Customer ID
+        base.field :stripe_subscription_id   # Active Stripe Subscription ID
+      end
+    end
+
+    module ClassMethods
+      # Use Familia 2's generated class methods
+      # def add(cust)
+      #   instances.add cust.identifier, OT.now.to_i
+      # end
+
+      def all
+        instances.revrangeraw(0, -1).collect { |identifier| load(identifier) }
+      end
+
+      def recent(duration = 30.days, epoint = OT.now.to_i)
+        spoint = OT.now.to_i - duration
+        instances.rangebyscoreraw(spoint, epoint).collect { |identifier| load(identifier) }
+      end
+
+      # Generate a unique session ID with 32 bytes of random data
+      # @return [String] base-36 encoded random string
+      def generate_id
+        OT::Utils.generate_id
+      end
+    end
+
+    module InstanceMethods
+      def locale?
+        !locale.to_s.empty?
+      end
+
+      def apitoken?(guess)
+        apitoken.to_s == guess.to_s
+      end
+
+      def regenerate_apitoken
+        apitoken! Familia.generate_id
+        apitoken # the fast writer bang methods don't return the value
+      end
+
+      def external_identifier
+        raise OT::Problem, 'Anonymous customer has no external identifier' if anonymous?
+
+        @external_identifier ||= Familia.generate_id # generate but don't save
+        @external_identifier
+      end
+
+      def global?
+        custid.to_s.eql?('GLOBAL')
+      end
+
+      # NOT named reset_secret?: Familia's `string :reset_secret` field
+      # generates a zero-arity Customer#reset_secret? predicate directly on the
+      # class, which shadows any same-named module method here — a one-arg call
+      # then raises ArgumentError, which is exactly how the simple-mode reset
+      # flow was breaking (valid_reset_secret! 500'd on every attempt).
+      def matches_reset_secret?(secret)
+        return false if secret.nil? || !secret.exists? || secret.identifier.to_s.empty?
+
+        Rack::Utils.secure_compare(reset_secret.to_s, secret.identifier)
+      end
+
+      def valid_reset_secret!(secret)
+        if is_valid = matches_reset_secret?(secret)
+          OT.ld "[valid_reset_secret!] Reset secret is valid for #{custid} #{secret.shortid}"
+          secret.delete!
+          reset_secret.delete!
+        end
+        is_valid
+      end
+
+      # Session management is now handled by Rack::Session middleware
+      # This deprecated method has been removed as part of the migration
+    end
+  end
+end

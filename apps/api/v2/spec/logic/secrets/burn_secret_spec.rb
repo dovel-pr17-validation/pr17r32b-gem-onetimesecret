@@ -1,0 +1,582 @@
+# apps/api/v2/spec/logic/secrets/burn_secret.rb
+#
+# frozen_string_literal: true
+
+require_relative '../../../application'
+require_relative File.join(Onetime::HOME, 'spec', 'spec_helper')
+require_relative '../../support/actor_attribution_helpers'
+
+# Regression coverage for the v2 burn confirmation flag.
+#
+# BurnSecret#process must greenlight the destructive burn on the parsed
+# `@continue` boolean (true / 'true' only), NOT the raw params['continue']
+# string — every non-empty string is truthy in Ruby, so reading the raw param
+# would burn the secret even when the caller explicitly sent continue=false.
+#
+# Also covers the burn variant of the double-reveal race: Secret#burned!
+# performs an atomic compare-and-set claim and returns true only to the caller
+# that won it; process must gate counters/success on that boolean.
+#
+# Uses real Receipt/Secret objects (spawn_pair) so process -> success_data runs
+# end-to-end without stubbing the URL/serialization helpers.
+RSpec.describe V2::Logic::Secrets::BurnSecret, type: :integration do
+  include ActorAttributionSpecHelpers
+
+  before(:all) do
+    require 'onetime'
+    Onetime.boot! :test
+  end
+
+  def mock_session
+    store = {}
+    session = double('Session')
+    allow(session).to receive(:[]) { |k| store[k] }
+    allow(session).to receive(:[]=) { |k, v| store[k] = v }
+    session
+  end
+
+  # Build a BurnSecret instance over a real receipt with the api_access
+  # entitlement granted (we exercise process directly, not raise_concerns).
+  # customer overrides the default anonymous caller for actor-attribution
+  # coverage (#3639). Positional (not a kwarg) so the existing bare-hash
+  # `build_logic('identifier' => ...)` call sites keep working — a trailing
+  # kwarg would otherwise swallow the bare params hash as keywords.
+  def build_logic(params, customer = nil)
+    customer ||= double('Customer', custid: 'anon', anonymous?: true, objid: nil, extid: nil)
+    org        = double('Organization', objid: "org_#{SecureRandom.hex(4)}")
+    allow(org).to receive(:can?).and_return(true)
+
+    strategy_result = double('StrategyResult',
+      session: mock_session,
+      user: customer,
+      metadata: { organization: org, ip: '203.0.113.7' },
+      auth_method: 'basicauth')
+
+    # process derives cust from strategy_result.user and never calls org, so no
+    # accessor stubbing is needed (we exercise process directly, not raise_concerns).
+    described_class.new(strategy_result, params)
+  end
+
+  # Hold the race window open: both requests loaded the secret before the
+  # winner consumed it. BurnSecret loads its secret inside process via
+  # receipt.load_secret, which returns nil once a winner destroys the record
+  # and would short-circuit process at the potential_secret guard, testing
+  # nothing -- so pin the stale pre-race instance, holding viewable? true so
+  # it is secret.burned! (not a guard) that must withhold the success path by
+  # losing the atomic claim. load_owner is spied to prove the win-branch
+  # bookkeeping never ran. Must run BEFORE the winner consumes.
+  def pin_stale_secret_on(logic)
+    stale = Onetime::Secret.load(secret.identifier)
+    allow(stale).to receive(:viewable?).and_return(true)
+    allow(stale).to receive(:load_owner).and_call_original
+    allow(logic.receipt).to receive(:load_secret).and_return(stale)
+    stale
+  end
+
+  let!(:pair)    { Onetime::Receipt.spawn_pair(nil, 3600, 'a secret value') }
+  let(:receipt)  { pair.first }
+  let(:secret)   { pair.last }
+
+  context 'capability logging' do
+    let(:messages) { [] }
+
+    before do
+      logger = double('secret logger')
+      [:debug, :info, :warn].each do |level|
+        allow(logger).to receive(level) { |message, payload| messages << [message, payload] }
+      end
+      allow(Onetime).to receive(:get_logger).and_call_original
+      allow(Onetime).to receive(:get_logger).with('Secret').and_return(logger)
+    end
+
+    [false, true].each do |commit|
+      it "omits full identifiers when continue=#{commit}" do
+        receipt_id = receipt.identifier
+        secret_id = secret.identifier
+        logic = build_logic('identifier' => receipt_id, 'continue' => commit)
+        logic.process_params
+        logic.process
+
+        expect(messages).not_to be_empty
+        expect(messages.to_s).not_to include(receipt_id, secret_id)
+        expect(messages.first.last[:receipt_identifier]).to eq(receipt.shortid)
+      end
+    end
+
+    it 'omits full identifiers on passphrase rejection' do
+      secret.update_passphrase!('correct-passphrase')
+      receipt_id = receipt.identifier
+      secret_id = secret.identifier
+      logic = build_logic('identifier' => receipt_id, 'continue' => true, 'passphrase' => 'wrong')
+      logic.process_params
+      allow(logic).to receive(:raise_form_error)
+      logic.process
+
+      expect(messages.map(&:first)).to include('Burn failed - incorrect passphrase')
+      expect(messages.to_s).not_to include(receipt_id, secret_id)
+    end
+
+    it 'omits full identifiers when a concurrent burn consumes the secret' do
+      receipt_id = receipt.identifier
+      secret_id = secret.identifier
+      logic = build_logic('identifier' => receipt_id, 'continue' => true)
+      logic.process_params
+      pin_stale_secret_on(logic)
+      Onetime::Secret.load(secret_id).burned!
+      logic.process
+
+      expect(messages.map(&:first)).to include('Burn failed - secret already consumed')
+      expect(messages.to_s).not_to include(receipt_id, secret_id)
+    end
+  end
+
+  context 'when continue is the string "false"' do
+    it 'does not greenlight and leaves the secret intact' do
+      logic = build_logic('identifier' => receipt.identifier, 'continue' => 'false')
+      logic.process_params
+      logic.process
+
+      expect(logic.greenlighted).to be_falsey
+      # The secret was not burned, so it is still loadable and viewable.
+      reloaded = Onetime::Secret.load(secret.identifier)
+      expect(reloaded&.viewable?).to be true
+    end
+  end
+
+  context 'when continue is "true"' do
+    it 'greenlights, burns, and counts the burn exactly once' do
+      logic        = build_logic('identifier' => receipt.identifier, 'continue' => 'true')
+      logic.process_params
+      before_count = Onetime::Customer.secrets_burned.value
+
+      logic.process
+
+      expect(logic.greenlighted).to be true
+      expect(logic.success_data[:success]).to be true
+      # The class counter moves by exactly one for the single winning burn.
+      # (Owner increment is a no-op here: spawn_pair(nil, ...) has no owner.)
+      expect(Onetime::Customer.secrets_burned.value).to eq(before_count + 1)
+    end
+
+    # #4835: the response record must describe the receipt after the burn,
+    # not the instance process_params loaded before it.
+    it 'reports the burned receipt state in the response record' do
+      logic = build_logic('identifier' => receipt.identifier, 'continue' => 'true')
+      logic.process_params
+
+      logic.process
+      record = logic.success_data[:record]
+
+      expect(record[:state]).to eq('burned')
+      expect(record[:is_burned]).to be true
+      expect(record[:is_destroyed]).to be true
+      expect(record[:burned]).to be_a(Integer)
+      # Matches a fresh fetch of the receipt.
+      expect(record[:state]).to eq(Onetime::Receipt.load(receipt.identifier).state)
+      # Nothing left to link to: no dangling "secret/" link, no empty bearer key.
+      expect(record[:share_path]).to be_nil
+      expect(record[:share_url]).to be_nil
+      expect(record).not_to have_key(:secret_identifier)
+    end
+  end
+
+  # Burn's success_data shares ShowReceipt's share-link gate
+  # (Receipt#share_link_available?). A request that does not commit to the
+  # burn still gets the record back, so without the gate an incoming
+  # receipt's holder could read the share link that ShowReceipt withholds.
+  context 'share link gate' do
+    it 'withholds the share link and bearer key for an incoming receipt' do
+      receipt.source = 'incoming'
+      receipt.save
+
+      logic  = build_logic('identifier' => receipt.identifier, 'continue' => 'false')
+      logic.process_params
+      record = logic.process[:record]
+
+      expect(record[:share_path]).to be_nil
+      expect(record[:share_url]).to be_nil
+      expect(record).not_to have_key(:secret_identifier)
+      # Nothing was burned.
+      expect(Onetime::Secret.load(secret.identifier)&.viewable?).to be true
+    end
+
+    it 'ships the share link for a standard receipt that was not burned' do
+      logic  = build_logic('identifier' => receipt.identifier, 'continue' => 'false')
+      logic.process_params
+      record = logic.process[:record]
+
+      expect(record[:share_path]).to eq("secret/#{receipt.secret_identifier}")
+      expect(record[:share_url]).to end_with("/secret/#{receipt.secret_identifier}")
+      expect(record[:secret_identifier]).to eq(receipt.secret_identifier)
+    end
+
+    # #4835: secret_identifier as its own field follows ShowReceipt's rule
+    # (Receipt#offers_secret?), so a burn that does not commit and a later
+    # fetch agree on it. The share link still names the secret, as
+    # ShowReceipt's does.
+    it 'withholds secret_identifier, but not the share link, for a passphrase-protected secret' do
+      secret.update_passphrase!('correct horse battery')
+
+      logic  = build_logic('identifier' => receipt.identifier, 'continue' => 'false')
+      logic.process_params
+      record = logic.process[:record]
+
+      expect(record[:share_url]).to end_with("/secret/#{receipt.secret_identifier}")
+      expect(record).not_to have_key(:secret_identifier)
+      expect(Onetime::Secret.load(secret.identifier)&.viewable?).to be true
+    end
+
+    it 'withholds secret_identifier, but not the share link, for a previewed receipt' do
+      receipt.state = 'previewed'
+      receipt.save
+
+      logic  = build_logic('identifier' => receipt.identifier, 'continue' => 'false')
+      logic.process_params
+      record = logic.process[:record]
+
+      expect(record[:share_url]).to end_with("/secret/#{receipt.secret_identifier}")
+      expect(record).not_to have_key(:secret_identifier)
+    end
+  end
+
+  # The double-reveal race, burn variant: Secret#burned! performs an atomic
+  # compare-and-set claim and returns true only to the caller that won it. A
+  # burn that loses the claim must not increment burn counters, log success,
+  # or report success to the client.
+  context 'when a concurrent reveal already consumed the secret (this burn loses)' do
+    it 'does not count the burn and reports success: false' do
+      logic = build_logic('identifier' => receipt.identifier, 'continue' => 'true')
+      logic.process_params
+      stale = pin_stale_secret_on(logic)
+
+      # A concurrent request wins the atomic claim and consumes the secret.
+      expect(Onetime::Secret.load(secret.identifier).revealed!).to be true
+      before_count = Onetime::Customer.secrets_burned.value
+
+      logic.process
+
+      expect(logic.greenlighted).to be false
+      expect(logic.success_data[:success]).to be false
+      expect(Onetime::Customer.secrets_burned.value).to eq(before_count)
+      # No owner bookkeeping ran -- the whole win-branch was skipped, not just
+      # the global counter.
+      expect(stale).not_to have_received(:load_owner)
+      # Identity-pins that process ENTERED the greenlighted branch (@secret is
+      # assigned the pinned stale instance immediately before burned!), so it
+      # was the lost atomic claim -- not a collapsed race window at the
+      # viewable?/continue guard -- that produced the false greenlight.
+      expect(logic.secret).to be(stale)
+      # #4835: the record reports the winner's persisted state, not the
+      # pre-race snapshot.
+      expect(logic.success_data[:record][:state]).to eq('revealed')
+    end
+  end
+
+  context 'when a concurrent burn already consumed the secret (this burn loses)' do
+    it 'does not count the burn and reports success: false' do
+      logic = build_logic('identifier' => receipt.identifier, 'continue' => 'true')
+      logic.process_params
+      stale = pin_stale_secret_on(logic)
+
+      # A concurrent request wins the atomic claim and burns the secret. With
+      # the winner case above this pins burned!'s promise: caller-side
+      # bookkeeping happens exactly once across N racing burns.
+      expect(Onetime::Secret.load(secret.identifier).burned!).to be true
+      before_count = Onetime::Customer.secrets_burned.value
+
+      logic.process
+
+      expect(logic.greenlighted).to be false
+      expect(logic.success_data[:success]).to be false
+      expect(Onetime::Customer.secrets_burned.value).to eq(before_count)
+      expect(stale).not_to have_received(:load_owner)
+      # Branch-entry pin -- see the concurrent-reveal case above.
+      expect(logic.secret).to be(stale)
+      expect(logic.success_data[:record][:state]).to eq('burned')
+    end
+  end
+
+  # #4835: the receipt key expires (or is deleted) between process_params and
+  # the post-burn reload. Deleting the key is exactly what a TTL expiry does.
+  # The stale instance would report the pre-burn state and a link to the
+  # destroyed secret, so the request answers not found, the way a follow-up
+  # fetch would, and nothing writes the receipt back.
+  context 'when the receipt disappears during the burn' do
+    it 'counts the burn, destroys the secret, and raises MissingSecret without recreating the receipt' do
+      logic = build_logic('identifier' => receipt.identifier, 'continue' => 'true')
+      logic.process_params
+      Familia.dbclient.del(receipt.dbkey)
+      before_count = Onetime::Customer.secrets_burned.value
+
+      expect { logic.process }.to raise_error(OT::MissingSecret)
+
+      expect(logic.greenlighted).to be true
+      expect(Onetime::Customer.secrets_burned.value).to eq(before_count + 1)
+      expect(Onetime::Secret.load(secret.identifier)).to be_nil
+      expect(Onetime::Receipt.load(receipt.identifier)).to be_nil
+      expect(Familia.dbclient.exists(receipt.dbkey)).to eq(0)
+    end
+
+    it 'raises MissingSecret for a race loser as well, without counting the burn' do
+      logic = build_logic('identifier' => receipt.identifier, 'continue' => 'true')
+      logic.process_params
+      pin_stale_secret_on(logic)
+      expect(Onetime::Secret.load(secret.identifier).revealed!).to be true
+      Familia.dbclient.del(receipt.dbkey)
+      before_count = Onetime::Customer.secrets_burned.value
+
+      expect { logic.process }.to raise_error(OT::MissingSecret)
+
+      expect(logic.greenlighted).to be false
+      expect(Onetime::Customer.secrets_burned.value).to eq(before_count)
+      expect(Familia.dbclient.exists(receipt.dbkey)).to eq(0)
+    end
+  end
+
+  # Actor attribution on burn (#3639). The burned event must carry the actor
+  # discriminator computed from the request's customer, with the same anonymous
+  # guard as reveal so an anonymous burn of a guest link is never misattributed.
+  context 'actor attribution (#3639)' do
+    it 'records actor=creator when the authenticated owner burns' do
+      owner_objid = "objid_#{SecureRandom.hex(6)}"
+      owner_pair  = Onetime::Receipt.spawn_pair(owner_objid, 3600, 'a secret value')
+      org         = link_receipt_to_org!(owner_pair.first)
+
+      logic = build_logic(
+        { 'identifier' => owner_pair.first.identifier, 'continue' => 'true' },
+        owner_double(owner_objid),
+      )
+      logic.process_params
+      logic.process
+
+      expect(logic.greenlighted).to be true
+      event = org.secret_activity_events_page.first
+      expect(event['kind']).to eq('burned')
+      expect(event['actor']).to eq('creator')
+      expect(event['actor_id']).to eq(owner_objid)
+    end
+
+    it 'records actor=authenticated_other when an authenticated non-owner burns' do
+      owner_objid = "objid_#{SecureRandom.hex(6)}"
+      other_objid = "objid_#{SecureRandom.hex(6)}"
+      owner_pair  = Onetime::Receipt.spawn_pair(owner_objid, 3600, 'a secret value')
+      org         = link_receipt_to_org!(owner_pair.first)
+
+      logic = build_logic(
+        { 'identifier' => owner_pair.first.identifier, 'continue' => 'true' },
+        owner_double(other_objid),
+      )
+      logic.process_params
+      logic.process
+
+      expect(logic.greenlighted).to be true
+      event = org.secret_activity_events_page.first
+      expect(event['actor']).to eq('authenticated_other')
+      expect(event['actor_id']).to eq(other_objid)
+    end
+
+    # THE privacy pin (burn variant): an anonymous burn of a guest link
+    # (owner_id nil, caller objid nil) must be 'anonymous', never 'creator'.
+    it 'records actor=anonymous for an anonymous burn of a guest link (never creator)' do
+      org   = link_receipt_to_org!(receipt) # default pair is a guest secret
+      logic = build_logic('identifier' => receipt.identifier, 'continue' => 'true')
+      logic.process_params
+      logic.process
+
+      expect(logic.greenlighted).to be true
+      event = org.secret_activity_events_page.first
+      expect(event['kind']).to eq('burned')
+      expect(event['actor']).to eq('anonymous')
+      expect(event['actor']).not_to eq('creator')
+      expect(event).not_to have_key('actor_id')
+    end
+  end
+
+  # PII pin (#4211 review). The burn logs fire on every burn and on every
+  # wrong passphrase guess, and custid IS the email address on legacy
+  # (pre-v0.22) customer records -- so a custid in these payloads is a
+  # continuous PII feed into the structured logs. Both identifiers must be
+  # extids: owner_id off the secret's owner, user_id off the caller.
+  context 'structured log payloads' do
+    let(:owner) do
+      Onetime::Customer.create!(email: "burn-log-#{SecureRandom.hex(6)}@example.com")
+    end
+    let!(:pair) { Onetime::Receipt.spawn_pair(owner.objid, 3600, 'a secret value') }
+
+    # Legacy-shaped caller: custid is the address, so a revert to custid puts
+    # an '@' in the payload and fails the scan below.
+    let(:caller_customer) do
+      double('Customer',
+        custid: 'burner@example.com',
+        extid: 'urburner',
+        objid: 'objid_burner',
+        anonymous?: false)
+    end
+
+    # secret_logger is an instance method (LoggerMethods), so the whole
+    # SemanticLogger call is capturable: [message, payload] per emission. The
+    # hash is SemanticLogger's payload argument, not part of the message.
+    def capture_secret_logs(logic)
+      captured = []
+      logger   = double('SecretLogger')
+      %i[debug info warn error].each do |level|
+        allow(logger).to receive(level) { |message, payload = {}| captured << [message, payload] }
+      end
+      allow(logic).to receive(:secret_logger).and_return(logger)
+      captured
+    end
+
+    def payload_for(captured, message)
+      entry = captured.find { |logged, _| logged == message }
+      expect(entry).not_to be_nil, "no #{message.inspect} log was emitted"
+      entry.last
+    end
+
+    it 'records a successful burn against extids, never custid' do
+      logic    = build_logic({ 'identifier' => receipt.identifier, 'continue' => 'true' }, caller_customer)
+      captured = capture_secret_logs(logic)
+      logic.process_params
+      logic.process
+
+      expect(logic.greenlighted).to be true
+      payload = payload_for(captured, 'Secret burned successfully')
+      # owner.custid is the objid on modern records, so the equality below is
+      # what catches an owner_id revert; the '@' scan catches the caller's.
+      expect(payload[:owner_id]).to eq(owner.extid)
+      expect(payload[:user_id]).to eq('urburner')
+      expect(payload.values.join(' ')).not_to include('@')
+      expect(payload.values.join(' ')).not_to include(owner.email)
+    end
+
+    it 'records a failed passphrase guess against the extid, never custid' do
+      secret.update_passphrase!('correct horse battery')
+      logic = build_logic(
+        { 'identifier' => receipt.identifier, 'continue' => 'true', 'passphrase' => 'wrong' },
+        caller_customer,
+      )
+      captured = capture_secret_logs(logic)
+      logic.process_params
+
+      expect { logic.process }.to raise_error(OT::FormError)
+
+      payload = payload_for(captured, 'Burn failed - incorrect passphrase')
+      expect(payload[:user_id]).to eq('urburner')
+      expect(payload.values.join(' ')).not_to include('@')
+    end
+  end
+
+  # Burn must be subject to the same passphrase rate limiting as show/reveal:
+  # without it, each wrong guess is a free brute-force oracle and a correct
+  # guess destroys the secret as a side effect.
+  context 'when the secret is passphrase-protected' do
+    before do
+      secret.update_passphrase!('correct horse battery')
+    end
+
+    # Run the controller's ordered entry points, not process alone: the
+    # rate-limit gate lives in raise_concerns (alongside ShowSecret's and
+    # RevealSecret's), so a helper that skipped it would test a flow no
+    # request ever takes.
+    def attempt_burn(guess)
+      logic = build_logic(
+        'identifier' => receipt.identifier,
+        'continue'   => 'true',
+        'passphrase' => guess,
+      )
+      logic.process_params
+      logic.raise_concerns
+      logic.process
+      logic
+    end
+
+    it 'raises a form error and records the attempt on a wrong guess' do
+      expect { attempt_burn('wrong') }.to raise_error(OT::FormError)
+
+      attempts = Onetime::Secret.dbclient.get("passphrase:attempts:#{secret.identifier}")
+      expect(attempts.to_i).to eq(1)
+
+      reloaded = Onetime::Secret.load(secret.identifier)
+      expect(reloaded&.viewable?).to be true
+    end
+
+    it 'locks out after MAX_ATTEMPTS wrong guesses, even for the correct passphrase' do
+      max = Onetime::Security::PassphraseRateLimiter::MAX_ATTEMPTS
+      max.times { expect { attempt_burn('wrong') }.to raise_error(OT::FormError) }
+
+      expect { attempt_burn('correct horse battery') }.to raise_error(Onetime::LimitExceeded)
+
+      # The lockout rejected the request before the burn could happen.
+      reloaded = Onetime::Secret.load(secret.identifier)
+      expect(reloaded&.viewable?).to be true
+    end
+
+    it 'enforces the lockout in raise_concerns, before process runs at all' do
+      max = Onetime::Security::PassphraseRateLimiter::MAX_ATTEMPTS
+      max.times { expect { attempt_burn('wrong') }.to raise_error(OT::FormError) }
+
+      locked = build_logic(
+        'identifier' => receipt.identifier,
+        'continue'   => 'true',
+        'passphrase' => 'correct horse battery',
+      )
+      locked.process_params
+
+      # raise_concerns alone must refuse it: the controller never reaches
+      # process, so the secret is still there afterwards.
+      expect { locked.raise_concerns }.to raise_error(Onetime::LimitExceeded)
+      expect(Onetime::Secret.load(secret.identifier)&.viewable?).to be true
+    end
+
+    it 'clears rate limit state and burns on the correct passphrase' do
+      expect { attempt_burn('wrong') }.to raise_error(OT::FormError)
+
+      logic = attempt_burn('correct horse battery')
+
+      expect(logic.greenlighted).to be true
+      expect(Onetime::Secret.dbclient.get("passphrase:attempts:#{secret.identifier}")).to be_nil
+    end
+
+    # Passphrase oracle regression: the guess is verified ONLY on a committed
+    # burn (continue=true). Without the gate, continue=false separated a right
+    # guess (200, nothing burned) from a wrong one (form error) and spent a
+    # rate-limit attempt on a guess that was never acted on.
+    context 'when continue is false' do
+      # The secret is loaded inside process via receipt.load_secret, so pin the
+      # instance first: the message expectation has to be on the object process
+      # will actually use.
+      def probe_burn(guess)
+        logic  = build_logic(
+          'identifier' => receipt.identifier,
+          'continue'   => 'false',
+          'passphrase' => guess,
+        )
+        logic.process_params
+        pinned = Onetime::Secret.load(secret.identifier)
+        allow(logic.receipt).to receive(:load_secret).and_return(pinned)
+        expect(pinned).not_to receive(:passphrase?)
+        logic
+      end
+
+      it 'does not raise on a wrong guess, does not burn, and records no attempt' do
+        logic = probe_burn('wrong')
+
+        expect { logic.process }.not_to raise_error
+
+        expect(logic.greenlighted).to be_falsey
+        expect(Onetime::Secret.dbclient.get("passphrase:attempts:#{secret.identifier}")).to be_nil
+        expect(Onetime::Secret.load(secret.identifier)&.viewable?).to be true
+      end
+
+      it 'answers a right guess exactly as it answers a wrong one' do
+        wrong = probe_burn('wrong')
+        wrong.process
+        correct = probe_burn('correct horse battery')
+        correct.process
+
+        expect(correct.success_data[:success]).to eq(wrong.success_data[:success])
+        expect(correct.success_data[:details]).to eq(wrong.success_data[:details])
+        expect(Onetime::Secret.load(secret.identifier)&.viewable?).to be true
+      end
+    end
+  end
+end

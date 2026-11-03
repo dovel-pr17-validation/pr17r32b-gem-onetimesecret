@@ -1,0 +1,314 @@
+# apps/api/incoming/logic/create_incoming_secret.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/jobs/publisher'
+require 'onetime/incoming/recipient_resolver'
+require 'onetime/security/incoming_rate_limiter'
+
+require_relative 'base'
+
+module Incoming
+  module Logic
+    # Creates a secret from an incoming request and notifies the recipient.
+    #
+    # Domain-aware: uses RecipientResolver to look up recipients from
+    # either global config (canonical) or per-domain config (custom).
+    #
+    # @example Request
+    #   POST /api/incoming/secret
+    #   {
+    #     secret: {
+    #       memo: "Password reset request",
+    #       secret: "the-sensitive-content",
+    #       recipient: "abc123..."  # Hash of recipient email
+    #     }
+    #   }
+    #
+    # @example Response
+    #   {
+    #     success: true,
+    #     record: { receipt: {...}, secret: {...} },
+    #     details: { memo: "...", recipient: "abc123..." }
+    #   }
+    #
+    # @api Create a secret destined for a pre-configured recipient and
+    #   send them an email notification. The recipient is identified by
+    #   a hash rather than a raw email address. Returns the receipt and
+    #   secret metadata on success.
+    class CreateIncomingSecret < Incoming::Logic::Base
+      include Onetime::LoggerMethods
+      include Onetime::Security::IncomingRateLimiter
+
+      SCHEMAS = { response: 'incomingSecret' }.freeze
+
+      attr_reader :memo, :secret_value, :recipient_email, :recipient_hash, :ttl, :passphrase, :receipt, :secret, :greenlighted
+
+      def process_params
+        # All parameters are passed in the :secret hash like other V3 endpoints
+        @payload = params['secret'] || {}
+        # A non-Hash payload (String, or an Array from `secret[]=x`) would
+        # raise TypeError out of the reads below and surface as a 500.
+        raise_form_error 'Incorrect payload format' unless @payload.is_a?(Hash)
+
+        # Extract memo with safe default max length (domain config applied later)
+        @memo = sanitize_plain_text(@payload['memo'].to_s, max_length: 500)
+
+        # Extract secret value
+        @secret_value = @payload['secret'].to_s
+
+        # Extract recipient hash instead of email
+        @recipient_hash = sanitize_identifier(@payload['recipient'].to_s.strip)
+
+        # Set passphrase from global config (not per-domain yet)
+        incoming_config = OT.conf.dig('features', 'incoming') || {}
+        @passphrase     = incoming_config['default_passphrase']
+
+        # NOTE: Resolver calls (config_data, lookup) are deferred to
+        # raise_concerns/process to avoid Redis I/O before entitlement check
+      end
+
+      def raise_concerns
+        # On custom domains, require the domain-owning org's entitlement.
+        # Uses the resolver to check the org that owns the domain, not
+        # the session org (which is nil for anonymous visitors).
+        resolver.require_domain_entitlement!('incoming_secrets')
+
+        # Check if feature is enabled (domain-aware)
+        unless resolver.enabled?
+          raise_form_error 'Incoming secrets feature is not enabled'
+        end
+
+        # Validate required fields (memo is optional)
+        raise_form_error 'Secret content is required' if secret_value.empty?
+        validate_secret_size(secret_value)
+        raise_form_error 'Recipient is required' if @recipient_hash.to_s.empty?
+
+        # AZ9: throttle anonymous submissions BEFORE any resolver I/O, secret
+        # creation, or email enqueue. Keyed per client IP and per client-supplied
+        # recipient hash. Raises Onetime::LimitExceeded (mapped by the controller
+        # like the login path) when a tier is over its window cap.
+        enforce_incoming_rate_limit!(incoming_client_ip, @recipient_hash)
+
+        # Now safe to perform resolver I/O (entitlement verified)
+        resolve_recipient_and_config
+
+        # Validate recipient hash exists and maps to valid email
+        if @recipient_email.nil?
+          secret_logger.warn '[IncomingSecret] Invalid recipient hash attempted', recipient_hash: @recipient_hash
+          raise_form_error 'Invalid recipient'
+        end
+
+        # Corruption guard: email was validated at config time, this catches
+        # data corruption or misconfigured storage. Uses Truemail :regex mode
+        # (no DNS) since this runs on every incoming secret creation.
+        # Flow: POST /api/incoming/secret -> resolve_recipient_and_config -> here
+        unless Truemail.validate(recipient_email.to_s, with: :regex).result.valid?
+          secret_logger.error '[IncomingSecret] Lookup returned invalid email for hash', recipient_hash: @recipient_hash
+          raise_form_error 'Invalid recipient configuration'
+        end
+      end
+
+      def process
+        # Create and encrypt secret
+        create_and_encrypt_secret
+
+        # Validate that spawn_pair produced valid objects before recording
+        # stats or enqueuing notifications for a potentially invalid secret.
+        @greenlighted = receipt.valid? && secret.valid?
+        raise_form_error 'Failed to create secret' unless @greenlighted
+
+        # Update stats
+        update_customer_stats
+
+        # Send notification email
+        send_recipient_notification
+
+        success_data
+      end
+
+      def success_data
+        {
+          success: greenlighted,
+          record: {
+            receipt: receipt.safe_dump,
+            secret: secret.safe_dump,
+          },
+          details: {
+            memo: memo,
+            recipient: recipient_hash, # Return hash, not email
+          },
+        }
+      end
+
+      def form_fields
+        {
+          memo: memo,
+          secret: secret_value,
+          recipient: recipient_hash, # Return hash, not email
+        }
+      end
+
+      private
+
+      # Edge-masked client IP from the same StrategyResult metadata the login
+      # limiter reads (authenticate_session.rb#login_rate_limit_ip). nil when
+      # unavailable, in which case the rate limiter falls back to the
+      # per-recipient tier only.
+      def incoming_client_ip
+        strategy_result&.metadata&.[](:ip)
+      end
+
+      def resolver
+        @resolver ||= Onetime::Incoming::RecipientResolver.new(
+          domain_strategy: domain_strategy,
+          display_domain: display_domain,
+        )
+      end
+
+      # Returns the display_name for a recipient hash by scanning the
+      # resolver's public_recipients list. Both canonical and per-domain
+      # configs produce entries shaped {'digest' => ..., 'display_name' => ...}.
+      # Returns an empty string when no match is found so the receipt field
+      # is consistently a string (avoids nil vs '' noise downstream).
+      def lookup_recipient_display_name(hash)
+        return '' if hash.to_s.empty?
+
+        match = resolver.public_recipients.find { |r| r['digest'] == hash }
+        match ? match['display_name'].to_s : ''
+      end
+
+      # Performs resolver I/O after entitlement check passes.
+      # Sets @recipient_email, @ttl, and re-truncates @memo per domain config.
+      def resolve_recipient_and_config
+        domain_config = resolver.config_data
+
+        # Look up actual email from hash via domain-aware resolver
+        @recipient_email = resolver.lookup(@recipient_hash)
+
+        Onetime.secret_logger.debug "[IncomingSecret] Recipient hash: #{@recipient_hash} -> #{@recipient_email ? OT::Utils.obscure_email(@recipient_email) : 'not found'}"
+
+        # Apply domain-aware memo max length (re-truncate if needed)
+        memo_max = domain_config[:memo_max_length] || 50
+        @memo    = @memo.slice(0, memo_max) if @memo.length > memo_max
+
+        # Set TTL from domain-aware config
+        @ttl = domain_config[:default_ttl] || 604_800 # 7 days fallback
+      end
+
+      def create_and_encrypt_secret
+        # Use Receipt.spawn_pair to create linked secret and receipt.
+        #
+        # Bind the pair to the custom domain (share_domain) so the secret
+        # link, receipt serialization, and notification email all render the
+        # domain the secret was submitted on rather than the canonical host.
+        # Incoming routes are anonymous, so the Host-header domain is
+        # authoritative — mirrors V2 BaseSecretAction#determine_share_domain.
+        @receipt, @secret = Onetime::Receipt.spawn_pair(
+          cust&.objid || 'anon',
+          ttl,
+          secret_value,
+          passphrase: passphrase,
+          domain: share_domain,
+        )
+
+        # Store incoming-specific fields. Persist the raw email so the
+        # underlying record stays accurate; obscuring for display happens
+        # at the serializer (Receipt::Features::SafeDumpFields). For the
+        # frontend, prefer the recipient's display name when available.
+        receipt.memo           = memo
+        receipt.recipients     = recipient_email
+        receipt.recipient_name = lookup_recipient_display_name(@recipient_hash)
+
+        # Provenance: guest submission through an Incoming form. This is the one
+        # authoritative signal for withholding the share link from the creator
+        # (see Receipt#shows_share_link?). spawn_pair already defaulted 'standard';
+        # override it here before the save below.
+        receipt.source = 'incoming'
+
+        # Set domain_id for custom domain requests (#2864). Resolved from the
+        # same share_domain that spawn_pair persisted, keeping domain_id and
+        # share_domain consistent on the receipt. resolved_domain_id memoizes the
+        # datastore lookup so the notification step below reuses it.
+        receipt.domain_id = resolved_domain_id if share_domain
+
+        receipt.save
+      end
+
+      # The custom domain a secret submitted via /incoming should be bound to,
+      # or nil on the canonical domain. Incoming routes are always anonymous,
+      # so the Host-header custom domain (display_domain) is authoritative;
+      # this mirrors the anonymous branch of V2
+      # BaseSecretAction#determine_share_domain. The custom domain has already
+      # been validated in raise_concerns (require_domain_entitlement! and
+      # enabled? both require a resolvable, configured domain record).
+      #
+      # @return [String, nil] Custom domain FQDN, or nil for canonical
+      def share_domain
+        return @share_domain if defined?(@share_domain)
+
+        # Use custom_domain? (domain_strategy.to_s == 'custom') rather than a
+        # strict `== :custom`: domain_strategy comes from StrategyResult metadata
+        # and may be the String 'custom' or the Symbol :custom depending on the
+        # code path (RecipientResolver normalizes it internally, but this class
+        # reads the raw value). A strict symbol compare would miss the String
+        # case and leave share_domain nil, silently reintroducing the
+        # canonical-host regression. Also guard against a blank display_domain,
+        # since an empty string is truthy in Ruby.
+        @share_domain = (display_domain if custom_domain? && !display_domain.to_s.empty?)
+      end
+
+      # The domain_id (CustomDomain objid) that share_domain resolves to, or nil
+      # on the canonical domain. Memoized because resolve_domain_id performs a
+      # datastore read and both receipt persistence and the notification's
+      # sender-config selection need the value. nil-safe: resolve_domain_id
+      # returns nil for a nil/blank fqdn.
+      def resolved_domain_id
+        return @resolved_domain_id if defined?(@resolved_domain_id)
+
+        @resolved_domain_id = Onetime::CustomDomain.resolve_domain_id(share_domain)
+      end
+
+      def update_customer_stats
+        # Update customer stats if not anonymous
+        unless anonymous_user?
+          cust.add_receipt receipt
+          cust.increment_field :secrets_created
+        end
+
+        # Update global stats
+        Onetime::Customer.secrets_created.increment
+      end
+
+      def send_recipient_notification
+        return if recipient_email.nil? || recipient_email.empty?
+
+        # Reuse the domain_id resolved during secret creation for sender-config
+        # selection (nil on the canonical domain).
+        domain_id = resolved_domain_id
+
+        # Blank ("") locales are truthy and slip past a bare `||`; treat as missing.
+        email_locale = locale
+        email_locale = OT.default_locale if email_locale.to_s.strip.empty?
+
+        Onetime::Jobs::Publisher.enqueue_email(
+          :incoming_secret,
+          {
+            secret_key: secret.identifier,
+            share_domain: secret.share_domain,
+            recipient: recipient_email,
+            memo: memo,
+            has_passphrase: !passphrase.to_s.empty?,
+            locale: email_locale,
+          },
+          domain_id: domain_id,
+        )
+
+        Onetime.secret_logger.info "[IncomingSecret] Notification enqueued for #{OT::Utils.obscure_email(recipient_email)} (receipt: #{receipt.shortid})"
+      rescue StandardError => ex
+        secret_logger.error '[IncomingSecret] Failed to enqueue notification', exception: ex
+        # Don't raise - email failure shouldn't prevent secret creation
+      end
+    end
+  end
+end

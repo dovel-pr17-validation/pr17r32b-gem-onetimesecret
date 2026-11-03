@@ -1,0 +1,14 @@
+# lib/onetime/middleware.rb
+#
+# frozen_string_literal: true
+
+require 'logger'
+require_relative '../middleware/detect_host'
+require_relative '../middleware/session_debugger'
+require_relative '../middleware/request_id'
+require_relative 'middleware/domain_strategy'
+require_relative 'middleware/identity_resolution'
+require_relative 'middleware/startup_readiness'
+require_relative 'middleware/security'
+require_relative 'middleware/static_files'
+require_relative 'middleware/csrf_response_header'

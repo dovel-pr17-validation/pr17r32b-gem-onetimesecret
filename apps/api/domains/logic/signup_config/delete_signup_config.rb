@@ -1,0 +1,87 @@
+# apps/api/domains/logic/signup_config/delete_signup_config.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/models/custom_domain/signup_config'
+require_relative 'base'
+require_relative 'change_logger'
+
+module DomainsAPI
+  module Logic
+    module SignupConfig
+      # Delete Domain Signup Configuration
+      #
+      # @api Removes the signup validation configuration for a custom domain.
+      #   Requires the requesting user to be an organization owner with
+      #   custom_signup_validation entitlement.
+      #
+      # After deletion, signup on this domain falls back to global
+      # allowed_signup_domains configuration.
+      #
+      class DeleteSignupConfig < Base
+        include ChangeLogger
+
+        attr_reader :deleted_strategy
+
+        def process_params
+          @domain_id = sanitize_identifier(params['extid'])
+        end
+
+        def raise_concerns
+          # Require authenticated user
+          raise_form_error('Authentication required', field: :user_id, error_type: :authentication_required) if cust.anonymous?
+
+          # Validate domain_id parameter
+          raise_form_error('Domain ID required', field: :domain_id, error_type: :missing) if @domain_id.to_s.empty?
+
+          # Load domain and organization, verify ownership and entitlement
+          authorize_domain_signup_config!(@domain_id)
+
+          # Verify config exists and capture strategy for audit
+          return if Onetime::CustomDomain::SignupConfig.exists_for_domain?(@custom_domain.identifier)
+
+          raise_not_found("Signup configuration not found for domain: #{@domain_id}")
+        end
+
+        def process
+          OT.ld "[DeleteSignupConfig] Deleting signup config for domain #{@domain_id} by user #{cust.extid}"
+
+          # The audit describes the record as deleted; of concurrent deletes
+          # only one gets it (GuardedConfigWrites#remove_for_domain!).
+          deleted = guarded_config_write do
+            Onetime::CustomDomain::SignupConfig.remove_for_domain!(@custom_domain.identifier)
+          end
+
+          if deleted
+            @deleted_strategy = deleted.validation_strategy
+            log_signup_change_event(
+              event: :domain_signup_config_deleted,
+              domain: @custom_domain,
+              org: @organization,
+              actor: cust,
+              validation_strategy: @deleted_strategy,
+            )
+          end
+
+          success_data
+        end
+
+        def success_data
+          {
+            success: true,
+            message: "Signup configuration deleted for domain #{@custom_domain.display_domain}",
+            # Post-delete resolution truth: no record, so effective == global.
+            # Serialized so the settings UI can re-render without a refetch (ADR-024).
+            details: signup_override_details(nil),
+          }
+        end
+
+        def form_fields
+          {
+            domain_id: @domain_id,
+          }
+        end
+      end
+    end
+  end
+end

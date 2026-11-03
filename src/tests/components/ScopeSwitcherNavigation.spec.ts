@@ -1,0 +1,476 @@
+// src/tests/components/ScopeSwitcherNavigation.spec.ts
+
+/**
+ * Tests for scope switcher navigation behavior.
+ *
+ * Tests the onOrgSwitch and onDomainSwitch meta properties that control
+ * navigation when users switch organizations or domains in the switchers.
+ *
+ * @see src/types/router.ts - ScopesAvailable interface
+ * @see src/apps/workspace/components/navigation/OrganizationScopeSwitcher.vue
+ * @see src/apps/workspace/components/navigation/DomainContextSwitcher.vue
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { reactive } from 'vue';
+import type { ScopesAvailable } from '@/types/router';
+import type { Organization } from '@/types/organization';
+
+// Mock router
+const mockPush = vi.fn();
+const mockRoute = reactive<{
+  path: string;
+  matched: Array<{ path: string }>;
+  meta: {
+    scopesAvailable?: ScopesAvailable;
+  };
+}>({
+  path: '/org/abc123',
+  matched: [{ path: '/org/:extid' }],
+  meta: {},
+});
+
+vi.mock('vue-router', () => ({
+  useRoute: () => mockRoute,
+  useRouter: () => ({ push: mockPush }),
+}));
+
+// Mock organization store
+const mockOrganizationStore = {
+  organizations: [] as Organization[],
+  currentOrganization: null as Organization | null,
+  hasOrganizations: true,
+  setCurrentOrganization: vi.fn(),
+  fetchOrganizations: vi.fn(),
+};
+
+vi.mock('@/shared/stores/organizationStore', () => ({
+  useOrganizationStore: () => mockOrganizationStore,
+}));
+
+// Mock domain context composable
+const mockDomainContext = {
+  currentContext: { domain: 'test.example.com', extid: 'domain123', displayName: 'test.example.com', isCanonical: false },
+  availableDomains: ['test.example.com', 'onetimesecret.com'],
+  isContextActive: { value: true },
+  setContext: vi.fn(),
+  getDomainDisplayName: (domain: string) => domain,
+  getExtidByDomain: vi.fn((domain: string) => domain === 'test.example.com' ? 'domain123' : undefined),
+};
+
+vi.mock('@/shared/composables/useDomainContext', () => ({
+  useDomainContext: () => mockDomainContext,
+}));
+
+// Mock i18n
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+}));
+
+describe('ScopeSwitcher Navigation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRoute.path = '/org/abc123';
+    mockRoute.matched = [{ path: '/org/:extid' }];
+    mockRoute.meta = {};
+    mockOrganizationStore.currentOrganization = null;
+  });
+
+  describe('onOrgSwitch navigation behavior', () => {
+    /**
+     * Helper to simulate organization selection with navigation logic.
+     * This mirrors the logic in OrganizationScopeSwitcher.vue selectOrganization()
+     */
+    function simulateOrgSwitch(org: { objid: string; extid?: string }, switchTarget?: string) {
+      mockOrganizationStore.setCurrentOrganization(org);
+
+      if (!switchTarget) {
+        return; // No navigation configured
+      }
+
+      if (switchTarget === 'same') {
+        if (!org.extid) {
+          console.warn('Cannot navigate: org missing extid');
+          return;
+        }
+        const matchedRoute = mockRoute.matched[mockRoute.matched.length - 1];
+        if (matchedRoute?.path) {
+          const newPath = matchedRoute.path.replace(':extid', org.extid);
+          mockPush(newPath);
+        }
+      } else if (switchTarget.includes(':extid')) {
+        if (!org.extid) {
+          console.warn('Cannot navigate: org missing extid');
+          return;
+        }
+        const newPath = switchTarget.replace(':extid', org.extid);
+        mockPush(newPath);
+      } else {
+        mockPush(switchTarget);
+      }
+    }
+
+    it('does not navigate when onOrgSwitch is undefined', () => {
+      const org = { objid: 'org1', extid: 'xyz789' };
+      simulateOrgSwitch(org, undefined);
+
+      expect(mockOrganizationStore.setCurrentOrganization).toHaveBeenCalledWith(org);
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it('navigates to same route pattern when onOrgSwitch is "same"', () => {
+      mockRoute.matched = [{ path: '/org/:extid' }];
+      const org = { objid: 'org1', extid: 'neworg456' };
+
+      simulateOrgSwitch(org, 'same');
+
+      expect(mockPush).toHaveBeenCalledWith('/org/neworg456');
+    });
+
+    it('replaces :extid in custom path when onOrgSwitch contains :extid', () => {
+      const org = { objid: 'org1', extid: 'neworg456' };
+
+      simulateOrgSwitch(org, '/billing/org/:extid/invoices');
+
+      expect(mockPush).toHaveBeenCalledWith('/billing/org/neworg456/invoices');
+    });
+
+    it('navigates directly when onOrgSwitch is a static path', () => {
+      const org = { objid: 'org1', extid: 'neworg456' };
+
+      simulateOrgSwitch(org, '/dashboard');
+
+      expect(mockPush).toHaveBeenCalledWith('/dashboard');
+    });
+
+    it('does not navigate when org is missing extid with "same" target', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const org = { objid: 'org1' }; // No extid
+
+      simulateOrgSwitch(org, 'same');
+
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not navigate when org is missing extid with :extid path', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const org = { objid: 'org1' }; // No extid
+
+      simulateOrgSwitch(org, '/org/:extid');
+
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('navigates with static path even when org is missing extid', () => {
+      const org = { objid: 'org1' }; // No extid
+
+      simulateOrgSwitch(org, '/dashboard');
+
+      expect(mockPush).toHaveBeenCalledWith('/dashboard');
+    });
+  });
+
+  describe('onDomainSwitch navigation behavior', () => {
+    /**
+     * Helper to simulate domain selection with navigation logic.
+     * This mirrors the logic in DomainContextSwitcher.vue selectDomain()
+     */
+    function simulateDomainSwitch(domain: string, switchTarget?: string) {
+      mockDomainContext.setContext(domain);
+
+      if (!switchTarget) {
+        return; // No navigation configured
+      }
+
+      const extid = mockDomainContext.getExtidByDomain(domain);
+      const currentOrgExtid = mockOrganizationStore.currentOrganization?.extid;
+
+      if (switchTarget === 'same') {
+        if (!extid) {
+          console.warn('Cannot navigate: domain missing extid');
+          return;
+        }
+        const matchedRoute = mockRoute.matched[mockRoute.matched.length - 1];
+        if (matchedRoute?.path) {
+          let newPath = matchedRoute.path.replace(':extid', extid);
+          if (currentOrgExtid) {
+            newPath = newPath.replace(':orgid', currentOrgExtid);
+          }
+          mockPush(newPath);
+        }
+      } else if (switchTarget.includes(':extid')) {
+        if (!extid) {
+          console.warn('Cannot navigate: domain missing extid');
+          return;
+        }
+        const newPath = switchTarget.replace(':extid', extid);
+        mockPush(newPath);
+      } else {
+        mockPush(switchTarget);
+      }
+    }
+
+    it('does not navigate when onDomainSwitch is undefined', () => {
+      simulateDomainSwitch('test.example.com', undefined);
+
+      expect(mockDomainContext.setContext).toHaveBeenCalledWith('test.example.com');
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it('navigates to same route pattern when onDomainSwitch is "same"', () => {
+      mockRoute.matched = [{ path: '/domains/:extid/brand' }];
+
+      simulateDomainSwitch('test.example.com', 'same');
+
+      expect(mockPush).toHaveBeenCalledWith('/domains/domain123/brand');
+    });
+
+    it('replaces both :orgid and :extid in org-qualified domain routes', () => {
+      // Regression test: switching domains on /org/:orgid/domains/:extid/brand
+      // previously left :orgid as a literal string in the navigated URL,
+      // causing downstream API calls to request /api/organizations/:orgid (404).
+      mockOrganizationStore.currentOrganization = {
+        objid: 'org-obj-1',
+        extid: 'org-abc',
+        display_name: 'Test Org',
+        description: null,
+        owner_id: 'cust-1',
+        contact_email: null,
+        is_default: false,
+        is_current_user_default: false,
+        planid: 'free',
+        active_subscription: false,
+        created: new Date('2024-01-01'),
+        updated: new Date('2024-01-01'),
+      };
+      mockRoute.matched = [{ path: '/org/:orgid/domains/:extid/brand' }];
+
+      simulateDomainSwitch('test.example.com', 'same');
+
+      expect(mockPush).toHaveBeenCalledWith('/org/org-abc/domains/domain123/brand');
+    });
+
+    it('replaces :extid in custom path when onDomainSwitch contains :extid', () => {
+      simulateDomainSwitch('test.example.com', '/domains/:extid/verify');
+
+      expect(mockPush).toHaveBeenCalledWith('/domains/domain123/verify');
+    });
+
+    it('navigates directly when onDomainSwitch is a static path', () => {
+      simulateDomainSwitch('test.example.com', '/domains');
+
+      expect(mockPush).toHaveBeenCalledWith('/domains');
+    });
+
+    it('does not navigate when domain is canonical (missing extid) with "same" target', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      simulateDomainSwitch('onetimesecret.com', 'same'); // Canonical domain has no extid
+
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not navigate when domain is canonical (missing extid) with :extid path', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      simulateDomainSwitch('onetimesecret.com', '/domains/:extid/brand');
+
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('navigates with static path even when domain is canonical', () => {
+      simulateDomainSwitch('onetimesecret.com', '/domains');
+
+      expect(mockPush).toHaveBeenCalledWith('/domains');
+    });
+  });
+
+  describe('route meta integration', () => {
+    it('reads onOrgSwitch from route.meta.scopesAvailable', () => {
+      mockRoute.meta = {
+        scopesAvailable: {
+          organization: 'show',
+          domain: 'hide',
+          onOrgSwitch: '/dashboard',
+        },
+      };
+
+      expect(mockRoute.meta.scopesAvailable?.onOrgSwitch).toBe('/dashboard');
+    });
+
+    it('reads onDomainSwitch from route.meta.scopesAvailable', () => {
+      mockRoute.meta = {
+        scopesAvailable: {
+          organization: 'show',
+          domain: 'show',
+          onOrgSwitch: '/dashboard',
+          onDomainSwitch: 'same',
+        },
+      };
+
+      expect(mockRoute.meta.scopesAvailable?.onDomainSwitch).toBe('same');
+    });
+
+    it('handles undefined scopesAvailable gracefully', () => {
+      mockRoute.meta = {};
+
+      expect(mockRoute.meta.scopesAvailable?.onOrgSwitch).toBeUndefined();
+      expect(mockRoute.meta.scopesAvailable?.onDomainSwitch).toBeUndefined();
+    });
+  });
+
+  describe('canonical domain disabled state', () => {
+    /**
+     * Helper to check if domain option should be disabled.
+     * Mirrors logic in DomainContextSwitcher.vue isOptionDisabled()
+     */
+    function isOptionDisabled(domain: string, switchTarget?: string): boolean {
+      const extid = mockDomainContext.getExtidByDomain(domain);
+      if (!extid && switchTarget) {
+        return switchTarget === 'same' || switchTarget.includes(':extid');
+      }
+      return false;
+    }
+
+    /**
+     * Helper to simulate domain selection with disabled check.
+     * Mirrors logic in DomainContextSwitcher.vue selectDomain()
+     */
+    function simulateDomainSwitchWithDisabledCheck(domain: string, switchTarget?: string) {
+      // Don't allow selection of disabled options
+      if (isOptionDisabled(domain, switchTarget)) {
+        return;
+      }
+
+      mockDomainContext.setContext(domain);
+
+      if (!switchTarget) {
+        return;
+      }
+
+      const extid = mockDomainContext.getExtidByDomain(domain);
+
+      if (switchTarget === 'same') {
+        if (!extid) {
+          return;
+        }
+        const matchedRoute = mockRoute.matched[mockRoute.matched.length - 1];
+        if (matchedRoute?.path) {
+          const newPath = matchedRoute.path.replace(':extid', extid);
+          mockPush(newPath);
+        }
+      } else if (switchTarget.includes(':extid')) {
+        if (!extid) {
+          return;
+        }
+        const newPath = switchTarget.replace(':extid', extid);
+        mockPush(newPath);
+      } else {
+        mockPush(switchTarget);
+      }
+    }
+
+    it('isOptionDisabled returns true for canonical domain when onDomainSwitch is "same"', () => {
+      // onetimesecret.com is canonical (no extid)
+      expect(isOptionDisabled('onetimesecret.com', 'same')).toBe(true);
+    });
+
+    it('isOptionDisabled returns true for canonical domain when onDomainSwitch contains :extid', () => {
+      // onetimesecret.com is canonical (no extid)
+      expect(isOptionDisabled('onetimesecret.com', '/domains/:extid/brand')).toBe(true);
+    });
+
+    it('isOptionDisabled returns false for canonical domain when onDomainSwitch is undefined', () => {
+      // When no onDomainSwitch configured, canonical should NOT be disabled
+      expect(isOptionDisabled('onetimesecret.com', undefined)).toBe(false);
+    });
+
+    it('isOptionDisabled returns false for canonical domain when onDomainSwitch is static path', () => {
+      // When onDomainSwitch is '/domains' (no :extid), canonical should NOT be disabled
+      expect(isOptionDisabled('onetimesecret.com', '/domains')).toBe(false);
+    });
+
+    it('isOptionDisabled returns false for custom domains with extid', () => {
+      // Custom domains (with extid) should never be disabled
+      expect(isOptionDisabled('test.example.com', 'same')).toBe(false);
+      expect(isOptionDisabled('test.example.com', '/domains/:extid/brand')).toBe(false);
+      expect(isOptionDisabled('test.example.com', '/domains')).toBe(false);
+      expect(isOptionDisabled('test.example.com', undefined)).toBe(false);
+    });
+
+    it('selectDomain does not navigate or update store when option is disabled', () => {
+      mockRoute.matched = [{ path: '/domains/:extid/brand' }];
+
+      // Attempt to select canonical domain when onDomainSwitch requires extid
+      simulateDomainSwitchWithDisabledCheck('onetimesecret.com', 'same');
+
+      // Neither setScope nor navigation should have been called
+      expect(mockDomainContext.setContext).not.toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it('selectDomain updates store and navigates when option is enabled', () => {
+      mockRoute.matched = [{ path: '/domains/:extid/brand' }];
+
+      // Select custom domain (has extid, should work)
+      simulateDomainSwitchWithDisabledCheck('test.example.com', 'same');
+
+      expect(mockDomainContext.setContext).toHaveBeenCalledWith('test.example.com');
+      expect(mockPush).toHaveBeenCalledWith('/domains/domain123/brand');
+    });
+
+    it('selectDomain allows canonical domain when navigation is static path', () => {
+      // Select canonical domain when onDomainSwitch is static (no :extid)
+      simulateDomainSwitchWithDisabledCheck('onetimesecret.com', '/domains');
+
+      expect(mockDomainContext.setContext).toHaveBeenCalledWith('onetimesecret.com');
+      expect(mockPush).toHaveBeenCalledWith('/domains');
+    });
+  });
+
+  describe('real route configurations', () => {
+    it('domain detail pages have correct scope config for domain switching', () => {
+      // Simulating /domains/:extid/brand route config
+      const domainBrandConfig: ScopesAvailable = {
+        organization: 'show',
+        domain: 'show',
+        onOrgSwitch: '/dashboard',
+        onDomainSwitch: 'same',
+      };
+
+      expect(domainBrandConfig.onOrgSwitch).toBe('/dashboard');
+      expect(domainBrandConfig.onDomainSwitch).toBe('same');
+    });
+
+    it('org settings page has correct scope config for org switching', () => {
+      // Simulating /org/:extid route config
+      const orgSettingsConfig: ScopesAvailable = {
+        organization: 'show',
+        domain: 'hide',
+        onOrgSwitch: 'same',
+      };
+
+      expect(orgSettingsConfig.onOrgSwitch).toBe('same');
+      expect(orgSettingsConfig.onDomainSwitch).toBeUndefined();
+    });
+
+    it('dashboard page has no navigation config (backwards compatible)', () => {
+      // Simulating /dashboard route config using SCOPE_PRESETS.showBoth
+      const dashboardConfig: ScopesAvailable = {
+        organization: 'show',
+        domain: 'show',
+      };
+
+      expect(dashboardConfig.onOrgSwitch).toBeUndefined();
+      expect(dashboardConfig.onDomainSwitch).toBeUndefined();
+    });
+  });
+});

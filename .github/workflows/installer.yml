@@ -1,0 +1,185 @@
+# ==============================================================================
+# Installer matrix (install-onboarding testing-strategy §2b)
+# ==============================================================================
+# Runs the Tier-1 clean-room harness (bin/testsuite-installer run) in CI — the
+# SAME artifact a maintainer runs locally, so local and CI cannot diverge. Each
+# lane installs a documented path from zero inside a pinned base image:
+#
+#   baremetal  ruby:3.4.10-slim — bin/install succeeds + is idempotent
+#   posix      ruby:3.4.10-slim, empty locale — the fresh-server locale repro
+#   ruby-old   ruby:3.3-slim    — bin/install MUST fail with the version gate
+#
+# Plus a cheap bash-3.2 syntax gate (macOS ships bash 3.2; bin/setup is the
+# bare-metal entrypoint that must parse there), and the real macOS lane
+# (testing-strategy §3.2b): bin/setup + bin/setup --test on a macos-15 runner
+# under /bin/bash — the only honest test of stock bash 3.2 + BSD userland
+# (sed/grep/readlink), which no Linux container can simulate.
+# Path-filtered + weekly cron.
+#
+# Reference: tailscale runs its installer in ~22 distro containers on a daily
+# cron + path-filtered PRs; chezmoi tests the actual piped invocation.
+# ==============================================================================
+name: Installer matrix
+
+on:
+  pull_request:
+    paths:
+      - 'bin/setup'
+      - 'bin/install'
+      - 'bin/doctor'
+      - 'tools/setup/**'
+      - 'Gemfile'
+      - 'Gemfile.lock'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.ruby-version'
+      - '.node-version'
+      - 'etc/defaults/**'
+      - 'bin/testsuite-installer'
+      - 'tools/testsuite-installer/testsuite-installer.sh'
+      - 'tools/testsuite-installer/run.sh'
+      - '.github/workflows/installer.yml'
+  schedule:
+    - cron: '53 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clean-room:
+    name: 'bin/install from zero (${{ matrix.lane }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [baremetal, posix, ruby-old]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # Docker is preinstalled on ubuntu runners; the harness does the rest
+      # (pinned image + git archive HEAD, no host state leaks in).
+      - name: Run clean-room lane
+        env:
+          LANE: ${{ matrix.lane }}
+        run: bin/testsuite-installer run --lane "$LANE"
+
+  macos:
+    name: 'bin/setup on macOS (bash 3.2 + BSD userland)'
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # macOS runners have no container runtime, so the workflow provisions
+      # the test datastore itself (the same way other workflows use service
+      # containers): a throwaway valkey-compatible redis on :2163, the port
+      # compose.test.yml publishes. LANES_NO_AUTOSTART=1 on the test-lane
+      # steps tells bin/setup --test the job owns service lifecycle.
+      - name: Install datastore (redis, Valkey-compatible)
+        run: brew install redis
+
+      # tests/lanes/run enforces the .bash-version floor (bash 5+), and the
+      # RSpec fast suite below drives the real runner via datastore_claim_spec.
+      # The setup steps deliberately run under stock /bin/bash 3.2, so nothing
+      # else installs a modern bash — install it here so the runner's
+      # `#!/usr/bin/env bash` can resolve a qualifying interpreter at
+      # /opt/homebrew/bin/bash. The bash-3.2 compatibility contract is still
+      # tested by the explicit `/bin/bash bin/setup` invocations above.
+      - name: Install bash 5+ for the test-lane runner
+        run: brew install bash
+
+      - name: Start test datastore on :2163
+        run: redis-server --port 2163 --bind 127.0.0.1 --daemonize yes --save '' --appendonly no
+
+      - name: Setup Ruby (.ruby-version)
+        uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          bundler-cache: false # bin/setup runs `bundle install` itself
+
+      - name: Setup Node (.node-version)
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: '.node-version'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Setup Python (locales:sync)
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
+      # /bin/bash is explicit, not an override: macos-15 ships bash 3.2.57
+      # and no Homebrew bash (the runner-image manifest lists exactly one
+      # bash), so `#!/usr/bin/env bash` already resolves to the same
+      # interpreter. Naming it pins the contract — if the image ever gains
+      # a newer bash on PATH, this lane keeps testing the thing it exists
+      # to test: execution under stock bash 3.2.
+      #
+      # That same 3.2 is why this job's log carries one bash-5 FAIL line.
+      # The dev lane (tools/setup/setup.sh) ends in `cmd_doctor --dev || true`, and
+      # doctor's contributor context checks the PATH bash against the
+      # bash 5+ floor that tests/lanes/run requires — which this runner
+      # genuinely does not meet. Expected and non-blocking: the call is
+      # `|| true`, and this job runs no lanes. Do not suppress it by
+      # weakening the doctor check; the FAIL is a true statement about
+      # the runner, and only fresh-clone.yml asserts zero failures.
+      #
+      # (Caveat, verified in the testing strategy: the runner image is a
+      # poisoned well with preinstalled toolchains; this lane answers "does
+      # the script's code run on macOS", not "does dependency discovery
+      # work on a fresh Mac".)
+      - name: Run bin/setup under /bin/bash (dev lane)
+        run: /bin/bash bin/setup
+
+      - name: Run bin/setup --test under /bin/bash (test lane)
+        run: /bin/bash bin/setup --test
+        env:
+          LANES_NO_AUTOSTART: '1'
+
+      # One real operation on the result (the Homebrew-installer pattern:
+      # assert a real outcome, not output text) — the fast suite on the
+      # environment the lane just built. Not the billing suite: billing
+      # tests run only in main CI's nightly (docs/development/auth-ci.md).
+      - name: RSpec fast suite on the macOS-built environment
+        run: pnpm run test:rspec:fast
+
+      - name: Run bin/setup --test again (idempotency contract)
+        run: /bin/bash bin/setup --test
+        env:
+          LANES_NO_AUTOSTART: '1'
+
+  bash-32-gate:
+    name: bash 3.2 syntax gate (macOS parity)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # macOS ships bash 3.2. The setup entrypoint and the harness scripts
+      # must at least PARSE there (catches bashisms newer than 3.2). bin/setup
+      # and its lib are 3.2-compatible by design (DX-15: the old install-dev.sh
+      # hard-failed on stock macOS over a single associative array).
+      - name: Parse install scripts under bash 3.2
+        run: |
+          docker run --rm -i -v "$PWD:/src" -w /src bash:3.2 sh -c '
+            set -e
+            for f in bin/setup bin/install bin/doctor tools/setup/setup.sh \
+                     tools/setup/lib.sh tools/setup/new-worktree.sh \
+                     bin/testsuite-installer \
+                     tools/testsuite-installer/testsuite-installer.sh \
+                     tools/testsuite-installer/run.sh \
+                     tools/testsuite-installer/proof-of-life.sh \
+                     tools/testsuite-installer/secret-rotation.sh \
+                     tools/testsuite-installer/baremetal-boot.sh \
+                     tools/testsuite-installer/check-docs-commands.sh; do
+              echo "bash -n $f"
+              bash -n "$f"
+            done
+            echo "all scripts parse under bash 3.2"
+          '

@@ -1,0 +1,101 @@
+# lib/onetime/connection_pinning.rb
+#
+# frozen_string_literal: true
+
+module Onetime
+  # Delays, in seconds, before each of the Redis driver's reconnect attempts
+  # on a pooled connection: 50ms, 200ms, 1s, then a final 2s.
+  DATABASE_RECONNECT_ATTEMPTS = [0.05, 0.20, 1, 2].freeze
+
+  # A Redis client for the connection pool behind Familia.dbclient, with the
+  # DATABASE_RECONNECT_ATTEMPTS ladder so a stale or briefly unreachable
+  # connection is retried instead of failing the command.
+  #
+  # SetupConnectionPool fills the application's pool with these; test
+  # helpers that never run the initializer fill theirs the same way
+  # (tests/lanes/support/datastore_pool.rb).
+  #
+  # @param uri [String, URI] the datastore the client connects to
+  # @return [Redis] a client that connects on its first command
+  def self.create_pooled_dbclient(uri)
+    Redis.new(Familia.normalize_uri(uri).conf.merge(reconnect_attempts: DATABASE_RECONNECT_ATTEMPTS))
+  end
+
+  # The connection provider that serves Familia.dbclient from +pool+.
+  #
+  # Pinned path (preferred for WATCH/MULTI and any read-then-write flow):
+  # callers wrap their critical section in Onetime.with_pinned_dbclient,
+  # which pushes a single pool.with checkout onto a fiber-local stack.
+  # While the stack is populated, every Familia.dbclient call on this
+  # fiber resolves to that same conn, so all commands land on one socket.
+  #
+  # Unpinned path: pool.with checks a conn out and immediately checks it
+  # back in; the caller uses a reference that is technically released.
+  # This is safe for single-command ad-hoc calls (the overwhelming
+  # majority) but must not be relied on for multi-step coherence.
+  #
+  # SetupConnectionPool installs this at boot; test helpers that never run
+  # the initializer install it over a pool of their own
+  # (tests/lanes/support/datastore_pool.rb), so the two cannot drift.
+  #
+  # @param pool [ConnectionPool] a pool of Redis connections
+  # @return [Proc] a lambda taking the URI Familia resolved (ignored: the
+  #   pool decides the target) and returning a connection
+  def self.pooled_connection_provider(pool)
+    ->(_provided_uri) do
+      stack = Fiber[:ots_pinned_dbclient_stack]
+      next stack.last if stack && !stack.empty?
+
+      pool.with { |conn| conn }
+    end
+  end
+
+  # Pin a single database_pool connection to the current fiber for the
+  # duration of the block. While pinned, every call to Familia.dbclient
+  # resolves to the same connection, so WATCH/MULTI and read-then-write
+  # sequences land on one socket.
+  #
+  # Without pinning, the connection_provider lambda checks out a conn via
+  # pool.with and returns it — the conn is back in the pool before the
+  # caller uses it. That escaped reference works for single-command
+  # callers but silently breaks coherence-sensitive flows: WATCH on one
+  # conn has no effect on a MULTI that ends up on a different conn.
+  #
+  # Reentrant: nested calls on the same fiber reuse the outermost pinned
+  # connection and do not check a second connection out of the pool.
+  #
+  # @yieldparam conn [Redis] the pinned raw Redis connection
+  # @return [Object] the block's return value
+  # @raise [Onetime::Problem] if the database pool has not been initialized
+  def self.with_pinned_dbclient
+    raise ArgumentError, 'Block required for with_pinned_dbclient' unless block_given?
+
+    pool = Onetime::Runtime.infrastructure.database_pool
+    raise Onetime::Problem, 'Database pool not initialized' unless pool
+
+    stack = (Fiber[:ots_pinned_dbclient_stack] ||= [])
+
+    # Reentrant: reuse the outer pin; no second checkout.
+    return yield(stack.last) if stack.any?
+
+    pool.with do |conn|
+      stack.push(conn)
+      begin
+        yield conn
+      ensure
+        popped = stack.pop
+        if popped.equal?(conn)
+          Fiber[:ots_pinned_dbclient_stack] = nil if stack.empty?
+        else
+          # Invariant violated: a nested caller either mutated the stack out
+          # of order or the frame was reentered from a different fiber. Clear
+          # the fiber-local entirely so subsequent Familia.dbclient calls fall
+          # back to a fresh pool checkout rather than reusing a stale conn
+          # reference whose pool-with frame has already returned.
+          OT.le "[with_pinned_dbclient] stack invariant violated: popped=#{popped.object_id} expected=#{conn.object_id}; clearing fiber stack"
+          Fiber[:ots_pinned_dbclient_stack] = nil
+        end
+      end
+    end
+  end
+end

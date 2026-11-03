@@ -1,0 +1,1009 @@
+{
+  "web.auth._guidance": {
+    "skip": true,
+    "_meta": {
+      "_purpose": "These messages follow OWASP/NIST guidelines to prevent information disclosure. Translations MUST maintain generic wording to prevent credential enumeration and timing attacks. Never reveal: which credential failed, precise timing, account existence, or attack progress.",
+      "authentication_failed": {
+        "security_note": "MUST NOT reveal which credential failed (password, OTP, or recovery code). This prevents attackers from determining valid credentials or enumerating accounts.",
+        "owasp_ref": "ASVS 2.2.2 - Authentication failure responses must be generic"
+      },
+      "rate_limited": {
+        "security_note": "MUST NOT reveal precise lockout duration, attempt counts, or remaining attempts. This prevents timing attacks and progress tracking.",
+        "owasp_ref": "ASVS 2.2.1 - Account lockout must not be timing-based enumerable"
+      },
+      "session_expired": {
+        "security_note": "Safe to indicate session issue as it doesn't reveal credential information. Helps users understand they need to re-authenticate.",
+        "owasp_ref": "Session management best practices"
+      },
+      "recovery_code_not_found": {
+        "security_note": "Safe to indicate recovery code context as user explicitly selected this authentication method. Does not reveal whether code exists.",
+        "owasp_ref": "Recovery code validation guidance"
+      },
+      "recovery_code_used": {
+        "security_note": "Safe expected behavior message. Users need to know recovery codes are single-use to prevent confusion.",
+        "owasp_ref": "User guidance for recovery mechanisms"
+      }
+    },
+    "_translation_guidelines": {
+      "DO_NOT_translate_as": [
+        "Wrong password",
+        "Invalid OTP code",
+        "Incorrect recovery code",
+        "Wait 5 minutes",
+        "3 attempts remaining",
+        "Account locked for 15 minutes"
+      ],
+      "MUST_translate_as": [
+        "Generic authentication failure (no credential specifics)",
+        "Generic rate limit message (no precise timing)",
+        "Recovery code validation (no existence confirmation)"
+      ],
+      "WHY": "These restrictions prevent attackers from: (1) determining valid usernames/emails, (2) knowing which credential to focus attacks on, (3) conducting timing attacks, (4) measuring attack progress"
+    },
+    "_safe_information": {
+      "format_requirements": "Safe to specify format rules (e.g., 'OTP must be 6 digits')",
+      "expected_behavior": "Safe to describe how features work (e.g., 'Codes expire every 30 seconds')",
+      "recovery_options": "Safe to offer alternatives (e.g., 'Use a recovery code instead')",
+      "general_guidance": "Safe to provide help (e.g., 'Check your authenticator app')"
+    }
+  },
+  "web.auth.mfa_required": {
+    "text": "Wymagana weryfikacja MFA",
+    "context": "Page heading shown when user must complete MFA to proceed",
+    "source_hash": "e93fd3a4"
+  },
+  "web.auth.mfa_verification_required": {
+    "text": "Wymagana weryfikacja MFA, aby uzyskać dostęp do konta",
+    "context": "Explanatory text below the heading",
+    "source_hash": "3cff3311"
+  },
+  "web.auth.complete_mfa_verification": {
+    "text": "Dokończ weryfikację MFA",
+    "source_hash": "0e681134"
+  },
+  "web.auth.security._guidance": {
+    "skip": true,
+    "context": "⚠️ SECURITY-CRITICAL: Messages prevent information disclosure. See src/locales/SECURITY-TRANSLATION-GUIDE.md"
+  },
+  "web.auth.security.authentication_failed": {
+    "text": "Uwierzytelnianie nie powiodło się. Sprawdź swoje dane logowania i spróbuj ponownie.",
+    "source_hash": "b0eeece9"
+  },
+  "web.auth.security.rate_limited": {
+    "text": "Zbyt wiele prób. Spróbuj ponownie później.",
+    "source_hash": "282db6f3"
+  },
+  "web.auth.security.session_expired": {
+    "text": "Sesja wygasła. Zaloguj się ponownie.",
+    "source_hash": "f6f51186"
+  },
+  "web.auth.security.recovery_code_not_found": {
+    "text": "Nie znaleziono kodu odzyskiwania. Sprawdź, czy wprowadziłeś go poprawnie.",
+    "source_hash": "f5f1bd09"
+  },
+  "web.auth.security.recovery_code_used": {
+    "text": "Ten kod odzyskiwania został już użyty. Każdy kod może być użyty tylko raz.",
+    "source_hash": "b51d6820"
+  },
+  "web.auth.security.network_error": {
+    "text": "Błąd sieci. Sprawdź połączenie i spróbuj ponownie.",
+    "source_hash": "31f2678d"
+  },
+  "web.auth.security.internal_error": {
+    "text": "Wystąpił błąd. Spróbuj ponownie.",
+    "source_hash": "9c170dda"
+  },
+  "web.auth.methods.password": {
+    "text": "Hasło",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.methods.magicLink": {
+    "text": "Link e-mail",
+    "context": "Passwordless authentication via email link",
+    "source_hash": "1b6ffed2"
+  },
+  "web.auth.methods.webauthn": {
+    "text": "Biometria",
+    "source_hash": "ab2ba7db"
+  },
+  "web.auth.magicLink.title": {
+    "text": "Zaloguj się przez e-mail",
+    "source_hash": "79a864df"
+  },
+  "web.auth.magicLink.description": {
+    "text": "Wyślemy Ci bezpieczny link logowania",
+    "source_hash": "5d75aeb0"
+  },
+  "web.auth.magicLink.emailPlaceholder": {
+    "text": "Wprowadź swój e-mail",
+    "source_hash": "2837f6fa"
+  },
+  "web.auth.magicLink.sendLink": {
+    "text": "Wyślij link logowania",
+    "source_hash": "f5f52392"
+  },
+  "web.auth.magicLink.checkEmail": {
+    "text": "Sprawdź swoją pocztę",
+    "source_hash": "77322879"
+  },
+  "web.auth.magicLink.sentTo": {
+    "text": "Wysłaliśmy link logowania na {email}",
+    "source_hash": "d9193f59"
+  },
+  "web.auth.magicLink.linkExpiresIn": {
+    "text": "Ten link wygaśnie za 15 minut",
+    "source_hash": "91b5f027"
+  },
+  "web.auth.magicLink.tryDifferentEmail": {
+    "text": "Spróbuj inny e-mail",
+    "source_hash": "98657c0b"
+  },
+  "web.auth.magicLink.noPasswordNeeded": {
+    "text": "Hasło nie jest potrzebne — po prostu kliknij link w e-mailu",
+    "source_hash": "5f539b97"
+  },
+  "web.auth.magicLink.networkError": {
+    "text": "Błąd sieci. Spróbuj ponownie.",
+    "source_hash": "9ff8cfaf"
+  },
+  "web.auth.magicLink.requestFailed": {
+    "text": "Nie udało się wysłać linku logowania. Spróbuj ponownie.",
+    "source_hash": "4c685e97"
+  },
+  "web.auth.magicLink.invalidLink": {
+    "text": "Nieprawidłowy lub brakujący link logowania",
+    "source_hash": "d726c0da"
+  },
+  "web.auth.magicLink.sessionExpired": {
+    "text": "Twoja sesja wygasła. Odśwież stronę i spróbuj ponownie.",
+    "source_hash": "be9ed96d"
+  },
+  "web.auth.magicLink.loginFailed": {
+    "text": "Logowanie nie powiodło się. Spróbuj ponownie.",
+    "source_hash": "c95b4875"
+  },
+  "web.auth.magicLink.signingYouIn": {
+    "text": "Logowanie...",
+    "source_hash": "9d432ef1"
+  },
+  "web.auth.magicLink.pleaseWait": {
+    "text": "Poczekaj, weryfikujemy Twój link",
+    "source_hash": "81e4efed"
+  },
+  "web.auth.magicLink.error": {
+    "text": "Błąd uwierzytelniania",
+    "source_hash": "797b4f03"
+  },
+  "web.auth.magicLink.back_to_signin": {
+    "text": "Powrót do logowania",
+    "source_hash": "ee9eb75e"
+  },
+  "web.auth.webauthn.signIn": {
+    "text": "Zaloguj się przez Face ID / Touch ID",
+    "source_hash": "46f75469"
+  },
+  "web.auth.webauthn.setup": {
+    "text": "Skonfiguruj logowanie biometryczne",
+    "source_hash": "7593dd46"
+  },
+  "web.auth.webauthn.notSupported": {
+    "text": "Uwierzytelnianie biometryczne nie jest obsługiwane w tej przeglądarce",
+    "source_hash": "fe2a2c2b"
+  },
+  "web.auth.webauthn.requiresModernBrowser": {
+    "text": "Użyj nowoczesnej przeglądarki obsługującej WebAuthn (Chrome, Safari, Firefox lub Edge)",
+    "source_hash": "fd9752eb"
+  },
+  "web.auth.webauthn.setupSuccess": {
+    "text": "Logowanie biometryczne zostało włączone",
+    "source_hash": "63407e97"
+  },
+  "web.auth.webauthn.setupFailed": {
+    "text": "Nie udało się skonfigurować logowania biometrycznego",
+    "source_hash": "290cca44"
+  },
+  "web.auth.webauthn.passwordRequired": {
+    "text": "Hasło jest wymagane do skonfigurowania klucza dostępu",
+    "source_hash": "085bb238"
+  },
+  "web.auth.webauthn.authFailed": {
+    "text": "Uwierzytelnianie biometryczne nie powiodło się. Spróbuj ponownie.",
+    "source_hash": "626b9ece"
+  },
+  "web.auth.webauthn.cancelled": {
+    "text": "Uwierzytelnianie zostało anulowane",
+    "source_hash": "57461b04"
+  },
+  "web.auth.webauthn.processing": {
+    "text": "Uwierzytelnianie...",
+    "source_hash": "1f6087c2"
+  },
+  "web.auth.webauthn.description": {
+    "text": "Użyj odcisku palca, twarzy lub klucza bezpieczeństwa, aby się zalogować",
+    "source_hash": "f02f0427"
+  },
+  "web.auth.webauthn.supportedMethods": {
+    "text": "Obsługuje Face ID, Touch ID, Windows Hello i klucze bezpieczeństwa",
+    "source_hash": "3ea1c1a2"
+  },
+  "web.auth.passkeys.title": {
+    "text": "Klucze dostępu",
+    "context": "Title for passkey management section",
+    "source_hash": "c87ccdb4"
+  },
+  "web.auth.passkeys.description": {
+    "text": "Zaloguj się za pomocą Face ID, Touch ID, Windows Hello lub klucza bezpieczeństwa",
+    "context": "Description of passkey authentication",
+    "source_hash": "a513ed5c"
+  },
+  "web.auth.passkeys.setup_description": {
+    "text": "Klucze dostępu pozwalają logować się bezpiecznie bez hasła",
+    "context": "Setup page description",
+    "source_hash": "85630bef"
+  },
+  "web.auth.passkeys.not_configured": {
+    "text": "Nieskonfigurowane",
+    "context": "Status when no passkeys are registered",
+    "source_hash": "dd1841d2"
+  },
+  "web.auth.passkeys.count": {
+    "text": "{count} klucz dostępu zarejestrowany | {count} klucze dostępu zarejestrowane | {count} kluczy dostępu zarejestrowanych",
+    "context": "Number of registered passkeys",
+    "source_hash": "82e6681f"
+  },
+  "web.auth.passkeys.add_passkey": {
+    "text": "Dodaj klucz dostępu",
+    "context": "Button to add a new passkey",
+    "source_hash": "93713ad7"
+  },
+  "web.auth.passkeys.register_passkey": {
+    "text": "Zarejestruj klucz dostępu",
+    "context": "Button to register a new passkey",
+    "source_hash": "26db6968"
+  },
+  "web.auth.passkeys.remove_passkey": {
+    "text": "Usuń klucz dostępu",
+    "context": "Button to remove a passkey",
+    "source_hash": "67b1d47c"
+  },
+  "web.auth.passkeys.confirm_remove": {
+    "text": "Czy na pewno chcesz usunąć ten klucz dostępu? Nie będziesz już mógł się za jego pomocą logować.",
+    "context": "Confirmation message for passkey removal",
+    "source_hash": "487ab72c"
+  },
+  "web.auth.passkeys.removed_success": {
+    "text": "Klucz dostępu został pomyślnie usunięty",
+    "context": "Success message after removing passkey",
+    "source_hash": "436c1050"
+  },
+  "web.auth.passkeys.registered_success": {
+    "text": "Klucz dostępu został pomyślnie zarejestrowany",
+    "context": "Success message after registering passkey",
+    "source_hash": "fbfb0713"
+  },
+  "web.auth.passkeys.no_passkeys": {
+    "text": "Brak zarejestrowanych kluczy dostępu",
+    "context": "Empty state when no passkeys exist",
+    "source_hash": "1d97fde4"
+  },
+  "web.auth.passkeys.no_passkeys_description": {
+    "text": "Dodaj klucz dostępu, aby logować się bezpieczniej bez wpisywania hasła",
+    "context": "Description for empty state",
+    "source_hash": "e5bc07f1"
+  },
+  "web.auth.passkeys.name": {
+    "text": "Klucz dostępu",
+    "context": "Label for passkey name field",
+    "source_hash": "904c9aa9"
+  },
+  "web.auth.passkeys.created": {
+    "text": "Utworzony",
+    "context": "Label for creation date",
+    "source_hash": "d70b9e24"
+  },
+  "web.auth.passkeys.last_used": {
+    "text": "Ostatnio użyty: {time}",
+    "context": "Last used timestamp",
+    "source_hash": "e1af94fe"
+  },
+  "web.auth.passkeys.never_used": {
+    "text": "Nigdy nie użyty",
+    "context": "Status when passkey has not been used",
+    "source_hash": "24d3236c"
+  },
+  "web.auth.passkeys.benefit_secure": {
+    "text": "Bezpieczniejsze niż hasła - odporne na ataki phishingowe",
+    "context": "Passkey benefit",
+    "source_hash": "41afb6ec"
+  },
+  "web.auth.passkeys.benefit_fast": {
+    "text": "Szybkie i łatwe - po prostu użyj odcisku palca, twarzy lub klucza bezpieczeństwa",
+    "context": "Passkey benefit",
+    "source_hash": "5a0ce96c"
+  },
+  "web.auth.passkeys.benefit_synced": {
+    "text": "Synchronizowane między Twoimi urządzeniami przy użyciu uwierzytelniaczy platformowych",
+    "context": "Passkey benefit",
+    "source_hash": "7480c7ae"
+  },
+  "web.auth.passkeys.link_title": {
+    "text": "Klucze dostępu",
+    "context": "Navigation link title",
+    "source_hash": "c87ccdb4"
+  },
+  "web.auth.lockout.attempts_remaining": {
+    "text": "Ostrzeżenie: pozostało {count} prób logowania",
+    "source_hash": "151dcb5e"
+  },
+  "web.auth.lockout.account_locked": {
+    "text": "Konto zablokowane z powodu zbyt wielu nieudanych prób logowania",
+    "source_hash": "5247f389"
+  },
+  "web.auth.lockout.locked_until": {
+    "text": "Twoje konto jest zablokowane do {time}",
+    "source_hash": "1a8f382e"
+  },
+  "web.auth.lockout.contact_support": {
+    "text": "Skontaktuj się z pomocą techniczną, jeśli potrzebujesz natychmiastowego dostępu",
+    "source_hash": "23d82e46"
+  },
+  "web.auth.lockout.try_password_reset": {
+    "text": "Możesz zamiast tego zresetować hasło",
+    "source_hash": "a98a3f9d"
+  },
+  "web.auth.sessions._guidance": {
+    "skip": true,
+    "context": "User's logged-in devices/browsers management page"
+  },
+  "web.auth.sessions.title": {
+    "text": "Aktywne sesje",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.sessions.current": {
+    "text": "Bieżąca sesja",
+    "source_hash": "386c7932"
+  },
+  "web.auth.sessions.other": {
+    "text": "Inne sesje",
+    "source_hash": "8409f445"
+  },
+  "web.auth.sessions.device": {
+    "text": "Urządzenie",
+    "source_hash": "6ba0bdec"
+  },
+  "web.auth.sessions.location": {
+    "text": "Lokalizacja",
+    "source_hash": "15b61974"
+  },
+  "web.auth.sessions.ip_address": {
+    "text": "Adres IP",
+    "source_hash": "3c3de0c9"
+  },
+  "web.auth.sessions.last_active": {
+    "text": "Ostatnia aktywność",
+    "source_hash": "b6dc1b95"
+  },
+  "web.auth.sessions.created": {
+    "text": "Utworzono",
+    "source_hash": "d70b9e24"
+  },
+  "web.auth.sessions.remove": {
+    "text": "Usuń",
+    "source_hash": "c3812fc4"
+  },
+  "web.auth.sessions.remove_all": {
+    "text": "Wyloguj wszystkie inne sesje",
+    "source_hash": "412bb9e2"
+  },
+  "web.auth.sessions.confirm_remove": {
+    "text": "Czy na pewno chcesz usunąć tę sesję?",
+    "source_hash": "ef12c1ba"
+  },
+  "web.auth.sessions.confirm_remove_all": {
+    "text": "To wyloguje Cię ze wszystkich innych urządzeń. Czy na pewno?",
+    "source_hash": "4a1a73e9"
+  },
+  "web.auth.sessions.no_sessions": {
+    "text": "Brak innych aktywnych sesji",
+    "source_hash": "b83317f2"
+  },
+  "web.auth.sessions.removed_success": {
+    "text": "Sesja usunięta pomyślnie",
+    "source_hash": "6d27d44a"
+  },
+  "web.auth.sessions.removed_all_success": {
+    "text": "Wszystkie inne sesje zostały wylogowane",
+    "source_hash": "1b49e75c"
+  },
+  "web.auth.sessions.link_title": {
+    "text": "Aktywne sesje",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.mfa.title": {
+    "text": "Uwierzytelnianie dwuskładnikowe",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.mfa.enabled": {
+    "text": "Uwierzytelnianie dwuskładnikowe jest włączone",
+    "source_hash": "d27a70c6"
+  },
+  "web.auth.mfa.disabled": {
+    "text": "Uwierzytelnianie dwuskładnikowe jest wyłączone",
+    "source_hash": "0af18e50"
+  },
+  "web.auth.mfa.enable": {
+    "text": "Włącz uwierzytelnianie dwuskładnikowe",
+    "source_hash": "9b83e658"
+  },
+  "web.auth.mfa.disable": {
+    "text": "Wyłącz uwierzytelnianie dwuskładnikowe",
+    "source_hash": "c9698815"
+  },
+  "web.auth.mfa.setup_title": {
+    "text": "Skonfiguruj uwierzytelnianie dwuskładnikowe",
+    "source_hash": "04e05601"
+  },
+  "web.auth.mfa.setup_description": {
+    "text": "Dodaj dodatkową warstwę zabezpieczeń do swojego konta",
+    "source_hash": "d47240b9"
+  },
+  "web.auth.mfa.step_scan": {
+    "text": "1. Zeskanuj kod QR",
+    "source_hash": "efd0134a"
+  },
+  "web.auth.mfa.step_verify": {
+    "text": "2. Zweryfikuj konfigurację",
+    "source_hash": "59bba5f7"
+  },
+  "web.auth.mfa.scan_qr": {
+    "text": "Zeskanuj ten kod QR aplikacją uwierzytelniającą",
+    "source_hash": "65752db3"
+  },
+  "web.auth.mfa.manual_entry": {
+    "text": "Lub wprowadź ten kod ręcznie",
+    "source_hash": "3ea15b3e"
+  },
+  "web.auth.mfa.verify_code": {
+    "text": "Wprowadź 6-cyfrowy kod z aplikacji",
+    "source_hash": "38f61733"
+  },
+  "web.auth.mfa.enter_code": {
+    "text": "Wprowadź kod uwierzytelniający",
+    "source_hash": "186a582a"
+  },
+  "web.auth.mfa.verify": {
+    "text": "Zweryfikuj i włącz",
+    "source_hash": "7c08f68d"
+  },
+  "web.auth.mfa.verify_login": {
+    "text": "Zweryfikuj",
+    "source_hash": "eea2745e"
+  },
+  "web.auth.mfa.code_required": {
+    "text": "Kod uwierzytelniający jest wymagany",
+    "source_hash": "217de0fc"
+  },
+  "web.auth.mfa.invalid_code": {
+    "text": "Nieprawidłowy kod. Kody wygasają co 30 sekund. Spróbuj najnowszego kodu z aplikacji uwierzytelniającej.",
+    "source_hash": "94b58889"
+  },
+  "web.auth.mfa.success_enabled": {
+    "text": "Uwierzytelnianie dwuskładnikowe zostało włączone",
+    "source_hash": "e5aff73d"
+  },
+  "web.auth.mfa.success_disabled": {
+    "text": "Uwierzytelnianie dwuskładnikowe zostało wyłączone",
+    "source_hash": "4fd6b4b4"
+  },
+  "web.auth.mfa.require_password": {
+    "text": "Wprowadź hasło, aby wyłączyć 2FA",
+    "source_hash": "c384b93c"
+  },
+  "web.auth.mfa.password_confirmation": {
+    "text": "Hasło",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.mfa.password_reason": {
+    "text": "Potwierdź swoją tożsamość, aby zmienić ustawienia uwierzytelniania dwuskładnikowego",
+    "source_hash": "09a96c07"
+  },
+  "web.auth.mfa.last_used": {
+    "text": "Ostatnio użyto: {time}",
+    "source_hash": "e1af94fe"
+  },
+  "web.auth.mfa.never_used": {
+    "text": "Nigdy nie użyto",
+    "source_hash": "24d3236c"
+  },
+  "web.auth.mfa.use_recovery_code": {
+    "text": "Użyj kodu odzyskiwania zamiast tego",
+    "source_hash": "23d3441a"
+  },
+  "web.auth.mfa.use_recovery_code_short": {
+    "text": "Użyj kodu odzyskiwania",
+    "source_hash": "50d5790d"
+  },
+  "web.auth.mfa.back_to_code": {
+    "text": "Powrót do kodu uwierzytelniającego",
+    "source_hash": "6fa090b4"
+  },
+  "web.auth.mfa.cancel": {
+    "text": "Anuluj i wróć do logowania",
+    "source_hash": "83256742"
+  },
+  "web.auth.mfa.cancel_sign_in": {
+    "text": "Anuluj logowanie",
+    "source_hash": "1bebad2f"
+  },
+  "web.auth.mfa.loading_status": {
+    "text": "Ładowanie statusu MFA...",
+    "source_hash": "01919f0e"
+  },
+  "web.auth.mfa.protected_description": {
+    "text": "Twoje konto jest chronione uwierzytelnianiem dwuskładnikowym",
+    "source_hash": "02b9d169"
+  },
+  "web.auth.mfa.enable_description": {
+    "text": "Chroń swoje konto dodatkową warstwą zabezpieczeń",
+    "source_hash": "06d9123b"
+  },
+  "web.auth.mfa.benefit_unauthorized": {
+    "text": "Zapobiega nieautoryzowanemu dostępowi, nawet jeśli Twoje hasło zostanie ujawnione",
+    "source_hash": "61d99c71"
+  },
+  "web.auth.mfa.benefit_apps": {
+    "text": "Działa z Google Authenticator, Authy i innymi aplikacjami TOTP",
+    "source_hash": "6ee8ab12"
+  },
+  "web.auth.mfa.benefit_recovery": {
+    "text": "Zapasowe kody odzyskiwania na wypadek awarii",
+    "source_hash": "747917bb"
+  },
+  "web.auth.mfa.password_placeholder": {
+    "text": "Wprowadź swoje hasło",
+    "source_hash": "c06bf967"
+  },
+  "web.auth.mfa.disabling": {
+    "text": "Wyłączanie...",
+    "source_hash": "e4080e19"
+  },
+  "web.auth.mfa.disable_button": {
+    "text": "Wyłącz 2FA",
+    "source_hash": "1c3193f3"
+  },
+  "web.auth.mfa.generating_qr": {
+    "text": "Generowanie kodu QR...",
+    "source_hash": "8eab9da9"
+  },
+  "web.auth.mfa.supported_apps": {
+    "text": "Użyj Google Authenticator, Authy lub dowolnej aplikacji TOTP",
+    "source_hash": "a8eaef9d"
+  },
+  "web.auth.mfa.continue_verification": {
+    "text": "Kontynuuj do weryfikacji",
+    "source_hash": "4da96e87"
+  },
+  "web.auth.mfa.enter_code_description": {
+    "text": "Wprowadź 6-cyfrowy kod z aplikacji uwierzytelniającej",
+    "source_hash": "a160dee6"
+  },
+  "web.auth.mfa.enable_and_continue": {
+    "text": "Włącz MFA",
+    "source_hash": "37c8090d"
+  },
+  "web.auth.mfa.complete_setup": {
+    "text": "Zakończ konfigurację",
+    "source_hash": "30e87601"
+  },
+  "web.auth.mfa.enter_recovery_code": {
+    "text": "Wprowadź jeden z kodów odzyskiwania",
+    "source_hash": "91ab44cf"
+  },
+  "web.auth.mfa.recovery_code_label": {
+    "text": "Kod odzyskiwania",
+    "source_hash": "cf25d0fc"
+  },
+  "web.auth.mfa.recovery_code_placeholder": {
+    "text": "Wprowadź kod odzyskiwania",
+    "source_hash": "586d719c"
+  },
+  "web.auth.mfa.verify_recovery_code": {
+    "text": "Zweryfikuj kod odzyskiwania",
+    "source_hash": "c244c7bd"
+  },
+  "web.auth.mfa.six_digit_code": {
+    "text": "Wprowadź 6-cyfrowy kod uwierzytelniający",
+    "source_hash": "36a438ba"
+  },
+  "web.auth.mfa.recovery_code_mode_active": {
+    "text": "Tryb kodu odzyskiwania aktywny",
+    "source_hash": "c895f08b"
+  },
+  "web.auth.mfa.otp_mode_active": {
+    "text": "Tryb kodu uwierzytelniającego aktywny",
+    "source_hash": "8c44a306"
+  },
+  "web.auth.mfa.enter_all_digits": {
+    "text": "Wprowadź wszystkie 6 cyfr, aby kontynuować",
+    "source_hash": "7914f7b2"
+  },
+  "web.auth.mfa.digit_of_count": {
+    "text": "Cyfra {current} z {total}",
+    "source_hash": "879df41a"
+  },
+  "web.auth.recovery_codes.title": {
+    "text": "Kody odzyskiwania",
+    "source_hash": "579c7f4e"
+  },
+  "web.auth.recovery_codes.description": {
+    "text": "Zapisz te kody w bezpiecznym miejscu. Każdy może być użyty raz, jeśli utracisz dostęp do aplikacji uwierzytelniającej.",
+    "source_hash": "87aebdfb"
+  },
+  "web.auth.recovery_codes.warning": {
+    "text": "Te kody zostaną pokazane tylko raz",
+    "source_hash": "d13f2877"
+  },
+  "web.auth.recovery_codes.save_required": {
+    "text": "Musisz pobrać lub skopiować swoje kody odzyskiwania przed zakończeniem konfiguracji.",
+    "source_hash": "6b97bc6d"
+  },
+  "web.auth.recovery_codes.generate_new": {
+    "text": "Wygeneruj nowe kody",
+    "source_hash": "4025779e"
+  },
+  "web.auth.recovery_codes.regenerate": {
+    "text": "Wygeneruj ponownie kody",
+    "source_hash": "aa652d21"
+  },
+  "web.auth.recovery_codes.generate_new_warning": {
+    "text": "To unieważni wszystkie istniejące kody odzyskiwania",
+    "source_hash": "9795a175"
+  },
+  "web.auth.recovery_codes.download": {
+    "text": "Pobierz kody",
+    "source_hash": "9c23dbba"
+  },
+  "web.auth.recovery_codes.downloaded": {
+    "text": "Kody odzyskiwania pobrane",
+    "source_hash": "10486340"
+  },
+  "web.auth.recovery_codes.print": {
+    "text": "Drukuj kody",
+    "source_hash": "ff940182"
+  },
+  "web.auth.recovery_codes.copy": {
+    "text": "Kopiuj wszystkie kody",
+    "source_hash": "ee956b2b"
+  },
+  "web.auth.recovery_codes.copied": {
+    "text": "Kody skopiowane do schowka",
+    "source_hash": "06ebb466"
+  },
+  "web.auth.recovery_codes.copy_failed": {
+    "text": "Nie udało się skopiować kodów do schowka",
+    "source_hash": "e8be6a51"
+  },
+  "web.auth.recovery_codes.code_used": {
+    "text": "Użyty",
+    "source_hash": "ae7d8dfa"
+  },
+  "web.auth.recovery_codes.code_unused": {
+    "text": "Nieużyty",
+    "source_hash": "231aedff"
+  },
+  "web.auth.recovery_codes.remaining": {
+    "text": "Pozostało {count} z {limit} kodów odzyskiwania",
+    "source_hash": "b5d484e7"
+  },
+  "web.auth.recovery_codes.usage_hint": {
+    "text": "Każdy kod może być użyty tylko raz. Wygeneruj nowe kody, jeśli kończy Ci się ich zapas.",
+    "source_hash": "737a7702"
+  },
+  "web.auth.recovery_codes.none_remaining": {
+    "text": "Brak pozostałych kodów odzyskiwania",
+    "source_hash": "9ae26d68"
+  },
+  "web.auth.recovery_codes.generate_success": {
+    "text": "Wygenerowano nowe kody odzyskiwania",
+    "source_hash": "831cb1aa"
+  },
+  "web.auth.recovery_codes.link_title": {
+    "text": "Kody odzyskiwania",
+    "source_hash": "579c7f4e"
+  },
+  "web.auth.google": {
+    "text": "Google",
+    "source_hash": "ce770667"
+  },
+  "web.auth.mfa.alternative_auth_options": {
+    "text": "Alternatywne opcje uwierzytelniania",
+    "source_hash": "5ddea736"
+  },
+  "web.auth.remember.enabled": {
+    "text": "Pozostań zalogowany",
+    "source_hash": "b0a1ca80"
+  },
+  "web.auth.sessions.session_singular": {
+    "text": "sesja",
+    "source_hash": "3f3af1ec"
+  },
+  "web.auth.sessions.session_plural": {
+    "text": "sesje",
+    "source_hash": "1225ae6c"
+  },
+  "web.auth.connections.title": {
+    "text": "Połączone tożsamości",
+    "source_hash": "e132c4d9"
+  },
+  "web.auth.connections.description": {
+    "text": "Zarządzaj dostawcami jednokrotnego logowania połączonymi z Twoim kontem.",
+    "source_hash": "42c6d148"
+  },
+  "web.auth.connections.section_title": {
+    "text": "Jednokrotne logowanie",
+    "source_hash": "3bc44ac2"
+  },
+  "web.auth.connections.section_subtitle": {
+    "text": "Dostawcy tożsamości, których możesz użyć do zalogowania się na to konto",
+    "source_hash": "507254cd"
+  },
+  "web.auth.connections.connect_title": {
+    "text": "Połącz dostawcę",
+    "source_hash": "a002b3f3"
+  },
+  "web.auth.connections.connect_description": {
+    "text": "Połącz kolejnego dostawcę jednokrotnego logowania, którego możesz użyć do zalogowania się na to konto.",
+    "source_hash": "32895a5a"
+  },
+  "web.auth.connections.connect_action": {
+    "text": "Połącz {provider}",
+    "context": "Button label to start linking a specific SSO provider; {provider} is the provider display name",
+    "source_hash": "c77540af"
+  },
+  "web.auth.connections.issuer": {
+    "text": "Wystawca",
+    "source_hash": "39e02c46"
+  },
+  "web.auth.connections.identifier": {
+    "text": "Identyfikator",
+    "source_hash": "9b10587f"
+  },
+  "web.auth.connections.remove": {
+    "text": "Usuń",
+    "source_hash": "c3812fc4"
+  },
+  "web.auth.connections.remove_confirm_title": {
+    "text": "Usuń połączoną tożsamość",
+    "source_hash": "4e8ffe4c"
+  },
+  "web.auth.connections.remove_confirm_message": {
+    "text": "Czy na pewno chcesz usunąć tę połączoną tożsamość? Nie będziesz już mógł się za jej pomocą zalogować.",
+    "source_hash": "64939c89"
+  },
+  "web.auth.connections.removed_success": {
+    "text": "Połączona tożsamość została usunięta",
+    "source_hash": "cf87daf3"
+  },
+  "web.auth.connections.no_identities": {
+    "text": "Brak połączonych tożsamości",
+    "source_hash": "5254048e"
+  },
+  "web.auth.connections.no_identities_description": {
+    "text": "Nie połączyłeś jeszcze z tym kontem żadnego dostawcy jednokrotnego logowania.",
+    "source_hash": "0f58d5d0"
+  },
+  "web.auth.connections.overview_status": {
+    "text": "Jednokrotne logowanie",
+    "source_hash": "3bc44ac2"
+  },
+  "web.auth.connections.errors.last_credential": {
+    "text": "To jedyny sposób, w jaki możesz się zalogować. Najpierw połącz innego dostawcę lub ustaw hasło w Ustawienia → Zabezpieczenia, aby nie stracić dostępu.",
+    "source_hash": "3de8084d"
+  },
+  "web.auth.connections.errors.last_credential_sso_enforced": {
+    "text": "To jedyny sposób, w jaki możesz się zalogować. Najpierw połącz innego dostawcę, aby nie stracić dostępu.",
+    "source_hash": "eed7a50e"
+  },
+  "web.auth.connections.errors.not_found": {
+    "text": "Nie znaleziono tej połączonej tożsamości. Mogła zostać już usunięta.",
+    "source_hash": "cf2c7673"
+  },
+  "web.auth.connections.errors.unauthorized": {
+    "text": "Twoja sesja wygasła. Zaloguj się ponownie.",
+    "source_hash": "b529fce2"
+  },
+  "web.auth.connections.errors.generic": {
+    "text": "Nie udało się wykonać tego działania. Spróbuj ponownie.",
+    "source_hash": "a0d4edc0"
+  },
+  "web.link_sso.title": {
+    "text": "Powiąż swoją metodę logowania",
+    "source_hash": "46339bac"
+  },
+  "web.link_sso.prompt": {
+    "text": "Zalogowałeś się za pomocą {provider}, co odpowiada istniejącemu kontu {email}. Wprowadź hasło tego konta, aby powiązać {provider} i kontynuować.",
+    "context": "Instruction on the sign-in interstitial. {provider} is a friendly provider name (e.g. Microsoft Entra); {email} is the claimed account email returned by GET /auth/link-sso/:token.",
+    "source_hash": "59da1c08"
+  },
+  "web.link_sso.password_label": {
+    "text": "Hasło",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.link_sso.password_placeholder": {
+    "text": "Twoje dotychczasowe hasło",
+    "source_hash": "ad4e56da"
+  },
+  "web.link_sso.submit": {
+    "text": "Powiąż i kontynuuj",
+    "source_hash": "c969b759"
+  },
+  "web.link_sso.cancel": {
+    "text": "Anuluj",
+    "source_hash": "19766ed6"
+  },
+  "web.link_sso.unavailable_title": {
+    "text": "To żądanie powiązania wygasło",
+    "source_hash": "b53c7e55"
+  },
+  "web.link_sso.unavailable_message": {
+    "text": "Ze względów bezpieczeństwa żądanie powiązania tej metody logowania nie jest już ważne. Zaloguj się dotychczasowym hasłem, a następnie połącz tego dostawcę w Ustawieniach zabezpieczeń → Połączone tożsamości.",
+    "source_hash": "f7e349d1"
+  },
+  "web.link_sso.unavailable_action": {
+    "text": "Przejdź do logowania",
+    "source_hash": "d398cd0a"
+  },
+  "web.link_sso.errors.invalid_password": {
+    "text": "To hasło nie pasuje do tego konta. Spróbuj ponownie.",
+    "source_hash": "3259b4f5"
+  },
+  "web.link_sso.errors.invalid_token": {
+    "text": "To żądanie powiązania wygasło lub zostało już użyte. Zaloguj się dotychczasowym hasłem, a następnie połącz tego dostawcę w ustawieniach konta.",
+    "source_hash": "541f9127"
+  },
+  "web.link_sso.errors.link_conflict": {
+    "text": "Nie udało się powiązać tej metody logowania. Twoje konto mogło ulec zmianie lub ten dostawca jest już powiązany z innym kontem. Zaloguj się dotychczasowym hasłem, a następnie zarządzaj połączeniami w Ustawieniach zabezpieczeń → Połączone tożsamości.",
+    "source_hash": "7b0e0d0e"
+  },
+  "web.link_sso.errors.link_rate_limited": {
+    "text": "Zbyt wiele prób podania hasła. Odczekaj kilka minut i spróbuj ponownie.",
+    "source_hash": "a95e78cd"
+  },
+  "web.link_sso.errors.invalid_request": {
+    "text": "Nie udało się przetworzyć tego żądania powiązania. Zaloguj się ponownie u swojego dostawcy SSO.",
+    "source_hash": "053b9fc6"
+  },
+  "web.link_sso.errors.generic": {
+    "text": "Nie udało się powiązać Twojego konta. Spróbuj ponownie.",
+    "source_hash": "f727c174"
+  },
+  "web.sso_link_confirm.title": {
+    "text": "Potwierdź połączenie konta",
+    "source_hash": "ad80bfe7"
+  },
+  "web.sso_link_confirm.prompt": {
+    "text": "Zalogowałeś się za pomocą {provider}, co odpowiada Twojemu kontu {email}. Potwierdź, aby połączyć {provider} z tym kontem i dokończyć logowanie.",
+    "context": "Consent instruction on the #3840 Phase 4 mailbox-proof SSO linking page. {provider} is a friendly provider name (e.g. Microsoft Entra); {email} is the claimed account email returned by GET /auth/sso-link-confirm/:token. No password is asked — clicking the emailed link is the proof.",
+    "source_hash": "6ff0d6cc"
+  },
+  "web.sso_link_confirm.submit": {
+    "text": "Potwierdź i połącz",
+    "source_hash": "5cf663e6"
+  },
+  "web.sso_link_confirm.cancel": {
+    "text": "Anuluj",
+    "source_hash": "19766ed6"
+  },
+  "web.sso_link_confirm.unavailable_title": {
+    "text": "Nie można ukończyć tego żądania powiązania",
+    "source_hash": "47abb784"
+  },
+  "web.sso_link_confirm.unavailable_message": {
+    "text": "Ze względów bezpieczeństwa to żądanie połączenia metody logowania nie jest już ważne. Zaloguj się ponownie u swojego dostawcy, a wyślemy Ci e-mailem nowy link.",
+    "source_hash": "080e6f9f"
+  },
+  "web.sso_link_confirm.unavailable_action": {
+    "text": "Wróć do logowania",
+    "source_hash": "8504054f"
+  },
+  "web.sso_link_confirm.errors.link_expired": {
+    "text": "To żądanie powiązania wygasło lub zostało już użyte. Zaloguj się ponownie u swojego dostawcy, a wyślemy Ci e-mailem nowy link.",
+    "source_hash": "a50538df"
+  },
+  "web.sso_link_confirm.errors.link_conflict": {
+    "text": "Nie udało się połączyć tej metody logowania. Twoje konto mogło ulec zmianie lub ten dostawca jest już powiązany z innym kontem. Zaloguj się ponownie u swojego dostawcy, aby kontynuować.",
+    "source_hash": "c954854b"
+  },
+  "web.sso_link_confirm.errors.link_invalidated": {
+    "text": "Dane logowania do Twojego konta zmieniły się po wysłaniu tego linku, więc nie jest on już ważny. Zaloguj się ponownie u swojego dostawcy, a wyślemy Ci e-mailem nowy link.",
+    "source_hash": "db88cb1d"
+  },
+  "web.sso_link_confirm.errors.link_error": {
+    "text": "Coś poszło nie tak po naszej stronie i nie udało się zweryfikować tego linku. Zaloguj się ponownie u swojego dostawcy, a wyślemy Ci e-mailem nowy.",
+    "source_hash": "ec24e0a1"
+  },
+  "web.sso_link_confirm.errors.confirm_rate_limited": {
+    "text": "Zbyt wiele prób z Twojego urządzenia. Odczekaj kilka minut, a następnie otwórz ponownie link z wiadomości e-mail lub zaloguj się u swojego dostawcy, aby otrzymać nowy.",
+    "source_hash": "f29af782"
+  },
+  "web.sso_link_confirm.errors.generic": {
+    "text": "Nie udało się potwierdzić tego połączenia. Zaloguj się ponownie u swojego dostawcy.",
+    "source_hash": "076fa25a"
+  },
+  "web.auth.mfa.passkey_mode_active": {
+    "text": "Tryb klucza dostępu aktywny",
+    "source_hash": "824dceb6"
+  },
+  "web.auth.mfa.passkey_prompt": {
+    "text": "Potwierdź swoją tożsamość kluczem dostępu. Twoje urządzenie poprosi o odcisk palca, skan twarzy lub klucz bezpieczeństwa.",
+    "source_hash": "c0b0cbbc"
+  },
+  "web.auth.mfa.verify_with_passkey": {
+    "text": "Zweryfikuj kluczem dostępu",
+    "source_hash": "4f105a30"
+  },
+  "web.auth.mfa.use_passkey": {
+    "text": "Użyj zamiast tego klucza dostępu",
+    "source_hash": "bd6430a4"
+  },
+  "web.auth.passkeys.remove_failed": {
+    "text": "Nie można usunąć klucza dostępu",
+    "source_hash": "3e131515"
+  },
+  "web.auth.passkeys.load_failed": {
+    "text": "Nie można załadować kluczy dostępu",
+    "source_hash": "8d704e00"
+  },
+  "web.auth.webauthn.emailRequired": {
+    "text": "Wprowadź swój adres e-mail, aby zalogować się kluczem dostępu",
+    "source_hash": "7f07647f"
+  },
+  "web.auth.login.verification_unavailable": {
+    "text": "Logowanie się powiodło, ale nie udało się potwierdzić Twojej sesji. Spróbuj ponownie za chwilę.",
+    "source_hash": "9a19dfc9"
+  },
+  "web.auth.mfa.verification_unavailable": {
+    "text": "Hasło zostało zaakceptowane, ale nie udało się rozpocząć weryfikacji dwuskładnikowej. Spróbuj ponownie za chwilę.",
+    "source_hash": "5fd5e240"
+  },
+  "web.auth.session.ended": {
+    "text": "Twoja sesja się zakończyła. Zaloguj się ponownie.",
+    "source_hash": "673e9822"
+  },
+  "web.auth.session.replaced": {
+    "text": "Twoje logowanie zmieniło się w innej karcie, więc ta strona została ponownie załadowana.",
+    "source_hash": "3767d43b"
+  },
+  "web.auth.session.stale_session_title": {
+    "text": "Ta strona jest nieaktualna",
+    "source_hash": "0293e093"
+  },
+  "web.auth.session.stale_session_notice": {
+    "text": "Twoja sesja zmieniła się od czasu załadowania tej strony. Skopiuj wszystko, czego nie zapisano, a następnie załaduj ponownie stronę, aby kontynuować.",
+    "source_hash": "c62e236c"
+  },
+  "web.auth.session.reload_now": {
+    "text": "Załaduj ponownie stronę",
+    "source_hash": "437d0d63"
+  },
+  "web.auth.session.verification_unavailable_title": {
+    "text": "Nie możemy teraz zweryfikować Twojej sesji",
+    "source_hash": "2130dda1"
+  },
+  "web.auth.session.verification_unavailable_body": {
+    "text": "Wylogowanie nie nastąpiło. Nie udało się połączyć z serwerem, aby potwierdzić Twoją sesję, więc ta strona jest ukryta, dopóki nie będzie to możliwe. Będziemy ponawiać próby.",
+    "source_hash": "bb230c2c"
+  },
+  "web.auth.session.retry": {
+    "text": "Spróbuj ponownie",
+    "source_hash": "d8b8392e"
+  },
+  "web.auth.session.retrying": {
+    "text": "Sprawdzanie…",
+    "source_hash": "ec963ffc"
+  },
+  "web.auth.session.retry_failed": {
+    "text": "Nadal niedostępne. Spróbuj ponownie za chwilę.",
+    "source_hash": "b81c022c"
+  }
+}

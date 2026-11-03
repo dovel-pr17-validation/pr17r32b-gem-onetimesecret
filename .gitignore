@@ -1,0 +1,181 @@
+# Globs
+*.env
+*.log
+*.rdb
+*.txt
+.*.json
+.byebug*
+spoom_*
+.commit_hash.txt
+*.sublime-*
+.yardoc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Directories
+.agent-telemetry
+.gems/
+.certs/
+.claude
+.continue/
+.gemini*
+.history
+.interface-design
+.hypothesis/
+.pnpm/
+.pnpm-store/
+.prompts/
+.prompts*
+.pytest_cache/
+.ruby-lsp/
+.serena
+# Ignore personal editor settings but SHARE the project-level config files.
+# Must ignore dir CONTENTS (.vscode/*), not the dir (.vscode/) — git cannot
+# re-include a file whose parent directory is itself excluded.
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.cache/
+.temp/
+.zed/*
+!.zed/settings.json
+!.zed/tasks.json
+.appendonlydir/
+.bundle/
+.rspec
+.rspec_status
+appendonlydir/
+data
+exports
+results
+doc/
+node_modules/
+vendor/
+log/
+tmp/
+coverage/
+dist/
+public/web/dist/
+public/doc
+# Runtime brand-asset packs (#3739): public/branding/<pack>/ is generator
+# output (pnpm run gen:favicons:<pack>), never committed — the repo stays
+# brand-neutral. Ignore the CONTENTS (not the dir) so the README stays tracked;
+# git cannot re-include a file whose parent directory is itself excluded (see
+# .vscode note above).
+#
+# The `default` pack (#3774) is a tracked exception: it holds the neutral
+# asset set + a value-free brand.yaml and is the pack every unset BRAND_PACK
+# resolves to. `vshare` and `linkdepot` are also tracked: sample general-purpose
+# brand identities (unrelated to Onetime Secret) that demonstrate the pack
+# system without compromising repo brand-neutrality. Re-include the directories
+# so git descends into them (their files are not matched by the single-level
+# `*` above, so they track normally). The company's own marks (`maruhi`,
+# `onetimesecret`) stay generator-only and gitignored.
+public/branding/*
+!public/branding/README.md
+!public/branding/default/
+!public/branding/vshare/
+!public/branding/linkdepot/
+!tests/data
+
+# Files
+.DS_Store
+CLAUDE.md
+!.oci-build.json
+.github/*md
+!.github/copilot-instructions.md
+.eslintcache
+.rspec*
+.qodo
+.continuerc.json
+.mcp.json
+bin/bundle
+bin/rspec
+bin/rubocop
+!fly.toml
+support/schemas/
+*.tsbuildinfo
+*.db
+*.db-shm
+*.db-wal
+!locales/db/*.sql
+!routes.txt
+!scripts/requirements-*.txt
+.overmind.sock
+Procfile.*
+!Procfile*.example
+onetimesecret_*
+
+# Auto-generated files
+src/auto-imports.d.ts
+src/.eslintrc-auto-import.json
+*.pyc
+
+# Generated files (locales, types, OpenAPI, docs) - produced by sync/type-gen/openapi/typedoc scripts
+generated/locales/*.json
+generated/types/*.d.ts
+generated/openapi/*.json
+generated/outputs
+generated/docs/
+# Derived i18n governance cache — .resolved/ JSON + for-translators guides
+# (translation-rules ADR-005): never committed; regenerated on demand at the pin.
+generated/i18n/
+# On-demand authority checkout used by locales/scripts/derive-governance.sh
+# (read-only translation-rules clone at the canonical pin); never committed.
+/.translation-rules/
+
+scripts/api-validation/captures
+scripts/api-validation/diffs
+
+# Environment files
+.env*
+.test-mode
+!.env.example
+!.env.reference
+!.env.test.example
+
+
+# Playwright paths
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+# Saved authenticated session (e2e/global.setup.ts) - never commit
+e2e/.auth/
+e2e/visual/.artifacts/
+# Backstop against committing macOS baselines (Linux baselines only)
+e2e/visual/**/*-darwin.png
+*.egg-info/
+
+# Local direnv overlay markers in test lanes (tests/lanes/README.md)
+tests/lanes/**/.overlays
+
+# Test lanes are the exception to the env-file ignore rules above:
+# committed on purpose, dummy values only (tests/lanes/README.md)
+!tests/lanes/**/.envrc
+!tests/lanes/base.env
+!tests/lanes/overlays/*.env
+
+# Per-run i18n PR-review artifacts (pr-per-locale.sh). Not committed here; may
+# move to the translation-rules repo as an audit trail. See locales/BATCH_OPERATIONS.md.
+locales/reviews/
+
+# envref tool package (ADR-042). uv writes .venv/.gitignore itself, but that
+# only helps once the venv exists; naming it here keeps a half-built one out.
+tools/envref/.venv/
+tools/logship/.venv/
+__pycache__/
+
+# Intermediate of `bin/envref archaeology`, consumed by `bin/envref map`. It is
+# derived from git history, takes ~20s to rebuild, and goes stale the moment a
+# release is tagged — committing it would create a second answer to "when did
+# this key ship" that nothing checks.
+env-versions.tsv
+
+# Agent session scratch (AGENTS.md "Large Tasks"): per-session handoff notes,
+# never part of a change set.
+tasks/mission.md
+BLOCKED.md

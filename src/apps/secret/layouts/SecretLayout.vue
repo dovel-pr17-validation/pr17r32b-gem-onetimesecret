@@ -1,0 +1,98 @@
+<!-- src/apps/secret/layouts/SecretLayout.vue -->
+
+<!--
+  Secret Layout for conceal, metadata, and incoming flows.
+  Authentication-aware: uses workspace components when authenticated,
+  transactional components for public/guest access.
+-->
+
+<script setup lang="ts">
+  import OrganizationContextBar from '@/apps/workspace/components/navigation/OrganizationContextBar.vue';
+  import WorkspaceFooter from '@/apps/workspace/components/layout/WorkspaceFooter.vue';
+  import ManagementHeader from '@/shared/components/layout/ManagementHeader.vue';
+  import BrandedHeader from '@/apps/secret/components/layout/BrandedHeader.vue';
+  import TransactionalFooter from '@/shared/components/layout/TransactionalFooter.vue';
+  import BaseLayout from '@/shared/layouts/BaseLayout.vue';
+  import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+  import { useDomainsStore, useReceiptListStore } from '@/shared/stores';
+  import { useOrgPermissions } from '@/shared/composables/useOrgPermissions';
+  import { storeToRefs } from 'pinia';
+  import type { LayoutProps } from '@/types/ui/layouts';
+  import { computed, onMounted } from 'vue';
+
+  const props = withDefaults(defineProps<LayoutProps>(), {
+    displayMasthead: true,
+    displayNavigation: true,
+    displayFeedback: true,
+    displayFooterLinks: true,
+    displayVersion: true,
+    displayToggles: true,
+    displayPoweredBy: false,
+  });
+
+  const bootstrapStore = useBootstrapStore();
+  const { authenticated, domains_enabled: domainsEnabled } = storeToRefs(bootstrapStore);
+
+  // Store instances for centralized data loading (for authenticated view)
+  const receiptListStore = useReceiptListStore();
+  const domainsStore = useDomainsStore();
+
+  // Permission check for domain management (admins/owners only)
+  const { canManageDomain } = useOrgPermissions();
+
+  // Load stores when authenticated (needed for workspace footer mobile nav)
+  onMounted(() => {
+    if (authenticated.value) {
+      receiptListStore.refreshRecords(true);
+      // Only fetch domain list for users who can manage domains (admins/owners)
+      // Members get domain context from the permissions API via useDomainContext
+      if (domainsEnabled && canManageDomain.value) {
+        domainsStore.refreshRecords({ force: true });
+      }
+    }
+  });
+
+  // Transactional layout: narrower, centered content
+  const transactionalClasses = computed(() => {
+    const base = 'container mx-auto flex min-w-[320px] max-w-2xl flex-1 flex-col px-4 justify-start';
+    return props.displayMasthead ? `${base} py-8` : `${base} pt-16 pb-8`;
+  });
+</script>
+
+<template>
+  <BaseLayout v-bind="props">
+    <template #header>
+      <!-- Authenticated: ManagementHeader with context bar -->
+      <ManagementHeader v-if="authenticated" v-bind="props">
+        <OrganizationContextBar />
+      </ManagementHeader>
+      <!-- Guest: BrandedHeader switches to BrandedMastHead on custom domains,
+           preventing the canonical OTS logo/nav from leaking -->
+      <BrandedHeader v-else v-bind="props" />
+    </template>
+
+    <template #main>
+      <!-- Authenticated: wider workspace-style layout -->
+      <div v-if="authenticated" class="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div class="container mx-auto min-w-[320px] max-w-4xl px-4 py-8">
+          <main class="min-w-0 flex-1">
+            <slot></slot>
+          </main>
+        </div>
+      </div>
+      <!-- Guest: narrower transactional layout -->
+      <div v-else class="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <main :class="transactionalClasses">
+          <slot></slot>
+        </main>
+      </div>
+    </template>
+
+    <template #footer>
+      <!-- Authenticated: WorkspaceFooter (no region switcher, SaaS links) -->
+      <WorkspaceFooter v-if="authenticated" v-bind="props" />
+      <!-- Guest: TransactionalFooter (region switcher, toggles) -->
+      <TransactionalFooter v-else v-bind="props" />
+    </template>
+  </BaseLayout>
+</template>

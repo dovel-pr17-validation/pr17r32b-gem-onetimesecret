@@ -1,0 +1,27 @@
+# frozen_string_literal: true
+
+#
+# SimpleCov configuration, auto-loaded by `require 'simplecov'`.
+#
+# Produces a Cobertura XML report at coverage/coverage.xml. Coverage is
+# opt-in via COVERAGE=true so normal test runs, local and CI, are
+# unaffected; CI never sets it. The unit suite still runs across more than one RSpec process
+# (spec:fast is two: spec:root_fast and spec:apps_fast — it was thirteen before
+# the fan-out was consolidated), so each process gets a unique command name and
+# SimpleCov merges their results into a single coverage/coverage.xml. The
+# process count is not a constant here on purpose: pid-keyed command names and
+# the merge timeout below work for any number of them.
+if ENV['COVERAGE'] == 'true'
+  require 'simplecov-cobertura'
+
+  SimpleCov.command_name "rspec:#{Process.pid}"
+  # Keep merged results from earlier RSpec processes valid for the whole job.
+  SimpleCov.merge_timeout 3600
+
+  SimpleCov.start do
+    add_filter %r{/spec/}
+    add_filter %r{/try/}
+    add_filter %r{/tryouts/}
+    formatter SimpleCov::Formatter::CoberturaFormatter
+  end
+end

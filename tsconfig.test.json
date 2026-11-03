@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals"],
+    "isolatedModules": true,
+    "typeRoots": ["./node_modules", "./types"]
+  },
+  "include": [
+    "src/tests/**/*.ts",
+    "src/tests/**/*.vue",
+    "src/tests/**/*.d.ts",
+    "src/types/**/*.ts",
+    "src/types/declarations/*.d.ts"
+  ],
+  "exclude": ["node_modules", "src/node_modules", "public/web/dist", "dist"]
+}

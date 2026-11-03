@@ -1,0 +1,38 @@
+# ==============================================================================
+# Docs-command drift guard (install-onboarding testing-strategy §2c)
+# ==============================================================================
+# Fails when a documented setup command references a script, bin/ entrypoint,
+# or pnpm target that no longer exists. Cheap (no toolchain beyond Node, which
+# ubuntu runners preinstall), so it runs on every PR that touches the docs or
+# the artifacts they reference. The real logic lives in the committed script,
+# so local and CI run the same artifact.
+# ==============================================================================
+name: Docs command drift
+
+on:
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'CONTRIBUTING.md'
+      - 'docs/development/**'
+      - 'install*.sh'
+      - 'bin/**'
+      - 'bin/testsuite-installer'
+      - 'tools/testsuite-installer/testsuite-installer.sh'
+      - 'package.json'
+      - 'tools/testsuite-installer/check-docs-commands.sh'
+      - '.github/workflows/docs-command-drift.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Check documented commands resolve to real targets
+        run: bin/testsuite-installer check-docs-commands

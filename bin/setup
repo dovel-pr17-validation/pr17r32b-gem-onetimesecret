@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#
+# bin/setup — the one command that prepares this checkout. `bin/setup --help`
+# lists the lanes.
+#
+# ADR-042: this shim finds the repository root, starts tools/setup/ and
+# passes arguments through. It holds no business logic and parses nothing;
+# the lanes live in tools/setup/setup.sh.
+#
+# The package runs under "$BASH", the interpreter running this file, not
+# under its own shebang. `/bin/bash bin/setup` (installer.yml's macOS job)
+# must exercise the lanes under stock bash 3.2, not under whichever bash
+# comes first on PATH.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec "${BASH:-bash}" "$ROOT/tools/setup/setup.sh" "$@"

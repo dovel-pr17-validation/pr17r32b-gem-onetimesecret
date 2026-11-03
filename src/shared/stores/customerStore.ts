@@ -1,0 +1,132 @@
+// src/shared/stores/customerStore.ts
+
+import { responseSchemas } from '@/schemas/api/v3/responses';
+import type { Customer } from '@/schemas/shapes/v3/customer';
+import { gracefulParse } from '@/utils/schemaValidation';
+import { createError } from '@/shared/composables/useAsyncHandler';
+import { useApi } from '@/shared/composables/useApi';
+import { defineStore, PiniaCustomProperties } from 'pinia';
+import { computed, handleError, ref } from 'vue';
+
+/**
+ * Type definition for CustomerStore.
+ */
+export type CustomerStore = {
+  // State
+  currentCustomer: Customer | null;
+  abortController: AbortController | null;
+  _initialized: boolean;
+
+  // Actions
+  abort: () => void;
+  fetch: () => Promise<void>;
+  updateCustomer: (updates: Partial<Customer>) => Promise<void>;
+  $reset: () => void;
+} & PiniaCustomProperties;
+
+/**
+ * Store for managing customer data, including current customer information and related actions.
+ */
+
+export const useCustomerStore = defineStore('customer', () => {
+  const $api = useApi();
+
+  // State
+  const currentCustomer = ref<Customer | null>(null);
+  const abortController = ref<AbortController | null>(null);
+  const _initialized = ref(false);
+
+  // Getters
+  const isInitialized = computed(() => _initialized.value);
+
+  // Actions
+
+
+  function init() {
+    if (_initialized.value) return { isInitialized };
+
+
+    _initialized.value = true;
+
+    return { isInitialized };
+  }
+
+  /**
+   * Cancels any in-flight customer data request.
+   * Critical for:
+   * - Preventing race conditions on rapid view switches
+   * - Cleanup during logout
+   * - Explicit cancellation when data is no longer needed
+   */
+  function abort() {
+    if (abortController.value) {
+      abortController.value.abort();
+      abortController.value = null;
+    }
+  }
+
+  /**
+   * Fetches the current customer's data from the API.
+   * @throws Will handle and set any errors encountered during the API call.
+   */
+  async function fetch() {
+    // Abort any pending request before starting a new one
+    abort();
+
+    abortController.value = new AbortController();
+    const response = await $api.get('/api/account/customer', {
+      signal: abortController.value.signal,
+    });
+    const result = gracefulParse(responseSchemas.customer, response.data, 'CustomerResponse');
+    if (!result.ok) {
+      throw new Error('Unable to load customer data. Please try again.');
+    }
+    currentCustomer.value = result.data.record as Customer;
+  }
+
+  /**
+   * Updates the current customer's data with the provided updates.
+   * @param updates - Partial customer data to update.
+   * @throws Will handle and set any errors encountered during the API call.
+   */
+  async function updateCustomer(updates: Partial<Customer>) {
+    if (!currentCustomer.value?.objid) {
+      // Use handleError instead of throwing directly
+      throw createError('No current customer to update', 'human', 'error');
+    }
+
+    const response = await $api.put(
+      `/api/account/customer/${currentCustomer?.value?.objid}`,
+      updates
+    );
+    const result = gracefulParse(responseSchemas.customer, response.data, 'CustomerResponse');
+    if (!result.ok) {
+      throw new Error('Unable to update customer data. Please try again.');
+    }
+    currentCustomer.value = result.data.record as Customer;
+  }
+
+  /**
+   * Resets the store state to its initial values.
+   */
+  function $reset() {
+    currentCustomer.value = null;
+    abortController.value = null;
+    _initialized.value = false;
+  }
+
+  return {
+    // State
+    init,
+    currentCustomer,
+    abortController,
+    _initialized,
+
+    // Actions
+    handleError,
+    abort,
+    fetch,
+    updateCustomer,
+    $reset,
+  };
+});

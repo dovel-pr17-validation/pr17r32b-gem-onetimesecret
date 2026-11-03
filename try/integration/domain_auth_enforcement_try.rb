@@ -1,0 +1,1035 @@
+# try/integration/domain_auth_enforcement_try.rb
+#
+# frozen_string_literal: true
+
+# Integration tests for per-domain signin enforcement wiring.
+#
+# Exercises the REAL gate logic in Core::Controllers::Base#signin_enabled?
+# using a lightweight controller stub (same pattern as
+# homepage_mode_integration_try.rb). The controller class overrides
+# `domain_signin_config` and `auth_settings` so we control both sides of
+# the fallback without needing a full Rack request cycle.
+#
+# Also exercises the serializer-level visibility gates:
+#   - DomainSerializer.effective_signin_enabled? / effective_signup_enabled?
+#   - ConfigSerializer.resolve_restrict_to
+#   - ConfigSerializer.resolve_signin (features.signin display gate)
+#
+# Custom-domain polarity: sign-in on a custom domain is OFF by default and
+# only opens when the domain owner explicitly enables a SigninConfig. The
+# operator's own surfaces (canonical / subdomain) keep following the global
+# default. The controller distinguishes them via env['onetime.domain_strategy'].
+#
+# Covers:
+#   1. No SigninConfig record -> custom OFF (opt-in); canonical follows global
+#   2. SigninConfig exists, enabled=false (master switch off) -> custom OFF; canonical follows global
+#   3. SigninConfig exists, enabled=true, signin_enabled=true -> allows signin (global permitting)
+#   4. SigninConfig exists, enabled=true, signin_enabled=false -> blocks signin
+#   5. Default reconciliation: new SigninConfig conservative defaults
+#   6. Serializer visibility gates
+#   7. ConfigSerializer resolve_restrict_to domain override
+#   11. ConfigSerializer resolve_signin: custom-domain default-OFF + SSO carve-out (#3415);
+#       resolve_restrict_to='sso' parity for the same carve-out so SSO-only pages hide password/email (#3783)
+#   12. SsoConfig.tenant_sso_available_for? direct predicate coverage (#3783)
+#   13. Masthead LINK <-> /signin PAGE parity matrix (#3783)
+#
+# Run (try:integration:simple, simple lane):
+#   tests/lanes/run simple --only try/integration/domain_auth_enforcement_try.rb
+
+require_relative '../../lib/onetime'
+require 'rack/mock'
+
+OT.boot! :test
+
+Familia.dbclient.flushdb
+OT.info "Cleaned Redis for domain auth enforcement test run"
+
+# Load controller and serializer modules
+require_relative '../../apps/web/core/controllers/base'
+require_relative '../../apps/web/core/views/serializers/domain_serializer'
+require_relative '../../apps/web/core/views/serializers/config_serializer'
+
+# Unique test identifiers
+@ts = Familia.now.to_i
+@entropy = SecureRandom.hex(4)
+
+# Create fixtures for tests that need persisted SigninConfig
+@owner = Onetime::Customer.create!(email: "dae_owner_#{@ts}_#{@entropy}@test.com")
+@org = Onetime::Organization.create!("DAE Test Org #{@ts}", @owner, "dae_#{@ts}@test.com")
+
+# -------------------------------------------------------------------
+# Controller stub: exercises real Base#signin_enabled? with injectable
+# domain_signin_config and auth_settings.
+# -------------------------------------------------------------------
+SigninGateController = Class.new do
+  include Core::Controllers::Base
+
+  attr_accessor :req, :res, :injected_signin_config, :injected_auth_settings
+
+  # domain_strategy defaults to :custom because this file exercises the
+  # custom-domain enforcement path. Pass :canonical to assert the operator's
+  # own surfaces still follow the global default.
+  def initialize(signin_config:, auth_settings:, domain_strategy: :custom)
+    env = {
+      'REQUEST_METHOD' => 'GET', 'PATH_INFO' => '/', 'SERVER_NAME' => 'test', 'SERVER_PORT' => '443',
+      'onetime.domain_strategy' => domain_strategy
+    }
+    @req = Rack::Request.new(env)
+    @res = Rack::Response.new
+    @injected_signin_config = signin_config
+    @injected_auth_settings = auth_settings
+  end
+
+  # Override private helpers to inject test data
+  private
+
+  def domain_signin_config
+    injected_signin_config
+  end
+
+  def auth_settings
+    injected_auth_settings
+  end
+
+  # Expose the protected method
+  public :signin_enabled?
+end
+
+# Global settings where signin IS enabled (the typical default)
+GLOBAL_SIGNIN_ON  = { 'enabled' => true, 'signin' => true }
+# Global settings where signin is OFF (discriminating: differs from config)
+GLOBAL_SIGNIN_OFF = { 'enabled' => true, 'signin' => false }
+# Global settings where auth master switch is off
+GLOBAL_AUTH_OFF   = { 'enabled' => false, 'signin' => true }
+
+# site.authentication shapes for the ConfigSerializer#resolve_signin display
+# gate (view_vars['site']), mirroring the GLOBAL_* controller shapes above.
+# Constants (not @ivars) so they resolve inside every test block in shared mode.
+SITE_SIGNIN_ON  = { 'authentication' => { 'enabled' => true, 'signin' => true } }
+SITE_SIGNIN_OFF = { 'authentication' => { 'enabled' => true, 'signin' => false } }
+SITE_AUTH_OFF   = { 'authentication' => { 'enabled' => false, 'signin' => true } }
+
+# Tenant SSO needs verified domain ownership (#4517, #4579): the availability
+# ladder answers :domain_unverified for a domain that has not passed its
+# ownership check, so every fixture that expects tenant SSO to be live
+# creates its domain through this helper. Defined in the setup region so it
+# exists before the first test case that uses it.
+def verified_tenant_domain!(display_domain, org_id)
+  Onetime::CustomDomain.create!(display_domain, org_id).tap do |domain|
+    domain.verified = true
+    domain.save
+  end
+end
+
+# ===================================================================
+# 1. No SigninConfig record
+#    -> custom domain OFF (opt-in); canonical follows global
+# ===================================================================
+
+## Custom domain, no SigninConfig: OFF even though global signin is on (opt-in)
+ctrl = SigninGateController.new(signin_config: nil, auth_settings: GLOBAL_SIGNIN_ON)
+ctrl.signin_enabled?
+#=> false
+
+## Custom domain, no SigninConfig: OFF when global disables signin too
+ctrl = SigninGateController.new(signin_config: nil, auth_settings: GLOBAL_SIGNIN_OFF)
+ctrl.signin_enabled?
+#=> false
+
+## Custom domain, no SigninConfig: OFF when global auth master switch is off
+ctrl = SigninGateController.new(signin_config: nil, auth_settings: GLOBAL_AUTH_OFF)
+ctrl.signin_enabled?
+#=> false
+
+## Canonical, no SigninConfig: follows global (true) — operator surface unchanged
+ctrl = SigninGateController.new(signin_config: nil, auth_settings: GLOBAL_SIGNIN_ON, domain_strategy: :canonical)
+ctrl.signin_enabled?
+#=> true
+
+## Canonical, no SigninConfig: follows global (false) when global disables signin
+ctrl = SigninGateController.new(signin_config: nil, auth_settings: GLOBAL_SIGNIN_OFF, domain_strategy: :canonical)
+ctrl.signin_enabled?
+#=> false
+
+# ===================================================================
+# 2. SigninConfig exists, enabled=false (master switch off)
+#    -> custom domain OFF (not opted in); canonical follows global
+# ===================================================================
+
+## Custom domain, master switch off: OFF even when config.signin_enabled=true (not opted in)
+@domain_ms = Onetime::CustomDomain.create!("dae-ms-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_ms = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_ms.identifier,
+  enabled: false,
+  signin_enabled: true,
+)
+ctrl = SigninGateController.new(signin_config: @config_ms, auth_settings: GLOBAL_SIGNIN_ON)
+ctrl.signin_enabled?
+#=> false
+
+## Custom domain, master switch off: OFF regardless of global (global on here)
+@domain_ms2 = Onetime::CustomDomain.create!("dae-ms2-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_ms2 = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_ms2.identifier,
+  enabled: false,
+  signin_enabled: false,
+)
+ctrl = SigninGateController.new(signin_config: @config_ms2, auth_settings: GLOBAL_SIGNIN_ON)
+ctrl.signin_enabled?
+#=> false
+
+## Canonical, master switch off: falls back to global (true) — operator surface unchanged
+ctrl = SigninGateController.new(signin_config: @config_ms2, auth_settings: GLOBAL_SIGNIN_ON, domain_strategy: :canonical)
+ctrl.signin_enabled?
+#=> true
+
+# ===================================================================
+# 3. SigninConfig exists, enabled=true, signin_enabled=true
+#    -> allows signin ONLY when the global kill switch also permits it.
+#       AND semantics: an enabled domain config narrows, never widens,
+#       the install-level capability. The global kill switch always wins,
+#       and the runtime gate matches the display gate (resolve_signin).
+# ===================================================================
+
+## Enabled config with signin_enabled=true allows signin when global also permits
+@domain_on = Onetime::CustomDomain.create!("dae-on-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_on = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_on.identifier,
+  enabled: true,
+  signin_enabled: true,
+)
+ctrl = SigninGateController.new(signin_config: @config_on, auth_settings: GLOBAL_SIGNIN_ON)
+ctrl.signin_enabled?
+#=> true
+
+## Global kill switch wins: an enabled config cannot re-enable signin when AUTH_SIGNIN is off
+ctrl_signin_off = SigninGateController.new(signin_config: @config_on, auth_settings: GLOBAL_SIGNIN_OFF)
+ctrl_signin_off.signin_enabled?
+#=> false
+
+## Global kill switch wins: an enabled config cannot re-enable signin when AUTH_ENABLED is off
+ctrl_auth_off = SigninGateController.new(signin_config: @config_on, auth_settings: GLOBAL_AUTH_OFF)
+ctrl_auth_off.signin_enabled?
+#=> false
+
+# ===================================================================
+# 4. SigninConfig exists, enabled=true, signin_enabled=false -> blocks signin
+# ===================================================================
+
+## Enabled config with signin_enabled=false blocks signin (regardless of global)
+@domain_off = Onetime::CustomDomain.create!("dae-off-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_off = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_off.identifier,
+  enabled: true,
+  signin_enabled: false,
+)
+ctrl = SigninGateController.new(signin_config: @config_off, auth_settings: GLOBAL_SIGNIN_ON)
+ctrl.signin_enabled?
+#=> false
+
+## Enabled config with signin_enabled=false overrides global=true
+ctrl2 = SigninGateController.new(signin_config: @config_off, auth_settings: GLOBAL_SIGNIN_ON)
+ctrl2.signin_enabled?
+#=> false
+
+# ===================================================================
+# 5. Default reconciliation: conservative boolean defaults
+# ===================================================================
+
+## New SigninConfig defaults signin_enabled to false (conservative)
+@domain_def = Onetime::CustomDomain.create!("dae-def-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_def = Onetime::CustomDomain::SigninConfig.create!(domain_id: @domain_def.identifier)
+@config_def.signin_enabled?
+#=> false
+
+## New SigninConfig defaults email_auth_enabled to false
+@config_def.email_auth_enabled?
+#=> false
+
+## New SigninConfig defaults sso_enabled to false
+@config_def.sso_enabled?
+#=> false
+
+## New SigninConfig defaults enabled (master switch) to false
+@config_def.enabled?
+#=> false
+
+## Round-trip: conservative defaults survive save/load
+@config_def_loaded = Onetime::CustomDomain::SigninConfig.find_by_domain_id(@domain_def.identifier)
+[@config_def_loaded.signin_enabled?, @config_def_loaded.email_auth_enabled?, @config_def_loaded.sso_enabled?]
+#=> [false, false, false]
+
+# ===================================================================
+# 6. Serializer visibility gates (class << self methods)
+# ===================================================================
+
+## effective_signin_enabled? defaults OFF when no SigninConfig exists (custom-domain opt-in)
+Core::Views::DomainSerializer.send(:effective_signin_enabled?, 'nonexistent_domain_id')
+#=> false
+
+## effective_signin_enabled? stays OFF when SigninConfig exists but master switch off (not opted in)
+@domain_vis1 = Onetime::CustomDomain.create!("dae-vis1-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_vis1 = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_vis1.identifier,
+  enabled: false,
+  signin_enabled: false,
+)
+Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis1.identifier)
+#=> false
+
+## effective_signin_enabled? returns false when SigninConfig enabled and signin disabled
+@domain_vis2 = Onetime::CustomDomain.create!("dae-vis2-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_vis2 = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_vis2.identifier,
+  enabled: true,
+  signin_enabled: false,
+)
+Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis2.identifier)
+#=> false
+
+## effective_signin_enabled? returns true when SigninConfig enabled and signin enabled
+@domain_vis3 = Onetime::CustomDomain.create!("dae-vis3-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_vis3 = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_vis3.identifier,
+  enabled: true,
+  signin_enabled: true,
+)
+Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis3.identifier)
+#=> true
+
+## effective_signin_enabled? returns true for an SSO-only tenant: enabled SsoConfig, NO SigninConfig (masthead SSO carve-out)
+@domain_vis_sso = verified_tenant_domain!("dae-vis-sso-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@sso_vis = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_vis_sso.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO VIS',
+  enabled: true,
+  issuer: 'https://idp-vis.example.com',
+  client_id: 'client-vis',
+)
+Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis_sso.identifier)
+#=> true
+
+## The same SSO-only tenant shape on an UNVERIFIED domain: LINK and PAGE both OFF (#4579) —
+## tenant SSO waits on ownership verification, so the carve-out has nothing to offer yet
+@domain_vis_sso_unverified = Onetime::CustomDomain.create!("dae-vis-sso-unv-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@sso_vis_unverified = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_vis_sso_unverified.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO VIS UNVERIFIED',
+  enabled: true,
+  issuer: 'https://idp-vis-unv.example.com',
+  client_id: 'client-vis-unv',
+)
+[
+  Onetime::CustomDomain::SsoConfig.tenant_sso_unavailable_reason(@domain_vis_sso_unverified.identifier),
+  Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis_sso_unverified.identifier),
+  Core::Views::ConfigSerializer.send(
+    :resolve_signin,
+    { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_vis_sso_unverified.display_domain, 'domain_strategy' => :custom },
+  ),
+]
+#=> [:domain_unverified, false, false]
+
+## effective_signin_enabled? stays OFF for a real domain with NEITHER SigninConfig nor SsoConfig (opt-in default)
+@domain_vis_none = Onetime::CustomDomain.create!("dae-vis-none-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis_none.identifier)
+#=> false
+
+## Invariant: for the SSO-only tenant the masthead link gate and the /signin PAGE gate now AGREE (both true)
+[
+  Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis_sso.identifier),
+  Core::Views::ConfigSerializer.send(
+    :resolve_signin,
+    { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_vis_sso.display_domain, 'domain_strategy' => :custom },
+  ),
+]
+#=> [true, true]
+
+## effective_signup_enabled? defaults OFF when no SignupConfig exists (custom-domain opt-in)
+Core::Views::DomainSerializer.send(:effective_signup_enabled?, 'nonexistent_domain_id')
+#=> false
+
+## effective_signup_enabled? returns false when an enabled SignupConfig disables signup
+@domain_vis4 = Onetime::CustomDomain.create!("dae-vis4-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_vis4 = Onetime::CustomDomain::SignupConfig.create!(
+  domain_id: @domain_vis4.identifier,
+  validation_strategy: 'passthrough',
+  enabled: true,
+  signup_enabled: false,
+)
+Core::Views::DomainSerializer.send(:effective_signup_enabled?, @domain_vis4.identifier)
+#=> false
+
+## effective_signup_enabled? returns true when an enabled SignupConfig opts in (and global permits)
+@domain_vis5 = Onetime::CustomDomain.create!("dae-vis5-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_vis5 = Onetime::CustomDomain::SignupConfig.create!(
+  domain_id: @domain_vis5.identifier,
+  validation_strategy: 'passthrough',
+  enabled: true,
+  signup_enabled: true,
+)
+Core::Views::DomainSerializer.send(:effective_signup_enabled?, @domain_vis5.identifier)
+#=> true
+
+# ===================================================================
+# 7. ConfigSerializer resolve_restrict_to domain override
+# ===================================================================
+
+## resolve_restrict_to falls back to global when no domain context
+Core::Views::ConfigSerializer.send(:resolve_restrict_to, {})
+#=> Onetime.auth_config.restrict_to
+
+## resolve_restrict_to falls back to global when domain has no SigninConfig
+@domain_rt1 = Onetime::CustomDomain.create!("dae-rt1-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@view_vars_no_config = { 'display_domain' => @domain_rt1.display_domain }
+Core::Views::ConfigSerializer.send(:resolve_restrict_to, @view_vars_no_config)
+#=> Onetime.auth_config.restrict_to
+
+## resolve_restrict_to uses domain SigninConfig restrict_to when the named
+## method can actually run here: enabled config restricting to 'sso', with the
+## tenant SSO credentials + activation + verified domain that make 'sso' honorable
+@domain_rt2 = verified_tenant_domain!("dae-rt2-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_rt2 = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_rt2.identifier,
+  enabled: true,
+  restrict_to: 'sso',
+  sso_enabled: true,
+)
+@sso_rt2 = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_rt2.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO RT2',
+  enabled: true,
+  issuer: 'https://idp-rt2.example.com',
+  client_id: 'client-rt2',
+)
+@view_vars_with_config = { 'display_domain' => @domain_rt2.display_domain, 'domain_strategy' => :custom }
+Core::Views::ConfigSerializer.send(:resolve_restrict_to, @view_vars_with_config)
+#=> 'sso'
+
+## FAIL CLOSED (#4139, ADR-034#degradation-is-fail-closed): the same enabled
+## restrict_to='sso' on a domain with NO SSO credentials resolves :unavailable —
+## the display value is nil (nothing offered), NOT 'sso' and NOT a widening
+## fallback to global. This case used to expect 'sso'; the expectation predates
+## the availability derivation, and the fixture above is what the case name
+## actually meant.
+@domain_rt2b = Onetime::CustomDomain.create!("dae-rt2b-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_rt2b = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_rt2b.identifier,
+  enabled: true,
+  restrict_to: 'sso',
+)
+@resolution_rt2b = Core::Views::ConfigSerializer.send(
+  :restrict_to_resolution,
+  { 'display_domain' => @domain_rt2b.display_domain, 'domain_strategy' => :custom },
+)
+[@resolution_rt2b.state, @resolution_rt2b.restrict_to, Core::Views::ConfigSerializer.send(
+  :resolve_restrict_to,
+  { 'display_domain' => @domain_rt2b.display_domain, 'domain_strategy' => :custom },
+)]
+#=> [:unavailable, 'sso', nil]
+
+## resolve_restrict_to falls back to global when SigninConfig master switch off
+@domain_rt3 = Onetime::CustomDomain.create!("dae-rt3-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_rt3 = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_rt3.identifier,
+  enabled: false,
+  restrict_to: 'sso',
+)
+@view_vars_disabled = { 'display_domain' => @domain_rt3.display_domain }
+Core::Views::ConfigSerializer.send(:resolve_restrict_to, @view_vars_disabled)
+#=> Onetime.auth_config.restrict_to
+
+# ===================================================================
+# 8. ConfigSerializer resolve_email_auth (AND semantics)
+# ===================================================================
+#
+# email_auth uses AND with global: a domain can DISABLE email_auth but
+# cannot ENABLE it when the global Rodauth route was never mounted. We
+# stub Onetime.auth_config.email_auth_enabled? per-case for determinism
+# (the resolver reads the process-global singleton directly — no injection
+# point like the controller stub). Each case forces the global predicate
+# inline, evaluates resolve_email_auth, then removes the singleton method
+# to restore the class implementation — keeping cases independent.
+
+## resolve_email_auth: global true + no domain context => global (true)
+Onetime.auth_config.define_singleton_method(:email_auth_enabled?) { true }
+@result_ea_a = begin
+  Core::Views::ConfigSerializer.send(:resolve_email_auth, {})
+ensure
+  Onetime.auth_config.singleton_class.send(:remove_method, :email_auth_enabled?)
+end
+@result_ea_a
+#=> true
+
+## resolve_email_auth: global true + master ON + email_auth_enabled false => false (domain disables)
+@domain_ea_b = Onetime::CustomDomain.create!("dae-ea-b-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_ea_b = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_ea_b.identifier,
+  enabled: true,
+  email_auth_enabled: false,
+)
+Onetime.auth_config.define_singleton_method(:email_auth_enabled?) { true }
+@result_ea_b = begin
+  Core::Views::ConfigSerializer.send(:resolve_email_auth, { 'display_domain' => @domain_ea_b.display_domain })
+ensure
+  Onetime.auth_config.singleton_class.send(:remove_method, :email_auth_enabled?)
+end
+@result_ea_b
+#=> false
+
+## resolve_email_auth: global true + master ON + email_auth_enabled true => true
+@domain_ea_c = Onetime::CustomDomain.create!("dae-ea-c-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_ea_c = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_ea_c.identifier,
+  enabled: true,
+  email_auth_enabled: true,
+)
+Onetime.auth_config.define_singleton_method(:email_auth_enabled?) { true }
+@result_ea_c = begin
+  Core::Views::ConfigSerializer.send(:resolve_email_auth, { 'display_domain' => @domain_ea_c.display_domain })
+ensure
+  Onetime.auth_config.singleton_class.send(:remove_method, :email_auth_enabled?)
+end
+@result_ea_c
+#=> true
+
+## resolve_email_auth: global FALSE + master ON + email_auth_enabled true => false (domain cannot enable)
+@domain_ea_d = Onetime::CustomDomain.create!("dae-ea-d-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_ea_d = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_ea_d.identifier,
+  enabled: true,
+  email_auth_enabled: true,
+)
+Onetime.auth_config.define_singleton_method(:email_auth_enabled?) { false }
+@result_ea_d = begin
+  Core::Views::ConfigSerializer.send(:resolve_email_auth, { 'display_domain' => @domain_ea_d.display_domain })
+ensure
+  Onetime.auth_config.singleton_class.send(:remove_method, :email_auth_enabled?)
+end
+@result_ea_d
+#=> false
+
+## resolve_email_auth: master OFF => equals global (config ignored), global forced true
+@domain_ea_e = Onetime::CustomDomain.create!("dae-ea-e-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_ea_e = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_ea_e.identifier,
+  enabled: false,
+  email_auth_enabled: false,
+)
+Onetime.auth_config.define_singleton_method(:email_auth_enabled?) { true }
+@result_ea_e = begin
+  Core::Views::ConfigSerializer.send(:resolve_email_auth, { 'display_domain' => @domain_ea_e.display_domain })
+ensure
+  Onetime.auth_config.singleton_class.send(:remove_method, :email_auth_enabled?)
+end
+@result_ea_e
+#=> true
+
+# ===================================================================
+# 9. SigninConfig.sso_permitted_for? + resolve_tenant_sso_config gate
+# ===================================================================
+#
+# sso_permitted_for? is the shared activation authority. SsoConfig is the
+# credentials store; resolve_tenant_sso_config returns it only when the
+# credentials are enabled, the custom domain is verified, AND
+# sso_permitted_for? is true.
+
+## sso_permitted_for? returns true when no SigninConfig exists (defer to credentials)
+Onetime::CustomDomain::SigninConfig.sso_permitted_for?('nonexistent_domain_id')
+#=> true
+
+## SsoConfig active + no SigninConfig => tenant SSO active (current behavior preserved)
+@domain_sso_a = verified_tenant_domain!("dae-sso-a-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@sso_a = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_sso_a.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO A',
+  enabled: true,
+  issuer: 'https://idp-a.example.com',
+  client_id: 'client-a',
+)
+Core::Views::ConfigSerializer.send(:resolve_tenant_sso_config, { 'display_domain' => @domain_sso_a.display_domain })&.domain_id
+#=> @domain_sso_a.identifier
+
+## SsoConfig active + master ON + sso_enabled false => tenant SSO inactive (gate blocks)
+@domain_sso_b = verified_tenant_domain!("dae-sso-b-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@sso_b = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_sso_b.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO B',
+  enabled: true,
+  issuer: 'https://idp-b.example.com',
+  client_id: 'client-b',
+)
+@signin_sso_b = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_sso_b.identifier,
+  enabled: true,
+  sso_enabled: false,
+)
+Core::Views::ConfigSerializer.send(:resolve_tenant_sso_config, { 'display_domain' => @domain_sso_b.display_domain })
+#=> nil
+
+## SsoConfig active + master ON + sso_enabled true => tenant SSO active
+@domain_sso_c = verified_tenant_domain!("dae-sso-c-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@sso_c = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_sso_c.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO C',
+  enabled: true,
+  issuer: 'https://idp-c.example.com',
+  client_id: 'client-c',
+)
+@signin_sso_c = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_sso_c.identifier,
+  enabled: true,
+  sso_enabled: true,
+)
+Core::Views::ConfigSerializer.send(:resolve_tenant_sso_config, { 'display_domain' => @domain_sso_c.display_domain })&.domain_id
+#=> @domain_sso_c.identifier
+
+## SsoConfig active + master OFF => SsoConfig behavior preserved (gate defers)
+@domain_sso_d = verified_tenant_domain!("dae-sso-d-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@sso_d = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_sso_d.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO D',
+  enabled: true,
+  issuer: 'https://idp-d.example.com',
+  client_id: 'client-d',
+)
+@signin_sso_d = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_sso_d.identifier,
+  enabled: false,
+  sso_enabled: false,
+)
+Core::Views::ConfigSerializer.send(:resolve_tenant_sso_config, { 'display_domain' => @domain_sso_d.display_domain })&.domain_id
+#=> @domain_sso_d.identifier
+
+# ===================================================================
+# 10. Parity: sso_permitted_for? drives BOTH the display and runtime gates
+# ===================================================================
+#
+# Runtime hook (omniauth_tenant.rb) ANDs the SAME predicate the serializer
+# uses. We cannot boot the Rodauth hook in a tryout, so we assert parity at
+# the predicate-value level: for the disable case, sso_permitted_for? is
+# false AND the serializer (which consumes it) returns nil. Both gates key
+# off the identical value, so they cannot diverge.
+
+## Parity (disable case): sso_permitted_for? is false for the gated domain
+Onetime::CustomDomain::SigninConfig.sso_permitted_for?(@domain_sso_b.identifier)
+#=> false
+
+## Parity (disable case): serializer consumes the false predicate -> nil
+Core::Views::ConfigSerializer.send(:resolve_tenant_sso_config, { 'display_domain' => @domain_sso_b.display_domain })
+#=> nil
+
+## Parity (enable case): sso_permitted_for? true, serializer returns the config
+[
+  Onetime::CustomDomain::SigninConfig.sso_permitted_for?(@domain_sso_c.identifier),
+  !Core::Views::ConfigSerializer.send(:resolve_tenant_sso_config, { 'display_domain' => @domain_sso_c.display_domain }).nil?,
+]
+#=> [true, true]
+
+# ===================================================================
+# 11. ConfigSerializer resolve_signin (features.signin display gate)
+# ===================================================================
+#
+# resolve_signin feeds features.signin in the bootstrap so the public
+# /signin page can render a friendly "not available" notice instead of
+# the auth form. It must agree with the runtime route gate
+# (Base#signin_enabled?):
+#   - Canonical / subdomain: follow the global default; an enabled
+#     per-domain SigninConfig narrows via AND semantics (#3415).
+#   - Custom domain: default OFF (opt-in) for password/email, with an SSO
+#     carve-out so a domain that enabled SSO (SsoConfig) without a
+#     SigninConfig still renders its provider buttons.
+#   - ANYTHING ELSE (:invalid, or a missing classification): tenant-safe,
+#     i.e. default OFF.
+#     ADR-024#operator-defaults-require-positive-classification
+#
+# Global signin comes from site.authentication (AUTH_ENABLED + AUTH_SIGNIN)
+# via view_vars['site']. The BRANCH is chosen by operator_domain? — a
+# POSITIVE test on view_vars['domain_strategy'] — not by tenant_domain?, so
+# the "canonical" cases below must SAY :canonical. They used to omit the key
+# and rely on `!= :custom`, which is exactly the fail-open the positive test
+# removed; served requests always carry a classification (the DomainStrategy
+# middleware is mounted unconditionally and falls back to :canonical), so the
+# omission was a fixture artifact, never a real request shape.
+#
+## Canonical: global on, no per-domain context => true
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_ON, 'domain_strategy' => :canonical },
+)
+#=> true
+
+## Canonical: global signin off => false
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_OFF, 'domain_strategy' => :canonical },
+)
+#=> false
+
+## Canonical: global auth master off => false
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_AUTH_OFF, 'domain_strategy' => :canonical },
+)
+#=> false
+
+## A MISSING classification is tenant-safe, not canonical — a request
+## that never passed the middleware must not inherit the operator default
+Core::Views::ConfigSerializer.send(:resolve_signin, { 'site' => SITE_SIGNIN_ON })
+#=> false
+
+## :invalid is tenant-safe too — that is what a failing domain-index
+## read answers for a REAL custom domain, so it must not widen sign-in
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_ON, 'domain_strategy' => :invalid },
+)
+#=> false
+
+## Canonical: domain with no SigninConfig follows global (true)
+@domain_si_a = Onetime::CustomDomain.create!("dae-si-a-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_si_a.display_domain, 'domain_strategy' => :canonical },
+)
+#=> true
+
+## Custom domain, no SigninConfig, no SSO => false (default OFF, opt-in)
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_si_a.display_domain, 'domain_strategy' => :custom },
+)
+#=> false
+
+## Custom domain, no SigninConfig but SSO configured => true (SSO carve-out keeps the page)
+@domain_si_sso = verified_tenant_domain!("dae-si-sso-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@sso_si = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_si_sso.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO SI',
+  enabled: true,
+  issuer: 'https://idp-si.example.com',
+  client_id: 'client-si',
+)
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_si_sso.display_domain, 'domain_strategy' => :custom },
+)
+#=> true
+
+## resolve_restrict_to='sso' for the SSO-only carve-out: page stays but AuthMethodSelector hides password/email (#3783)
+Core::Views::ConfigSerializer.send(
+  :resolve_restrict_to,
+  { 'display_domain' => @domain_si_sso.display_domain, 'domain_strategy' => :custom },
+)
+#=> 'sso'
+
+## resolve_restrict_to carve-out does NOT fire for a custom domain with no SigninConfig AND no SSO (falls back to global)
+Core::Views::ConfigSerializer.send(
+  :resolve_restrict_to,
+  { 'display_domain' => @domain_si_a.display_domain, 'domain_strategy' => :custom },
+)
+#=> Onetime.auth_config.restrict_to
+
+## resolve_restrict_to carve-out is custom-domain only: canonical request for the SSO-only domain follows global
+Core::Views::ConfigSerializer.send(
+  :resolve_restrict_to,
+  { 'display_domain' => @domain_si_sso.display_domain, 'domain_strategy' => :canonical },
+)
+#=> Onetime.auth_config.restrict_to
+
+## Custom domain, enabled SigninConfig with signin_enabled=false => false (explicit disable, #3415)
+@domain_si_b = Onetime::CustomDomain.create!("dae-si-b-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_si_b = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_si_b.identifier,
+  enabled: true,
+  signin_enabled: false,
+)
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_si_b.display_domain, 'domain_strategy' => :custom },
+)
+#=> false
+
+## Custom domain, enabled SigninConfig with signin_enabled=true => true (global permitting)
+@domain_si_c = Onetime::CustomDomain.create!("dae-si-c-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_si_c = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_si_c.identifier,
+  enabled: true,
+  signin_enabled: true,
+)
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_si_c.display_domain, 'domain_strategy' => :custom },
+)
+#=> true
+
+## Custom domain, enabled config signin_enabled=true but global OFF => false (cannot widen)
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_OFF, 'display_domain' => @domain_si_c.display_domain, 'domain_strategy' => :custom },
+)
+#=> false
+
+## Custom domain, master switch off (config ignored), no SSO => false (opt-in default)
+@domain_si_d = Onetime::CustomDomain.create!("dae-si-d-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_si_d = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_si_d.identifier,
+  enabled: false,
+  signin_enabled: false,
+)
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_si_d.display_domain, 'domain_strategy' => :custom },
+)
+#=> false
+
+## Canonical: same master-off config falls back to global (true) — operator surface unchanged
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_si_d.display_domain, 'domain_strategy' => :canonical },
+)
+#=> true
+
+## The SAME host and the SAME master-off config, classified :invalid by a
+## datastore blip, does NOT get that operator fallback — the whole point of the
+## positive test
+Core::Views::ConfigSerializer.send(
+  :resolve_signin,
+  { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_si_d.display_domain, 'domain_strategy' => :invalid },
+)
+#=> false
+
+## resolve_signin: missing site config => false (no global capability to narrow)
+Core::Views::ConfigSerializer.send(:resolve_signin, {})
+#=> false
+
+# ===================================================================
+# 12. SsoConfig.tenant_sso_available_for? — shared source of truth (#3783)
+# ===================================================================
+#
+# tenant_sso_available_for? is the single predicate both halves of the
+# masthead-LINK <-> /signin-PAGE parity consume: the PAGE gate via
+# ConfigSerializer#resolve_tenant_sso_config, and the LINK gate via
+# DomainSerializer#effective_signin_enabled?. It is TRUE only when the domain
+# has its OWN enabled SsoConfig (credentials) AND SigninConfig.sso_permitted_for?
+# allows SSO. Covered directly here so the shared authority has coverage
+# independent of either serializer. Reuses the section-9 SSO fixtures (same
+# cross-section reuse as section 10's parity assertions).
+
+## tenant_sso_available_for? is false when the domain has no SsoConfig (no credentials store)
+Onetime::CustomDomain::SsoConfig.tenant_sso_available_for?('nonexistent_domain_id')
+#=> false
+
+## enabled SsoConfig + no SigninConfig => true (sso_permitted_for? defers to the credentials)
+Onetime::CustomDomain::SsoConfig.tenant_sso_available_for?(@domain_sso_a.identifier)
+#=> true
+
+## enabled SsoConfig + enabled SigninConfig that permits SSO (sso_enabled=true) => true
+Onetime::CustomDomain::SsoConfig.tenant_sso_available_for?(@domain_sso_c.identifier)
+#=> true
+
+## enabled SsoConfig + enabled SigninConfig that FORBIDS SSO (sso_enabled=false) => false
+Onetime::CustomDomain::SsoConfig.tenant_sso_available_for?(@domain_sso_b.identifier)
+#=> false
+
+## SsoConfig present but enabled=false (credentials off) => false even with no SigninConfig
+@domain_tsa_off = verified_tenant_domain!("dae-tsa-off-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@sso_tsa_off = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_tsa_off.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO TSA OFF',
+  enabled: false,
+  issuer: 'https://idp-tsa-off.example.com',
+  client_id: 'client-tsa-off',
+)
+Onetime::CustomDomain::SsoConfig.tenant_sso_available_for?(@domain_tsa_off.identifier)
+#=> false
+
+## Parity: the predicate agrees with resolve_tenant_sso_config for the same domain (both active)
+[
+  Onetime::CustomDomain::SsoConfig.tenant_sso_available_for?(@domain_sso_c.identifier),
+  !Core::Views::ConfigSerializer.send(:resolve_tenant_sso_config, { 'display_domain' => @domain_sso_c.display_domain }).nil?,
+]
+#=> [true, true]
+
+# ===================================================================
+# 13. Masthead LINK <-> /signin PAGE parity matrix (#3783)
+# ===================================================================
+#
+# The regression this pins: for a custom domain the branded-masthead Sign In
+# LINK (DomainSerializer#effective_signin_enabled?) must mirror the /signin
+# PAGE gate (ConfigSerializer#resolve_signin) the link navigates to — a
+# visible link to a dead page, or a hidden link to a working page, are both
+# bugs. Each row asserts [LINK, PAGE] for the SAME custom domain; they must
+# AGREE except row 8's documented, intentional divergence.
+#
+# The POST /signin runtime gate (Base#signin_enabled?) is deliberately NOT in
+# this matrix: it stays OFF for SSO-only tenants (SSO signs in via omniauth
+# routes, not POST credentials), so it does not track the LINK/PAGE pair. That
+# asymmetry is by design; see effective_signin_enabled? / resolve_signin.
+#
+# Rows 1/2/4/7 reuse the section-6 fixtures (cross-section reuse as in section
+# 10); rows 3/6 add fixtures; rows 5/8 reuse a section-6 domain under a toggled
+# global/operator flag. All rows are custom-domain (domain_strategy: :custom),
+# where tenant_domain? is always true.
+
+## Row 1 — neither SigninConfig nor SsoConfig => LINK false, PAGE false (default OFF, opt-in)
+[
+  Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis_none.identifier),
+  Core::Views::ConfigSerializer.send(
+    :resolve_signin,
+    { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_vis_none.display_domain, 'domain_strategy' => :custom },
+  ),
+]
+#=> [false, false]
+
+## Row 2 — enabled SsoConfig, no SigninConfig => LINK true, PAGE true (the #3783 headline fix)
+[
+  Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis_sso.identifier),
+  Core::Views::ConfigSerializer.send(
+    :resolve_signin,
+    { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_vis_sso.display_domain, 'domain_strategy' => :custom },
+  ),
+]
+#=> [true, true]
+
+## Row 3 — SsoConfig present but enabled=false, no SigninConfig => LINK false, PAGE false
+@domain_pm_sso_off = Onetime::CustomDomain.create!("dae-pm-sso-off-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@sso_pm_off = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_pm_sso_off.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO PM OFF',
+  enabled: false,
+  issuer: 'https://idp-pm-off.example.com',
+  client_id: 'client-pm-off',
+)
+[
+  Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_pm_sso_off.identifier),
+  Core::Views::ConfigSerializer.send(
+    :resolve_signin,
+    { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_pm_sso_off.display_domain, 'domain_strategy' => :custom },
+  ),
+]
+#=> [false, false]
+
+## Row 4 — enabled SigninConfig(signin_enabled=true), global ON => LINK true, PAGE true
+[
+  Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis3.identifier),
+  Core::Views::ConfigSerializer.send(
+    :resolve_signin,
+    { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_vis3.display_domain, 'domain_strategy' => :custom },
+  ),
+]
+#=> [true, true]
+
+## Row 5 — same enabled SigninConfig(signin_enabled=true) but global kill switch OFF => LINK false, PAGE false
+#   The LINK gate reads the global capability from OT.conf via
+#   SigninConfig.global_signin_enabled (no view_vars injection point like the
+#   PAGE gate). Save the class method, force it OFF, assert, restore in an
+#   ensure so cases stay independent (cf. section 8's auth_config stubbing).
+#   The PAGE gate takes global OFF through SITE_SIGNIN_OFF.
+@orig_global_signin = Onetime::CustomDomain::SigninConfig.method(:global_signin_enabled)
+@row5_gates = begin
+  Onetime::CustomDomain::SigninConfig.define_singleton_method(:global_signin_enabled) { |*_a| false }
+  [
+    Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis3.identifier),
+    Core::Views::ConfigSerializer.send(
+      :resolve_signin,
+      { 'site' => SITE_SIGNIN_OFF, 'display_domain' => @domain_vis3.display_domain, 'domain_strategy' => :custom },
+    ),
+  ]
+ensure
+  Onetime::CustomDomain::SigninConfig.define_singleton_method(:global_signin_enabled, @orig_global_signin)
+end
+@row5_gates
+#=> [false, false]
+
+## Row 6 (LOAD-BEARING) guard: the tempting OR operand (tenant SSO) IS available for this domain...
+#   This is the case a naive `resolver || tenant_sso_available_for?` OR gets
+#   WRONG. Because the SigninConfig is ENABLED, effective_signin_enabled? SKIPS
+#   the SSO carve-out and defers to the shared resolver, which honors the
+#   explicit signin_enabled=false and hides SSO along with it (#3415). The SSO
+#   operand the OR would fold in IS true here (asserted below), which is exactly
+#   why an OR would flip this to an unreachable-page bug. Both gates must be false.
+@domain_pm_or = verified_tenant_domain!("dae-pm-or-#{@ts}-#{SecureRandom.hex(2)}.example.com", @org.objid)
+@config_pm_or = Onetime::CustomDomain::SigninConfig.create!(
+  domain_id: @domain_pm_or.identifier,
+  enabled: true,
+  signin_enabled: false,
+  sso_enabled: true,
+)
+@sso_pm_or = Onetime::CustomDomain::SsoConfig.create!(
+  domain_id: @domain_pm_or.identifier,
+  provider_type: 'oidc',
+  display_name: 'SSO PM OR',
+  enabled: true,
+  issuer: 'https://idp-pm-or.example.com',
+  client_id: 'client-pm-or',
+)
+Onetime::CustomDomain::SsoConfig.tenant_sso_available_for?(@domain_pm_or.identifier)
+#=> true
+
+## Row 6: ...yet BOTH gates are false — an enabled SigninConfig(signin_enabled=false) hides SSO (#3415), no OR
+[
+  Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_pm_or.identifier),
+  Core::Views::ConfigSerializer.send(
+    :resolve_signin,
+    { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_pm_or.display_domain, 'domain_strategy' => :custom },
+  ),
+]
+#=> [false, false]
+
+## Row 7 — enabled SigninConfig(signin_enabled=false), no SsoConfig => LINK false, PAGE false
+[
+  Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis2.identifier),
+  Core::Views::ConfigSerializer.send(
+    :resolve_signin,
+    { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_vis2.display_domain, 'domain_strategy' => :custom },
+  ),
+]
+#=> [false, false]
+
+## Row 8 (INTENTIONAL DIVERGENCE, not a bug) — platform-SSO-fallback-only domain:
+#   no tenant SsoConfig, no SigninConfig, but the operator has enabled platform
+#   fallback (allow_platform_fallback_for_tenants?) with platform SSO on. The
+#   PAGE gate follows the operator fallback and stays reachable; the masthead
+#   LINK reflects per-domain OWNER opt-in only (tenant_sso_available_for? is
+#   TENANT-scoped) so it stays OFF. This divergence is BY DESIGN — a branded
+#   front door advertises what the domain owner configured, not a global
+#   operator fallback. Do NOT "fix" it into agreement. Reuses @domain_vis_none
+#   (row 1's [false,false] domain): only the operator toggle changes, isolating
+#   the effect to the PAGE gate. auth_config predicates are stubbed then removed
+#   (section-8 idiom) so the toggle does not leak. The fallback also needs a
+#   platform provider that may run on a tenant host (#4450), so sso_providers
+#   is stubbed with one host-independent OIDC route.
+@af_fallback = Onetime.auth_config
+@af_fallback.define_singleton_method(:allow_platform_fallback_for_tenants?) { true }
+@af_fallback.define_singleton_method(:sso_enabled?) { true }
+@af_fallback.define_singleton_method(:sso_providers) { [{ 'route_name' => 'oidc' }] }
+@row8_gates = begin
+  [
+    Core::Views::DomainSerializer.send(:effective_signin_enabled?, @domain_vis_none.identifier),
+    Core::Views::ConfigSerializer.send(
+      :resolve_signin,
+      { 'site' => SITE_SIGNIN_ON, 'display_domain' => @domain_vis_none.display_domain, 'domain_strategy' => :custom },
+    ),
+  ]
+ensure
+  @af_fallback.singleton_class.send(:remove_method, :allow_platform_fallback_for_tenants?)
+  @af_fallback.singleton_class.send(:remove_method, :sso_enabled?)
+  @af_fallback.singleton_class.send(:remove_method, :sso_providers)
+end
+@row8_gates
+#=> [false, true]
+
+# --- Cleanup ---
+
+Familia.dbclient.flushdb
+OT.info "Cleaned Redis after domain auth enforcement test run"

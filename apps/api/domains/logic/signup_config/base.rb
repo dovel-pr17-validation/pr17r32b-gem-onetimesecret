@@ -1,0 +1,191 @@
+# apps/api/domains/logic/signup_config/base.rb
+#
+# frozen_string_literal: true
+
+require 'public_suffix'
+require 'onetime/models/custom_domain/signup_config'
+require_relative '../../policies/domain_config_authorization'
+
+module DomainsAPI
+  module Logic
+    module SignupConfig
+      # Base class for Domain Signup Configuration endpoints.
+      #
+      # Authorization model:
+      #   1. Load CustomDomain by domain_id (extid)
+      #   2. Load Organization via domain.org_id
+      #   3. Verify user is organization owner
+      #   4. Verify organization has custom_signup_validation entitlement
+      #
+      # allow_base_domain is gated separately, per request
+      # (verify_allow_base_domain_permitted!), by the install flag
+      # features.organizations.base_domain_signup_enabled and the
+      # base_domain_signup entitlement.
+      #
+      class Base < DomainsAPI::Logic::Base
+        include DomainsAPI::Policies::DomainConfigAuthorization
+
+        attr_reader :custom_domain, :organization
+
+        protected
+
+        # Entitlement required for signup config operations.
+        def config_entitlement
+          'custom_signup_validation'
+        end
+
+        # Error message when entitlement is missing.
+        def config_entitlement_error
+          'Signup validation configuration requires the custom_signup_validation entitlement. Please upgrade your plan.'
+        end
+
+        # Full authorization check for domain signup config operations.
+        # Loads domain and organization, verifies ownership and entitlement.
+        #
+        # @param domain_id [String] Domain extid
+        # @return [void]
+        def authorize_domain_signup_config!(domain_id)
+          authorize_domain_config!(domain_id)
+        end
+
+        # Resolution details accompanying every signup-config response (ADR-024).
+        #
+        # The settings UI displays the resolver's output instead of re-deriving
+        # availability from the raw flag pair — client-side derivation is the
+        # drift ADR-024 exists to kill.
+        #
+        # effective_enabled uses the CUSTOM-DOMAIN resolver (default OFF,
+        # opt-in) — NOT resolve_signup_enabled. These settings describe a
+        # custom domain, so an unconfigured domain must read "disabled" even
+        # when the canonical site's signup is on (#3814). Same authority as
+        # the runtime gate (Core::Controllers::Base#signup_enabled?) and the
+        # masthead (DomainSerializer#effective_signup_enabled?). Signup has no
+        # SSO carve-out.
+        #
+        # @param config [Onetime::CustomDomain::SignupConfig, nil] nil when unconfigured
+        # @return [Hash] global_enabled, effective_enabled
+        def signup_override_details(config)
+          global = Onetime::CustomDomain::SignupConfig.global_signup_enabled
+          {
+            global_enabled: global,
+            effective_enabled: Onetime::CustomDomain::SignupConfig.resolve_signup_enabled_for_custom_domain(global, config),
+          }
+        end
+
+        # Parse allowed domains from string or array input.
+        #
+        # @param value [String, Array, nil] Comma-separated string or array of domains
+        # @return [Array<String>] Normalized array of lowercase domain strings
+        def parse_allowed_domains(value)
+          return [] if value.nil?
+
+          items = value.is_a?(Array) ? value : value.to_s.split(',')
+          items.map { it.to_s.strip.downcase }.reject(&:empty?)
+        end
+
+        # Validate that validation_strategy is a known type.
+        #
+        # @param strategy [String] The validation strategy
+        # @raise [Onetime::FormError] if strategy is invalid
+        def validate_strategy_type(strategy)
+          return if Onetime::CustomDomain::SignupConfig::STRATEGY_TYPES.include?(strategy)
+
+          valid_types = Onetime::CustomDomain::SignupConfig::STRATEGY_TYPES.join(', ')
+          raise_form_error(
+            "validation_strategy must be one of: #{valid_types}",
+            field: :validation_strategy,
+            error_type: :invalid,
+          )
+        end
+
+        # Whether allow_base_domain can take effect for this domain, asked of
+        # the organization authorize_domain_signup_config! loaded. The rule is
+        # SignupConfig.base_domain_signup_available_for?, the same one the
+        # sign-up gate applies.
+        #
+        # @return [Boolean]
+        def base_domain_signup_available?
+          return @base_domain_signup_available if defined?(@base_domain_signup_available)
+
+          @base_domain_signup_available =
+            Onetime::CustomDomain::SignupConfig.base_domain_signup_available_for?(@organization)
+        end
+
+        # Refuse a request that turns allow_base_domain on while
+        # base_domain_signup_available? is false. Re-sending a stored true is
+        # not refused: the value stays saved but has no effect until the
+        # feature is available again (SignupConfig#allow_base_domain_effective?),
+        # so a save after a downgrade does not get stuck on it. Turning it
+        # off is always allowed.
+        #
+        # @param requested [Boolean] allow_base_domain from the request
+        # @param stored [Boolean] the stored value, false for a new config
+        # @raise [Onetime::FormError] when the request would turn it on
+        def verify_allow_base_domain_permitted!(requested:, stored:)
+          return unless requested && !stored
+          return if base_domain_signup_available?
+
+          message = if Onetime::CustomDomain::SignupConfig.base_domain_signup_enabled?
+                      'Allowing the base domain automatically requires the base_domain_signup entitlement. ' \
+                        'Please upgrade your plan.'
+                    else
+                      'Allowing the base domain automatically is not enabled on this instance'
+                    end
+          raise_form_error(message, field: :allow_base_domain, error_type: :forbidden)
+        end
+
+        # Validate the allowlist the config will be saved with: under a
+        # strategy that consults it, it must be readable and hold at least
+        # one domain, listed explicitly or supplied by allow_base_domain. The
+        # rule is SignupConfig.allowlist_requirement_error, so the model
+        # reports the same verdict. Call after authorize_domain_signup_config!
+        # has loaded @custom_domain, whose base_domain the flag resolves
+        # against.
+        #
+        # @param strategy [String] The validation strategy
+        # @param domains [Array<String>] The allowed domains
+        # @param corrupt [Boolean] true when domains is a stored list being
+        #   kept that cannot be read; false when the request replaces it
+        # @param allow_base_domain [Boolean] allow_base_domain as it will be
+        #   saved; it counts only while base_domain_signup_available?
+        # @raise [Onetime::FormError] when the requirement is not met
+        def validate_allowlist_requirement(strategy, domains, corrupt:, allow_base_domain: false)
+          base_domain_counts = allow_base_domain && base_domain_signup_available?
+          error              = Onetime::CustomDomain::SignupConfig.allowlist_requirement_error(
+            strategy: strategy,
+            domains: domains,
+            corrupt: corrupt,
+            allow_base_domain: base_domain_counts,
+            base_domain: @custom_domain&.base_domain,
+          )
+          return unless error
+
+          raise_form_error(
+            error,
+            field: :allowed_signup_domains,
+            error_type: error == Onetime::CustomDomain::SignupConfig::ALLOWLIST_UNREADABLE_ERROR ? :invalid : :missing,
+          )
+        end
+
+        # Validate domain formats using PublicSuffix before model setter.
+        # Returns 422 Unprocessable Entity instead of 500 Internal Server Error.
+        #
+        # @param domains [Array<String>] The domains to validate
+        # @raise [Onetime::FormError] if any domain has invalid format
+        def validate_domain_formats(domains)
+          return if domains.nil? || domains.empty?
+
+          domains.each do |domain|
+            Onetime::Utils::DomainParser.cached_parse(domain)
+          rescue PublicSuffix::Error => ex
+            raise_form_error(
+              "Invalid domain format: #{domain} (#{ex.message})",
+              field: :allowed_signup_domains,
+              error_type: :invalid,
+            )
+          end
+        end
+      end
+    end
+  end
+end

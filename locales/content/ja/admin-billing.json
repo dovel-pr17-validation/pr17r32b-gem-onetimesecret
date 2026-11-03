@@ -1,0 +1,362 @@
+{
+  "web.admin.billing.title": {
+    "text": "請求カタログ",
+    "source_hash": "bfde7e68"
+  },
+  "web.admin.billing.description": {
+    "text": "設定済みのプランとそのエンタイトルメント、およびStripeと同期された最新カタログとの差異を読み取り専用で表示します。",
+    "source_hash": "05d5b332"
+  },
+  "web.admin.billing.retry": {
+    "text": "再試行",
+    "source_hash": "942087cc"
+  },
+  "web.admin.billing.loadError": {
+    "text": "請求カタログを読み込めませんでした。",
+    "source_hash": "c3110f77"
+  },
+  "web.admin.billing.localConfigWarning": {
+    "text": "Stripeと同期されたプランのキャッシュが空のため、最新のプランと差異を評価できません。設定済みのカタログ (billing.yaml) のみを表示しています — 開発環境やStripeが未設定の場合によくある状態です。",
+    "source_hash": "905d95f8"
+  },
+  "web.admin.billing.inSync": {
+    "text": "同期済み",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.driftCount": {
+    "text": "{count}件の差異",
+    "source_hash": "166538f5"
+  },
+  "web.admin.billing.inSyncDetail": {
+    "text": "設定済みのカタログは最新のプランと一致しています。差異は検出されませんでした。",
+    "source_hash": "57ab60a6"
+  },
+  "web.admin.billing.columns.planid": {
+    "text": "プランID",
+    "source_hash": "1f0d4dc6"
+  },
+  "web.admin.billing.columns.name": {
+    "text": "名称",
+    "source_hash": "dcd1d522"
+  },
+  "web.admin.billing.columns.tier": {
+    "text": "ティア",
+    "source_hash": "cb9e8664"
+  },
+  "web.admin.billing.columns.status": {
+    "text": "ステータス",
+    "source_hash": "920e413c"
+  },
+  "web.admin.billing.diff.title": {
+    "text": "プランの差分: {planid}",
+    "source_hash": "bc86e5f7"
+  },
+  "web.admin.billing.diff.subtitle": {
+    "text": "設定済みカタログ (billing.yaml) とStripeと同期された最新プランを並べて比較します。",
+    "source_hash": "d92e93ae"
+  },
+  "web.admin.billing.diff.config": {
+    "text": "設定済み (billing.yaml)",
+    "source_hash": "6bf2ff04"
+  },
+  "web.admin.billing.diff.live": {
+    "text": "最新 (Stripeキャッシュ)",
+    "source_hash": "4886945d"
+  },
+  "web.admin.billing.diff.absentConfig": {
+    "text": "このプランは設定済みカタログに存在しません。",
+    "source_hash": "0b594c88"
+  },
+  "web.admin.billing.diff.absentLive": {
+    "text": "このプランはStripeと同期された最新キャッシュに存在しません。",
+    "source_hash": "c53f31c3"
+  },
+  "web.admin.billing.plans.title": {
+    "text": "プラン",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.admin.billing.plans.empty": {
+    "text": "カタログにプランが見つかりませんでした。",
+    "source_hash": "39db3c13"
+  },
+  "web.admin.billing.plans.viewDiff": {
+    "text": "差分を表示",
+    "source_hash": "0e5d6873"
+  },
+  "web.admin.billing.source.stripe": {
+    "text": "Stripeキャッシュ",
+    "source_hash": "b5577327"
+  },
+  "web.admin.billing.source.localConfig": {
+    "text": "ローカル設定",
+    "source_hash": "49de43d2"
+  },
+  "web.admin.billing.stats.configured": {
+    "text": "設定済みのプラン",
+    "source_hash": "4fda4796"
+  },
+  "web.admin.billing.stats.live": {
+    "text": "稼働中のプラン",
+    "source_hash": "faaa88d9"
+  },
+  "web.admin.billing.stats.source": {
+    "text": "ソース",
+    "source_hash": "0e570ca6"
+  },
+  "web.admin.billing.stats.drift": {
+    "text": "差異",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.billing.status.in_sync": {
+    "text": "同期済み",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.status.only_config": {
+    "text": "設定のみ",
+    "source_hash": "15836cba"
+  },
+  "web.admin.billing.status.only_live": {
+    "text": "稼働中のみ",
+    "source_hash": "8f4ed495"
+  },
+  "web.admin.billing.status.changed": {
+    "text": "変更あり",
+    "source_hash": "2a6141e4"
+  },
+  "web.admin.billing.diff.backToCatalog": {
+    "text": "請求カタログに戻る",
+    "source_hash": "8532b373"
+  },
+  "web.admin.billing.diff.driftedFields": {
+    "text": "差異のある項目:",
+    "source_hash": "9890c95b"
+  },
+  "web.admin.billing.diff.notFound": {
+    "text": "プランがカタログにありません",
+    "source_hash": "0253898b"
+  },
+  "web.admin.billing.diff.notFoundDescription": {
+    "text": "ID {planid}のプランは、設定済みカタログにもStripeと同期された最新キャッシュにも見つかりませんでした。",
+    "source_hash": "2e69551c"
+  },
+  "web.admin.billing.stripeOrgs.title": {
+    "text": "Stripeの顧客",
+    "source_hash": "0463ae27"
+  },
+  "web.admin.billing.stripeOrgs.description": {
+    "text": "Stripeの顧客レコードに紐付けられている組織です。",
+    "source_hash": "2ab09aec"
+  },
+  "web.admin.billing.stripeOrgs.searchPlaceholder": {
+    "text": "Stripe顧客IDで検索",
+    "source_hash": "d5acf08f"
+  },
+  "web.admin.billing.stripeOrgs.empty": {
+    "text": "Stripe顧客IDを持つ組織はありません。",
+    "source_hash": "2e373537"
+  },
+  "web.admin.billing.stripeOrgs.emptySearch": {
+    "text": "検索条件に一致するStripe顧客IDはありません。",
+    "source_hash": "75011174"
+  },
+  "web.admin.billing.stripeOrgs.loadError": {
+    "text": "Stripeの顧客一覧を読み込めませんでした。",
+    "source_hash": "15e2d9a7"
+  },
+  "web.admin.billing.stripeOrgs.unavailable": {
+    "text": "このサーバーではStripeの顧客一覧をまだ利用できません。",
+    "source_hash": "aab6451a"
+  },
+  "web.admin.billing.stripeOrgs.none": {
+    "text": "なし",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.billing.stripeOrgs.capped": {
+    "text": "インデックスのスキャンが上限に達したため、合計値は下限値です — 残りを表示するには検索条件を絞り込んでください。",
+    "source_hash": "20bcaa38"
+  },
+  "web.admin.billing.stripeOrgs.stale": {
+    "text": "このページの{count}件のインデックスエントリは、読み込めなくなった組織を参照しているためスキップされました。",
+    "source_hash": "51980f83"
+  },
+  "web.admin.billing.stripeOrgs.copyStripeId": {
+    "text": "Stripe顧客IDをコピー",
+    "source_hash": "a77d18b1"
+  },
+  "web.admin.billing.stripeOrgs.columns.organization": {
+    "text": "組織",
+    "source_hash": "d764d425"
+  },
+  "web.admin.billing.stripeOrgs.columns.owner": {
+    "text": "オーナー",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.billing.stripeOrgs.columns.plan": {
+    "text": "プラン",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.billing.stripeOrgs.columns.subscription": {
+    "text": "サブスクリプション",
+    "source_hash": "4999c6c6"
+  },
+  "web.admin.billing.stripeOrgs.columns.stripeCustomer": {
+    "text": "Stripe顧客ID",
+    "source_hash": "7e1d8bbb"
+  },
+  "web.admin.billing.pendingFederated.title": {
+    "text": "保留中のフェデレーションサブスクリプション",
+    "source_hash": "8bc81ff7"
+  },
+  "web.admin.billing.pendingFederated.description": {
+    "text": "このリージョンで検証済みのアカウントが特典を受け取るのを待っているサブスクリプションです。",
+    "source_hash": "e4c714c8"
+  },
+  "web.admin.billing.pendingFederated.correlationRetention": {
+    "text": "保留中のサブスクリプションは90日間残る場合がありますが、ローカルのWebhook記録は5日間しか保持されません。関連付けが期限切れまたは利用できない場合でも、それは処理結果を示すものではありません。",
+    "source_hash": "c846410e"
+  },
+  "web.admin.billing.pendingFederated.loadError": {
+    "text": "保留中のフェデレーションサブスクリプションを読み込めませんでした。",
+    "source_hash": "a1ecc6cb"
+  },
+  "web.admin.billing.pendingFederated.capped": {
+    "text": "保留中のサブスクリプションのスキャンが上限に達したため、合計値は下限値です。",
+    "source_hash": "a1e02735"
+  },
+  "web.admin.billing.pendingFederated.stale": {
+    "text": "このページの{count}件のインデックスエントリは、読み込めなくなった保留中のサブスクリプションを参照しているためスキップされました。",
+    "source_hash": "56b4bd53"
+  },
+  "web.admin.billing.pendingFederated.empty": {
+    "text": "保留中のフェデレーションサブスクリプションは見つかりませんでした。",
+    "source_hash": "91453fda"
+  },
+  "web.admin.billing.pendingFederated.unresolvedPlan": {
+    "text": "未解決",
+    "source_hash": "36afca80"
+  },
+  "web.admin.billing.pendingFederated.columns.status": {
+    "text": "サブスクリプションの状態",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.billing.pendingFederated.columns.planid": {
+    "text": "保存済みのプランID",
+    "source_hash": "159600ef"
+  },
+  "web.admin.billing.pendingFederated.columns.region": {
+    "text": "リージョン",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.billing.pendingFederated.columns.received": {
+    "text": "受信日時",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.pendingFederated.columns.webhook": {
+    "text": "送信元Webhook",
+    "source_hash": "e96bd1ef"
+  },
+  "web.admin.billing.pendingFederated.webhook.no_correlation": {
+    "text": "利用不可 — 関連付けられたローカルのWebhookは記録されていません。",
+    "source_hash": "57ed7d3a"
+  },
+  "web.admin.billing.pendingFederated.webhook.expired": {
+    "text": "利用不可 — 関連付けられたローカルのWebhookは5日後に期限切れになりました。",
+    "source_hash": "6173ad4b"
+  },
+  "web.admin.billing.webhookEvents.title": {
+    "text": "Stripe Webhookイベント",
+    "source_hash": "3a7c05f8"
+  },
+  "web.admin.billing.webhookEvents.description": {
+    "text": "Stripe Webhook処理のローカル記録です (読み取り専用)。",
+    "source_hash": "adc1e97f"
+  },
+  "web.admin.billing.webhookEvents.retention": {
+    "text": "ローカルのWebhookイベント記録は5日間保持されます。それより古いイベントはここでは表示できません。",
+    "source_hash": "de4c2f78"
+  },
+  "web.admin.billing.webhookEvents.loadError": {
+    "text": "Webhookイベントの一覧を読み込めませんでした。",
+    "source_hash": "b070d441"
+  },
+  "web.admin.billing.webhookEvents.capped": {
+    "text": "イベントのスキャンが上限に達したため、合計値は下限値です。",
+    "source_hash": "5b96b15b"
+  },
+  "web.admin.billing.webhookEvents.stale": {
+    "text": "このページの{count}件のインデックスエントリは、読み込めなくなったWebhookイベントを参照しているためスキップされました。",
+    "source_hash": "879c2d98"
+  },
+  "web.admin.billing.webhookEvents.empty": {
+    "text": "ローカルに保持されているWebhookイベントは見つかりませんでした。",
+    "source_hash": "7e33e23d"
+  },
+  "web.admin.billing.webhookEvents.viewDetail": {
+    "text": "詳細を表示",
+    "source_hash": "d1bf045b"
+  },
+  "web.admin.billing.webhookEvents.columns.eventId": {
+    "text": "イベントID",
+    "source_hash": "3045abaf"
+  },
+  "web.admin.billing.webhookEvents.columns.type": {
+    "text": "種類",
+    "source_hash": "baaddf70"
+  },
+  "web.admin.billing.webhookEvents.columns.status": {
+    "text": "処理状態",
+    "source_hash": "3f6498ae"
+  },
+  "web.admin.billing.webhookEvents.columns.received": {
+    "text": "受信日時",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.webhookEvents.columns.outcome": {
+    "text": "結果",
+    "source_hash": "4e80abb5"
+  },
+  "web.admin.billing.webhookEvents.detail.title": {
+    "text": "Webhookイベントの詳細",
+    "source_hash": "829b940c"
+  },
+  "web.admin.billing.webhookEvents.detail.notFound": {
+    "text": "このローカルイベントは利用できなくなりました。",
+    "source_hash": "b029d878"
+  },
+  "web.admin.billing.webhookEvents.detail.loadError": {
+    "text": "Webhookイベントの詳細を読み込めませんでした。",
+    "source_hash": "39f7a33b"
+  },
+  "web.admin.billing.webhookEvents.detail.received": {
+    "text": "受信日時",
+    "source_hash": "1ddb1a75"
+  },
+  "web.admin.billing.webhookEvents.detail.lastAttempt": {
+    "text": "最後の処理試行",
+    "source_hash": "b1325ebb"
+  },
+  "web.admin.billing.webhookEvents.detail.processed": {
+    "text": "処理日時",
+    "source_hash": "2eb2da28"
+  },
+  "web.admin.billing.webhookEvents.detail.attempts": {
+    "text": "試行回数",
+    "source_hash": "06e70139"
+  },
+  "web.admin.billing.webhookEvents.detail.mode": {
+    "text": "モード",
+    "source_hash": "5e23ec6a"
+  },
+  "web.admin.billing.webhookEvents.detail.live": {
+    "text": "本番",
+    "source_hash": "b64ac05f"
+  },
+  "web.admin.billing.webhookEvents.detail.test": {
+    "text": "テスト",
+    "source_hash": "532eaabd"
+  },
+  "web.admin.billing.webhookEvents.detail.apiVersion": {
+    "text": "Stripe APIバージョン",
+    "source_hash": "9cd61c6f"
+  }
+}

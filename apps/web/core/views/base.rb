@@ -1,0 +1,215 @@
+# apps/web/core/views/base.rb
+#
+# frozen_string_literal: true
+
+require 'rhales'
+
+require 'onetime/middleware'
+require 'onetime/session/customer_session_evaluator'
+
+require 'onetime/models'
+
+require_relative 'helpers'
+require_relative 'serializers'
+
+# Core view framework with helpers and serializers
+#
+# This file defines the BaseView class which serves as the foundation for all views in the application.
+# It provides:
+#
+# - **Helpers**: Utility methods for view rendering and data manipulation
+# - **Serializers**: Transform internal view state for frontend consumption
+#
+module Core
+  module Views
+    class BaseView
+      extend Core::Views::InitializeViewVars
+      include Core::Views::SanitizerHelpers
+      include Core::Views::ViteManifest
+      include Onetime::Utils::TimeUtils
+
+      TEMPLATE_PATH = File.join(__dir__, '..', 'templates')
+
+      attr_accessor :req, :form_fields, :pagename, :strategy_result, :locale, :sess, :cust
+      attr_reader :view_vars, :serialized_data, :messages
+
+      # Initialize a new view with the given request
+      #
+      # All other data (session, customer, locale) is extracted from req automatically:
+      # - Session: req.env['otto.strategy_result'].session or req.session
+      # - Customer: req.env['otto.strategy_result'].user or anonymous
+      # - Locale: req.env['otto.locale'] or default
+      #
+      # @param req [Rack::Request] The current request object
+      def initialize(req)
+        @req             = req
+        @strategy_result = req.env['otto.strategy_result']
+
+        # Extract the session. Identity is only projected when a strategy
+        # result is present: without one this is the error-recovery path
+        # (500-style handler), and the view is treated as anonymous even if
+        # the raw session carries authenticated=true. Running the evaluator
+        # here would let error pages and serializers leak custid/email on
+        # responses that historically answered as anonymous. The session
+        # itself is still needed downstream (CSRF token, messages).
+        @sess   = if @strategy_result
+                  @strategy_result.session
+                else
+                  begin
+                    req.session
+                  rescue StandardError
+                    {}
+                  end
+                end
+        if @strategy_result
+          verdict = Onetime::CustomerSessionEvaluator.evaluate(@sess, env: req.env)
+          @cust   = verdict.customer
+        else
+          @cust = nil
+        end
+
+        # Extract locale from request environment
+        @locale = req.env.fetch('otto.locale', OT.default_locale)
+
+        @messages = []
+
+        # Initialize view variables, passing the pre-resolved session. Identity
+        # is re-read from the evaluator's per-request memo, never passed in.
+        @view_vars = self.class.initialize_view_vars(req, @sess)
+
+        # Call subclass init hook if defined
+        init if respond_to?(:init)
+
+        # Run serializers to prepare data for frontend
+        @serialized_data = run_serializers
+      end
+
+      # Add notification message to be displayed in StatusBar component
+      #
+      # @param msg [String] Message content to be displayed
+      # @param type [String] Type of message, one of: info, error, success, warning
+      # @return [Array<Hash>] Array containing all message objects
+      def add_message(msg, type = 'info')
+        messages << { 'type' => type, 'content' => msg }
+      end
+
+      # Add error message to be displayed in StatusBar component
+      #
+      # @param msg [String] error message content to be displayed
+      # @return [Array<Hash>] array containing all message objects
+      def add_error(msg)
+        add_message(msg, 'error')
+      end
+
+      # Run all registered serializers to transform view data for frontend consumption
+      #
+      # Executes each serializer registered for this view in dependency order,
+      # merging their results into a single data structure that can be safely
+      # passed to the frontend.
+      #
+      # @return [Hash] The serialized data
+      def run_serializers
+        SerializerRegistry.run(self.class.serializers, view_vars)
+      end
+
+      # Render the view using Rhales
+      #
+      # Separates data into two categories:
+      # 1. Window state (serialized_data) - goes into window.__BOOTSTRAP_ME__
+      # 2. Template vars - used for HTML rendering only
+      #
+      # @param template_name [String] Optional template name (defaults to 'index')
+      # @return [String] Rendered HTML
+      def render(template_name = 'index')
+        # Template-only variables (NOT serialized to window.__BOOTSTRAP_ME__)
+        # These are available in templates via {{variable}} but won't reach the client
+        template_vars = {
+          'page_title' => view_vars['page_title'],
+          'description' => view_vars['description'],
+          'keywords' => view_vars['keywords'],
+          'baseuri' => view_vars['baseuri'],
+          'display_domain' => view_vars['display_domain'],
+          'page_url' => view_vars['page_url'],
+          'is_secret_page' => view_vars['is_secret_page'],
+          'og_title' => view_vars['og_title'],
+          'og_description' => view_vars['og_description'],
+          'site_host' => view_vars['site_host'],
+          'no_cache' => view_vars['no_cache'],
+          'brand_primary_color' => view_vars['brand_primary_color'],
+          'has_brand_color' => view_vars['has_brand_color'],
+          'brand_apple_touch_icon_url' => view_vars['brand_apple_touch_icon_url'],
+          'brand_og_image_url' => view_vars['brand_og_image_url'],
+          'twitter_card_type' => view_vars['twitter_card_type'],
+          'show_default_svg_favicon' => view_vars['show_default_svg_favicon'],
+          # Stalled-load notice (#4596): the request id is rendered into the
+          # server shell so a recipient can quote it to support. Template-only;
+          # it never enters window.__BOOTSTRAP_ME__. Rhales escapes it, which
+          # matters because Rack::RequestId accepts a client-supplied header.
+          'request_id' => req.env['HTTP_X_REQUEST_ID'],
+          'html_lang' => html_lang,
+          'vite_assets_html' => vite_assets(
+            nonce: view_vars['nonce'],
+            development: view_vars['frontend_development'],
+            entry: vite_entry,
+          ),
+        }
+
+        # Create Rhales view with separated data
+        # - client: Data from serializers that goes to window.__BOOTSTRAP_ME__
+        # - server: Template-only variables that don't get serialized to client
+        rhales_view = Rhales::View.new(
+          req,
+          client: serialized_data,      # Only this goes to window state
+          server: template_vars,        # Available in templates, NOT serialized
+          config: Rhales.configuration,
+        )
+
+        rhales_view.render(template_name)
+      end
+
+      # BCP 47 language tag for <html lang>. Locale codes use underscores
+      # (pt_BR), which the lang attribute does not accept; it needs pt-BR. The
+      # frontend sets the same form when it activates a locale (src/i18n.ts).
+      #
+      # @return [String] Language tag, empty when no locale was detected
+      def html_lang
+        view_vars['locale'].to_s.tr('_', '-')
+      end
+
+      # Vite manifest entry to inject into the shell. Defaults to the customer
+      # bundle; the admin console view overrides this to 'admin.ts' so /colonel
+      # loads the isolated admin chunk. See Core::Views::AdminPoint.
+      #
+      # @return [String] Vite entry key (source path relative to src/)
+      def vite_entry
+        'main.ts'
+      end
+
+      class << self
+        # pagename is used in the i18n[:web][:pagename] hash which (if present)
+        # provides the locale strings specifically for this view. For that to
+        # work, the view being used has a matching name in the locales file.
+        def pagename
+          @pagename ||= name.split('::').last.downcase.to_sym
+        end
+
+        # Class-level serializers list
+        #
+        # @return [Array<Module>] List of serializers to use with this view
+        def serializers
+          @serializers ||= []
+        end
+
+        # Add serializers to this view
+        #
+        # @param serializer_list [Array<Module>] List of serializers to add to this view
+        # @return [Array<Module>] Updated list of serializers
+        def use_serializers(*serializer_list)
+          serializer_list.each do |serializer|
+            serializers << serializer unless serializers.include?(serializer)
+          end
+        end
+      end
+    end
+  end
+end

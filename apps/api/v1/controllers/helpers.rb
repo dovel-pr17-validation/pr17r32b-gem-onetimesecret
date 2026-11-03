@@ -1,0 +1,468 @@
+# apps/api/v1/controllers/helpers.rb
+#
+# frozen_string_literal: true
+
+require_relative '../../../../lib/onetime/helpers/session_helpers'
+require_relative '../../../../lib/onetime/application/request_logger'
+
+module V1
+  unless defined?(V1::BADAGENTS)
+    BADAGENTS     = [:facebook, :google, :yahoo, :bing, :stella, :baidu, :bot, :curl, :wget]
+    LOCAL_HOSTS   = ['localhost', '127.0.0.1'].freeze  # TODO: Add config
+    HEADER_PREFIX = ENV.fetch('HEADER_PREFIX', 'X_SECRET_').upcase
+  end
+
+  module ControllerHelpers
+    include Onetime::Helpers::SessionHelpers
+
+    # `carefully` wraps a v1 API action: it handles errors and exceptions so we
+    # respond consistently — and integrate Sentry here — across all requests.
+    # v1 is a legacy JSON-only API that renders no HTML, so responses default to
+    # JSON and there is no web/redirect handling.
+    def carefully(content_type = 'application/json') # rubocop:disable Metrics/MethodLength
+      # cust may be nil for anonymous requests.
+
+      # Set the default content-type. v1 emits no CSP or nonce: it serves JSON
+      # only and is never executed by a browser; CSP is owned by Otto.
+      add_response_headers(content_type)
+
+      return_value = yield
+
+      log_customer_activity
+
+      obscured = if cust.nil? || cust.anonymous?
+        'anonymous'
+      else
+        OT::Utils.obscure_email(cust.email)
+      end
+
+      return_value
+    rescue OT::Redirect => ex
+      OT.info "[carefully] Redirecting to #{ex.location} (#{ex.status})"
+      res.redirect ex.location, ex.status
+    rescue OT::Unauthorized => ex
+      OT.info ex.message
+      not_authorized_error
+    rescue OT::FormError => ex
+      OT.ld "[carefully] FormError: #{ex.message} (#{req.path})"
+
+      # Track form errors in Sentry. They can indicate bugs that would
+      # not surface any other way. We track as messages though since
+      # they are not exceptions in the diagnostic sense. We pass only
+      # the message and not fields to limit the amount of data sent.
+      #
+      # GROUPED BY ENDPOINT, NOT BY MESSAGE (BACKEND-AZ/AH/AD). v1 is an
+      # unauthenticated surface under constant bot traffic, and the default
+      # grouping key for a message event IS the message — so every distinct
+      # validation string anonymous input can provoke minted its own issue, at
+      # error level. Changing HOW malformed bodies fail (#4283 multipart
+      # rejection) therefore read as a brand-new escalating defect when it was
+      # the same bots failing one step earlier. The message stays the event
+      # text, so the backend's message scrubbers still see it and the issue
+      # title still says what failed; the endpoint alone decides the group.
+      #
+      # The group key is the ROUTE TEMPLATE, not `req.path` — see
+      # #endpoint_template. On the wildcard routes (/secret/:key,
+      # /receipt/:key) the concrete path is one-per-key, which would defeat
+      # the grouping this exists for and put the key itself in Sentry.
+      #
+      # Level is :warning, not :error: rejected input is the validator working.
+      capture_message ex.message, :warning do |scope|
+        scope.set_fingerprint(['v1-form-error', endpoint_template])
+      end
+
+      handle_form_error ex
+
+    # NOTE: It's important to handle MissingSecret before RecordNotFound since
+    #       MissingSecret is a subclass of RecordNotFound. If we don't, we'll
+    #       end up with a generic error message instead of the specific one.
+    rescue OT::MissingSecret
+      secret_not_found_response
+    rescue OT::RecordNotFound => ex
+      OT.ld "[carefully] RecordNotFound: #{ex.message} (#{redacted_request_path})"
+      not_found_response ex.message
+    rescue Familia::FieldTypeError => ex
+      # session may be a Hash fallback when no session middleware is available
+      session_id       = (session.respond_to?(:id) && session.id&.to_s) || req.cookies['onetime.session'] || 'unknown'
+      short_session_id = session_id.length <= 10 ? session_id : session_id[0, 10] + '...'
+      OT.le "[attempt-saving-non-string-to-db] #{obscured} (#{req.client_ipaddress}): #{short_session_id} (#{redacted_request_path})"
+
+      # Track attempts to save non-string data to the database as a warning error
+      capture_error ex, :warning
+
+      error_response I18n.t('api.errors.request_processing_error')
+    rescue Familia::NotConnected, Familia::Problem => ex
+      OT.le "#{ex.class}: #{ex.message}"
+      OT.le ex.backtrace
+
+      # Track Familia errors as regular exceptions
+      capture_error ex
+
+      error_response 'An unexpected error occurred :['
+    rescue Errno::ECONNREFUSED => ex
+      OT.le ex.message
+      OT.le ex.backtrace
+
+      # Track DB connection errors as fatal errors
+      capture_error ex, :fatal
+
+      error_response I18n.t('api.errors.service_unavailable')
+    rescue StandardError => ex
+      custid           = cust&.custid || '<notset>'
+      # session may be a Hash fallback when no session middleware is available
+      session_id       = (session.respond_to?(:id) && session.id&.to_s) || req.cookies['onetime.session'] || 'unknown'
+      short_session_id = session_id.length <= 10 ? session_id : session_id[0, 10] + '...'
+      OT.le "#{ex.class}: #{ex.message} -- #{redacted_request_path} -- #{req.client_ipaddress} #{custid} #{short_session_id} #{locale} #{content_type}"
+      OT.le ex.backtrace.join("\n")
+
+      # Track the unexected errors
+      capture_error ex
+
+      error_response 'An unexpected error occurred :['
+    end
+
+    # Sets the locale for the request based on various sources.
+    #
+    # This method determines the locale to be used for the request by checking
+    # the following sources in order of precedence:
+    # 1. The `locale` argument passed to the method.
+    # 2. The `locale` query parameter in the request.
+    # 3. The customer's previously saved preferred locale (if customer exists).
+    # 4. The `rack.locale` environment variable set by Otto.
+    #
+    # If a valid locale is found in any of these sources, it is set in the
+    # `req.env['ots.locale']` environment variable. If no valid locale is found,
+    # the default locale from the configuration is used.
+    #
+    # @param locale [String, nil] The locale to be used, if specified.
+    # @return [void]
+    def check_locale!(locale = nil)
+      locale ||= req.params['locale']
+      locale ||= cust.locale if cust&.locale
+      locale ||= (req.env['rack.locale'] || []).first
+
+      have_translations = locale && I18n.available_locales.include?(locale.to_sym)
+      lmsg              = format(
+        '[check_locale!] class=%s locale=%s cust=%s req=%s t=%s',
+        self.class.name,
+        locale,
+        cust&.locale,
+        req.params.keys,
+        have_translations,
+      )
+      OT.ld lmsg
+
+      # Set the locale in the request environment if it is
+      # valid, otherwise use the default locale.
+      req.env['ots.locale'] = have_translations ? locale : OT.default_locale
+
+      # Important! This sets the locale for the current request which
+      # gets passed through to the logic class along with sess, cust.
+      # Without it, emails will be sent in the default locale.
+      @locale = req.env['ots.locale']
+    end
+
+    def add_response_headers(content_type)
+      # Set the Content-Type header if it's not already set by the application.
+      #
+      # Content-Security-Policy is emitted by Otto's response layer, the single
+      # policy source for the app. The deprecated v1 API no longer defines its
+      # own parallel policy here.
+      res.headers['content-type'] ||= content_type
+    end
+
+    # Collectes request details in a single string for logging purposes.
+    #
+    # This method collects the IP address, request method, path, and proxy
+    # header details from the given request object and formats them into a
+    # single string. The resulting string is suitable for logging. The query
+    # string is intentionally omitted -- this is called on every authenticated
+    # request via log_customer_activity, and a query string can carry the same
+    # class of sensitive value (an accidentally-appended secret/token) that
+    # Onetime::ErrorHandler.safe_request_context guards against on the error
+    # path.
+    #
+    # @param req [Rack::Request] The request object containing the details to be
+    #   stringified.
+    # @return [String] A single string containing the formatted request details.
+    #
+    # @example
+    #   req = Rack::Request.new(env)
+    #   stringify_request_details(req)
+    #   # => "192.0.2.1; GET /path; Proxy[HTTP_X_FORWARDED_FOR=203.0.113.195 REMOTE_ADDR=192.0.2.1]"
+    #
+    def stringify_request_details(req)
+      header_details = collect_proxy_header_details(req.env)
+
+      # Capability routes carry the secret/receipt key in the path, and that
+      # key is a live credential (v1 ShowReceipt has no owner check; the
+      # receipt still exposes secret_key until reveal). Log the full
+      # mount+path through the same redactor the request logger uses rather
+      # than the bare PATH_INFO.
+      details = [
+        req.ip,
+        "#{req.request_method} #{Onetime::Application::RequestLogger.redacted_path(req)}",
+        "Proxy[#{header_details}]",
+      ]
+
+      # Convert the details array to a string for logging
+      details.join('; ')
+    end
+
+    # Collects and formats specific HTTP header details from the given
+    # environment hash, including Cloudflare-specific headers.
+    #
+    # @param env [Hash, nil] The environment hash containing HTTP headers.
+    #   Defaults to an empty hash if not provided.
+    # @param keys [Array<String>, nil] The list of HTTP header keys to collect.
+    #   Defaults to a predefined list of common proxy-related headers if not
+    #   provided.
+    # @return [String] A single string with the requested headers formatted as
+    #   "key=value" pairs, separated by spaces.
+    #
+    # @example
+    #   env = {
+    #     "HTTP_X_FORWARDED_FOR" => "203.0.113.195",
+    #     "REMOTE_ADDR" => "192.0.2.1",
+    #     "CF-Connecting-IP" => "203.0.113.195",
+    #     "CF-IPCountry" => "NL",
+    #     "CF-Ray" => "1234567890abcdef",
+    #     "CF-Visitor" => "{\"scheme\":\"https\"}"
+    #   }
+    #   collect_proxy_header_details(env)
+    #   # => "HTTP_X_FORWARDED_FOR=203.0.113.195 REMOTE_ADDR=192.0.2.1 CF-Connecting-IP=203.0.113.195 CF-IPCountry=US CF-Ray=1234567890abcdef CF-Visitor={\"scheme\":\"https\"}"
+    #
+    def collect_proxy_header_details(env = nil, keys = nil)
+      env  ||= {}
+      keys ||= %w[
+        HTTP_FLY_REQUEST_ID
+        HTTP_VIA
+        HTTP_X_FORWARDED_PROTO
+        HTTP_X_FORWARDED_FOR
+        HTTP_X_FORWARDED_HOST
+        HTTP_X_FORWARDED_PORT
+        HTTP_X_SCHEME
+        HTTP_X_REAL_IP
+        HTTP_CF_IPCOUNTRY
+        HTTP_CF_RAY
+        REMOTE_ADDR
+      ]
+
+      # Add any header that begins with HEADER_PREFIX
+      prefix_keys = env.keys.select { |key| key.upcase.start_with?("HTTP_#{HEADER_PREFIX}") }
+      keys.concat(prefix_keys) # the bang is silent
+
+      keys.sort.map do |key|
+        # Normalize the header name so it looks identical in the logs as it
+        # does in the browser dev console.
+        #
+        # e.g. Content-Type instead of HTTP_CONTENT_TYPE
+        #
+        pretty_name = key.sub(/^HTTP_/, '').split('_').map(&:capitalize).join('-')
+        "#{pretty_name}: #{env[key]}"
+      end.join(' ')
+    end
+
+    def deny_agents! *_agents
+      BADAGENTS.flatten.each do |agent|
+        if req.user_agent =~ /#{agent}/i
+          raise OT::Redirect.new('/')
+        end
+      end
+    end
+
+    def no_cache!
+      # @see https://www.rubydoc.info/gems/rack/Rack/Response/Helpers#do_not_cache!-instance_method
+      res.do_not_cache!
+    end
+
+    # Note: app_path is not defined here. Otto provides it on both req and res,
+    # prepending script_name to support sub-path mounting. Use req.app_path(...).
+
+    # session_auth_enforced? is inherited from SessionHelpers (included
+    # at the top of this module). It uses safe `dig` access and defaults
+    # to disabled when config is absent — account features are rendered
+    # unavailable unless authentication is explicitly configured.
+    # See lib/onetime/helpers/session_helpers.rb.
+
+    # The request path with capability keys replaced, for log lines. Never
+    # log req.path / req.path_info directly: on /secret, /receipt, /private
+    # and /metadata routes the path IS the credential.
+    def redacted_request_path
+      Onetime::Application::RequestLogger.redacted_path(req)
+    end
+
+    def log_customer_activity
+      return if cust.nil? || cust.anonymous?
+
+      reqstr           = stringify_request_details(req)
+      custref          = cust.obscure_email
+      # session may be a Hash fallback when no session middleware is available
+      session_id       = (session.respond_to?(:id) && session.id&.to_s) || req.cookies['onetime.session'] || 'unknown'
+      short_session_id = session_id.length <= 10 ? session_id : session_id[0, 10] + '...'
+      OT.info "[carefully] #{short_session_id} #{custref} at #{reqstr}"
+    end
+
+    # Sentry terminology:
+    #   - An event is one instance of sending data to Sentry. Generally, this
+    #   data is an error or exception.
+    #   - An issue is a grouping of similar events.
+    #   - Capturing is the act of reporting an event.
+    #
+    # Available levels are :fatal, :error, :warning, :log, :info,
+    # and :debug. The Sentry default, if not specified, is :error.
+    #
+    def capture_error(error, level = :error, &block)
+      OT.ld "[sentry] api capture_error → decision exception=#{error.class} level=#{level} " \
+            "d9s_enabled=#{OT.d9s_enabled} sentry_defined=#{defined?(Sentry) ? true : false} " \
+            "sentry_initialized=#{(defined?(Sentry) && Sentry.initialized?) || false}"
+
+      unless OT.d9s_enabled # diagnostics are disabled by default
+        OT.ld '[sentry] api capture_error skipped — d9s_enabled=false'
+        return
+      end
+
+      # Log request headers before attempting to send to Sentry
+      if defined?(req) && req.respond_to?(:env)
+        headers = Onetime::ErrorHandler.http_headers_from(req.env)
+        OT.ld "[capture_error] Request headers: #{headers.inspect}"
+      end
+
+      # Capture exception with request context for debugging in Sentry
+      event_id = Sentry.capture_exception(error, level: level) do |scope|
+        # Pseudonymous "users affected" attribution. Opaque keyed ref only —
+        # never the email, custid, session id or IP. Anonymous requests and
+        # unkeyed deployments set no user at all. This block scope is
+        # per-event, so nothing here leaks into a later request.
+        if defined?(cust)
+          Onetime::ErrorHandler.set_diagnostics_actor(scope, cust)
+        end
+
+        # Add searchable tags (guard req to avoid NameError if not defined)
+        # Route template, never the concrete path: an `endpoint` tag carrying
+        # a secret key is both unbounded-cardinality and a leak (see
+        # #endpoint_template).
+        scope.set_tags(
+          service: 'api',
+          endpoint: endpoint_template,
+        )
+
+        # Add request context: path only (never the query string) plus any
+        # explicitly allow-listed params — see Onetime::ErrorHandler.safe_request_context.
+        if defined?(req) && req.respond_to?(:path)
+          scope.set_context('request', Onetime::ErrorHandler.safe_request_context(req))
+        end
+
+        # Add customer/session context with truncated IDs for privacy
+        if defined?(cust) && cust && !cust.anonymous?
+          scope.set_context(
+            'customer',
+            {
+              custid: truncate_id(cust.custid),
+              role: cust.role,
+            },
+          )
+        end
+
+        if defined?(sess) && sess.respond_to?(:sessid)
+          scope.set_context(
+            'session',
+            {
+              sessid: truncate_id(sess.sessid),
+            },
+          )
+        end
+
+        # Allow caller to add additional context via block
+        block&.call(scope)
+      end
+      OT.ld "[sentry] api capture_error returned event_id=#{event_id.inspect} exception=#{error.class}"
+    rescue NoMethodError => ex
+      raise unless ex.message.include?('start_with?')
+
+      # Continue execution - don't let a Sentry error break the app
+      OT.le "[capture_error] Sentry error with nil value in start_with? check: #{ex.message}"
+      OT.ld ex.backtrace.join("\n")
+    rescue StandardError => ex
+      OT.le "[capture_error] #{ex.class}: #{ex.message}"
+      OT.ld ex.backtrace.join("\n")
+    end
+
+    # Truncates an ID string for privacy while keeping it useful for debugging.
+    # Shows first 8 characters followed by ellipsis.
+    # @param id [String, nil] ID to truncate
+    # @return [String] Truncated ID or 'unknown' if nil/empty
+    def truncate_id(id)
+      return 'unknown' if id.nil? || id.to_s.empty?
+
+      id_str = id.to_s
+      id_str.length <= 8 ? id_str : "#{id_str[0, 8]}..."
+    end
+    private :truncate_id
+
+    # The endpoint identity used for the Sentry `endpoint` tag and for the
+    # FormError grouping fingerprint.
+    #
+    # NEVER the bare `req.path`. The v1 wildcard routes — /secret/:key,
+    # /receipt/:key, /receipt/:key/burn and the /private/ and /metadata/
+    # aliases — put the concrete secret or receipt key in the path, and both
+    # consumers of this value are the wrong place for it:
+    #   - CARDINALITY: one distinct fingerprint (and one distinct tag value)
+    #     per key, which is precisely the per-message issue explosion the
+    #     fingerprint was added to stop.
+    #   - DISCLOSURE: NOTHING scrubs event.tags — not before_send, not the
+    #     SDK — so the tag half of this is the only thing standing between a
+    #     raw path and Sentry. The fingerprint has a backstop
+    #     (SetupDiagnostics.scrub_event_fingerprint), but a backstop is not a
+    #     licence to hand it a credential: it redacts, which loses the
+    #     endpoint identity this value exists to carry.
+    #
+    # Otto stamps the matched route onto the env during dispatch
+    # (otto/route.rb -> env['otto.route_definition']). Its #path is the
+    # DECLARED template from routes.txt ('/secret/:key'), so it is the
+    # endpoint identity we want and structurally cannot carry request data.
+    # In the mounted stack it is always present by the time a controller
+    # runs; the fallback is for harnesses that invoke a controller without
+    # Otto's dispatch (unit specs), and it scrubs the raw path rather than
+    # trusting it.
+    #
+    # @return [String] route template, scrubbed path, or 'unknown'
+    def endpoint_template
+      return 'unknown' unless defined?(req) && req
+
+      route    = req.env['otto.route_definition'] if req.respond_to?(:env) && req.env.respond_to?(:[])
+      template = route.path if route.respond_to?(:path)
+      return template if template.is_a?(String) && !template.empty?
+
+      raw = req.path_info if req.respond_to?(:path_info)
+      raw = req.path if (raw.nil? || raw.empty?) && req.respond_to?(:path)
+      return 'unknown' if raw.nil? || raw.empty?
+
+      scrub_endpoint_path(raw)
+    rescue StandardError
+      'unknown'
+    end
+    private :endpoint_template
+
+    # Reuses the diagnostics URL scrubber so the fallback above can never
+    # emit an identifier the before_send pass would have redacted. Fails
+    # closed to 'unknown' when diagnostics are not loaded (bare unit
+    # harnesses) rather than returning the unscrubbed path.
+    def scrub_endpoint_path(raw)
+      return 'unknown' unless defined?(Onetime::Initializers::SetupDiagnostics) &&
+                              Onetime::Initializers::SetupDiagnostics.respond_to?(:scrub_url)
+
+      Onetime::Initializers::SetupDiagnostics.scrub_url(raw) || 'unknown'
+    end
+    private :scrub_endpoint_path
+
+    def capture_message(message, level = :log, &)
+      return unless OT.d9s_enabled # diagnostics are disabled by default
+
+      Sentry.capture_message(message, level: level, &)
+    rescue StandardError => ex
+      OT.le "[capture_message] #{ex.class}: #{ex.message}"
+      OT.ld ex.backtrace.join("\n")
+    end
+  end
+end

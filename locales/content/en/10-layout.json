@@ -1,0 +1,429 @@
+{
+  "web.footer.api_docs": {
+    "text": "API Docs",
+    "content_hash": "f4137804"
+  },
+  "web.footer.branding_guide": {
+    "text": "Branding Guide",
+    "content_hash": "53f994c5"
+  },
+  "web.footer.customize": {
+    "text": "Customize",
+    "content_hash": "c5276e27"
+  },
+  "web.footer.plans": {
+    "text": "Plans",
+    "content_hash": "dfe8b2f0"
+  },
+  "web.footer.security": {
+    "text": "Security",
+    "content_hash": "8f6fb4eb"
+  },
+  "web.footer.learn_about_our_security_measures": {
+    "text": "Learn about our security measures",
+    "content_hash": "16c8adae"
+  },
+  "web.footer.view_our_terms_and_conditions": {
+    "text": "View our Terms and Conditions",
+    "content_hash": "0dde60b7"
+  },
+  "web.footer.terms": {
+    "text": "Terms",
+    "content_hash": "ede54899"
+  },
+  "web.footer.privacy": {
+    "text": "Privacy",
+    "content_hash": "54a57c31"
+  },
+  "web.footer.contact": {
+    "text": "Contact",
+    "content_hash": "2b5c3d26"
+  },
+  "web.footer.support": {
+    "text": "Support",
+    "content_hash": "be91940b"
+  },
+  "web.footer.legals": {
+    "text": "Legals",
+    "content_hash": "0a410c78"
+  },
+  "web.footer.dpa": {
+    "text": "Data Processing Agreement",
+    "context": "Footer link to the DPA legal document",
+    "content_hash": "112eae6b"
+  },
+  "web.footer.cookie_policy": {
+    "text": "Cookie Policy",
+    "context": "Footer link to the cookie policy legal document",
+    "content_hash": "ee290b3d"
+  },
+  "web.footer.acceptable_use": {
+    "text": "Acceptable Use Policy",
+    "context": "Footer link to the acceptable use policy legal document",
+    "content_hash": "34aa287a"
+  },
+  "web.feedback.when_you_submit_feedback_well_see": {
+    "text": "When you submit feedback, we'll see:",
+    "content_hash": "fe77172e"
+  },
+  "web.footer.read_our_privacy_policy": {
+    "text": "Read our Privacy Policy",
+    "content_hash": "eb443229"
+  },
+  "web.footer.check_our_service_status": {
+    "text": "Check our service status",
+    "content_hash": "1f04937e"
+  },
+  "web.footer.explore_our_api_documentation": {
+    "text": "Explore our API documentation",
+    "content_hash": "45beb8f8"
+  },
+  "web.footer.docs": {
+    "text": "Docs",
+    "content_hash": "7af023c4"
+  },
+  "web.footer.access_our_documentation": {
+    "text": "Access our documentation",
+    "content_hash": "37686da2"
+  },
+  "web.footer.view_our_source_code_on_github": {
+    "text": "View our source code on GitHub",
+    "content_hash": "d5def0ab"
+  },
+  "web.footer.resources": {
+    "text": "Resources",
+    "content_hash": "e89b30aa"
+  },
+  "web.footer.workspace": {
+    "text": "Workspace",
+    "content_hash": "87bb59ba"
+  },
+  "web.footer.blog": {
+    "text": "Blog",
+    "content_hash": "8c6bc099"
+  },
+  "web.footer.read_our_latest_blog_posts": {
+    "text": "Read our latest blog posts",
+    "content_hash": "77468d43"
+  },
+  "web.footer.view_our_subscription_pricing": {
+    "text": "View our subscription pricing",
+    "content_hash": "55f1f590"
+  },
+  "web.footer.learn_about_our_company": {
+    "text": "Learn about our company",
+    "content_hash": "780e18cd"
+  },
+  "web.footer.company": {
+    "text": "Company",
+    "content_hash": "de4743c8"
+  },
+  "web.footer.product": {
+    "text": "Product",
+    "content_hash": "fb9ef894"
+  },
+  "web.footer.source_code_purveyor": {
+    "text": "Source Code",
+    "content_hash": "bc47da66"
+  },
+  "web.navigation.billing": {
+    "text": "Billing",
+    "content_hash": "3ac8bbca"
+  },
+  "web.navigation.billingOverview": {
+    "text": "Overview",
+    "content_hash": "d4b1ea57"
+  },
+  "web.navigation.organizations": {
+    "text": "Organizations",
+    "content_hash": "2730183d"
+  },
+  "web.site.website_version": {
+    "text": "Website Version",
+    "content_hash": "4d4a570f"
+  },
+  "web.meta.were_making_onetime_secret_available_in_multiple": {
+    "text": "We're making {onetime-secret} available in multiple languages. Since this is a new feature, you may encounter translation errors or awkward phrasing. Your feedback helps us improve - if you spot any issues, please {send-feedback}",
+    "content_hash": "3b482d7f"
+  },
+  "web.meta.translations_are_new_spotted_an_error": {
+    "text": "Translations are new. Spotted an error? {send-feedback}",
+    "content_hash": "31eca08d"
+  },
+  "web.meta.we_recently_added_translations": {
+    "text": "We recently added translations. Spotted an error? {send-feedback}",
+    "content_hash": "6e2455c1"
+  },
+  "web.meta.privacy_and_security_should_be_accessible": {
+    "text": "Privacy and security should be accessible to everyone, regardless of language. We're adding translations to help both our users and their message recipients better understand how to safely use and access secure messages and links. Since this is a new feature, you might encounter some translation errors or unclear instructions. To help us improve the clarity and accuracy of our translations, especially for critical security-related content, please {send-feedback} if you spot any issues",
+    "content_hash": "1b8bb38f"
+  },
+  "web.help.learn_more": {
+    "text": "Learn more",
+    "content_hash": "1445799c"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.title": {
+    "text": "What am I looking at?",
+    "content_hash": "b9766df3"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.description": {
+    "text": "You're viewing a secure message that was shared with you through {product_name}. This content is displayed only once and then permanently deleted from our servers.",
+    "content_hash": "7a4e9d16"
+  },
+  "web.help.secret_view_faq.can_i_view_again.title": {
+    "text": "Can I view this secret again later?",
+    "content_hash": "c8c2c9da"
+  },
+  "web.help.secret_view_faq.can_i_view_again.description": {
+    "text": "No. For security reasons, this secret is only viewable once. After closing this page, the content will be permanently deleted and cannot be recovered by anyone, including us.",
+    "content_hash": "4bf980a4"
+  },
+  "web.help.secret_view_faq.how_to_copy.title": {
+    "text": "How do I save this information?",
+    "content_hash": "90deddbb"
+  },
+  "web.help.secret_view_faq.how_to_copy.description": {
+    "text": "Use the 'Copy to Clipboard' button to copy the entire secret. For longer secrets, make sure to verify you've copied the complete content before leaving this page.",
+    "content_hash": "440aa828"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.title": {
+    "text": "Is my viewing of this secret tracked?",
+    "content_hash": "90145e28"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.description": {
+    "text": "The sender will be notified that their secret was viewed, but we don't track who viewed it or from what location. Your privacy is protected.",
+    "content_hash": "70737473"
+  },
+  "web.help.secret_view_faq.one_time_warning": {
+    "text": "Once you leave or refresh this page, this secret will be permanently deleted and cannot be recovered by anyone.",
+    "content_hash": "47feab6e"
+  },
+  "web.layout.go_back_to_previous_page": {
+    "text": "Go back to previous page",
+    "content_hash": "1778f2e7"
+  },
+  "web.layout.site_footer": {
+    "text": "Site footer",
+    "content_hash": "6ca09429"
+  },
+  "web.layout.toggle_dark_mode": {
+    "text": "Toggle dark mode",
+    "content_hash": "ffe32a00"
+  },
+  "web.layout.provide_feedback": {
+    "text": "Provide feedback",
+    "content_hash": "a70766ae"
+  },
+  "web.layout.company_logo": {
+    "text": "Company logo",
+    "content_hash": "87a86135"
+  },
+  "web.layout.brand_logo": {
+    "text": "Brand logo",
+    "content_hash": "e458e2b5"
+  },
+  "web.layout.colonels_only_badge": {
+    "text": "Colonels Only",
+    "content_hash": "3f1e2dbd"
+  },
+  "web.layout.dashboard_navigation": {
+    "text": "Dashboard Navigation",
+    "content_hash": "da5c1c43"
+  },
+  "web.layout.mobile_navigation": {
+    "text": "Mobile Navigation",
+    "content_hash": "ccea1730"
+  },
+  "web.layout.main_navigation": {
+    "text": "Main Navigation",
+    "content_hash": "56ea852a"
+  },
+  "web.layout.mobile_nav_item_count": {
+    "text": "{count} items",
+    "content_hash": "f65216b3"
+  },
+  "web.layout.release_notes": {
+    "text": "Release Notes",
+    "content_hash": "bd4702c1"
+  },
+  "web.layout.loading_settings_content": {
+    "text": "Loading settings content...",
+    "content_hash": "81a2a30e"
+  },
+  "web.layout.settings_sections_0": {
+    "text": "Settings sections",
+    "content_hash": "e26d51d3"
+  },
+  "web.layout.close_settings": {
+    "text": "Close settings",
+    "content_hash": "0ccfef82"
+  },
+  "web.layout.settings_sections": {
+    "text": "Settings sections",
+    "content_hash": "e26d51d3"
+  },
+  "web.layout.customize_your_app_preferences_and_settings": {
+    "text": "Customize your app preferences and settings",
+    "content_hash": "00d74c98"
+  },
+  "web.layout.return_home": {
+    "text": "Return home",
+    "content_hash": "bbcc935e"
+  },
+  "web.layout.return_to_home_page": {
+    "text": "Return to home page",
+    "content_hash": "8d27b81d"
+  },
+  "web.layout.return_to_home": {
+    "text": "Return to Home",
+    "content_hash": "299291b0"
+  },
+  "web.layout.view_privacy_policy": {
+    "text": "View Privacy Policy",
+    "content_hash": "377733b6"
+  },
+  "web.layout.view_terms_of_service": {
+    "text": "View Terms of Service",
+    "content_hash": "e2f124cd"
+  },
+  "web.layout.visit_onetime_secret_homepage": {
+    "text": "Visit {product_name} homepage",
+    "content_hash": "87802af5"
+  },
+  "web.layout.footer_navigation": {
+    "text": "Footer navigation",
+    "content_hash": "76363a64"
+  },
+  "web.layout.terms_of_service": {
+    "text": "Terms of Service",
+    "content_hash": "4afa55bf"
+  },
+  "web.layout.privacy_policy": {
+    "text": "Privacy Policy",
+    "content_hash": "506ff394"
+  },
+  "web.layout.icon_library": {
+    "text": "Icon Library",
+    "content_hash": "a73f4c07"
+  },
+  "web.layout.google_material": {
+    "text": "Google Material",
+    "content_hash": "7c7afa99"
+  },
+  "web.layout.material_design_icons": {
+    "text": "Material Design Icons",
+    "content_hash": "0fb27437"
+  },
+  "web.layout.heroicons": {
+    "text": "Heroicons",
+    "content_hash": "5e7cc07e"
+  },
+  "web.layout.carbon": {
+    "text": "Carbon",
+    "content_hash": "694c87c2"
+  },
+  "web.layout.font_awesome_6": {
+    "text": "Font Awesome 6",
+    "content_hash": "d4eedb15"
+  },
+  "web.layout.view_source_on_github": {
+    "text": "View source on GitHub",
+    "content_hash": "75e96614"
+  },
+  "web.layout.website_version_v_ot_version": {
+    "text": "Website Version: v{0}",
+    "content_hash": "343f57de"
+  },
+  "web.layout.current_language_is_currentlocal": {
+    "text": "Change language. Current language is {0}",
+    "content_hash": "77f9c322"
+  },
+  "web.layout.language_changed_to_newlocale": {
+    "text": "Language changed to {0}",
+    "content_hash": "1680f4fe"
+  },
+  "web.layout.reset_to_default_language": {
+    "text": "Reset to {0}",
+    "content_hash": "c0cfa9b2"
+  },
+  "web.layout.locale_load_failed.title": {
+    "text": "There was a problem loading {requested}",
+    "content_hash": "96c3410c"
+  },
+  "web.layout.locale_load_failed.body": {
+    "text": "You can keep using the site in {shown}. If this keeps happening, please {feedback}.",
+    "content_hash": "08974954"
+  },
+  "web.layout.locale_load_failed.feedback_link": {
+    "text": "let us know through the feedback form",
+    "content_hash": "a9717f06"
+  },
+  "web.layout.locale_load_failed.dismiss": {
+    "text": "Dismiss language notice",
+    "content_hash": "ff705dea"
+  },
+  "web.layout.locale_save_failed.title": {
+    "text": "Your language preference could not be saved",
+    "content_hash": "dc9bfbd0"
+  },
+  "web.layout.locale_save_failed.body": {
+    "text": "Your current language remains active for this page. Retry to remember your language preference.",
+    "content_hash": "eb6d6077"
+  },
+  "web.layout.locale_save_failed.retry": {
+    "text": "Retry",
+    "content_hash": "942087cc"
+  },
+  "web.layout.locale_save_failed.dismiss": {
+    "text": "Dismiss language preference notice",
+    "content_hash": "5149b547"
+  },
+  "web.layout.route_load_failed.title": {
+    "text": "This page could not be opened",
+    "content_hash": "465b233a"
+  },
+  "web.layout.route_load_failed.body": {
+    "text": "Part of the site did not load, so the page you asked for could not open. Copy anything you still need from this page, then reload it.",
+    "content_hash": "69236004"
+  },
+  "web.layout.route_load_failed.reload": {
+    "text": "Reload page",
+    "content_hash": "437d0d63"
+  },
+  "web.layout.route_load_failed.dismiss": {
+    "text": "Dismiss page notice",
+    "content_hash": "bfcc2503"
+  },
+  "web.layout.switch_to_blank_mode": {
+    "text": "Switch to {0} mode",
+    "content_hash": "c8b909e0"
+  },
+  "web.layout.blank_mode_enabled": {
+    "text": "{0} mode enabled",
+    "content_hash": "e1d200cb"
+  },
+  "web.layout.workspace": {
+    "text": "Workspace",
+    "content_hash": "87bb59ba"
+  },
+  "web.layout.workspace_context": {
+    "text": "Workspace context",
+    "content_hash": "dc6fa4f5"
+  },
+  "web.layout.console_warning_heading": {
+    "text": "Welcome to the Real Danger Zone ™",
+    "content_hash": "076fef59"
+  },
+  "web.layout.console_warning_body": {
+    "text": "This panel can run code in your browser. Scammers may ask you to paste something here to fix a problem or unlock a feature. That code could steal your secrets or give someone access to your account.",
+    "content_hash": "0f9d8053"
+  },
+  "web.layout.console_warning_closing": {
+    "text": "Do not paste anything here.",
+    "content_hash": "583d171a"
+  },
+  "web.help.default_content": {
+    "text": "Please contact support for assistance",
+    "content_hash": "752bca14"
+  }
+}

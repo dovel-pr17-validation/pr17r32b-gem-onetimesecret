@@ -1,0 +1,350 @@
+{
+  "web.admin.system.title": {
+    "text": "Sistema",
+    "source_hash": "6725e7bb"
+  },
+  "web.admin.system.description": {
+    "text": "Stato di database, code e infrastruttura.",
+    "source_hash": "0115f495"
+  },
+  "web.admin.system.retry": {
+    "text": "Riprova",
+    "source_hash": "942087cc"
+  },
+  "web.admin.system.database.title": {
+    "text": "Database principale ({engine})",
+    "source_hash": "1391230b"
+  },
+  "web.admin.system.database.loadError": {
+    "text": "Impossibile caricare le metriche del database.",
+    "source_hash": "905055c6"
+  },
+  "web.admin.system.database.server": {
+    "text": "Server",
+    "source_hash": "aef7de28"
+  },
+  "web.admin.system.database.memory": {
+    "text": "Memoria",
+    "source_hash": "c3963aed"
+  },
+  "web.admin.system.database.databases": {
+    "text": "Database",
+    "source_hash": "61d2afe2"
+  },
+  "web.admin.system.database.dbSummary": {
+    "text": "{keys} chiavi, {expires} con TTL",
+    "source_hash": "26b9e17c"
+  },
+  "web.admin.system.database.fields.version": {
+    "text": "Versione",
+    "source_hash": "dd167905"
+  },
+  "web.admin.system.database.fields.mode": {
+    "text": "Modalità",
+    "source_hash": "5e23ec6a"
+  },
+  "web.admin.system.database.fields.uptimeDays": {
+    "text": "Tempo di attività (giorni)",
+    "source_hash": "7ab314f8"
+  },
+  "web.admin.system.database.fields.connectedClients": {
+    "text": "Client connessi",
+    "source_hash": "434adc3a"
+  },
+  "web.admin.system.database.fields.opsPerSec": {
+    "text": "Operazioni/sec",
+    "source_hash": "6634251d"
+  },
+  "web.admin.system.database.fields.totalCommands": {
+    "text": "Comandi totali",
+    "source_hash": "c5ce5aaf"
+  },
+  "web.admin.system.database.fields.usedMemory": {
+    "text": "Memoria utilizzata",
+    "source_hash": "bac68a65"
+  },
+  "web.admin.system.database.fields.rssMemory": {
+    "text": "Memoria RSS",
+    "source_hash": "7fe77d15"
+  },
+  "web.admin.system.database.fields.peakMemory": {
+    "text": "Memoria di picco",
+    "source_hash": "9d44afa6"
+  },
+  "web.admin.system.database.fields.fragmentation": {
+    "text": "Rapporto di frammentazione",
+    "source_hash": "721494dd"
+  },
+  "web.admin.system.database.stats.customers": {
+    "text": "Clienti",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.system.database.stats.secrets": {
+    "text": "Segreti",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.system.database.stats.receipts": {
+    "text": "Ricevute",
+    "source_hash": "60a627df"
+  },
+  "web.admin.system.database.stats.totalKeys": {
+    "text": "Chiavi totali",
+    "source_hash": "4e0d27f5"
+  },
+  "web.admin.system.queue.title": {
+    "text": "Coda",
+    "source_hash": "3b2fe03e"
+  },
+  "web.admin.system.queue.loadError": {
+    "text": "Impossibile caricare le metriche della coda.",
+    "source_hash": "715bdc88"
+  },
+  "web.admin.system.queue.empty": {
+    "text": "Nessuna coda trovata",
+    "source_hash": "3cd4eb88"
+  },
+  "web.admin.system.queue.connected": {
+    "text": "Connesso",
+    "source_hash": "22965568"
+  },
+  "web.admin.system.queue.disconnected": {
+    "text": "Disconnesso",
+    "source_hash": "04dfac36"
+  },
+  "web.admin.system.queue.activeWorkers": {
+    "text": "{count} worker attivi",
+    "source_hash": "49e6369c"
+  },
+  "web.admin.system.queue.columns.name": {
+    "text": "Coda",
+    "source_hash": "3b2fe03e"
+  },
+  "web.admin.system.queue.columns.pending": {
+    "text": "In sospeso",
+    "source_hash": "331551b0"
+  },
+  "web.admin.system.queue.columns.consumers": {
+    "text": "Consumer",
+    "source_hash": "212b350d"
+  },
+  "web.admin.system.queue.health.healthy": {
+    "text": "In salute",
+    "source_hash": "7f1e323b"
+  },
+  "web.admin.system.queue.health.degraded": {
+    "text": "Degradato",
+    "source_hash": "a8494c12"
+  },
+  "web.admin.system.queue.health.unhealthy": {
+    "text": "Non integro",
+    "source_hash": "317b1fbc"
+  },
+  "web.admin.system.queue.health.unknown": {
+    "text": "Sconosciuto",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.system.redis.title": {
+    "text": "Redis INFO",
+    "source_hash": "e762bd3c"
+  },
+  "web.admin.system.redis.loadError": {
+    "text": "Impossibile caricare le metriche Redis.",
+    "source_hash": "ca5945d6"
+  },
+  "web.admin.system.redis.captured": {
+    "text": "Acquisito {at}",
+    "source_hash": "57b40c0f"
+  },
+  "web.admin.system.brand.title": {
+    "text": "Diagnostica del marchio",
+    "source_hash": "1cf9abd5"
+  },
+  "web.admin.system.brand.description": {
+    "text": "Quale brand pack l'istanza in esecuzione ha risolto su disco: evidenzia perché una regione potrebbe mostrare un branding neutro.",
+    "source_hash": "be29e282"
+  },
+  "web.admin.system.brand.loadError": {
+    "text": "Impossibile caricare la diagnostica del marchio.",
+    "source_hash": "80607303"
+  },
+  "web.admin.system.brand.none": {
+    "text": "(nessuno)",
+    "source_hash": "552e4230"
+  },
+  "web.admin.system.brand.resolution": {
+    "text": "Risoluzione",
+    "source_hash": "d4055faf"
+  },
+  "web.admin.system.brand.envVsConfig": {
+    "text": "Ambiente e configurazione",
+    "source_hash": "bee3debb"
+  },
+  "web.admin.system.brand.absorbed": {
+    "text": "Chiavi assorbite",
+    "source_hash": "9784e110"
+  },
+  "web.admin.system.brand.operatorKeys": {
+    "text": "Chiavi dell'operatore",
+    "source_hash": "434e8248"
+  },
+  "web.admin.system.brand.overlayAssets": {
+    "text": "Asset di overlay",
+    "source_hash": "c87de1f9"
+  },
+  "web.admin.system.brand.exists.yes": {
+    "text": "Presente",
+    "source_hash": "43f9b89c"
+  },
+  "web.admin.system.brand.exists.no": {
+    "text": "Mancante",
+    "source_hash": "6be36ca4"
+  },
+  "web.admin.system.brand.fields.resolvedDir": {
+    "text": "Directory risolta",
+    "source_hash": "0623b983"
+  },
+  "web.admin.system.brand.fields.home": {
+    "text": "Home",
+    "source_hash": "3a786953"
+  },
+  "web.admin.system.brand.fields.envPack": {
+    "text": "Brand pack da ENV",
+    "source_hash": "940aeb5c"
+  },
+  "web.admin.system.brand.fields.configPack": {
+    "text": "Brand pack da configurazione",
+    "source_hash": "761b9550"
+  },
+  "web.admin.system.brand.fields.envAssetsDir": {
+    "text": "Directory asset del marchio da ENV",
+    "source_hash": "05854f1f"
+  },
+  "web.admin.system.brand.fields.configAssetsDir": {
+    "text": "Directory asset del marchio da configurazione",
+    "source_hash": "e91e5c46"
+  },
+  "web.admin.system.brand.flags.fellBack.danger": {
+    "text": "Ripiegato sul pack predefinito",
+    "source_hash": "7bf7ba2f"
+  },
+  "web.admin.system.brand.flags.fellBack.ok": {
+    "text": "Brand pack risolto",
+    "source_hash": "1ab3162f"
+  },
+  "web.admin.system.brand.flags.mismatch.danger": {
+    "text": "Discrepanza tra avvio e stato attuale",
+    "source_hash": "0a022192"
+  },
+  "web.admin.system.brand.flags.mismatch.ok": {
+    "text": "L'avvio corrisponde allo stato attuale",
+    "source_hash": "d4792c09"
+  },
+  "web.admin.system.brand.manifest.title": {
+    "text": "Manifest",
+    "source_hash": "3c99f1f3"
+  },
+  "web.admin.system.brand.manifest.path": {
+    "text": "Percorso",
+    "source_hash": "62fa5a5b"
+  },
+  "web.admin.system.brand.manifest.exists": {
+    "text": "Esiste",
+    "source_hash": "fefd8ba5"
+  },
+  "web.admin.system.brand.manifest.keysOnDisk": {
+    "text": "Chiavi su disco",
+    "source_hash": "52439c03"
+  },
+  "web.admin.system.brand.roots.title": {
+    "text": "Radici di ricerca",
+    "source_hash": "d8696f2b"
+  },
+  "web.admin.system.brand.roots.empty": {
+    "text": "Nessuna radice di ricerca",
+    "source_hash": "867a471c"
+  },
+  "web.admin.system.brand.roots.columns.path": {
+    "text": "Percorso",
+    "source_hash": "62fa5a5b"
+  },
+  "web.admin.system.brand.roots.columns.exists": {
+    "text": "Esiste",
+    "source_hash": "fefd8ba5"
+  },
+  "web.admin.system.brand.stats.brandPack": {
+    "text": "Brand pack",
+    "source_hash": "884437d0"
+  },
+  "web.admin.system.brand.stats.overlayAssets": {
+    "text": "Asset di overlay",
+    "source_hash": "c87de1f9"
+  },
+  "web.admin.system.brand.stats.manifestKeys": {
+    "text": "Chiavi del manifest",
+    "source_hash": "c4267198"
+  },
+  "web.admin.system.backups.title": {
+    "text": "Stato dei backup",
+    "source_hash": "6100b034"
+  },
+  "web.admin.system.backups.description": {
+    "text": "Ultimi eventi di backup e ultima esecuzione riuscita su questo host.",
+    "source_hash": "19070c41"
+  },
+  "web.admin.system.backups.loadError": {
+    "text": "Impossibile caricare lo stato dei backup.",
+    "source_hash": "9b83029b"
+  },
+  "web.admin.system.backups.notConfigured": {
+    "text": "Non configurato qui",
+    "source_hash": "d287939f"
+  },
+  "web.admin.system.backups.latest": {
+    "text": "Ultimo evento",
+    "source_hash": "cd7ad68a"
+  },
+  "web.admin.system.backups.lastOk": {
+    "text": "Ultima esecuzione riuscita",
+    "source_hash": "81120703"
+  },
+  "web.admin.system.backups.artifact": {
+    "text": "Artefatto",
+    "source_hash": "e06171a1"
+  },
+  "web.admin.system.backups.unknownUnit": {
+    "text": "Unità sconosciuta",
+    "source_hash": "d120e025"
+  },
+  "web.admin.system.backups.unknownError": {
+    "text": "Nessun dettaglio sull'errore",
+    "source_hash": "b2c696e7"
+  },
+  "web.admin.system.backups.destination": {
+    "text": "Destinazione",
+    "source_hash": "293d404a"
+  },
+  "web.admin.system.backups.shippedOf": {
+    "text": "Inviati {shipped} di {candidates}",
+    "source_hash": "406119a9"
+  },
+  "web.admin.system.backups.freshness.notConfigured": {
+    "text": "Non configurato",
+    "source_hash": "dd1841d2"
+  },
+  "web.admin.system.backups.freshness.notMonitored": {
+    "text": "Non monitorato",
+    "source_hash": "0f0d1855"
+  },
+  "web.admin.system.backups.freshness.fresh": {
+    "text": "Aggiornato",
+    "source_hash": "f810b668"
+  },
+  "web.admin.system.backups.freshness.stale": {
+    "text": "Obsoleto — allarme",
+    "source_hash": "c7a9733a"
+  },
+  "web.admin.system.backups.freshness.alarm": {
+    "text": "Allarme",
+    "source_hash": "f3b67957"
+  }
+}

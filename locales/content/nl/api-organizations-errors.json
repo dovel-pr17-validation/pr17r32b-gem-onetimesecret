@@ -1,0 +1,158 @@
+{
+  "api.organizations.errors.domain_scoped_forbidden": {
+    "text": "Domeingebonden leden kunnen deze actie niet uitvoeren",
+    "source_hash": "0a06a035"
+  },
+  "api.organizations.errors.organization_not_found": {
+    "text": "Organisatie niet gevonden: %{extid}",
+    "source_hash": "c8d058eb"
+  },
+  "api.organizations.errors.organization_owner_required": {
+    "text": "Alleen de organisatie-eigenaar kan deze actie uitvoeren",
+    "source_hash": "5a729e94"
+  },
+  "api.organizations.errors.organization_member_required": {
+    "text": "Je moet lid zijn van de organisatie om deze actie uit te voeren",
+    "source_hash": "f66f4a60"
+  },
+  "api.organizations.errors.organization_admin_required": {
+    "text": "Alleen organisatie-eigenaren en beheerders kunnen deze actie uitvoeren",
+    "source_hash": "cd9e8c0e"
+  },
+  "api.organizations.errors.extid_required": {
+    "text": "Organisatie-ID vereist",
+    "source_hash": "02fbe301"
+  },
+  "api.organizations.errors.display_name_required": {
+    "text": "Organisatienaam is vereist",
+    "source_hash": "c3f6e9af"
+  },
+  "api.organizations.errors.display_name_too_long": {
+    "text": "Organisatienaam moet minder dan %{max} tekens zijn",
+    "source_hash": "5866973d"
+  },
+  "api.organizations.errors.description_too_long": {
+    "text": "Beschrijving moet minder dan %{max} tekens zijn",
+    "source_hash": "562b7250"
+  },
+  "api.organizations.errors.contact_email_exists": {
+    "text": "Er bestaat al een organisatie met dit contact-e-mailadres",
+    "source_hash": "e9fdce56"
+  },
+  "api.organizations.errors.creation_in_progress": {
+    "text": "Organisatie wordt aangemaakt. Probeer het opnieuw.",
+    "source_hash": "ef68bc2d"
+  },
+  "api.organizations.errors.organization_limit_reached": {
+    "text": "Organisatielimiet bereikt. Upgrade je plan om meer organisaties aan te maken.",
+    "source_hash": "69e2e61b"
+  },
+  "api.organizations.invitations.errors.invitation_not_found": {
+    "text": "Uitnodiging niet gevonden",
+    "source_hash": "775ba9eb"
+  },
+  "api.organizations.invitations.errors.email_required": {
+    "text": "E-mail is vereist",
+    "source_hash": "aae92911"
+  },
+  "api.organizations.invitations.errors.invalid_email_format": {
+    "text": "Ongeldig e-mailformaat",
+    "source_hash": "0bcecf66"
+  },
+  "api.organizations.invitations.errors.invalid_role": {
+    "text": "Rol moet lid of beheerder zijn",
+    "source_hash": "650ea5f6"
+  },
+  "api.organizations.invitations.errors.cannot_invite_as_owner": {
+    "text": "Kan niet uitnodigen als eigenaar",
+    "source_hash": "e6581025"
+  },
+  "api.organizations.invitations.errors.user_already_member": {
+    "text": "Gebruiker is al lid van deze organisatie",
+    "source_hash": "8eb45780"
+  },
+  "api.organizations.invitations.errors.invitation_already_pending": {
+    "text": "Uitnodiging al in behandeling voor dit e-mailadres",
+    "source_hash": "7f5e3093"
+  },
+  "api.organizations.invitations.errors.resend_only_pending": {
+    "text": "Kan alleen uitnodigingen in behandeling opnieuw verzenden",
+    "source_hash": "b7578b3e"
+  },
+  "api.organizations.invitations.errors.resend_limit_reached": {
+    "text": "Maximale verzendlimiet (%{max}) bereikt",
+    "source_hash": "8dc96729"
+  },
+  "api.organizations.invitations.errors.revoke_only_pending": {
+    "text": "Kan alleen uitnodigingen in behandeling intrekken",
+    "source_hash": "732b78a6"
+  },
+  "api.organizations.members.errors.member_not_found": {
+    "text": "Lid niet gevonden: %{extid}",
+    "source_hash": "57654771"
+  },
+  "api.organizations.members.errors.member_not_in_organization": {
+    "text": "Lid niet gevonden in deze organisatie",
+    "source_hash": "dcab71ff"
+  },
+  "api.organizations.members.errors.member_not_active": {
+    "text": "Lid is niet actief",
+    "source_hash": "a51b8760"
+  },
+  "api.organizations.members.errors.invalid_role_value": {
+    "text": "Ongeldige rol. Moet een van zijn: %{roles}",
+    "source_hash": "c3331aa0"
+  },
+  "api.organizations.members.errors.cannot_change_owner_role": {
+    "text": "Kan eigenaarrol niet wijzigen. Gebruik in plaats daarvan eigendomsoverdracht.",
+    "source_hash": "76015424"
+  },
+  "api.organizations.members.errors.member_already_has_role": {
+    "text": "Lid heeft al de rol: %{role}",
+    "source_hash": "6771166a"
+  },
+  "api.organizations.members.errors.cannot_promote_to_owner": {
+    "text": "Kan niet promoveren naar eigenaar. Gebruik in plaats daarvan eigendomsoverdracht.",
+    "source_hash": "cd574007"
+  },
+  "api.organizations.members.errors.must_be_member": {
+    "text": "Je moet lid zijn van deze organisatie",
+    "source_hash": "de1c77b8"
+  },
+  "api.organizations.members.errors.cannot_remove_owner": {
+    "text": "Kan organisatie-eigenaar niet verwijderen. Draag eerst het eigendom over.",
+    "source_hash": "d4f33003"
+  },
+  "api.organizations.members.errors.cannot_remove_self": {
+    "text": "Kan jezelf niet verwijderen. Gebruik in plaats daarvan organisatie verlaten.",
+    "source_hash": "d64cec91"
+  },
+  "api.organizations.members.errors.admin_cannot_remove_admin": {
+    "text": "Beheerders kunnen andere beheerders niet verwijderen. Alleen eigenaren kunnen dat.",
+    "source_hash": "2b3e6e30"
+  },
+  "api.organizations.members.errors.no_permission_to_remove": {
+    "text": "Je hebt geen toestemming om leden te verwijderen",
+    "source_hash": "b0ac7287"
+  },
+  "api.organizations.errors.delete_has_domains": {
+    "text": "Verwijder de aangepaste domeinen van deze organisatie voordat je haar verwijdert: %{domains}",
+    "source_hash": "040a401e"
+  },
+  "api.organizations.errors.delete_drifted_domains_count": {
+    "text": "%{count} domeinrecord(s) verwijzen nog naar deze organisatie, maar staan er niet meer in vermeld. Neem contact op met support om ze te laten verwijderen voordat je deze organisatie verwijdert.",
+    "source_hash": "f6e71a9a"
+  },
+  "api.organizations.errors.delete_is_default": {
+    "text": "Je standaardwerkruimte kan niet worden verwijderd. Neem contact op met support als je deze wilt laten verwijderen.",
+    "source_hash": "bc2eaed5"
+  },
+  "api.organizations.errors.delete_active_subscription": {
+    "text": "Annuleer het abonnement van deze organisatie voordat je haar verwijdert.",
+    "source_hash": "f0c54eca"
+  },
+  "api.organizations.errors.delete_last_org": {
+    "text": "Dit is je enige organisatie. Maak een andere aan voordat je deze verwijdert.",
+    "source_hash": "7608a1d6"
+  }
+}

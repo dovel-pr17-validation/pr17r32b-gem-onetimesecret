@@ -1,0 +1,56 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+base_path             = File.expand_path('..', __dir__)
+$LOAD_PATH.unshift File.join(base_path, 'lib')
+ENV['ONETIME_HOME'] ||= base_path.freeze
+
+APPS_ROOT = File.join(base_path, 'apps').freeze
+$LOAD_PATH.unshift(File.join(APPS_ROOT, 'api'))
+$LOAD_PATH.unshift(File.join(APPS_ROOT, 'web'))
+
+require 'onetime' # loads bundler/setup
+require 'onetime/cli'
+require 'rubygems'
+
+# Separate our content from the bootstrapping banner (only in interactive terminals)
+puts if Onetime.debug? && $stdout.tty?
+
+# Handle global options
+verbose = false
+debug   = false
+
+# Parse global options before passing to dry-cli
+remaining_args = []
+ARGV.each_with_index do |arg, _idx|
+  case arg
+  when '-v', '--verbose'
+    verbose = true
+  when '-D', '--debug'
+    debug = true
+    OT.instance_variable_set(:@debug, true)
+  when '--safe-boot'
+    ENV['SAFE_BOOT'] = 'true'
+  else
+    remaining_args << arg
+  end
+end
+
+begin
+  Dry::CLI.new(Onetime::CLI).call(arguments: remaining_args)
+rescue Onetime::FatalBootError => ex
+  # Boot-fatal errors (e.g. deprecated/invalid config) already include a
+  # user-facing message — surface it directly without a backtrace.
+  warn ex.message
+  warn ''
+  warn 'Use --safe-boot (or SAFE_BOOT=1) to bypass this error and access the debugging console.'
+  exit 1
+rescue RuntimeError => ex
+  warn ex.message
+  warn ex.backtrace if debug
+  exit ex.respond_to?(:exit_code) ? ex.exit_code : 1
+rescue StandardError => ex
+  puts ex.message
+  puts ex.backtrace if debug
+  exit 1
+end

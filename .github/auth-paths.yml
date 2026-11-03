@@ -1,0 +1,103 @@
+# Paths that select auth coverage on a pull request: the PG re-run of the
+# full-mode suite, the MFA and platform SAML boots, the SAML browser lane, and
+# the full-auth and tenant-connect E2E workflows. docs/development/auth-ci.md
+# has the whole picture.
+#
+# Narrow on purpose. List the code that implements sign-up and account
+# verification, sign-in, sessions, SSO, MFA, invitations and tenant identity,
+# and the tests and configuration that only those jobs run. Do not list shared code: every Ruby change already runs
+# the unit, simple, disabled, API and full-mode SQLite lanes; main and
+# merge-queue runs execute everything but the billing jobs; the nightly and a
+# release tag execute everything. A change outside this list that wants the
+# coverage on its PR gets the ci:auth label.
+#
+# Positive globs only. Braces and one-character classes are the only syntax
+# beyond * and **; tools/testsuite/auth-selection-test.sh matches the same
+# subset and rejects anything else. paths-filter matches dotfiles too.
+auth:
+  # Applications that are auth from top to bottom, and the sign-in pages.
+  - 'apps/web/auth/**'
+  - 'apps/api/account/**'
+  - 'apps/api/invite/**'
+  - 'src/apps/session/**'
+
+  # Anything named for an auth concept, as a file or as a directory, wherever
+  # it lives in application code, configuration or specs. The two lines carry
+  # the same name list; the selection test fails when they drift apart.
+  - '{apps,lib,etc,spec,src}/**/*{[Aa]uth,[Ss]ession,[Ss]so,[Ss]aml,[Oo]idc,[Mm]fa,[Tt]otp,[Pp]asskey,[Mm]agic,[Ss]ignin,[Ss]ignup,[Ll]ogin,[Pp]assword,[Ii]dentit,[Ii]nvit,[Cc]srf,[Tt]enant,[Cc]redential}*'
+  - '{apps,lib,etc,spec,src}/**/*{[Aa]uth,[Ss]ession,[Ss]so,[Ss]aml,[Oo]idc,[Mm]fa,[Tt]otp,[Pp]asskey,[Mm]agic,[Ss]ignin,[Ss]ignup,[Ll]ogin,[Pp]assword,[Ii]dentit,[Ii]nvit,[Cc]srf,[Tt]enant,[Cc]redential}*/**'
+
+  # Auth code the names above miss: the serializer that builds the sign-in
+  # page's SSO buttons, the account settings panels, and the frontend
+  # hydration that carries the signed-in state.
+  - 'apps/web/core/views/serializers/config_serializer.rb'
+  - 'src/apps/workspace/account/**'
+  - 'src/apps/workspace/components/account/**'
+  - 'src/**/*[Bb]ootstrap*'
+
+  # Account verification the names miss. Simple-mode signup and password
+  # reset; the welcome email, which carries the verification link in both
+  # modes; and the reveal that verifies a simple-mode account when the link is
+  # opened (#4831). e2e-full-auth.yml drives all of these.
+  - 'apps/web/core/controllers/registration.rb'
+  - 'lib/onetime/mail/views/welcome.rb'
+  - 'lib/onetime/mail/templates/welcome.*'
+  - 'apps/api/v2/logic/secrets/reveal_secret.rb'
+
+  # The request-host seam: the middleware that decides which host a request
+  # is for, and so which tenant the sign-in, SSO, WebAuthn and session code
+  # above sees; the shared custom-domain read it publishes; the policy that
+  # decides whether a registered domain is served, and the model whose
+  # fields and adoption it reads; and the loader that applies the tenant's
+  # organization scope. The live WebAuthn ceremony
+  # rows (full_mfa) and the platform SAML rows (full_saml_platform) assert on
+  # these, and nothing in their names selects them (#4223).
+  - 'lib/middleware/detect_host.rb'
+  - 'lib/onetime/middleware/domain_strategy.rb'
+  - 'lib/onetime/middleware/strip_forwarded_host.rb'
+  - 'lib/onetime/middleware/public_host_rewrite.rb'
+  - 'lib/onetime/middleware/http_origin_options.rb'
+  - 'lib/onetime/models/custom_domain.rb'
+  - 'lib/onetime/models/custom_domain/lookup.rb'
+  - 'lib/onetime/models/custom_domain/serving_policy.rb'
+  - 'lib/onetime/application/organization_loader.rb'
+
+  # English sign-in copy: the E2E journeys assert on some of it. Translations
+  # are left out so a locale sync does not select auth.
+  - 'locales/content/en/session-auth*'
+
+  # Boot configuration and the gems auth is built on.
+  - 'etc/defaults/config.defaults.yaml'
+  - 'Gemfile'
+  - 'Gemfile.lock'
+
+  # Tests and lane definitions only the selected jobs run. full_billing is a
+  # different suite, so the directories are spelled out instead of full*.
+  # The lanes are spelled out too: full-sqlite and full-pg run on every Ruby
+  # change, so their definitions select nothing here. The billing overlay is
+  # not here either: no path selects the rows that use it (they are nightly
+  # and release-tag only, see docs/development/auth-ci.md).
+  - '**/spec/integration/full/**'
+  - '**/spec/integration/full_mfa/**'
+  - '**/spec/integration/full_saml_platform/**'
+  - '**/spec/integration/full_webauthn_verify/**'
+  - '**/spec/integration/full_webauthn_verify_mfa/**'
+  - 'tests/browser/**'
+  - 'tests/lanes/browser/**'
+  - 'tests/lanes/{full-pg-agnostic,full-mfa,full-saml-platform,full-webauthn-verify}/**'
+  - 'e2e/auth/**'
+  - 'e2e/system/**'
+  - 'e2e/all/auth-hydration*'
+  - 'e2e/support/**'
+  - 'e2e/global.setup.ts'
+  - 'e2e/playwright.config.ts'
+  - 'compose.e2e.yml'
+
+  # The selection machinery and the workflows it gates. ci.yml already runs
+  # every job on a workflow or action change; this keeps the two E2E
+  # workflows in step with it.
+  - '.github/auth-paths.yml'
+  - '.github/scripts/compute-auth-selection.sh'
+  - '.github/scripts/read-pr-labels.sh'
+  - '.github/workflows/**'
+  - '.github/actions/**'

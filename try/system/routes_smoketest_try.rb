@@ -1,0 +1,134 @@
+# try/system/routes_smoketest_try.rb
+#
+# frozen_string_literal: true
+
+# These tryouts test the existence of basic routes for web, API, and colonel interfaces.
+# We're not testing inputs and outputs, just checking if the routes are supported.
+#
+# The tryouts use Rack::MockRequest to simulate HTTP requests to the application
+# and verify that the routes exist and return appropriate status codes.
+
+require_relative '../support/test_helpers'
+OT.boot! :test
+
+require 'rack'
+require 'rack/mock'
+
+require 'onetime/middleware'
+require 'onetime/application/registry'
+Onetime::Application::Registry.prepare_application_registry
+Onetime.started! unless Onetime.ready?
+
+mapped = Onetime::Application::Registry.generate_rack_url_map
+@mock_request = Rack::MockRequest.new(mapped)
+
+# Anonymous API requests carry NO Authorization header.
+#
+# These POSTs used to send `Basic base64('anon:')` to bypass the CSRF
+# middleware. Two things retired that:
+#   1. Security middleware `allow_if` now bypasses CSRF for any /api/ request
+#      without an AUTHENTICATED session cookie (there is nothing to forge
+#      against), not merely for requests carrying a Basic header.
+#   2. `anon:` are *presented* credentials that resolve to no customer, so
+#      BasicAuthStrategy rejects them and NoAuthStrategy refuses anonymous
+#      fallthrough — a 401 on every basicauth,noauth route
+#      (docs/security/audits/2026-07-29-api.md item 1). Fail-closed coverage
+#      lives in spec/api/v2/basicauth_fallthrough_spec.rb; these smoketests
+#      exercise the anonymous path, so they must present nothing.
+@api_anon = {}
+
+# NOTE: Careful when flushing the Redis database, as it will remove
+# all data. Since we organize data types by database number, we can
+# flush a specific database to clear only that data type. In this
+# case, we're flushing db #2 which is used only for limiter keys.
+Familia.dbclient.flushdb
+
+# Web Routes
+
+## Can access the homepage
+response = @mock_request.get('/')
+response.status
+#=> 200
+
+## Dashboard redirects to signin when not authenticated, with the page as the return path
+response = @mock_request.get('/dashboard')
+[response.status, response.headers["location"]]
+#=> [302, "/signin?redirect=%2Fdashboard"]
+
+## Can access the feedback page
+response = @mock_request.get('/feedback')
+response.status
+#=> 200
+
+
+# API Routes
+
+## Can access the v1 API status
+# NOTE: Disabled pending Otto v2 migration for v1 API (#2128)
+response = @mock_request.get('/api/v1/status')
+[response.status, response.body]
+##=> [200, '{"status":"nominal","locale":"en"}']
+
+## v1 API does not have an authcheck endpoint
+# NOTE: Disabled pending Otto v2 migration for v1 API (#2128)
+response = @mock_request.get('/api/v1/authcheck')
+[response.status, response.body]
+##=> [404, "{\"message\":\"Not authorized\"}"]
+
+## Can access the v2 API status
+response = @mock_request.get('/api/v2/status')
+[response.status, response.body]
+#=> [200, '{"success":true,"status":"nominal","locale":"en"}']
+
+## v2 API does not have an authcheck endpoint
+# ADR-013 router fallback shape: { error, error_type }
+response = @mock_request.get('/api/v2/authcheck')
+[response.status, response.body]
+#=> [404, '{"error":"Not Found","error_type":"NotFound"}']
+
+## Can access the API share endpoint
+# NOTE: Disabled pending Otto v2 migration for v1 API (#2128)
+response = @mock_request.post('/api/v1/create')
+content = Familia::JsonSerializer.parse(response.body)
+has_msg = content.slice('message').eql?({'message' => 'You did not provide anything to share'})
+[response.status, has_msg, content.keys.sort]
+##=> [404, true, ['message', 'shrimp']]
+
+## Can access the API generate endpoint
+# NOTE: Disabled pending Otto v2 migration for v1 API (#2128)
+response = @mock_request.post('/api/v1/generate')
+content = Familia::JsonSerializer.parse(response.body)
+[response.status, content["custid"]]
+##=> [200, 'anon']
+
+## V2 API conceal returns 422 with validation error when no secret provided
+# Standardized error format: { error: <user-facing message>, error_type: <machine-readable> }
+# plus request_id (ADR-013 correlation field, echoed from x-request-id by OttoHooks)
+# NOTE: Accept header required for JSON error responses (Otto content negotiation)
+response = @mock_request.post('/api/v2/secret/conceal', @api_anon.merge('HTTP_ACCEPT' => 'application/json'))
+content = Familia::JsonSerializer.parse(response.body)
+has_msg = content['error'] == 'You did not provide anything to share'
+[response.status, has_msg, content.keys.sort]
+#=> [422, true, ['error', 'error_type', 'field', 'request_id']]
+
+## V2 API generate creates a secret and returns success with nested record data
+response = @mock_request.post('/api/v2/secret/generate', @api_anon)
+content = Familia::JsonSerializer.parse(response.body)
+[response.status, content['success']]
+#=> [200, true]
+
+## Behaviour when requesting a known non-existent endpoint
+# ADR-013 router fallback shape: { error, error_type }
+response = @mock_request.post('/api/v2/humphrey/bogus', @api_anon)
+content = Familia::JsonSerializer.parse(response.body)
+has_msg = content.slice('error').eql?({'error' => 'Not Found'})
+[response.status, has_msg, content.keys.sort]
+#=> [404, true, ['error', 'error_type']]
+
+# API v2 Routes
+
+## Cannot access the colonel dashboard when not authenticated
+# NOTE: Disabled - route doesn't exist in current implementation (#2128)
+response = @mock_request.get('/api/v2/colonel/info')
+response.status
+##=> 403

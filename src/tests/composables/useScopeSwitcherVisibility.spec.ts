@@ -1,0 +1,810 @@
+// src/tests/composables/useScopeSwitcherVisibility.spec.ts
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { reactive, ref, nextTick } from 'vue';
+
+// Mock vue-i18n before any imports that might use it
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+// Create reactive mock route before vi.mock calls
+// Using reactive() so that changes trigger computed re-evaluation
+const mockRoute = reactive<{
+  meta: {
+    scopesAvailable?: {
+      organization?: 'show' | 'locked' | 'hide';
+      domain?: 'show' | 'locked' | 'hide';
+    };
+  };
+}>({
+  meta: {},
+});
+
+// Mock vue-router - return reactive object directly
+vi.mock('vue-router', () => ({
+  useRoute: () => mockRoute,
+}));
+
+// Mock feature flag - default to enabled so existing tests pass
+const mockIsOrganizationSwitcherEnabled = vi.fn(() => true);
+vi.mock('@/utils/features', () => ({
+  isOrganizationSwitcherEnabled: () => mockIsOrganizationSwitcherEnabled(),
+}));
+
+// Mock identityStore - composable uses storeToRefs(useProductIdentity()) to get isCustom,
+// so the mock must return a ref that storeToRefs can extract.
+const mockIsCustomRef = ref(false);
+vi.mock('@/shared/stores/identityStore', () => ({
+  useProductIdentity: () => ({
+    isCustom: mockIsCustomRef,
+  }),
+}));
+
+// Mock organizationStore — composable reads currentOrganization for role +
+// entitlements, and the organizations list for solo-context detection.
+// Wrap in reactive() so refs auto-unwrap when accessed as store properties.
+type MockOrg = {
+  objid?: string;
+  current_user_role?: string | null;
+  entitlements?: string[] | null;
+} | null;
+type MockListOrg = {
+  objid?: string;
+  current_user_role?: string | null;
+  entitlements?: string[] | null;
+  member_count?: number;
+  is_default?: boolean;
+  planid?: string;
+};
+const mockCurrentOrganization = ref<MockOrg>({
+  current_user_role: 'owner',
+  entitlements: null,
+});
+// Default to a non-trivial context (single org with multiple members) so
+// existing owner-visibility tests continue to show the switcher.
+const mockOrganizations = ref<MockListOrg[]>([{ member_count: 2, is_default: true }]);
+const mockOrgStore = reactive({
+  currentOrganization: mockCurrentOrganization,
+  organizations: mockOrganizations,
+});
+vi.mock('@/shared/stores/organizationStore', () => ({
+  useOrganizationStore: () => mockOrgStore,
+}));
+
+// Mock bootstrapStore — composable reads billing_enabled
+const mockBillingEnabled = ref(false);
+const mockBootstrapStore = reactive({ billing_enabled: mockBillingEnabled });
+vi.mock('@/shared/stores/bootstrapStore', () => ({
+  useBootstrapStore: () => mockBootstrapStore,
+}));
+
+// Single top-level import - no need for dynamic imports since mock is hoisted
+import { useScopeSwitcherVisibility } from '@/shared/composables/useScopeSwitcherVisibility';
+
+describe('useScopeSwitcherVisibility', () => {
+  beforeEach(() => {
+    // Reset mock route to default state
+    mockRoute.meta = {};
+    // Default feature flag to enabled for existing tests
+    mockIsOrganizationSwitcherEnabled.mockReturnValue(true);
+    // Default: owner with no entitlements loaded, billing disabled (standalone)
+    mockCurrentOrganization.value = { current_user_role: 'owner', entitlements: null };
+    // Default: single org with multiple members (non-trivial → switcher shows)
+    mockOrganizations.value = [{ member_count: 2, is_default: true }];
+    mockBillingEnabled.value = false;
+    mockIsCustomRef.value = false;
+    vi.clearAllMocks();
+  });
+
+  describe('default visibility', () => {
+    it('returns organization: "show" when no meta defined', () => {
+      mockRoute.meta = {};
+
+      const { visibility } = useScopeSwitcherVisibility();
+
+      expect(visibility.value.organization).toBe('show');
+    });
+
+    it('returns domain: "hide" when no meta defined', () => {
+      mockRoute.meta = {};
+
+      const { visibility } = useScopeSwitcherVisibility();
+
+      expect(visibility.value.domain).toBe('hide');
+    });
+
+    it('returns defaults when scopesAvailable is empty object', () => {
+      mockRoute.meta = { scopesAvailable: {} };
+
+      const { visibility } = useScopeSwitcherVisibility();
+
+      expect(visibility.value.organization).toBe('show');
+      expect(visibility.value.domain).toBe('hide');
+    });
+  });
+
+  describe('organization switcher', () => {
+    it('showOrgSwitcher is true when organization is "show"', () => {
+      mockRoute.meta = { scopesAvailable: { organization: 'show' } };
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('showOrgSwitcher is true when organization is "locked"', () => {
+      mockRoute.meta = { scopesAvailable: { organization: 'locked' } };
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('showOrgSwitcher is false when organization is "hide"', () => {
+      mockRoute.meta = { scopesAvailable: { organization: 'hide' } };
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('lockOrgSwitcher is true only when organization is "locked"', () => {
+      mockRoute.meta = { scopesAvailable: { organization: 'locked' } };
+
+      const { lockOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(lockOrgSwitcher.value).toBe(true);
+    });
+
+    it('lockOrgSwitcher is false when organization is "show"', () => {
+      mockRoute.meta = { scopesAvailable: { organization: 'show' } };
+
+      const { lockOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(lockOrgSwitcher.value).toBe(false);
+    });
+
+    it('lockOrgSwitcher is false when organization is "hide"', () => {
+      mockRoute.meta = { scopesAvailable: { organization: 'hide' } };
+
+      const { lockOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(lockOrgSwitcher.value).toBe(false);
+    });
+  });
+
+  describe('domain switcher', () => {
+    it('showDomainSwitcher is true when domain is "show"', () => {
+      mockRoute.meta = { scopesAvailable: { domain: 'show' } };
+
+      const { showDomainSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showDomainSwitcher.value).toBe(true);
+    });
+
+    it('showDomainSwitcher is true when domain is "locked"', () => {
+      mockRoute.meta = { scopesAvailable: { domain: 'locked' } };
+
+      const { showDomainSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showDomainSwitcher.value).toBe(true);
+    });
+
+    it('showDomainSwitcher is false when domain is "hide"', () => {
+      mockRoute.meta = { scopesAvailable: { domain: 'hide' } };
+
+      const { showDomainSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showDomainSwitcher.value).toBe(false);
+    });
+
+    it('showDomainSwitcher is false by default (domain defaults to "hide")', () => {
+      mockRoute.meta = {};
+
+      const { showDomainSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showDomainSwitcher.value).toBe(false);
+    });
+
+    it('lockDomainSwitcher is true only when domain is "locked"', () => {
+      mockRoute.meta = { scopesAvailable: { domain: 'locked' } };
+
+      const { lockDomainSwitcher } = useScopeSwitcherVisibility();
+
+      expect(lockDomainSwitcher.value).toBe(true);
+    });
+
+    it('lockDomainSwitcher is false when domain is "show"', () => {
+      mockRoute.meta = { scopesAvailable: { domain: 'show' } };
+
+      const { lockDomainSwitcher } = useScopeSwitcherVisibility();
+
+      expect(lockDomainSwitcher.value).toBe(false);
+    });
+
+    it('lockDomainSwitcher is false when domain is "hide"', () => {
+      mockRoute.meta = { scopesAvailable: { domain: 'hide' } };
+
+      const { lockDomainSwitcher } = useScopeSwitcherVisibility();
+
+      expect(lockDomainSwitcher.value).toBe(false);
+    });
+  });
+
+  describe('route meta reading', () => {
+    it('reads scopesAvailable from route.meta', () => {
+      mockRoute.meta = {
+        scopesAvailable: {
+          organization: 'locked',
+          domain: 'show',
+        },
+      };
+
+      const { visibility } = useScopeSwitcherVisibility();
+
+      expect(visibility.value.organization).toBe('locked');
+      expect(visibility.value.domain).toBe('show');
+    });
+
+    it('updates when route changes', async () => {
+      mockRoute.meta = { scopesAvailable: { organization: 'show' } };
+
+      const { visibility, showOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(visibility.value.organization).toBe('show');
+      expect(showOrgSwitcher.value).toBe(true);
+
+      // Simulate route change
+      mockRoute.meta = { scopesAvailable: { organization: 'hide' } };
+      await nextTick();
+
+      expect(visibility.value.organization).toBe('hide');
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('handles partial scopesAvailable config', () => {
+      mockRoute.meta = { scopesAvailable: { organization: 'locked' } };
+
+      const { visibility } = useScopeSwitcherVisibility();
+
+      expect(visibility.value.organization).toBe('locked');
+      expect(visibility.value.domain).toBe('hide'); // Default
+    });
+  });
+
+  describe('visibility object', () => {
+    it('returns complete visibility state object', () => {
+      mockRoute.meta = {
+        scopesAvailable: {
+          organization: 'show',
+          domain: 'locked',
+        },
+      };
+
+      const {
+        visibility,
+        showOrgSwitcher,
+        lockOrgSwitcher,
+        showDomainSwitcher,
+        lockDomainSwitcher,
+      } = useScopeSwitcherVisibility();
+
+      // Verify visibility object
+      expect(visibility.value).toEqual({
+        organization: 'show',
+        domain: 'locked',
+      });
+
+      // Verify computed boolean helpers
+      expect(showOrgSwitcher.value).toBe(true);
+      expect(lockOrgSwitcher.value).toBe(false);
+      expect(showDomainSwitcher.value).toBe(true);
+      expect(lockDomainSwitcher.value).toBe(true);
+    });
+
+    it('returns all expected properties from composable', () => {
+      const result = useScopeSwitcherVisibility();
+
+      expect(result).toHaveProperty('visibility');
+      expect(result).toHaveProperty('showOrgSwitcher');
+      expect(result).toHaveProperty('lockOrgSwitcher');
+      expect(result).toHaveProperty('showDomainSwitcher');
+      expect(result).toHaveProperty('lockDomainSwitcher');
+      expect(result).toHaveProperty('isSoloDefaultContext');
+    });
+  });
+
+  describe('combined states', () => {
+    it('handles both switchers shown', () => {
+      mockRoute.meta = {
+        scopesAvailable: {
+          organization: 'show',
+          domain: 'show',
+        },
+      };
+
+      const { showOrgSwitcher, showDomainSwitcher, lockOrgSwitcher, lockDomainSwitcher } =
+        useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(true);
+      expect(showDomainSwitcher.value).toBe(true);
+      expect(lockOrgSwitcher.value).toBe(false);
+      expect(lockDomainSwitcher.value).toBe(false);
+    });
+
+    it('handles both switchers hidden', () => {
+      mockRoute.meta = {
+        scopesAvailable: {
+          organization: 'hide',
+          domain: 'hide',
+        },
+      };
+
+      const { showOrgSwitcher, showDomainSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(false);
+      expect(showDomainSwitcher.value).toBe(false);
+    });
+
+    it('handles both switchers locked', () => {
+      mockRoute.meta = {
+        scopesAvailable: {
+          organization: 'locked',
+          domain: 'locked',
+        },
+      };
+
+      const { showOrgSwitcher, showDomainSwitcher, lockOrgSwitcher, lockDomainSwitcher } =
+        useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(true);
+      expect(showDomainSwitcher.value).toBe(true);
+      expect(lockOrgSwitcher.value).toBe(true);
+      expect(lockDomainSwitcher.value).toBe(true);
+    });
+
+    it('handles mixed states (org shown, domain locked)', () => {
+      mockRoute.meta = {
+        scopesAvailable: {
+          organization: 'show',
+          domain: 'locked',
+        },
+      };
+
+      const { showOrgSwitcher, showDomainSwitcher, lockOrgSwitcher, lockDomainSwitcher } =
+        useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(true);
+      expect(lockOrgSwitcher.value).toBe(false);
+      expect(showDomainSwitcher.value).toBe(true);
+      expect(lockDomainSwitcher.value).toBe(true);
+    });
+
+    it('handles mixed states (org locked, domain hidden)', () => {
+      mockRoute.meta = {
+        scopesAvailable: {
+          organization: 'locked',
+          domain: 'hide',
+        },
+      };
+
+      const { showOrgSwitcher, showDomainSwitcher, lockOrgSwitcher, lockDomainSwitcher } =
+        useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(true);
+      expect(lockOrgSwitcher.value).toBe(true);
+      expect(showDomainSwitcher.value).toBe(false);
+      expect(lockDomainSwitcher.value).toBe(false);
+    });
+  });
+
+  describe('organization switcher feature flag', () => {
+    it('showOrgSwitcher is false when feature flag is OFF regardless of route meta', () => {
+      mockIsOrganizationSwitcherEnabled.mockReturnValue(false);
+      mockRoute.meta = { scopesAvailable: { organization: 'show' } };
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('showOrgSwitcher is false when feature flag is OFF even with organization locked', () => {
+      mockIsOrganizationSwitcherEnabled.mockReturnValue(false);
+      mockRoute.meta = { scopesAvailable: { organization: 'locked' } };
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('showOrgSwitcher respects route meta when feature flag is ON', () => {
+      mockIsOrganizationSwitcherEnabled.mockReturnValue(true);
+      mockRoute.meta = { scopesAvailable: { organization: 'show' } };
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('showOrgSwitcher is false when feature flag is ON but route meta hides it', () => {
+      mockIsOrganizationSwitcherEnabled.mockReturnValue(true);
+      mockRoute.meta = { scopesAvailable: { organization: 'hide' } };
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('visibility.organization still reflects route meta when feature flag is OFF', () => {
+      mockIsOrganizationSwitcherEnabled.mockReturnValue(false);
+      mockRoute.meta = { scopesAvailable: { organization: 'show' } };
+
+      const { visibility } = useScopeSwitcherVisibility();
+
+      // visibility reflects route meta, but showOrgSwitcher is gated by feature flag
+      expect(visibility.value.organization).toBe('show');
+    });
+
+    it('lockOrgSwitcher is unaffected by feature flag', () => {
+      mockIsOrganizationSwitcherEnabled.mockReturnValue(false);
+      mockRoute.meta = { scopesAvailable: { organization: 'locked' } };
+
+      const { lockOrgSwitcher } = useScopeSwitcherVisibility();
+
+      // lockOrgSwitcher is independent of feature flag
+      expect(lockOrgSwitcher.value).toBe(true);
+    });
+
+    it('domain switcher is unaffected by organization feature flag', () => {
+      mockIsOrganizationSwitcherEnabled.mockReturnValue(false);
+      mockRoute.meta = { scopesAvailable: { organization: 'show', domain: 'show' } };
+
+      const { showOrgSwitcher, showDomainSwitcher } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(false);
+      expect(showDomainSwitcher.value).toBe(true);
+    });
+  });
+
+  describe('org switcher role + entitlement gating', () => {
+    beforeEach(() => {
+      mockRoute.meta = { scopesAvailable: { organization: 'show' } };
+    });
+
+    it('showOrgSwitcher is true for owner in standalone mode', () => {
+      mockCurrentOrganization.value = { current_user_role: 'owner', entitlements: null };
+      mockBillingEnabled.value = false;
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('showOrgSwitcher is false for admin role', () => {
+      mockCurrentOrganization.value = { current_user_role: 'admin', entitlements: null };
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('showOrgSwitcher is false for member role', () => {
+      mockCurrentOrganization.value = { current_user_role: 'member', entitlements: null };
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('showOrgSwitcher is false when currentOrganization is null', () => {
+      mockCurrentOrganization.value = null;
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('showOrgSwitcher is true for owner with manage_orgs entitlement (billing enabled)', () => {
+      mockCurrentOrganization.value = { current_user_role: 'owner', entitlements: ['manage_orgs'] };
+      mockBillingEnabled.value = true;
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('showOrgSwitcher is false for owner without manage_orgs entitlement (billing enabled)', () => {
+      mockCurrentOrganization.value = { current_user_role: 'owner', entitlements: ['create_secrets'] };
+      mockBillingEnabled.value = true;
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('showOrgSwitcher is true for owner when entitlements not yet fetched (billing enabled)', () => {
+      mockCurrentOrganization.value = { current_user_role: 'owner', entitlements: null };
+      mockBillingEnabled.value = true;
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('updates reactively when role changes', async () => {
+      mockCurrentOrganization.value = { current_user_role: 'owner', entitlements: null };
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(true);
+
+      mockCurrentOrganization.value = { current_user_role: 'member', entitlements: null };
+      await nextTick();
+
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+  });
+
+  describe('org switcher solo-default-context gating', () => {
+    beforeEach(() => {
+      mockRoute.meta = { scopesAvailable: { organization: 'show' } };
+      mockCurrentOrganization.value = { current_user_role: 'owner', entitlements: null };
+      mockBillingEnabled.value = false;
+    });
+
+    it('hides the switcher when the owner has a single default org with only themselves', () => {
+      mockOrganizations.value = [{ member_count: 1, is_default: true }];
+
+      const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+      expect(isSoloDefaultContext.value).toBe(true);
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('shows the switcher when the single org has more than one member', () => {
+      mockOrganizations.value = [{ member_count: 3, is_default: true }];
+
+      const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+      expect(isSoloDefaultContext.value).toBe(false);
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('shows the switcher when the user belongs to more than one org', () => {
+      mockOrganizations.value = [
+        { member_count: 1, is_default: true },
+        { member_count: 1, is_default: false },
+      ];
+
+      const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+      expect(isSoloDefaultContext.value).toBe(false);
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('shows the switcher for a single non-default (self-created) org with only themselves', () => {
+      mockOrganizations.value = [{ member_count: 1, is_default: false }];
+
+      const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+      expect(isSoloDefaultContext.value).toBe(false);
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('does not hide prematurely when member_count is unknown', () => {
+      mockOrganizations.value = [{ is_default: true }]; // list not fully loaded
+
+      const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+      expect(isSoloDefaultContext.value).toBe(false);
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('does not hide when the organizations list is empty (still loading)', () => {
+      mockOrganizations.value = [];
+
+      const { isSoloDefaultContext } = useScopeSwitcherVisibility();
+      expect(isSoloDefaultContext.value).toBe(false);
+    });
+
+    it('reveals the switcher reactively when a second member joins the solo org', async () => {
+      mockOrganizations.value = [{ member_count: 1, is_default: true }];
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(false);
+
+      mockOrganizations.value = [{ member_count: 2, is_default: true }];
+      await nextTick();
+
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+  });
+
+  // The solo-default suppression exists to declutter brand-new *free* signups.
+  // It must never hide the org context for a paying customer, even one who
+  // works solo inside their (single) default workspace — the plan makes them a
+  // deliberate, non-trivial account.
+  describe('solo-default suppression is limited to free-tier plans', () => {
+    beforeEach(() => {
+      mockRoute.meta = { scopesAvailable: { organization: 'show' } };
+      mockCurrentOrganization.value = { current_user_role: 'owner', entitlements: null };
+      mockBillingEnabled.value = false;
+    });
+
+    it('shows the switcher for a paid solo default org (team_plus_v1)', () => {
+      mockOrganizations.value = [{ member_count: 1, is_default: true, planid: 'team_plus_v1' }];
+
+      const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+      expect(isSoloDefaultContext.value).toBe(false);
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('shows the switcher for a paid solo default org (identity_plus_v1)', () => {
+      mockOrganizations.value = [{ member_count: 1, is_default: true, planid: 'identity_plus_v1' }];
+
+      const { isSoloDefaultContext } = useScopeSwitcherVisibility();
+      expect(isSoloDefaultContext.value).toBe(false);
+    });
+
+    it('still hides the switcher for a free solo default org (free_v1)', () => {
+      mockOrganizations.value = [{ member_count: 1, is_default: true, planid: 'free_v1' }];
+
+      const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+      expect(isSoloDefaultContext.value).toBe(true);
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('treats a missing planid as free (hides the solo default) so the list can still be loading', () => {
+      mockOrganizations.value = [{ member_count: 1, is_default: true }];
+
+      const { isSoloDefaultContext } = useScopeSwitcherVisibility();
+      expect(isSoloDefaultContext.value).toBe(true);
+    });
+
+    it('reveals the switcher reactively when a free solo default upgrades to a paid plan', async () => {
+      mockOrganizations.value = [{ member_count: 1, is_default: true, planid: 'free_v1' }];
+
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(false);
+
+      mockOrganizations.value = [{ member_count: 1, is_default: true, planid: 'team_plus_v1' }];
+      await nextTick();
+
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+  });
+  // The switcher gate is a property of the user, not of the selection (#4565):
+  // the selected org now survives a page load, so a user who selects an org
+  // they do not own must keep the control that switches back.
+  describe('switcher gate across the organization list', () => {
+    const member = { objid: 'o_member', current_user_role: 'member', entitlements: null };
+    const owned = { objid: 'o_owned', current_user_role: 'owner', entitlements: null };
+    const adminOf = { objid: 'o_admin', current_user_role: 'admin', entitlements: null };
+
+    it('shows the switcher when the current org is member-role but the user owns another', () => {
+      mockCurrentOrganization.value = member;
+      mockOrganizations.value = [owned, member];
+
+      expect(useScopeSwitcherVisibility().showOrgSwitcher.value).toBe(true);
+    });
+
+    // More than one org is something to switch between, whatever the user owns.
+    it('shows the switcher to a user in several orgs who owns none of them', () => {
+      mockCurrentOrganization.value = member;
+      mockOrganizations.value = [member, adminOf];
+
+      const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(true);
+      expect(isSoloDefaultContext.value).toBe(false);
+    });
+
+    it('hides the switcher from a user whose one org they do not own (static chip)', () => {
+      mockCurrentOrganization.value = adminOf;
+      mockOrganizations.value = [{ ...adminOf, member_count: 3 }];
+
+      const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+
+      expect(showOrgSwitcher.value).toBe(false);
+      // OrganizationContextBar renders the chip from exactly these two
+      expect(isSoloDefaultContext.value).toBe(false);
+    });
+
+    it('judges on the current org alone while the list has not loaded', () => {
+      mockOrganizations.value = [];
+
+      mockCurrentOrganization.value = member;
+      expect(useScopeSwitcherVisibility().showOrgSwitcher.value).toBe(false);
+
+      mockCurrentOrganization.value = owned;
+      expect(useScopeSwitcherVisibility().showOrgSwitcher.value).toBe(true);
+    });
+
+    it('reacts when the list arrives', async () => {
+      mockCurrentOrganization.value = member;
+      mockOrganizations.value = [];
+      const { showOrgSwitcher } = useScopeSwitcherVisibility();
+      expect(showOrgSwitcher.value).toBe(false);
+
+      mockOrganizations.value = [owned, member];
+      await nextTick();
+
+      expect(showOrgSwitcher.value).toBe(true);
+    });
+
+    it('does not let the list record of the current org override the current record', () => {
+      // A single-org user sees what they saw before: the list holds only the
+      // current org, and its list record is never consulted.
+      mockCurrentOrganization.value = { ...member, objid: 'o_only' };
+      mockOrganizations.value = [{ ...owned, objid: 'o_only', member_count: 2 }];
+
+      expect(useScopeSwitcherVisibility().showOrgSwitcher.value).toBe(false);
+    });
+
+    it('keeps a single-org non-owner on the static chip', () => {
+      mockCurrentOrganization.value = member;
+      mockOrganizations.value = [{ ...member, member_count: 3 }];
+
+      expect(useScopeSwitcherVisibility().showOrgSwitcher.value).toBe(false);
+    });
+
+    it('keeps the solo default context hidden', () => {
+      const solo = { objid: 'o_solo', current_user_role: 'owner', entitlements: null };
+      mockCurrentOrganization.value = solo;
+      mockOrganizations.value = [{ ...solo, is_default: true, member_count: 1, planid: 'free_v1' }];
+
+      const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+
+      expect(isSoloDefaultContext.value).toBe(true);
+      expect(showOrgSwitcher.value).toBe(false);
+    });
+
+    it('stays hidden on a custom domain even when the user owns another org', () => {
+      mockIsCustomRef.value = true;
+      mockCurrentOrganization.value = member;
+      mockOrganizations.value = [owned, member];
+
+      expect(useScopeSwitcherVisibility().showOrgSwitcher.value).toBe(false);
+    });
+
+    it('stays hidden when the route hides it', () => {
+      mockRoute.meta = { scopesAvailable: { organization: 'hide' } };
+      mockCurrentOrganization.value = member;
+      mockOrganizations.value = [owned, member];
+
+      expect(useScopeSwitcherVisibility().showOrgSwitcher.value).toBe(false);
+    });
+
+    describe('with billing enabled', () => {
+      beforeEach(() => {
+        mockBillingEnabled.value = true;
+      });
+
+      it('shows the switcher when another owned org carries manage_orgs', () => {
+        mockCurrentOrganization.value = { ...owned, objid: 'o_free', entitlements: [] };
+        mockOrganizations.value = [
+          { ...owned, objid: 'o_free', entitlements: [] },
+          { ...owned, objid: 'o_paid', entitlements: ['manage_orgs'] },
+        ];
+
+        expect(useScopeSwitcherVisibility().showOrgSwitcher.value).toBe(true);
+      });
+
+      // The reported case: a free default workspace (no manage_orgs) plus a
+      // paid org joined by invitation. No owner gate is met, but without the
+      // switcher the paid org could never be selected.
+      it('shows the switcher to a free-plan owner who joined another org as a member', () => {
+        const freeDefault = { ...owned, objid: 'o_free', entitlements: [], is_default: true };
+        const paidMember = { ...member, objid: 'o_paid', entitlements: ['manage_orgs'] };
+        mockCurrentOrganization.value = freeDefault;
+        mockOrganizations.value = [
+          { ...freeDefault, member_count: 1, planid: 'free_v1' },
+          { ...paidMember, member_count: 5, planid: 'identity_plus_v1' },
+        ];
+
+        const { showOrgSwitcher, isSoloDefaultContext } = useScopeSwitcherVisibility();
+
+        expect(isSoloDefaultContext.value).toBe(false);
+        expect(showOrgSwitcher.value).toBe(true);
+      });
+
+      it('hides the switcher for a single owned org without manage_orgs', () => {
+        const unentitled = { ...owned, entitlements: [] };
+        mockCurrentOrganization.value = unentitled;
+        mockOrganizations.value = [{ ...unentitled, member_count: 2 }];
+
+        expect(useScopeSwitcherVisibility().showOrgSwitcher.value).toBe(false);
+      });
+    });
+  });
+});

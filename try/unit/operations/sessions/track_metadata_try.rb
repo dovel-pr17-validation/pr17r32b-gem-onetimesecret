@@ -1,0 +1,320 @@
+# try/unit/operations/sessions/track_metadata_try.rb
+#
+# frozen_string_literal: true
+
+# Unit tryouts for the sidecar WRITE op (spec docs/specs/colonel-ui/40-*):
+#   Onetime::Operations::Sessions::TrackMetadata
+#
+# Covers:
+# - authenticated session_data -> upserts a SessionMetadata sidecar keyed by the
+#   PLAIN sid AND indexes the sid into Customer#active_sessions (scored by
+#   last_activity, adaptation #2)
+# - ip/ua copied AS-IS (adaptation #3 — Otto masks upstream, no masking here)
+# - anonymous session_data (no 'authenticated'/'external_id') is a NO-OP
+# - an unresolvable customer is a NO-OP
+# - BEST-EFFORT CONTRACT: an internal error after the guards pass is swallowed
+#   (#call returns nil, no member leaks into the index)
+#
+# Run: try --agent try/unit/operations/sessions/track_metadata_try.rb
+
+require_relative '../../../support/test_helpers'
+
+OT.boot! :test
+
+require 'onetime/operations/sessions/track_metadata'
+
+TM = Onetime::Operations::Sessions::TrackMetadata
+SM = Onetime::SessionMetadata
+
+@nonce = Familia.generate_id[0, 12]
+@ts    = Familia.now.to_i
+
+@cust  = Onetime::Customer.create!(email: "track_#{@nonce}@example.com")
+@cust.verified = 'true'
+@cust.save
+@extid = @cust.extid
+
+@sid = "trytrack_#{@nonce}"
+SM.load(@sid)&.destroy!
+
+@auth_session = {
+  'authenticated' => true,
+  'external_id'   => @extid,
+  'email'         => @cust.email,
+  'ip_address'    => '198.51.100.0',
+  'user_agent'    => 'Firefox on Linux',
+}
+
+# ---- authenticated -> upsert + index ----------------------------------
+
+## an authenticated session upserts a sidecar keyed by the plain sid
+@meta = TM.new(session_id: @sid, session_data: @auth_session).call
+[@meta.nil?, @meta.session_id, @meta.user_id]
+#=> [false, "#{@sid}", "#{@extid}"]
+
+## ip/ua are copied AS-IS (no masking in the op — adaptation #3)
+@reload = SM.load(@sid)
+[@reload.ip_address, @reload.user_agent]
+#=> ["198.51.100.0", "Firefox on Linux"]
+
+## the sid is indexed into the customer's active_sessions set
+@cust.active_sessions.member?(@sid)
+#=> true
+
+## the index score is the last-activity epoch (>= this run's start)
+@cust.active_sessions.score(@sid).to_i >= @ts
+#=> true
+
+## a re-track upserts (not duplicates): the set still holds ONE copy of the sid
+@before_count = @cust.active_sessions.size
+TM.new(session_id: @sid, session_data: @auth_session).call
+[@cust.active_sessions.member?(@sid), @cust.active_sessions.size == @before_count]
+#=> [true, true]
+
+## created_at is preserved across re-track; last_activity_at is a live epoch
+@r2 = SM.load(@sid)
+[@r2.created_at.to_i >= @ts, @r2.last_activity_at.to_i >= @ts]
+#=> [true, true]
+
+# ---- last_activity_at: the value the #4331 idle bound reads -----------
+
+## a subsequent authenticated write ADVANCES last_activity_at (back-dated first,
+## because the field is epoch SECONDS and a same-second re-track cannot show a
+## change). This is the refresh the admin idle bound depends on: it is what makes
+## an in-use admin session stay usable, and it is why nothing under
+## src/apps/admin may poll — a timer would refresh this forever.
+@stale = SM.load(@sid)
+@stale.last_activity_at = @ts - 7_200
+@stale.save
+TM.new(session_id: @sid, session_data: @auth_session).call
+SM.load(@sid).last_activity_at.to_i >= @ts
+#=> true
+
+## a request REFUSED by the admin-surface session bounds (#4331) does NOT stamp
+## activity: the auth strategy flags the env, and the whole upsert is skipped.
+## Without this the very request the idle bound just refused would slide the
+## window forward on its way out and the next one would be allowed through.
+@expired_key = Onetime::Application::AuthStrategies::AdminSessionLifetime::EXPIRED_ENV_KEY
+@refused = SM.load(@sid)
+@refused.last_activity_at = @ts - 7_200
+@refused.save
+TM.new(session_id: @sid, session_data: @auth_session, env: { @expired_key => 'idle' }).call
+SM.load(@sid).last_activity_at.to_i
+#=> @ts - 7_200
+
+## the flag is per-request, not sticky: the next unflagged write stamps normally
+TM.new(session_id: @sid, session_data: @auth_session).call
+SM.load(@sid).last_activity_at.to_i >= @ts
+#=> true
+
+# ---- #4455: passive and refused requests are not activity -------------
+
+## a PASSIVE request (route option activity=passive, the /bootstrap/me poll)
+## does not stamp activity, however often it is repeated: a tab that only polls
+## cannot hold the admin idle window open
+@verdict_key = Onetime::CustomerSessionEvaluator::ENV_KEY
+@passive_env = { 'otto.route_options' => { activity: 'passive' } }
+@polled = SM.load(@sid)
+@polled.last_activity_at = @ts - 7_200
+@polled.save
+@cust.active_sessions.add(@sid, @ts - 7_200)
+@poll_results = Array.new(3) { TM.new(session_id: @sid, session_data: @auth_session, env: @passive_env).call }
+[@poll_results, SM.load(@sid).last_activity_at.to_i, @cust.active_sessions.score(@sid).to_i]
+#=> [[nil, nil, nil], @ts - 7_200, @ts - 7_200]
+
+## a request the CLIENT declared passive (X-Session-Activity: passive on a GET,
+## a dashboard refresh timer) is the same: no stamp, however often repeated
+@declared_env = { 'REQUEST_METHOD' => 'GET', 'HTTP_X_SESSION_ACTIVITY' => 'passive' }
+@declared_results = Array.new(3) { TM.new(session_id: @sid, session_data: @auth_session, env: @declared_env).call }
+[@declared_results, SM.load(@sid).last_activity_at.to_i, @cust.active_sessions.score(@sid).to_i]
+#=> [[nil, nil, nil], @ts - 7_200, @ts - 7_200]
+
+## the declaration is ignored on a state-changing method: a POST always stamps
+TM.new(session_id: @sid, session_data: @auth_session, env: @declared_env.merge('REQUEST_METHOD' => 'POST')).call
+@posted_at = SM.load(@sid).last_activity_at.to_i
+@reset = SM.load(@sid)
+@reset.last_activity_at = @ts - 7_200
+@reset.save
+@posted_at >= @ts
+#=> true
+
+## a passive request still INDEXES a session that has no record yet: a session
+## that only ever declares itself passive cannot stay off its owner's list.
+## Once only; the next passive request leaves the record alone
+@unindexed_sid = "tryunindexed_#{@nonce}"
+SM.load(@unindexed_sid)&.destroy!
+@cust.active_sessions.remove(@unindexed_sid)
+@first = TM.new(session_id: @unindexed_sid, session_data: @auth_session, env: @declared_env).call
+@indexed = SM.load(@unindexed_sid)
+@indexed.last_activity_at = @ts - 7_200
+@indexed.save
+@second = TM.new(session_id: @unindexed_sid, session_data: @auth_session, env: @declared_env).call
+[@first.nil?, @cust.active_sessions.member?(@unindexed_sid), @second, SM.load(@unindexed_sid).last_activity_at.to_i]
+#=> [false, true, nil, @ts - 7_200]
+
+## a REFUSED passive request indexes nothing
+@refused_sid = "tryrefusedpassive_#{@nonce}"
+SM.load(@refused_sid)&.destroy!
+@refused_verdict = Onetime::CustomerSessionEvaluator::Verdict.new(status: :rejected, reason: :account_suspended)
+@r = TM.new(session_id: @refused_sid, session_data: @auth_session, env: @declared_env.merge(@verdict_key => @refused_verdict)).call
+[@r, SM.load(@refused_sid).nil?]
+#=> [nil, true]
+
+## a request the shared evaluator REJECTED does not stamp activity, even though
+## the Rack session blob still says authenticated (suspension, revocation, stale
+## credentials and surface mismatch all leave the blob as it was)
+@rejected = Onetime::CustomerSessionEvaluator::Verdict.new(status: :rejected, reason: :account_suspended)
+TM.new(session_id: @sid, session_data: @auth_session, env: { @verdict_key => @rejected }).call
+SM.load(@sid).last_activity_at.to_i
+#=> @ts - 7_200
+
+## nor does one refused because verification was UNAVAILABLE: an outage must not
+## be able to extend a session it could not check
+@unavailable = Onetime::CustomerSessionEvaluator::Verdict.new(status: :unavailable, reason: :active_session_unavailable)
+TM.new(session_id: @sid, session_data: @auth_session, env: { @verdict_key => @unavailable }).call
+SM.load(@sid).last_activity_at.to_i
+#=> @ts - 7_200
+
+## an ANONYMOUS verdict does not suppress the write: a login that completes
+## inside the request writes authenticated session_data, and that login-time
+## stamp must land
+@anonymous = Onetime::CustomerSessionEvaluator::Verdict.new(status: :anonymous, reason: :not_authenticated)
+TM.new(session_id: @sid, session_data: @auth_session, env: { @verdict_key => @anonymous }).call
+SM.load(@sid).last_activity_at.to_i >= @ts
+#=> true
+
+## an AUTHENTICATED verdict on an ordinary route stamps as before
+@aged = SM.load(@sid)
+@aged.last_activity_at = @ts - 7_200
+@aged.save
+@authenticated = Onetime::CustomerSessionEvaluator::Verdict.new(
+  status: :authenticated, reason: :authenticated, principal: @cust, customer: @cust,
+)
+TM.new(
+  session_id: @sid,
+  session_data: @auth_session,
+  env: { @verdict_key => @authenticated, 'otto.route_options' => { auth: 'sessionauth' } },
+).call
+SM.load(@sid).last_activity_at.to_i >= @ts
+#=> true
+
+## a malformed verdict entry is ignored, never raised on (best-effort contract)
+TM.new(session_id: @sid, session_data: @auth_session, env: { @verdict_key => 'not a verdict' }).call.nil?
+#=> false
+
+# ---- anonymous / unresolvable -> no-op --------------------------------
+
+## an anonymous session (no 'authenticated'/'external_id') is a no-op -> nil
+@anon_sid = "tryanon_#{@nonce}"
+SM.load(@anon_sid)&.destroy!
+@r = TM.new(session_id: @anon_sid, session_data: { 'csrf' => "tok_#{@nonce}" }).call
+[@r, SM.load(@anon_sid).nil?]
+#=> [nil, true]
+
+## an authenticated session whose customer cannot be resolved is a no-op -> nil
+@ghost_sid = "tryghost_#{@nonce}"
+SM.load(@ghost_sid)&.destroy!
+@r = TM.new(session_id: @ghost_sid,
+            session_data: { 'authenticated' => true, 'external_id' => "ur_missing_#{@nonce}" }).call
+[@r, SM.load(@ghost_sid).nil?]
+#=> [nil, true]
+
+# ---- best-effort: internal error is swallowed -------------------------
+
+## an error AFTER the guards pass is swallowed: #call returns nil and NOTHING
+## lands in the index (stub restored in-body so later cases are unaffected)
+@boom_sid = "tryboom_#{@nonce}"
+SM.load(@boom_sid)&.destroy!
+@cust.active_sessions.remove(@boom_sid)
+klass = Onetime::Customer.singleton_class
+orig  = Onetime::Customer.method(:find_by_extid)
+klass.send(:define_method, :find_by_extid) { |_extid| raise 'boom: injected sidecar failure' }
+begin
+  @r = TM.new(session_id: @boom_sid, session_data: @auth_session).call
+ensure
+  klass.send(:define_method, :find_by_extid, orig)
+end
+[@r, @cust.active_sessions.member?(@boom_sid), SM.load(@boom_sid).nil?]
+#=> [nil, false, true]
+
+## the restore worked — a normal track succeeds again after the swallowed error
+@ok = TM.new(session_id: @sid, session_data: @auth_session).call
+@ok.nil?
+#=> false
+
+# ---- auth_method copied verbatim; org_id resolved from active org -----
+
+## auth_method is copied verbatim from session_data (stamped once at auth time,
+## NOT re-derived here). Any of password/email_auth/webauthn/omniauth flows.
+@am_sid = "tryam_#{@nonce}"
+SM.load(@am_sid)&.destroy!
+@am = TM.new(session_id: @am_sid,
+            session_data: @auth_session.merge('auth_method' => 'webauthn')).call
+@am.auth_method
+#=> "webauthn"
+
+# ---- geo_country: read from the Rack env, never an IP lookup -----------
+
+## a request env carrying a resolved country persists it on the sidecar
+@geo_sid = "trygeo_#{@nonce}"
+SM.load(@geo_sid)&.destroy!
+@geo = TM.new(session_id: @geo_sid, session_data: @auth_session,
+              env: { 'otto.privacy.geo_country' => 'US' }).call
+@geo.geo_country
+#=> "US"
+
+## with no env (env: nil) geo_country is nil — no lookup is invented
+@nogeo_sid = "trynogeo_#{@nonce}"
+SM.load(@unindexed_sid)&.destroy!
+SM.load(@nogeo_sid)&.destroy!
+@nogeo = TM.new(session_id: @nogeo_sid, session_data: @auth_session).call
+@nogeo.geo_country.nil?
+#=> true
+
+## a lowercase/whitespace-padded header value is normalized to canonical alpha-2
+@lcgeo_sid = "trylcgeo_#{@nonce}"
+SM.load(@lcgeo_sid)&.destroy!
+@lcgeo = TM.new(session_id: @lcgeo_sid, session_data: @auth_session,
+                env: { 'otto.privacy.geo_country' => ' ca ' }).call
+@lcgeo.geo_country
+#=> "CA"
+
+## the '**' unknown sentinel normalizes to nil — it is never stored and never
+## reaches a client (SessionMetadata#geo_country is the read-side chokepoint;
+## the write path drops it like any other non-country value)
+@unkgeo_sid = "tryunkgeo_#{@nonce}"
+SM.load(@unkgeo_sid)&.destroy!
+@unkgeo = TM.new(session_id: @unkgeo_sid, session_data: @auth_session,
+                 env: { 'otto.privacy.geo_country' => '**' }).call
+[@unkgeo.geo_country, Familia.dbclient.hget(SM.dbkey(@unkgeo_sid), 'geo_country')]
+#=> [nil, nil]
+
+## org resolution is nil-safe: a customer with no organization writes the sidecar
+## with org_id = nil, never raising (own rescue). (@cust has no org yet.)
+@no_org_sid = "trynoorg_#{@nonce}"
+SM.load(@no_org_sid)&.destroy!
+@no = TM.new(session_id: @no_org_sid, session_data: @auth_session).call
+[@no.nil?, @no.org_id.nil?]
+#=> [false, true]
+
+## org_id resolves to the customer's ACTIVE organization objid (via
+## OrganizationLoader — resolved on every write, so it populates on the login write too)
+@org     = Onetime::Organization.create!("Track Org #{@nonce}", @cust, "trackorg_#{@nonce}@example.com")
+@org_sid = "tryorg_#{@nonce}"
+SM.load(@org_sid)&.destroy!
+@om = TM.new(session_id: @org_sid, session_data: @auth_session).call
+@om.org_id == @org.objid
+#=> true
+
+# Cleanup
+SM.load(@sid)&.destroy!
+SM.load(@am_sid)&.destroy!
+SM.load(@geo_sid)&.destroy!
+SM.load(@nogeo_sid)&.destroy!
+SM.load(@lcgeo_sid)&.destroy!
+SM.load(@unkgeo_sid)&.destroy!
+SM.load(@no_org_sid)&.destroy!
+SM.load(@org_sid)&.destroy!
+@org.destroy!
+@cust.active_sessions.clear
+@cust.destroy!

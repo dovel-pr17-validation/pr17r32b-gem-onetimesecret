@@ -1,0 +1,142 @@
+#!/bin/bash
+
+##
+# ONETIME ENTRYPOINT SCRIPT - 2024-05-18
+#
+#   Usage:
+#
+#     1. In docker-compose.yaml, add a command setting for
+#       this docker service.
+#
+#       e.g.
+#
+#         service:
+#           onetime:
+#             extends: onetime-config
+#        -->  command: ["onetime", "-h", "0.0.0.0", "-p", "3000"]
+#
+#   Server Options:
+#
+#     Puma is the only supported server (forking mode required)
+#
+#   Puma Options:
+#
+#     PUMA_MIN_THREADS=4        - Minimum number of threads
+#     PUMA_MAX_THREADS=16       - Maximum number of threads
+#     PUMA_WORKERS=2            - Number of worker processes
+#
+
+# Stop at the first sign of trouble
+set -e
+
+# Enable immediate output for better debugging
+export RUBY_UNBUFFERED=1
+
+# Set PORT to the existing value or default to 3000
+PORT=${PORT:-3000}
+
+# Set web server type to run
+#
+# Puma is the only supported server (forking mode for thread safety)
+SERVER_TYPE=${SERVER_TYPE:-puma}
+
+# Puma settings
+PUMA_MIN_THREADS=${PUMA_MIN_THREADS:-4}
+PUMA_MAX_THREADS=${PUMA_MAX_THREADS:-16}
+PUMA_WORKERS=${PUMA_WORKERS:-2}
+
+if [ "$ONETIME_DEBUG" = "true" ] || [ "$ONETIME_DEBUG" = "1" ]; then
+  # Prints commands and their arguments as they are executed. This allows
+  # for more verbose output, helping with debugging and troubleshooting.
+  set -x
+fi
+
+# Get the time in UTC, with macos compatibility
+datestamp=`date -u`
+
+# Figure out who we are
+location=$(readlink -f "${0}")
+basename=$(basename "${location}")
+
+# Drop a line in the build logs (including any error msgs)
+>&2 echo "[${datestamp}] INFO: Running ${basename}..."
+
+# Immediate environment debugging for Redis connection issues
+if [ "$ONETIME_DEBUG" = "true" ] || [ "$ONETIME_DEBUG" = "1" ]; then
+  >&2 echo "[${datestamp}] DEBUG: Environment variables:"
+  >&2 echo "  REDIS_URL=${REDIS_URL:-<not set>}"
+  >&2 echo "  VALKEY_URL=${VALKEY_URL:-<not set>}"
+  >&2 echo "  SECRET=${SECRET:+<set>}"
+  >&2 echo "  SERVER_TYPE=${SERVER_TYPE}"
+  >&2 echo "  RACK_ENV=${RACK_ENV:-<not set>}"
+fi
+
+# Leave nothing but footprints
+unset datestamp location basename
+
+# Run bundler again so that new dependencies added to the
+# Gemfile are installed at up time (i.e. avoids a rebuild).
+# Check if BUNDLE_INSTALL is set to "true" (case-insensitive)
+if [[ "${BUNDLE_INSTALL,,}" == "true" ]]; then
+  >&2 echo "INFO: Running bundle install..."
+  >&2 bundle install
+else
+  >&2 echo "INFO: Skipping bundle install. Use BUNDLE_INSTALL=true to run it."
+fi
+
+# Test Redis connectivity early to fail fast
+if [ "$ONETIME_DEBUG" = "true" ] || [ "$ONETIME_DEBUG" = "1" ]; then
+  datestamp=`date -u`
+  >&2 echo "[${datestamp}] DEBUG: Testing Redis connectivity..."
+
+  # Extract host and port from REDIS_URL or VALKEY_URL
+  REDIS_TEST_URL="${VALKEY_URL:-${REDIS_URL:-redis://127.0.0.1:6379}}"
+
+  # Simple connectivity test using basic tools
+  if command -v nc >/dev/null 2>&1; then
+    # Remove redis:// prefix and handle URLs with or without auth
+    REDIS_URL_CLEAN=$(echo "$REDIS_TEST_URL" | sed 's|redis://||')
+
+    # If URL contains @, extract host after @, otherwise use full cleaned URL
+    if echo "$REDIS_URL_CLEAN" | grep -q '@'; then
+      REDIS_HOST=$(echo "$REDIS_URL_CLEAN" | cut -d'@' -f2 | cut -d':' -f1)
+      REDIS_PORT=$(echo "$REDIS_URL_CLEAN" | cut -d'@' -f2 | cut -d':' -f2 | cut -d'/' -f1)
+    else
+      REDIS_HOST=$(echo "$REDIS_URL_CLEAN" | cut -d':' -f1)
+      REDIS_PORT=$(echo "$REDIS_URL_CLEAN" | cut -d':' -f2 | cut -d'/' -f1)
+    fi
+
+    # Default to standard Redis port if parsing fails
+    REDIS_HOST=${REDIS_HOST:-127.0.0.1}
+    REDIS_PORT=${REDIS_PORT:-6379}
+
+    >&2 echo "[${datestamp}] DEBUG: Testing connection to ${REDIS_HOST}:${REDIS_PORT}"
+
+    if ! nc -zv "$REDIS_HOST" "$REDIS_PORT" 2>&1; then
+      >&2 echo "[${datestamp}] WARNING: Cannot connect to Redis at ${REDIS_HOST}:${REDIS_PORT}"
+      >&2 echo "[${datestamp}] WARNING: Application may fail to start"
+    else
+      >&2 echo "[${datestamp}] DEBUG: Redis connectivity test passed"
+    fi
+  else
+    >&2 echo "[${datestamp}] DEBUG: nc not available, skipping connectivity test"
+  fi
+fi
+
+# Run the command configured for the docker compose service
+# in the docker-compose.yaml file, or a default if none is
+# provided. See Dockerfile for more details.
+#
+# Check if no arguments were provided to the script
+# (e.g. running container without command override).
+if [ $# -eq 0 ]; then
+  PORT="${PORT:-3000}" # explicit default
+
+  >&2 echo "Starting Puma on port $PORT with $PUMA_WORKERS workers ($PUMA_MIN_THREADS-$PUMA_MAX_THREADS threads) and etc/puma.rb config"
+  # Enable real-time logging for Ruby applications
+  # Uses etc/puma.rb for fork safety hooks (SemanticLogger, RabbitMQ)
+  # Environment variables override config file settings where applicable
+  RUBY_YJIT_ENABLE=1 RUBY_UNBUFFERED=1 exec stdbuf -oL -eL bundle exec puma -C etc/puma.rb
+else
+  exec stdbuf -oL -eL bundle exec "$@"
+fi

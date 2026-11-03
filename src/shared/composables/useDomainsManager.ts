@@ -1,0 +1,301 @@
+// src/shared/composables/useDomainsManager.ts
+
+import { AsyncHandlerOptions, createError, useAsyncHandler } from '@/shared/composables/useAsyncHandler';
+import { useDomainContext } from '@/shared/composables/useDomainContext';
+import { ApplicationError } from '@/schemas/errors';
+import type { PutHomepageConfigRequest } from '@/schemas/api/domains/requests';
+import type { CustomDomain } from '@/schemas/shapes/v3';
+import { useDomainsStore, useNotificationsStore } from '@/shared/stores';
+import { domainVerifyNotice } from '@/shared/utils/domainVerifyNotice';
+import { isDomainOwnershipChecked } from '@/utils/features';
+import { storeToRefs } from 'pinia';
+import { computed, onScopeDispose, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
+
+/**
+ * Composable for managing custom domains and their brand settings
+ *
+ * useDomainsManager's role should be:
+ * - Managing UI-specific state (loading states, toggling states)
+ * - Coordinating between stores and UI components
+ * - Handling user interactions and confirmations
+ * - Providing a simplified interface for common domain operations
+ */
+/* eslint-disable max-lines-per-function */
+export function useDomainsManager() {
+  const store = useDomainsStore();
+  const notifications = useNotificationsStore();
+  const router = useRouter();
+  const route = useRoute();
+  const goBack = () => router.back();
+  const { records, details } = storeToRefs(store);
+  // Setup-time: useDomainContext injects the API client, which is only
+  // available during setup. The two paths below that touch the picker
+  // (verifyDomain, updateDomainContextAfterAdd) run after an await.
+  const { refreshDomains: refreshDomainContext, setContext: setDomainContext } =
+    useDomainContext();
+
+  // Track the pending redirect so it can be cleared on scope disposal
+  let redirectTimer: ReturnType<typeof setTimeout> | null = null;
+  onScopeDispose(() => {
+    if (redirectTimer) {
+      clearTimeout(redirectTimer);
+      redirectTimer = null;
+    }
+  });
+
+  // Get org identifier from route params for org-qualified operations
+  // Routes use either :orgid (domain routes) or :extid (org settings routes)
+  const orgIdentifier = computed(() =>
+    (route.params.orgid || route.params.extid) as string | undefined
+  );
+
+  // Legacy alias for backward compatibility with navigation code
+  const orgid = orgIdentifier;
+  const { t } = useI18n();
+
+  const recordCount = computed(() => store.recordCount());
+
+  // Local state
+  const isLoading = ref(false);
+  const error = ref<ApplicationError | null>(null); // Add local error state
+
+  const defaultAsyncHandlerOptions: AsyncHandlerOptions = {
+    notify: (message, severity) => {
+      notifications.show(message, severity, 'top');
+    },
+    setLoading: (loading) => (isLoading.value = loading),
+    onError: (err) => {
+      // 404: resource not found - redirect to NotFound page
+      if (err.code === 404) {
+        return router.push({ name: 'NotFound' });
+      }
+
+      // Set local error state for inline ErrorDisplay.
+      // Notification is handled by wrap()'s notify handler — don't duplicate it here.
+      error.value = err;
+    },
+  };
+
+  // Composable async handler
+  const { wrap } = useAsyncHandler(defaultAsyncHandlerOptions);
+
+  /**
+   * Fetch domains list
+   * @param force - Force refresh even if already initialized
+   */
+  const fetch = async () => wrap(async () => await store.fetchList());
+
+  const getDomain = async (extid: string) =>
+    wrap(async () => {
+      const domainData = await store.getDomain(extid);
+      const domain = domainData.record;
+      const currentTime = Math.floor(Date.now() / 1000);
+      const lastMonitored = domain?.vhost?.last_monitored_unix ?? 0;
+      const domainUpdated = Math.floor(domain.updated.getTime() / 1000);
+      const lastUpdatedDistance = currentTime - domainUpdated;
+      // Approximated hasn't checked this domain yet or it's been more than N
+      // seconds since this domain record was updated. Typically this will be
+      // the amount of time since last clicking the "refresh" button.
+      const canVerify = !lastMonitored || lastUpdatedDistance >= 10;
+
+      return {
+        domain,
+        cluster: (domainData?.details as any)?.cluster,
+        canVerify,
+      };
+    });
+
+  const verifyDomain = async (extid: string) =>
+    wrap(async () => {
+      const result = await store.verifyDomain(extid);
+      // A check that could not be completed, or found no record, does not
+      // read as a success. See domainVerifyNotice.
+      const notice = domainVerifyNotice(result?.details);
+      notifications.show(t(notice.messageKey), notice.severity, 'top');
+      // A completed check may have changed whether the domain is served
+      // (either direction). The picker reads `served` from a snapshot that
+      // only startup and organization switch refresh, so re-read it now and
+      // let it settle the selection; see useDomainContext.refreshDomains.
+      // Not gated on the outcome: a demotion is as real as a promotion.
+      await refreshDomainContext();
+      return result;
+    });
+
+  const handleDomainExistsError = async (domain: string, errorMessage: string) => {
+    if (errorMessage.includes('already registered in your organization')) {
+      notifications.show(t('web.domains.domain_already_in_organization'), 'warning', 'top');
+      // Best-effort: refresh and redirect to the existing domain's DNS page —
+      // the verification screen, or the CNAME-setup screen on installs that
+      // do not check ownership. If fetchList fails (e.g. schema mismatch),
+      // we still show the warning above.
+      try {
+        await store.fetchList();
+        const existingDomain = store.records?.find(d => d.display_domain === domain);
+        if (existingDomain && orgid.value) {
+          redirectTimer = setTimeout(() => {
+            redirectTimer = null;
+            router.push({
+              name: isDomainOwnershipChecked() ? 'DomainVerify' : 'DomainDns',
+              params: { orgid: orgid.value, extid: existingDomain.extid },
+            });
+          }, 2000);
+        }
+      } catch {
+        // fetchList failure shouldn't mask the duplicate-domain warning
+      }
+      return null;
+    }
+    if (errorMessage.includes('registered to another organization')) {
+      notifications.show(t('web.domains.domain_in_other_organization'), 'error', 'top');
+      return null;
+    }
+    return undefined; // Signal to re-throw
+  };
+
+  /**
+   * Follow the domain context the server set after adding a domain.
+   *
+   * The server sets one only when the new domain is served
+   * (CustomDomain#served_as_tenant?). Under a strategy that checks ownership
+   * a new domain is not served until verified, the server sets none, and the
+   * context stays where it was: it is the share_domain of the next secret,
+   * and secret creation refuses an unserved domain.
+   *
+   * The snapshot is re-read first either way: setContext only accepts a
+   * domain the snapshot offers, and the verification route that follows
+   * resolves the new record by extid from the same snapshot.
+   */
+  const updateDomainContextAfterAdd = async (
+    details: { domain_context?: string | null } | undefined
+  ) => {
+    await refreshDomainContext();
+    const contextFromServer = details?.domain_context;
+    if (!contextFromServer) return;
+    // Skip backend sync: the server already set the context
+    setDomainContext(contextFromServer, true);
+  };
+
+  /**
+   * Route to the appropriate screen after a domain is added.
+   *
+   * Installs whose strategy checks ownership (approximated, caddy_on_demand)
+   * land on the verification screen, which shows the TXT record and runs the
+   * first check itself on mount (DomainVerify.vue). It is not scheduled from
+   * here: this composable lives in the add page's scope, which is disposed
+   * when navigation unmounts that page, so a timer set here never fired.
+   * Other installs manage their own DNS/TLS with no ownership check, so they
+   * go to the simpler CNAME-instructions screen. See isDomainOwnershipChecked().
+   */
+  const navigateAfterAdd = (record: CustomDomain) => {
+    if (!orgid.value) return;
+
+    router.push({
+      name: isDomainOwnershipChecked() ? 'DomainVerify' : 'DomainDns',
+      params: { orgid: orgid.value, extid: record.extid },
+    });
+  };
+
+  const handleAddDomain = async (domain: string) =>
+    wrap(async () => {
+      try {
+        // Pass org_id from route params to ensure correct org context
+        const result = await store.addDomain(domain, orgid.value);
+        if (!result?.record) {
+          error.value = createError(t('web.domains.failed_to_add_domain'), 'human', 'error');
+          return null;
+        }
+
+        const { record, details } = result;
+        const isReclaimed = record.updated.getTime() > record.created.getTime();
+        const message = isReclaimed ? 'web.domains.domain_claimed_successfully' : 'web.domains.domain_added_successfully';
+        notifications.show(t(message), 'success', 'top');
+
+        await updateDomainContextAfterAdd(details);
+        navigateAfterAdd(record);
+        return record;
+      } catch (err: unknown) {
+        const axiosErr = err as { response?: { data?: { error?: string } }; message?: string };
+        const errorMessage = axiosErr?.response?.data?.error || axiosErr?.message || '';
+        const handled = await handleDomainExistsError(domain, errorMessage);
+        if (handled !== undefined) return handled;
+        throw err;
+      }
+    });
+
+  const deleteDomain = async (domainId: string) =>
+    wrap(async () => {
+      await store.deleteDomain(domainId);
+      notifications.show(t('web.domains.domain_removed_successfully'), 'success', 'top');
+      // Drop the removed domain from the picker, and move the selection off
+      // it if it was selected; see useDomainContext.refreshDomains.
+      await refreshDomainContext();
+    });
+
+  const pendingOrgRole = ref<string | null>(null);
+
+  const { wrap: wrapEntitlementAware } = useAsyncHandler({
+    ...defaultAsyncHandlerOptions,
+    notify: false,
+    onError: (err: ApplicationError) => {
+      error.value = err;
+      if (err.details?.error_type === 'EntitlementRequired') {
+        const key = pendingOrgRole.value === 'owner'
+          ? 'web.domains.entitlement_required_owner'
+          : 'web.domains.entitlement_required_member';
+        notifications.show(t(key), 'error', 'top');
+      } else {
+        notifications.show(err.message, err.severity, 'top');
+        defaultAsyncHandlerOptions.onError?.(err);
+      }
+    },
+  });
+
+  /**
+   * Write homepage configuration (enabled + optional secrets_mode).
+   * secrets_mode uses merge semantics — omit it to leave the stored mode
+   * unchanged (binary on/off callers never clobber an incoming selection).
+   */
+  const updateHomepageConfig = async (
+    extid: string,
+    update: PutHomepageConfigRequest,
+    orgRole?: string | null
+  ) => {
+    pendingOrgRole.value = orgRole ?? null;
+    return wrapEntitlementAware(async () => await store.putHomepageConfig(extid, update));
+  };
+
+  const toggleHomepageConfig = async (extid: string, enabled: boolean, orgRole?: string | null) =>
+    updateHomepageConfig(extid, { enabled }, orgRole);
+
+  /**
+   * Refresh domain records for the current organization context.
+   * Uses org identifier from route params (:orgid or :extid) to ensure
+   * correct org-scoped fetch, especially after org creation/switch.
+   */
+  const refreshRecords = async (force = false) =>
+    store.refreshRecords({ orgId: orgIdentifier.value, force });
+
+  return {
+    // State
+    records,
+    details,
+    isLoading,
+    error,
+
+    // Getters
+    recordCount,
+
+    // Actions
+    fetch,
+    getDomain,
+    verifyDomain,
+    handleAddDomain,
+    refreshRecords,
+    deleteDomain,
+    toggleHomepageConfig,
+    updateHomepageConfig,
+    goBack,
+  };
+}

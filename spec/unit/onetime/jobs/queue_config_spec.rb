@@ -1,0 +1,285 @@
+# spec/unit/onetime/jobs/queue_config_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+require 'onetime/jobs/queues/config'
+
+RSpec.describe Onetime::Jobs::QueueConfig do
+  describe 'QUEUES' do
+    subject(:queues) { described_class::QUEUES }
+
+    it 'is a frozen hash' do
+      expect(queues).to be_frozen
+    end
+
+    it 'defines email.message.send queue' do
+      expect(queues).to have_key('email.message.send')
+    end
+
+    # Retired in #4844: nothing consumed it, so everything published to it
+    # expired into the DLQ. Keeping it out of QUEUES keeps it undeclared.
+    it 'no longer defines email.message.schedule' do
+      expect(queues).not_to have_key('email.message.schedule')
+    end
+
+    it 'defines notifications.alert.push queue' do
+      expect(queues).to have_key('notifications.alert.push')
+    end
+
+    it 'defines billing.event.process queue' do
+      expect(queues).to have_key('billing.event.process')
+    end
+
+    it 'defines webhooks.payload.deliver queue' do
+      expect(queues).to have_key('webhooks.payload.deliver')
+    end
+
+    it 'defines system.transient queue' do
+      expect(queues).to have_key('system.transient')
+    end
+
+    it 'defines migration.customer.batch queue' do
+      expect(queues).to have_key('migration.customer.batch')
+    end
+
+    it 'defines domain.favicon.fetch queue' do
+      expect(queues).to have_key('domain.favicon.fetch')
+    end
+
+    it 'defines session.revoke.sweep queue' do
+      expect(queues).to have_key('session.revoke.sweep')
+    end
+
+    it 'has 10 queues total' do
+      expect(queues.size).to eq(10)
+    end
+  end
+
+  describe 'email.message.send queue' do
+    subject(:queue) { described_class::QUEUES['email.message.send'] }
+
+    it 'is durable' do
+      expect(queue[:durable]).to be true
+    end
+
+    it 'has dead letter exchange configured' do
+      expect(queue[:arguments]['x-dead-letter-exchange']).to eq('dlx.email.message')
+    end
+  end
+
+  describe 'billing.event.process queue' do
+    subject(:queue) { described_class::QUEUES['billing.event.process'] }
+
+    it 'is durable' do
+      expect(queue[:durable]).to be true
+    end
+
+    it 'has dead letter exchange configured' do
+      expect(queue[:arguments]['x-dead-letter-exchange']).to eq('dlx.billing.event')
+    end
+  end
+
+  describe 'notifications.alert.push queue' do
+    subject(:queue) { described_class::QUEUES['notifications.alert.push'] }
+
+    it 'is durable' do
+      expect(queue[:durable]).to be true
+    end
+
+    it 'has dead letter exchange configured' do
+      expect(queue[:arguments]['x-dead-letter-exchange']).to eq('dlx.notifications.alert')
+    end
+  end
+
+  describe 'webhooks.payload.deliver queue' do
+    subject(:queue) { described_class::QUEUES['webhooks.payload.deliver'] }
+
+    it 'is durable' do
+      expect(queue[:durable]).to be true
+    end
+
+    it 'has dead letter exchange configured' do
+      expect(queue[:arguments]['x-dead-letter-exchange']).to eq('dlx.webhooks.payload')
+    end
+  end
+
+  describe 'domain.validation.check queue' do
+    subject(:queue) { described_class::QUEUES['domain.validation.check'] }
+
+    it 'is durable' do
+      expect(queue[:durable]).to be true
+    end
+
+    it 'has dead letter exchange configured' do
+      expect(queue[:arguments]['x-dead-letter-exchange']).to eq('dlx.domain.validation')
+    end
+  end
+
+  describe 'migration.customer.batch queue' do
+    subject(:queue) { described_class::QUEUES['migration.customer.batch'] }
+
+    it 'is durable' do
+      expect(queue[:durable]).to be true
+    end
+
+    it 'does not auto_delete' do
+      expect(queue[:auto_delete]).to be false
+    end
+
+    it 'has dead letter exchange configured' do
+      expect(queue[:arguments]['x-dead-letter-exchange']).to eq('dlx.migration.customer')
+    end
+  end
+
+  describe 'session.revoke.sweep queue' do
+    subject(:queue) { described_class::QUEUES['session.revoke.sweep'] }
+
+    it 'is durable' do
+      expect(queue[:durable]).to be true
+    end
+
+    it 'does not auto_delete' do
+      expect(queue[:auto_delete]).to be false
+    end
+
+    it 'has dead letter exchange configured' do
+      expect(queue[:arguments]['x-dead-letter-exchange']).to eq('dlx.session.revoke')
+    end
+  end
+
+  describe 'system.transient queue' do
+    subject(:queue) { described_class::QUEUES['system.transient'] }
+
+    it 'is not durable (ephemeral)' do
+      expect(queue[:durable]).to be false
+    end
+
+    it 'has auto_delete enabled' do
+      expect(queue[:auto_delete]).to be true
+    end
+
+    it 'has message TTL configured (5 minutes)' do
+      expect(queue[:arguments]['x-message-ttl']).to eq(300_000)
+    end
+  end
+
+  describe 'CURRENT_SCHEMA_VERSION' do
+    it 'is defined as 1' do
+      expect(described_class::CURRENT_SCHEMA_VERSION).to eq(1)
+    end
+  end
+
+  describe 'Versions' do
+    it 'defines V1 as 1' do
+      expect(described_class::Versions::V1).to eq(1)
+    end
+  end
+
+  describe 'DEAD_LETTER_CONFIG' do
+    subject(:dead_letter_config) { described_class::DEAD_LETTER_CONFIG }
+
+    it 'is a frozen hash' do
+      expect(dead_letter_config).to be_frozen
+    end
+
+    it 'has 8 entries' do
+      expect(dead_letter_config.size).to eq(8)
+    end
+
+    it "contains 'dlx.email.message' with queue 'dlq.email.message'" do
+      expect(dead_letter_config).to have_key('dlx.email.message')
+      expect(dead_letter_config['dlx.email.message'][:queue]).to eq('dlq.email.message')
+    end
+
+    it "contains 'dlx.domain.favicon' with queue 'dlq.domain.favicon'" do
+      expect(dead_letter_config).to have_key('dlx.domain.favicon')
+      expect(dead_letter_config['dlx.domain.favicon'][:queue]).to eq('dlq.domain.favicon')
+    end
+
+    it "contains 'dlx.notifications.alert' with queue 'dlq.notifications.alert'" do
+      expect(dead_letter_config).to have_key('dlx.notifications.alert')
+      expect(dead_letter_config['dlx.notifications.alert'][:queue]).to eq('dlq.notifications.alert')
+    end
+
+    it "contains 'dlx.webhooks.payload' with queue 'dlq.webhooks.payload'" do
+      expect(dead_letter_config).to have_key('dlx.webhooks.payload')
+      expect(dead_letter_config['dlx.webhooks.payload'][:queue]).to eq('dlq.webhooks.payload')
+    end
+
+    it "contains 'dlx.billing.event' with queue 'dlq.billing.event'" do
+      expect(dead_letter_config).to have_key('dlx.billing.event')
+      expect(dead_letter_config['dlx.billing.event'][:queue]).to eq('dlq.billing.event')
+    end
+
+    it "contains 'dlx.domain.validation' with queue 'dlq.domain.validation'" do
+      expect(dead_letter_config).to have_key('dlx.domain.validation')
+      expect(dead_letter_config['dlx.domain.validation'][:queue]).to eq('dlq.domain.validation')
+    end
+
+    it "contains 'dlx.migration.customer' with queue 'dlq.migration.customer'" do
+      expect(dead_letter_config).to have_key('dlx.migration.customer')
+      expect(dead_letter_config['dlx.migration.customer'][:queue]).to eq('dlq.migration.customer')
+    end
+
+    it "contains 'dlx.session.revoke' with queue 'dlq.session.revoke'" do
+      expect(dead_letter_config).to have_key('dlx.session.revoke')
+      expect(dead_letter_config['dlx.session.revoke'][:queue]).to eq('dlq.session.revoke')
+    end
+
+    it 'has empty arguments (TTL managed via DLQ_POLICIES)' do
+      dead_letter_config.each_value do |config|
+        expect(config[:arguments]).to eq({})
+      end
+    end
+  end
+
+  describe 'DLQ_POLICIES' do
+    subject(:policies) { described_class::DLQ_POLICIES }
+
+    it 'is a frozen array' do
+      expect(policies).to be_frozen
+    end
+
+    it 'has at least one policy' do
+      expect(policies).not_to be_empty
+    end
+
+    describe 'dlq-ttl policy' do
+      subject(:policy) { policies.first }
+
+      it "has name 'dlq-ttl'" do
+        expect(policy[:name]).to eq('dlq-ttl')
+      end
+
+      it "matches DLQ queues with pattern '^dlq\\.'" do
+        expect(policy[:pattern]).to eq('^dlq\.')
+      end
+
+      it 'defines message-ttl equal to DLQ_MESSAGE_TTL' do
+        expect(policy[:definition]['message-ttl']).to eq(described_class::DLQ_MESSAGE_TTL)
+      end
+
+      it "applies to 'queues'" do
+        expect(policy[:apply_to]).to eq('queues')
+      end
+    end
+  end
+
+  describe 'DLQ_MESSAGE_TTL' do
+    it 'equals 604800000 (7 days in milliseconds)' do
+      expect(described_class::DLQ_MESSAGE_TTL).to eq(604_800_000)
+    end
+
+    it 'equals exactly 7 days in milliseconds' do
+      seven_days_ms = 7 * 24 * 60 * 60 * 1000
+      expect(described_class::DLQ_MESSAGE_TTL).to eq(seven_days_ms)
+    end
+  end
+
+  describe 'IDEMPOTENCY_TTL' do
+    it 'is defined as 3600' do
+      expect(described_class::IDEMPOTENCY_TTL).to eq(3600)
+    end
+  end
+end

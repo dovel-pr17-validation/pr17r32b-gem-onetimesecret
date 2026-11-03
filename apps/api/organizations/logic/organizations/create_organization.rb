@@ -1,0 +1,197 @@
+# apps/api/organizations/logic/organizations/create_organization.rb
+#
+# frozen_string_literal: true
+
+# Operations live outside the app autoloaders — required for the shared field
+# limits below (same pattern as the CLI adapter in lib/onetime/cli/org).
+require 'onetime/operations/org/create'
+
+module OrganizationAPI::Logic
+  module Organizations
+    # Create Organization
+    #
+    # @api Creates a new organization with the given display name, optional
+    #   description, and optional contact email. Enforces plan-based
+    #   organization quotas when billing is enabled. Uses a distributed
+    #   lock to prevent race conditions during creation.
+    class CreateOrganization < OrganizationAPI::Logic::Base
+      include Onetime::LoggerMethods
+
+      SCHEMAS = { response: 'organization' }.freeze
+
+      # Field limits shared with the admin create path — the operation is the
+      # single source of truth so the two surfaces cannot drift (#3907).
+      MAX_DISPLAY_NAME = Onetime::Operations::Org::Create::MAX_DISPLAY_NAME
+      MAX_DESCRIPTION  = Onetime::Operations::Org::Create::MAX_DESCRIPTION
+
+      attr_reader :organization, :display_name, :description, :contact_email
+
+      def process_params
+        @display_name  = sanitize_plain_text(params['display_name'])
+        @description   = sanitize_plain_text(params['description'])
+        @contact_email = sanitize_email(params['contact_email'])
+      end
+
+      def raise_concerns
+        # Require authenticated user
+        verify_authenticated!
+
+        # Validate display_name (basic validation before quota check)
+        if display_name.empty?
+          raise_form_error(
+            error_key: 'api.organizations.errors.display_name_required',
+            field: 'display_name',
+            error_type: :missing,
+          )
+        end
+
+        if display_name.length > MAX_DISPLAY_NAME
+          raise_form_error(
+            error_key: 'api.organizations.errors.display_name_too_long',
+            args: { max: MAX_DISPLAY_NAME },
+            field: 'display_name',
+            error_type: :invalid,
+          )
+        end
+
+        # Validate contact_email (optional, but must be unique if provided)
+        if !contact_email.empty? && Onetime::Organization.contact_email_exists?(contact_email)
+          raise_form_error(
+            error_key: 'api.organizations.errors.contact_email_exists',
+            field: 'contact_email',
+            error_type: :exists,
+          )
+        end
+
+        # Description is optional but limit length if provided
+        if !description.empty? && description.length > MAX_DESCRIPTION
+          raise_form_error(
+            error_key: 'api.organizations.errors.description_too_long',
+            args: { max: MAX_DESCRIPTION },
+            field: 'description',
+            error_type: :invalid,
+          )
+        end
+
+        # Check organization quota AFTER basic validation
+        # Users should get validation errors before quota/upgrade errors
+        check_organization_quota!
+      end
+
+      def process
+        # Mask display_name in debug logs - safe even for 1-2 char names (Ruby returns available chars)
+        masked_name = display_name.length > 3 ? "#{display_name[0, 3]}..." : "[#{display_name.length}chars]"
+        logger.debug '[CreateOrganization] Creating organization', masked_name: masked_name, extid: cust.extid
+
+        # Acquire distributed lock for organization creation to prevent quota race conditions.
+        # Shared key with Auth::Operations::EnsureDefaultWorkspace so the two
+        # creators for one customer never interleave (see Customer.org_creation_lock_key).
+        lock_key   = Onetime::Customer.org_creation_lock_key(cust.objid)
+        lock       = Familia::Lock.new(lock_key)
+        lock_token = nil
+
+        begin
+          # Attempt to acquire lock with 30s TTL
+          lock_token = lock.acquire(ttl: 30)
+
+          unless lock_token
+            raise_form_error(
+              error_key: 'api.organizations.errors.creation_in_progress',
+              field: 'display_name',
+              error_type: :conflict,
+            )
+          end
+
+          # Re-check quota inside the lock to prevent TOCTOU race
+          check_organization_quota!
+
+          # Create organization using class method (contact_email is optional)
+          email_value   = contact_email.empty? ? nil : contact_email
+          @organization = Onetime::Organization.create!(display_name, cust, email_value)
+
+          # Set description if provided
+          unless description.empty?
+            @organization.description = description
+            @organization.save
+          end
+
+          OT.info "[CreateOrganization] Created organization #{@organization.objid}"
+
+          success_data
+        ensure
+          # Always release lock if we acquired it
+          if lock_token
+            begin
+              lock.release(lock_token)
+            rescue StandardError => ex
+              logger.warn '[CreateOrganization] Lock release failed', exception: ex
+            end
+          end
+        end
+      end
+
+      def success_data
+        {
+          user_id: cust.extid,
+          record: serialize_organization(organization),
+        }
+      end
+
+      def form_fields
+        {
+          display_name: display_name,
+          description: description,
+          contact_email: contact_email,
+        }
+      end
+
+      private
+
+      # Check organization quota against customer's plan limits
+      #
+      # Billing context: the organization whose plan funds this creation is
+      # the customer's OWN billing organization — the default workspace they
+      # own (OrganizationLoader.owned_default_organization: where checkout
+      # puts their subscription), else the first live organization they own.
+      # An organization the customer merely joined is never the context: its
+      # plan is its owner's entitlement, not this customer's, and which one
+      # is listed first is an accident of membership order. A navigation
+      # preference (default_org_id) naming a joined organization is likewise
+      # not followed.
+      #
+      # Usage: the organizations the customer OWNS (live), not their
+      # memberships. The quota bounds how many organizations the plan pays
+      # for; joined organizations are funded by their owners' plans.
+      #
+      # Only enforced when billing is enabled and plan cache is populated.
+      # Skipped for a customer who owns no organization yet (no billing
+      # context to check against).
+      def check_organization_quota!
+        # Quota enforcement: fail-open when no billing, fail-closed when enabled.
+        # See WithEntitlements module for design rationale.
+
+        loader      = Onetime::Application::OrganizationLoader
+        owned_orgs  = loader.owned_organizations(cust)
+        primary_org = loader.owned_default_organization(cust, owned_orgs) || owned_orgs.first
+
+        # Fail-open conditions: skip quota check
+        return unless primary_org
+        return unless primary_org.respond_to?(:at_limit?)
+        return unless primary_org.entitlements.any?
+
+        # Fail-closed: billing enabled, enforce quota
+        # NOTE: at_limit?(resource, count) returns true when count >= limit,
+        # meaning creating one more would exceed the plan's allowed quota.
+        current_count = owned_orgs.size
+
+        return unless primary_org.at_limit?('organizations', current_count)
+
+        raise_form_error(
+          error_key: 'api.organizations.errors.organization_limit_reached',
+          field: 'display_name',
+          error_type: :upgrade_required,
+        )
+      end
+    end
+  end
+end

@@ -1,0 +1,404 @@
+// src/tests/apps/admin/AdminOrganizations.spec.ts
+
+import { createPinia, setActivePinia } from 'pinia';
+import { flushPromises, mount, VueWrapper } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockApi = {
+  get: vi.fn(),
+  post: vi.fn(),
+  delete: vi.fn(),
+};
+vi.mock('@/shared/composables/useApi', () => ({ useApi: () => mockApi }));
+
+const showMock = vi.fn();
+vi.mock('@/shared/stores/notificationsStore', () => ({
+  useNotificationsStore: () => ({ show: showMock }),
+}));
+
+// Row click navigates to the detail page (the drawer + investigate/entitlement
+// workflows moved to AdminOrganizationDetail — see AdminOrganizationDetail.spec).
+const pushMock = vi.fn();
+vi.mock('vue-router', () => ({ useRouter: () => ({ push: pushMock }) }));
+
+vi.mock('@/utils/format', () => ({
+  formatDisplayDateTime: (d: Date) => `DT:${d.toISOString()}`,
+}));
+
+vi.mock('@/shared/components/icons/OIcon.vue', () => ({
+  default: {
+    name: 'OIcon',
+    template: '<span class="o-icon" :data-name="name" />',
+    props: ['collection', 'name', 'class', 'size', 'aria-label'],
+  },
+}));
+
+// The JsonViewer's copy affordance touches navigator.clipboard; stub it (same
+// shim the kit's JsonViewer.spec uses) so the investigate panel mounts cleanly.
+vi.mock('@/shared/components/ui/CopyButton.vue', () => ({
+  default: {
+    name: 'CopyButton',
+    template: '<button class="copy-button" />',
+    props: ['text', 'tooltip', 'testid'],
+  },
+}));
+
+// Render the headlessui dialogs synchronously in jsdom.
+vi.mock('@headlessui/vue', () => ({
+  Dialog: {
+    name: 'Dialog',
+    template: '<div role="dialog" @close="$emit(\'close\')"><slot /></div>',
+    props: ['class'],
+    emits: ['close'],
+  },
+  DialogPanel: {
+    name: 'DialogPanel',
+    template: '<div class="dialog-panel" :data-testid="$attrs[\'data-testid\']"><slot /></div>',
+    props: ['class'],
+  },
+  DialogTitle: { name: 'DialogTitle', template: '<h3><slot /></h3>', props: ['as', 'class'] },
+  TransitionRoot: {
+    name: 'TransitionRoot',
+    template: '<div v-if="show"><slot /></div>',
+    props: ['as', 'show'],
+  },
+  TransitionChild: { name: 'TransitionChild', template: '<div><slot /></div>', props: ['as'] },
+}));
+
+import AdminOrganizations from '@/apps/admin/views/AdminOrganizations.vue';
+import { createTestI18n } from '@tests/setup';
+
+const i18n = createTestI18n();
+
+function orgRow(overrides: Record<string, unknown> = {}) {
+  return {
+    org_id: 'org1',
+    extid: 'on_abc123',
+    display_name: 'Acme',
+    contact_email: 'owner@acme.test',
+    owner_id: 'cust1',
+    owner_email: 'ow***@a***.test',
+    member_count: 3,
+    domain_count: 1,
+    is_default: false,
+    created: 1700000000,
+    updated: 1700003600,
+    planid: 'identity_plus_v1',
+    stripe_customer_id: 'cus_123',
+    stripe_subscription_id: 'sub_123',
+    subscription_status: 'active',
+    subscription_period_end: '2026-01-01',
+    billing_email: 'billing@acme.test',
+    sync_status: 'potentially_stale',
+    sync_status_reason: 'planid differs from Stripe',
+    ...overrides,
+  };
+}
+
+function orgsPayload(rows = [orgRow()], capped = false) {
+  return {
+    shrimp: '',
+    record: {},
+    details: {
+      organizations: rows,
+      pagination: { page: 1, per_page: 50, total_count: rows.length, total_pages: 1, capped },
+      filters: { status: null, sync_status: null },
+    },
+  };
+}
+
+describe('AdminOrganizations (list + row navigation — ticket #32)', () => {
+  let wrapper: VueWrapper;
+  let pinia: ReturnType<typeof createPinia>;
+
+  beforeEach(() => {
+    pinia = createPinia();
+    setActivePinia(pinia);
+    vi.clearAllMocks();
+  });
+  afterEach(() => wrapper?.unmount());
+
+  const mountView = () => mount(AdminOrganizations, { global: { plugins: [pinia, i18n] } });
+
+  it('fetches the first page on mount and renders a row per organization', async () => {
+    mockApi.get.mockResolvedValue({ data: orgsPayload() });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(mockApi.get).toHaveBeenCalledWith('/api/colonel/organizations', {
+      params: { page: 1, per_page: 50 },
+    });
+    const table = wrapper.find('[data-testid="organizations-table"]');
+    expect(table.exists()).toBe(true);
+    // The contact email is obscured by default (RevealEmail).
+    expect(table.text()).not.toContain('owner@acme.test');
+    expect(table.text()).toContain('o•••@a•••.test');
+  });
+
+  it('leads with the org name and keeps the extid as a subtitle', async () => {
+    mockApi.get.mockResolvedValue({ data: orgsPayload() });
+    wrapper = mountView();
+    await flushPromises();
+
+    const table = wrapper.find('[data-testid="organizations-table"]');
+    expect(table.text()).toContain('Acme');
+    expect(table.text()).toContain('on_abc123');
+  });
+
+  it('renders the Default Workspace name instead of suppressing it', async () => {
+    // Previously suppressed, which left the name blank for every default org.
+    mockApi.get.mockResolvedValue({
+      data: orgsPayload([orgRow({ display_name: 'Default Workspace' })]),
+    });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="organizations-table"]').text()).toContain(
+      'Default Workspace'
+    );
+  });
+
+  it('falls back to the extid when the org has no display name', async () => {
+    mockApi.get.mockResolvedValue({ data: orgsPayload([orgRow({ display_name: null })]) });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="organizations-table"]').text()).toContain('on_abc123');
+  });
+
+  it('keeps the owner email off the list (it belongs to the detail page)', async () => {
+    mockApi.get.mockResolvedValue({ data: orgsPayload() });
+    wrapper = mountView();
+    await flushPromises();
+
+    // owner_email still travels on the wire (the server search matches on it)
+    // but is not rendered as a column.
+    expect(wrapper.find('[data-testid="organizations-table"]').text()).not.toContain('ow***');
+  });
+
+  it('obscures the billing email, and says "same as contact" when they match', async () => {
+    mockApi.get.mockResolvedValue({
+      data: orgsPayload([
+        orgRow(),
+        orgRow({ extid: 'on_same', billing_email: 'owner@acme.test' }),
+        orgRow({ extid: 'on_none', billing_email: null }),
+      ]),
+    });
+    wrapper = mountView();
+    await flushPromises();
+
+    const table = wrapper.find('[data-testid="organizations-table"]');
+    // Distinct billing address: obscured, never raw.
+    expect(table.text()).not.toContain('billing@acme.test');
+    expect(table.text()).toContain('b•••@a•••.test');
+    // Equal to the contact address: a translated marker, not a duplicate.
+    expect(wrapper.find('[data-testid="billing-email-same-as-contact"]').exists()).toBe(true);
+  });
+
+  it('re-reads the current page on refresh, with no cache-bypass param', async () => {
+    mockApi.get.mockResolvedValue({ data: orgsPayload() });
+    wrapper = mountView();
+    await flushPromises();
+    const before = mockApi.get.mock.calls.length;
+
+    await wrapper.find('[data-testid="organizations-refresh"]').trigger('click');
+    await flushPromises();
+
+    expect(mockApi.get.mock.calls.length).toBe(before + 1);
+    expect(mockApi.get).toHaveBeenLastCalledWith('/api/colonel/organizations', {
+      params: { page: 1, per_page: 50 },
+    });
+  });
+
+  it('tolerates a legacy cache block from an older server', async () => {
+    const payload = orgsPayload();
+    (payload.details as Record<string, unknown>).cache = {
+      cached: true,
+      generated_at: 1700000000,
+      ttl: 90,
+    };
+    mockApi.get.mockResolvedValue({ data: payload });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.findAll('[data-testid="organizations-table"] tbody tr').length).toBe(1);
+  });
+
+  it('renders the capped caveat when the server marks the candidate set as capped', async () => {
+    mockApi.get.mockResolvedValue({ data: orgsPayload([orgRow()], true) });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="organizations-capped-caveat"]').exists()).toBe(true);
+  });
+
+  it('does not render the capped caveat on an uncapped response', async () => {
+    mockApi.get.mockResolvedValue({ data: orgsPayload() });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="organizations-capped-caveat"]').exists()).toBe(false);
+  });
+
+  it('renders the empty state when there are no organizations', async () => {
+    mockApi.get.mockResolvedValue({ data: orgsPayload([]) });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="organizations-table-empty"]').exists()).toBe(true);
+  });
+
+  it('refetches with the sync-status filter when it changes', async () => {
+    mockApi.get.mockResolvedValue({ data: orgsPayload() });
+    wrapper = mountView();
+    await flushPromises();
+
+    const select = wrapper.find('#kit-filter-sync_status');
+    await select.setValue('potentially_stale');
+    await flushPromises();
+
+    expect(mockApi.get).toHaveBeenLastCalledWith('/api/colonel/organizations', {
+      params: { page: 1, per_page: 50, sync_status: 'potentially_stale' },
+    });
+  });
+
+  it('navigates to the detail page on row click (drawer superseded by detail page)', async () => {
+    mockApi.get.mockResolvedValue({ data: orgsPayload() });
+    wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="organizations-table"] tbody tr').trigger('click');
+
+    // The in-view drawer is gone; the row routes to AdminOrganizationDetail by
+    // the org's public id (extid), where investigate/entitlements/reconcile live.
+    expect(pushMock).toHaveBeenCalledWith({
+      name: 'AdminOrganizationDetail',
+      params: { id: 'on_abc123' },
+    });
+    expect(wrapper.find('[data-testid="organizations-drawer"]').exists()).toBe(false);
+  });
+
+  it('shows the error banner + retry on a network failure', async () => {
+    mockApi.get.mockRejectedValue(new Error('Network Error'));
+    wrapper = mountView();
+    await flushPromises();
+
+    const banner = wrapper.find('[data-testid="organizations-error"]');
+    expect(banner.exists()).toBe(true);
+
+    mockApi.get.mockResolvedValueOnce({ data: orgsPayload() });
+    await banner.find('button').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="organizations-error"]').exists()).toBe(false);
+  });
+
+  describe('search behavior (explicit submit, no debounce)', () => {
+    it('does NOT fetch on mere typing — requires explicit submit', async () => {
+      mockApi.get.mockResolvedValue({ data: orgsPayload() });
+      wrapper = mountView();
+      await flushPromises();
+
+      const initialCallCount = mockApi.get.mock.calls.length;
+
+      // Type into the search box without pressing Enter
+      const searchInput = wrapper.find('#kit-filter-search');
+      await searchInput.setValue('acme');
+      await flushPromises();
+
+      // No additional fetch should have occurred
+      expect(mockApi.get.mock.calls.length).toBe(initialCallCount);
+    });
+
+    it('fetches with the search term when Enter is pressed', async () => {
+      mockApi.get.mockResolvedValue({ data: orgsPayload() });
+      wrapper = mountView();
+      await flushPromises();
+
+      const searchInput = wrapper.find('#kit-filter-search');
+      await searchInput.setValue('acme');
+      await searchInput.trigger('keydown', { key: 'Enter' });
+      await flushPromises();
+
+      expect(mockApi.get).toHaveBeenLastCalledWith('/api/colonel/organizations', {
+        params: { page: 1, per_page: 50, search: 'acme' },
+      });
+    });
+
+    it('fetches with the search term when the search button is clicked', async () => {
+      mockApi.get.mockResolvedValue({ data: orgsPayload() });
+      wrapper = mountView();
+      await flushPromises();
+
+      const searchInput = wrapper.find('#kit-filter-search');
+      await searchInput.setValue('acme');
+      const submitBtn = wrapper
+        .findAll('button')
+        .find((btn) => btn.text().includes('searchSubmit'));
+      expect(submitBtn).toBeDefined();
+      await submitBtn!.trigger('click');
+      await flushPromises();
+
+      expect(mockApi.get).toHaveBeenLastCalledWith('/api/colonel/organizations', {
+        params: { page: 1, per_page: 50, search: 'acme' },
+      });
+    });
+
+    it('trims whitespace from search term before submitting', async () => {
+      mockApi.get.mockResolvedValue({ data: orgsPayload() });
+      wrapper = mountView();
+      await flushPromises();
+
+      const searchInput = wrapper.find('#kit-filter-search');
+      await searchInput.setValue('  acme corp  ');
+      await searchInput.trigger('keydown', { key: 'Enter' });
+      await flushPromises();
+
+      expect(mockApi.get).toHaveBeenLastCalledWith('/api/colonel/organizations', {
+        params: { page: 1, per_page: 50, search: 'acme corp' },
+      });
+    });
+
+    it('skips redundant fetch when search term has not changed', async () => {
+      mockApi.get.mockResolvedValue({ data: orgsPayload() });
+      wrapper = mountView();
+      await flushPromises();
+
+      const searchInput = wrapper.find('#kit-filter-search');
+
+      // First search
+      await searchInput.setValue('acme');
+      await searchInput.trigger('keydown', { key: 'Enter' });
+      await flushPromises();
+      const callCountAfterFirst = mockApi.get.mock.calls.length;
+
+      // Same search again (should be no-op)
+      await searchInput.trigger('keydown', { key: 'Enter' });
+      await flushPromises();
+
+      expect(mockApi.get.mock.calls.length).toBe(callCountAfterFirst);
+    });
+
+    it('clears search term when clear button is clicked', async () => {
+      mockApi.get.mockResolvedValue({ data: orgsPayload() });
+      wrapper = mountView();
+      await flushPromises();
+
+      // Set a search term and submit
+      const searchInput = wrapper.find('#kit-filter-search');
+      await searchInput.setValue('acme');
+      await searchInput.trigger('keydown', { key: 'Enter' });
+      await flushPromises();
+
+      // Find and click the clear button inside the FilterBar
+      const clearBtn = wrapper.findAll('button').find((btn) => btn.text().includes('clearFilters'));
+      expect(clearBtn).toBeDefined();
+      await clearBtn!.trigger('click');
+      await flushPromises();
+
+      // Should fetch without the search param
+      expect(mockApi.get).toHaveBeenLastCalledWith('/api/colonel/organizations', {
+        params: { page: 1, per_page: 50 },
+      });
+    });
+  });
+});

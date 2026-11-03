@@ -1,0 +1,773 @@
+# spec/unit/onetime/config/auth_config_sso_form_action_origins_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+require 'rack/mock'
+require 'onetime/middleware/http_origin_options'
+require_relative '../../../support/saml/test_idp'
+require 'tempfile'
+require 'fileutils'
+
+# Tests for AuthConfig#sso_form_action_origins — the boot-time set of SSO
+# identity-provider origins the CSP form-action directive must allow so the
+# SSO form POST that 302-redirects to the IdP is not blocked by Chromium.
+#
+# Provider-derived origins reuse #sso_providers' gate (SSO enabled + required
+# env vars present); SSO_FORM_ACTION_ORIGINS is merged in unconditionally.
+#
+# Strategy mirrors auth_config_spec.rb: write a minimal YAML config to a temp
+# file, point ConfigResolver at it, save/restore the touched env, and reset the
+# singleton between examples.
+#
+# Run: pnpm run test:rspec spec/unit/onetime/config/auth_config_sso_form_action_origins_spec.rb
+RSpec.describe Onetime::AuthConfig do
+  let(:temp_dir) { Dir.mktmpdir('auth_config_sso_origins_test') }
+  let(:config_path) { File.join(temp_dir, 'auth.yaml') }
+
+  # Minimal config: full mode, SSO feature gated on AUTH_SSO_ENABLED.
+  let(:base_yaml) do
+    <<~YAML
+      ---
+      mode: <%= ENV['AUTHENTICATION_MODE'] || 'full' %>
+      simple: {}
+      full:
+        database_url: "sqlite::memory:"
+        features:
+          verify_account: false
+          sso: <%= ENV['AUTH_SSO_ENABLED'] == 'true' %>
+        sso:
+          sso_display_name: ''
+    YAML
+  end
+
+  # ENV families the helper reads — saved and restored around each example.
+  let(:env_vars) do
+    %w[
+      AUTHENTICATION_MODE AUTH_SSO_ENABLED
+      OIDC_ISSUER OIDC_CLIENT_ID
+      ENTRA_TENANT_ID ENTRA_CLIENT_ID ENTRA_CLIENT_SECRET
+      GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET
+      GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET
+      GITLAB_CLIENT_ID GITLAB_CLIENT_SECRET
+      APPLE_CLIENT_ID APPLE_TEAM_ID APPLE_KEY_ID APPLE_PRIVATE_KEY
+      SAML_ENABLED SAML_IDP_SSO_SERVICE_URL SAML_IDP_ENTITY_ID SAML_IDP_CERT SAML_SP_ENTITY_ID
+      SSO_FORM_ACTION_ORIGINS
+    ]
+  end
+
+  before do
+    @saved_env = env_vars.map { |k| [k, ENV.fetch(k, nil)] }.to_h
+    env_vars.each { |k| ENV.delete(k) }
+    File.write(config_path, base_yaml)
+    allow(Onetime::Utils::ConfigResolver).to receive(:resolve)
+      .with('auth').and_return(config_path)
+  end
+
+  after do
+    @saved_env.each do |k, v|
+      v.nil? ? ENV.delete(k) : ENV[k] = v
+    end
+    described_class.instance_variable_set(:@singleton__instance__, nil)
+    FileUtils.rm_rf(temp_dir)
+  end
+
+  # Reset the singleton, re-render the ERB with the given env, return a fresh
+  # instance. AUTH_SSO_ENABLED defaults ON here so provider env vars actually
+  # gate a provider (SSO must be enabled for provider origins to appear).
+  def fresh_config(sso_enabled: true, **env_overrides)
+    ENV['AUTH_SSO_ENABLED']                 = 'true' if sso_enabled
+    env_overrides.each { |k, v| ENV[k.to_s] = v }
+    described_class.instance_variable_set(:@singleton__instance__, nil)
+    File.write(config_path, base_yaml)
+    described_class.instance
+  end
+
+  # The origins allowed to RECEIVE the redirect (CSP form-action) and the
+  # origins allowed to POST a callback BACK (HttpOriginOptions) have to be the
+  # same set, or a flow can start and not finish. #sso_idp_origins exists so
+  # the per-request middleware caller can ask that question without tripping
+  # #sso_form_action_origins' split-endpoint warning on every request; these
+  # pin the two properties that split relies on.
+  describe '#sso_idp_origins' do
+    it 'returns the same origins as the CSP form-action set' do
+      config = fresh_config(
+        'GITHUB_CLIENT_ID' => 'id',
+        'GITHUB_CLIENT_SECRET' => 'secret',
+        'OIDC_ISSUER' => 'https://idp.example.com',
+        'OIDC_CLIENT_ID' => 'id',
+      )
+      expect(config.sso_idp_origins)
+        .to match_array(config.sso_form_action_origins)
+    end
+
+    it 'includes the SSO_FORM_ACTION_ORIGINS override' do
+      # An operator-declared IdP origin is trusted for both directions.
+      config = fresh_config('SSO_FORM_ACTION_ORIGINS' => 'https://idp.example.org')
+      expect(config.sso_idp_origins).to include('https://idp.example.org')
+    end
+
+    it 'returns [] when nothing is configured' do
+      expect(fresh_config.sso_idp_origins).to eq([])
+    end
+
+    # The whole reason for the split: the middleware calls this per request,
+    # and #sso_form_action_origins logs a warning in exactly this combination.
+    it 'does not log when an override is set with no active provider' do
+      expect(OT).not_to receive(:lw)
+      config = fresh_config('SSO_FORM_ACTION_ORIGINS' => 'https://idp.example.org')
+      config.sso_idp_origins
+    end
+  end
+
+  # #4513: the cached issuer verdict only withholds the login button. It is
+  # per-process state, so the origins HttpOrigin trusts for callbacks (and the
+  # boot-built CSP form-action set) must not depend on it.
+  describe 'with a cached install-wide OIDC issuer mismatch' do
+    let(:issuer) { 'https://idp.example.com' }
+
+    before do
+      Onetime::SsoProvider::IssuerValidation.reset!
+      result  = Onetime::SsoProvider::DiscoveryFetcher::Result.new(
+        status: :ok,
+        url: nil,
+        http_status: 200,
+        http_message: 'OK',
+        content_type: 'application/json',
+        body: { issuer: "#{issuer}/" }.to_json,
+        error: nil,
+      )
+      fetcher = instance_double(Onetime::SsoProvider::DiscoveryFetcher, fetch: result)
+      Onetime::SsoProvider::IssuerValidation.verify(issuer, fetcher: fetcher)
+    end
+
+    after { Onetime::SsoProvider::IssuerValidation.reset! }
+
+    it 'keeps the OIDC origin in #sso_idp_origins and #sso_form_action_origins' do
+      config = fresh_config(OIDC_ISSUER: issuer, OIDC_CLIENT_ID: 'cid', GOOGLE_CLIENT_ID: 'g', GOOGLE_CLIENT_SECRET: 's')
+
+      expect(config.sso_idp_origins).to contain_exactly(issuer, 'https://accounts.google.com')
+      expect(config.sso_form_action_origins).to contain_exactly(issuer, 'https://accounts.google.com')
+    end
+  end
+
+  describe '#sso_form_action_origins' do
+    it 'returns [] when nothing is configured' do
+      expect(fresh_config.sso_form_action_origins).to eq([])
+    end
+
+    # ── per-provider origins ─────────────────────────────────────────
+
+    it 'includes the Google origin when Google is active' do
+      config = fresh_config('GOOGLE_CLIENT_ID' => 'id', 'GOOGLE_CLIENT_SECRET' => 'secret')
+      expect(config.sso_form_action_origins).to contain_exactly('https://accounts.google.com')
+    end
+
+    it 'includes the GitHub origin when GitHub is active' do
+      config = fresh_config('GITHUB_CLIENT_ID' => 'id', 'GITHUB_CLIENT_SECRET' => 'secret')
+      expect(config.sso_form_action_origins).to contain_exactly('https://github.com')
+    end
+
+    it 'includes the GitLab origin when GitLab is active' do
+      config = fresh_config('GITLAB_CLIENT_ID' => 'id', 'GITLAB_CLIENT_SECRET' => 'secret')
+      expect(config.sso_form_action_origins).to contain_exactly('https://gitlab.com')
+    end
+
+    it 'includes the Apple origin when Apple is active' do
+      config = fresh_config(
+        'APPLE_CLIENT_ID' => 'com.example.web',
+        'APPLE_TEAM_ID' => 'TEAM123456',
+        'APPLE_KEY_ID' => 'KEY1234567',
+        'APPLE_PRIVATE_KEY' => 'pem',
+      )
+      expect(config.sso_form_action_origins).to contain_exactly('https://appleid.apple.com')
+    end
+
+    # SAML (#4450). The HTTP-POST binding makes SAML the second provider,
+    # after Apple, whose callback is a CROSS-SITE POST — so the IdP origin has
+    # to be in BOTH sets: form-action (to receive the redirect) and the
+    # HttpOrigin allowance (to post the response back).
+    describe 'SAML' do
+      let(:saml_env) do
+        {
+          'SAML_ENABLED' => 'true',
+          'SAML_IDP_SSO_SERVICE_URL' => 'https://login.idp.example.com:8443/saml/sso?tenant=x',
+          # A different host on purpose: an EntityID is a name, not the login
+          # endpoint, and must contribute nothing.
+          'SAML_IDP_ENTITY_ID' => 'https://entity.idp.example.com/saml/metadata',
+          'SAML_IDP_CERT' => SamlSpec::TestIdp.new.cert_pem,
+          'SAML_SP_ENTITY_ID' => 'https://ots.example.com/auth/sso/saml/metadata',
+        }
+      end
+
+      # The SAML-compatible session cookie: provider_active? (:vars_valid →
+      # Saml.platform_usable?) checks it first, and the lane config carries
+      # the shipped lax cookie.
+      before do
+        allow(Onetime).to receive(:session_config).and_return('same_site' => 'none', 'secure' => true)
+      end
+
+      def callback_env(origin, path: '/auth/sso/saml/callback', method: 'POST', base_url: Onetime::SsoProvider::Saml.platform_base_url)
+        # MockRequest skips DetectHost/DomainStrategy, which supply this host
+        # in the real stack. Use the registered ACS base, not the SP EntityID.
+        Rack::MockRequest.env_for("#{base_url}#{path}",
+          method: method,
+          'HTTP_ORIGIN' => origin,
+          'onetime.display_domain' => URI.parse(base_url).host)
+      end
+
+      def admitted?(config, env)
+        allow(Onetime).to receive(:auth_config).and_return(config)
+        Onetime::Middleware::HttpOriginOptions.sso_callback_from_configured_idp?(env)
+      end
+
+      it 'derives the origin from the SSO service URL, never the EntityID' do
+        config = fresh_config(**saml_env)
+
+        expect(config.sso_form_action_origins).to contain_exactly('https://login.idp.example.com:8443')
+        expect(config.sso_idp_origins).to match_array(config.sso_form_action_origins)
+      end
+
+      it 'admits the cross-site POST callback from that origin, and only that origin' do
+        config = fresh_config(**saml_env)
+
+        expect(admitted?(config, callback_env('https://login.idp.example.com:8443'))).to be true
+        expect(admitted?(config, callback_env('https://entity.idp.example.com'))).to be false
+        expect(admitted?(config, callback_env('https://login.idp.example.com'))).to be false
+      end
+
+      it 'refuses the configured platform IdP origin off the pinned host or without a resolved host' do
+        config = fresh_config(**saml_env)
+        origin = 'https://login.idp.example.com:8443'
+        offhost = "https://tenant.#{URI.parse(Onetime::SsoProvider::Saml.platform_base_url).host}"
+
+        expect(admitted?(config, callback_env(origin, base_url: offhost))).to be false
+        env = callback_env(origin)
+        env.delete('onetime.display_domain')
+        expect(admitted?(config, env)).to be false
+      end
+
+      it 'keeps Origin protection on the SAML request phase and the other sub-paths' do
+        config = fresh_config(**saml_env)
+        origin = 'https://login.idp.example.com:8443'
+
+        expect(admitted?(config, callback_env(origin, path: '/auth/sso/saml'))).to be false
+        expect(admitted?(config, callback_env(origin, path: '/auth/sso/saml/metadata'))).to be false
+        expect(admitted?(config, callback_env(origin, path: '/auth/sso/saml/slo'))).to be false
+      end
+
+      # configure_provider skips an unusable SAML config, so nothing may be
+      # widened for it either: no form-action origin, no POST allowance.
+      it 'contributes nothing when the config is present but unusable' do
+        config = fresh_config(**saml_env, 'SAML_IDP_CERT' => 'not a certificate')
+
+        expect(config.sso_form_action_origins).to eq([])
+        expect(admitted?(config, callback_env('https://login.idp.example.com:8443'))).to be false
+      end
+
+      # The install-wide switch (#4604): no route is registered while it is
+      # off, so no form-action origin and no POST allowance either.
+      it 'contributes nothing while SAML_ENABLED is off, with the config complete and usable' do
+        config = fresh_config(**saml_env, 'SAML_ENABLED' => 'false')
+
+        expect(config.sso_form_action_origins).to eq([])
+        expect(config.sso_idp_origins).to eq([])
+        expect(admitted?(config, callback_env('https://login.idp.example.com:8443'))).to be false
+      end
+
+      it 'contributes nothing when SSO is disabled' do
+        config = fresh_config(sso_enabled: false, **saml_env)
+
+        expect(config.sso_idp_origins).to eq([])
+      end
+    end
+
+    it 'includes the (commercial-cloud) Entra origin when Entra is active' do
+      config = fresh_config(
+        'ENTRA_TENANT_ID' => 'tenant',
+        'ENTRA_CLIENT_ID' => 'id',
+        'ENTRA_CLIENT_SECRET' => 'secret',
+      )
+      expect(config.sso_form_action_origins).to contain_exactly('https://login.microsoftonline.com')
+    end
+
+    it 'derives the OIDC origin from OIDC_ISSUER' do
+      config = fresh_config('OIDC_ISSUER' => 'https://idp.example.com/realms/main', 'OIDC_CLIENT_ID' => 'id')
+      expect(config.sso_form_action_origins).to contain_exactly('https://idp.example.com')
+    end
+
+    it 'keeps a non-default port in the derived OIDC origin' do
+      config = fresh_config('OIDC_ISSUER' => 'https://idp.example.com:8443/x', 'OIDC_CLIENT_ID' => 'id')
+      expect(config.sso_form_action_origins).to contain_exactly('https://idp.example.com:8443')
+    end
+
+    it 'omits the default 443 port from the derived OIDC origin' do
+      config = fresh_config('OIDC_ISSUER' => 'https://idp.example.com:443/x', 'OIDC_CLIENT_ID' => 'id')
+      expect(config.sso_form_action_origins).to contain_exactly('https://idp.example.com')
+    end
+
+    # Non-TLS http is accepted on purpose: internal OIDC providers commonly run
+    # without TLS. Documents that origin_from_url keeps http, only rejecting
+    # non-http(s) schemes (see the ftp override case below).
+    it 'accepts a plain-http OIDC_ISSUER (internal non-TLS provider)' do
+      config = fresh_config('OIDC_ISSUER' => 'http://internal-idp.example.com', 'OIDC_CLIENT_ID' => 'id')
+      expect(config.sso_form_action_origins).to contain_exactly('http://internal-idp.example.com')
+    end
+
+    # ── malformed / blank OIDC issuer is tolerated ───────────────────
+
+    it 'tolerates a malformed OIDC_ISSUER by skipping it (no raise)' do
+      config = fresh_config('OIDC_ISSUER' => 'not a valid uri', 'OIDC_CLIENT_ID' => 'id')
+      expect { config.sso_form_action_origins }.not_to raise_error
+      expect(config.sso_form_action_origins).to eq([])
+    end
+
+    it 'tolerates a schemeless OIDC_ISSUER by skipping it' do
+      config = fresh_config('OIDC_ISSUER' => 'idp.example.com', 'OIDC_CLIENT_ID' => 'id')
+      expect(config.sso_form_action_origins).to eq([])
+    end
+
+    it 'skips OIDC when OIDC_ISSUER is blank (provider does not gate in)' do
+      config = fresh_config('OIDC_ISSUER' => '', 'OIDC_CLIENT_ID' => 'id')
+      expect(config.sso_form_action_origins).to eq([])
+    end
+
+    # URI.parse('https://') sets #host to '' (not nil), so the hostless-guard
+    # must treat an empty host as unresolvable — otherwise a degenerate
+    # bare-scheme "https://" origin leaks into the CSP form-action directive.
+    # The provider still gates in (OIDC_ISSUER is non-empty), so this exercises
+    # the origin-derivation guard, not the provider gate.
+    it 'skips OIDC (no bare-scheme origin) when OIDC_ISSUER is scheme-only "https://"' do
+      config  = fresh_config('OIDC_ISSUER' => 'https://', 'OIDC_CLIENT_ID' => 'id')
+      expect { config.sso_form_action_origins }.not_to raise_error
+      origins = config.sso_form_action_origins
+      expect(origins).to eq([])
+      expect(origins).not_to include('https://')
+    end
+
+    it 'skips OIDC (no bare-scheme origin) when OIDC_ISSUER is hostless "https:///path"' do
+      config  = fresh_config('OIDC_ISSUER' => 'https:///path', 'OIDC_CLIENT_ID' => 'id')
+      expect { config.sso_form_action_origins }.not_to raise_error
+      origins = config.sso_form_action_origins
+      expect(origins).to eq([])
+      expect(origins).not_to include('https://')
+    end
+
+    # ── multiple active providers ────────────────────────────────────
+
+    it 'collects origins from every active provider' do
+      config = fresh_config(
+        'GOOGLE_CLIENT_ID' => 'id',
+        'GOOGLE_CLIENT_SECRET' => 'secret',
+        'GITHUB_CLIENT_ID' => 'id',
+        'GITHUB_CLIENT_SECRET' => 'secret',
+      )
+      expect(config.sso_form_action_origins).to contain_exactly(
+        'https://accounts.google.com',
+        'https://github.com',
+      )
+    end
+
+    # ── SSO_FORM_ACTION_ORIGINS override ─────────────────────────────
+
+    it 'merges the space-separated SSO_FORM_ACTION_ORIGINS override' do
+      config = fresh_config(
+        'SSO_FORM_ACTION_ORIGINS' => 'https://login.microsoftonline.us https://sso.example.org',
+      )
+      expect(config.sso_form_action_origins).to contain_exactly(
+        'https://login.microsoftonline.us',
+        'https://sso.example.org',
+      )
+    end
+
+    it 'applies the override even with zero active providers' do
+      config = fresh_config(sso_enabled: false, 'SSO_FORM_ACTION_ORIGINS' => 'https://sso.example.org')
+      expect(config.sso_form_action_origins).to contain_exactly('https://sso.example.org')
+    end
+
+    it 'applies the override even in simple mode (independent of provider gating)' do
+      config = fresh_config(
+        sso_enabled: false,
+        'AUTHENTICATION_MODE' => 'simple',
+        'SSO_FORM_ACTION_ORIGINS' => 'https://sso.example.org',
+      )
+      expect(config.sso_form_action_origins).to contain_exactly('https://sso.example.org')
+    end
+
+    it 'de-duplicates when the override repeats a provider-derived origin' do
+      config = fresh_config(
+        'GOOGLE_CLIENT_ID' => 'id',
+        'GOOGLE_CLIENT_SECRET' => 'secret',
+        'SSO_FORM_ACTION_ORIGINS' => 'https://accounts.google.com',
+      )
+      expect(config.sso_form_action_origins).to contain_exactly('https://accounts.google.com')
+    end
+
+    # ── SSO_FORM_ACTION_ORIGINS override validation ──────────────────
+    # Override tokens are routed through origin_from_url and dropped unless they
+    # resolve to a clean http(s) origin. Unvalidated tokens would inject into
+    # the CSP form-action directive; otto's reject_injection! then 500s every
+    # request.
+
+    it 'drops a schemeless override token' do
+      config = fresh_config('SSO_FORM_ACTION_ORIGINS' => 'login.microsoftonline.us')
+      expect(config.sso_form_action_origins).to eq([])
+    end
+
+    # KEY REGRESSION GUARD: a semicolon-injection value must never yield an
+    # origin token carrying ';'. URI.parse keeps the trailing ';' on the host,
+    # so the host guard in origin_from_url must reject it.
+    it 'never emits an origin containing a semicolon from an injection value' do
+      config  = fresh_config(
+        'SSO_FORM_ACTION_ORIGINS' => 'https://idp.example.com; script-src https://evil.example',
+      )
+      origins = config.sso_form_action_origins
+      expect(origins).to all(satisfy { |o| !o.include?(';') })
+      expect(origins).not_to include('https://idp.example.com;')
+    end
+
+    it 'drops a non-http(s) override token (ftp)' do
+      config = fresh_config('SSO_FORM_ACTION_ORIGINS' => 'ftp://files.example.com')
+      expect(config.sso_form_action_origins).to eq([])
+    end
+
+    # ── parity with otto's own extras validator ──────────────────────
+    # origin_from_url funnels its candidate through
+    # Otto::Security::CSP::RequestExtras.normalize_origin. A token this app
+    # accepts but otto later drops at policy-build time is the silent #4173
+    # failure: the operator gets a generic otto warning naming neither the
+    # source nor the record, and the redirect is blocked in the browser only.
+
+    it 'keeps an override token with a valid explicit port' do
+      config = fresh_config('SSO_FORM_ACTION_ORIGINS' => 'https://idp.example.com:8443')
+      expect(config.sso_form_action_origins).to contain_exactly('https://idp.example.com:8443')
+    end
+
+    it 'drops an override token whose port is 0 (below otto\'s 1..65535 range)' do
+      config = fresh_config('SSO_FORM_ACTION_ORIGINS' => 'https://idp.example.com:0')
+      expect(config.sso_form_action_origins).to eq([])
+    end
+
+    it 'drops an override token whose port is above 65535' do
+      config = fresh_config('SSO_FORM_ACTION_ORIGINS' => 'https://idp.example.com:70000')
+      expect(config.sso_form_action_origins).to eq([])
+    end
+
+    it 'drops an override token whose host contains a percent-encoding' do
+      config = fresh_config('SSO_FORM_ACTION_ORIGINS' => 'https://idp%00.example.com')
+      expect(config.sso_form_action_origins).to eq([])
+    end
+
+    it 'logs a token otto would have dropped, so the misconfiguration is visible' do
+      allow(OT).to receive(:lw)
+      fresh_config('SSO_FORM_ACTION_ORIGINS' => 'https://idp.example.com:70000')
+        .sso_form_action_origins
+      expect(OT).to have_received(:lw).with(/SSO_FORM_ACTION_ORIGINS token/)
+    end
+
+    it 'emits only origins otto would accept unchanged' do
+      origins    = fresh_config(
+        'OIDC_ISSUER' => 'https://idp.example.com:8443/realms/main',
+        'OIDC_CLIENT_ID' => 'id',
+        'SSO_FORM_ACTION_ORIGINS' => 'https://sso.example.org http://internal-idp:8080',
+      ).sso_form_action_origins
+      normalized = origins.map { |o| Otto::Security::CSP::RequestExtras.normalize_origin(o) }
+      expect(normalized).to eq(origins)
+    end
+
+    # ── SSO feature disabled ─────────────────────────────────────────
+
+    it 'ignores provider env vars when the SSO feature is disabled' do
+      config = fresh_config(sso_enabled: false, 'GOOGLE_CLIENT_ID' => 'id', 'GOOGLE_CLIENT_SECRET' => 'secret')
+      expect(config.sso_form_action_origins).to eq([])
+    end
+  end
+
+  # The per-request complement (#4173): Onetime::Middleware::TenantCspExtras
+  # feeds a tenant's CustomDomain::SsoConfig through this funnel to widen the
+  # CSP form-action directive for that request only. The issuer is
+  # tenant-supplied (attacker-influenced), so every oidc value must survive
+  # origin_from_url or resolve to nil.
+  describe '#tenant_idp_origin' do
+    def tenant_sso_config(provider_type:, issuer: nil)
+      double('CustomDomain::SsoConfig', provider_type: provider_type, issuer: issuer)
+    end
+
+    # ── oidc: issuer-derived through origin_from_url ─────────────────
+
+    it 'extracts the issuer origin for an oidc config, stripping the path' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: 'https://idp.tenant.example/realms/main')
+      expect(fresh_config.tenant_idp_origin(config)).to eq('https://idp.tenant.example')
+    end
+
+    it 'preserves a non-default port in the oidc issuer origin' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: 'https://idp.tenant.example:8443/x')
+      expect(fresh_config.tenant_idp_origin(config)).to eq('https://idp.tenant.example:8443')
+    end
+
+    it 'omits the default 443 port from the oidc issuer origin' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: 'https://idp.tenant.example:443/x')
+      expect(fresh_config.tenant_idp_origin(config)).to eq('https://idp.tenant.example')
+    end
+
+    it 'strips a bare trailing slash (otto extras reject any path, even "/")' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: 'https://idp.tenant.example/')
+      expect(fresh_config.tenant_idp_origin(config)).to eq('https://idp.tenant.example')
+    end
+
+    # ── oidc: malformed / hostile issuers resolve to nil, never raise ─
+
+    it 'returns nil for a blank issuer' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: '')
+      expect(fresh_config.tenant_idp_origin(config)).to be_nil
+    end
+
+    it 'returns nil for a nil issuer' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: nil)
+      expect(fresh_config.tenant_idp_origin(config)).to be_nil
+    end
+
+    it 'returns nil for a schemeless issuer' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: 'idp.tenant.example')
+      expect(fresh_config.tenant_idp_origin(config)).to be_nil
+    end
+
+    it 'returns nil for a non-http(s) issuer (javascript:)' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: 'javascript:alert(1)')
+      expect(fresh_config.tenant_idp_origin(config)).to be_nil
+    end
+
+    it 'returns nil (never a token with ";") for a semicolon-injection issuer' do
+      config = tenant_sso_config(
+        provider_type: 'oidc',
+        issuer: 'https://idp.tenant.example; script-src https://evil.example',
+      )
+      expect(fresh_config.tenant_idp_origin(config)).to be_nil
+    end
+
+    it 'returns nil (no raise) for an unparseable issuer' do
+      config   = tenant_sso_config(provider_type: 'oidc', issuer: 'not a valid uri')
+      instance = fresh_config
+      expect { instance.tenant_idp_origin(config) }.not_to raise_error
+      expect(instance.tenant_idp_origin(config)).to be_nil
+    end
+
+    # ── issuers otto would drop must be rejected HERE ─────────────────
+    # An issuer that clears this funnel but fails otto's own sanitizer is
+    # dropped at policy-build time with a warning naming neither the domain
+    # nor the SsoConfig record — TenantCspExtras only reaches
+    # warn_rejected_origin_source when the origin comes back nil, so the
+    # rejection must happen here for the operator to hear about it (#4173).
+
+    it 'returns nil for an issuer whose port is 0 (below otto\'s 1..65535 range)' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: 'https://idp.tenant.example:0/realms/x')
+      expect(fresh_config.tenant_idp_origin(config)).to be_nil
+    end
+
+    it 'returns nil for an issuer whose port is above 65535' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: 'https://idp.tenant.example:70000/realms/x')
+      expect(fresh_config.tenant_idp_origin(config)).to be_nil
+    end
+
+    it 'returns nil for an issuer whose host contains a percent-encoding' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: 'https://idp%00.tenant.example/realms/x')
+      expect(fresh_config.tenant_idp_origin(config)).to be_nil
+    end
+
+    # RHS is otto's OWN normalization of the expected origin: if otto would
+    # reject or rewrite this value, the two sides diverge and this fails.
+    it 'returns an origin otto would accept unchanged' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: 'https://IDP.Tenant.Example:8443/realms/x')
+      expect(fresh_config.tenant_idp_origin(config)).to eq(
+        Otto::Security::CSP::RequestExtras.normalize_origin('https://idp.tenant.example:8443'),
+      )
+    end
+
+    # ── entra_id: static registry origin ─────────────────────────────
+
+    it 'returns the registry commercial-cloud origin for entra_id, ignoring any issuer' do
+      config = tenant_sso_config(provider_type: 'entra_id', issuer: 'https://sts.windows.net/tenant/')
+      expect(fresh_config.tenant_idp_origin(config))
+        .to eq(Onetime::SsoProvider::Entra::DEFINITION[:idp_origin])
+      expect(fresh_config.tenant_idp_origin(config)).to eq('https://login.microsoftonline.com')
+    end
+
+    # ── everything else ──────────────────────────────────────────────
+
+    it 'returns nil for an unknown provider_type' do
+      config = tenant_sso_config(provider_type: 'github', issuer: 'https://github.com')
+      expect(fresh_config.tenant_idp_origin(config)).to be_nil
+    end
+
+    it 'returns nil (no raise) when a mapped provider has no registry definition' do
+      # Guards route-map/registry drift: a PROVIDER_ROUTE_MAP entry whose
+      # route has no SsoProvider::Registry definition must answer nil per
+      # request — Registry.fetch would raise KeyError, which is right for
+      # boot-time typos but would 500 the CSP middleware path.
+      stub_const(
+        'Onetime::CustomDomain::SsoConfig::PROVIDER_ROUTE_MAP',
+        Onetime::CustomDomain::SsoConfig::PROVIDER_ROUTE_MAP.merge(
+          'future_idp' => { env_var: 'FUTURE_ROUTE_NAME', default: 'future' },
+        ),
+      )
+      config   = tenant_sso_config(provider_type: 'future_idp')
+      instance = fresh_config
+      expect { instance.tenant_idp_origin(config) }.not_to raise_error
+      expect(instance.tenant_idp_origin(config)).to be_nil
+    end
+
+    it 'returns nil for a nil sso_config' do
+      expect(fresh_config.tenant_idp_origin(nil)).to be_nil
+    end
+  end
+
+  # The dispatch #tenant_idp_origin runs internally, exposed because
+  # Onetime::Middleware::TenantCspExtras needs to tell "the tenant typed a bad
+  # issuer" (operator-fixable, worth a warning) apart from registry drift (a
+  # deploy bug, where naming the issuer would name the wrong cause). Pinned
+  # here so the two callers cannot drift apart silently.
+  describe '#tenant_origin_source' do
+    def tenant_sso_config(provider_type:, issuer: nil)
+      double('CustomDomain::SsoConfig', provider_type: provider_type, issuer: issuer)
+    end
+
+    it 'returns the stripped issuer for a record-derived provider type' do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: '  https://idp.example.com/x  ')
+      expect(fresh_config.tenant_origin_source(config)).to eq('https://idp.example.com/x')
+    end
+
+    it 'returns the raw hostile issuer unfiltered (validation is the funnel\'s job)' do
+      config   = tenant_sso_config(provider_type: 'oidc', issuer: 'https://a.example; script-src *')
+      instance = fresh_config
+      expect(instance.tenant_origin_source(config)).to eq('https://a.example; script-src *')
+      expect(instance.tenant_idp_origin(config)).to be_nil
+    end
+
+    it "returns '' for a record-derived type whose source field is unset" do
+      config = tenant_sso_config(provider_type: 'oidc', issuer: nil)
+      expect(fresh_config.tenant_origin_source(config)).to eq('')
+    end
+
+    it 'returns nil for a registry-derived provider type, even with an issuer set' do
+      config = tenant_sso_config(provider_type: 'entra_id', issuer: 'https://stale.example.com')
+      expect(fresh_config.tenant_origin_source(config)).to be_nil
+    end
+
+    it 'returns nil for an unknown provider type and for a nil sso_config' do
+      instance = fresh_config
+      expect(instance.tenant_origin_source(tenant_sso_config(provider_type: 'nope'))).to be_nil
+      expect(instance.tenant_origin_source(nil)).to be_nil
+    end
+
+    it 'reads, for every record-derived type, exactly the field the map names' do
+      # Guards the drift this method exists to prevent: a type added to
+      # TENANT_ORIGIN_SOURCE_FIELDS must actually read THAT field of the
+      # record, and no other. A strict double answers only the named field,
+      # so reading any other one fails the example.
+      described_class::TENANT_ORIGIN_SOURCE_FIELDS.each do |provider_type, field|
+        config = double('CustomDomain::SsoConfig', provider_type: provider_type, field => 'https://idp.example.com')
+        expect(fresh_config.tenant_origin_source(config)).to eq('https://idp.example.com')
+      end
+    end
+
+    it 'maps oidc to the issuer and saml to the SSO service URL — never the EntityID' do
+      expect(described_class::TENANT_ORIGIN_SOURCE_FIELDS)
+        .to eq('oidc' => :issuer, 'saml' => :idp_sso_service_url)
+    end
+
+    # Every record-derived type is a configurable tenant type. (The reverse is
+    # not required: entra_id resolves through the static registry.)
+    it 'names only configurable tenant provider types' do
+      expect(described_class::TENANT_ORIGIN_SOURCE_FIELDS.keys - Onetime::CustomDomain::SsoConfig::PROVIDER_TYPES)
+        .to eq([])
+    end
+
+    # ── saml (#4450): an AAD-bound encrypted source field ────────────
+    context 'with a saml config' do
+      # Stands in for Familia::ConcealedString: the value is only reachable
+      # through reveal { }.
+      def concealed(plaintext)
+        Class.new do
+          define_method(:reveal) { |&block| block.call(plaintext) }
+          define_method(:to_s) { '[CONCEALED]' }
+        end.new
+      end
+
+      def saml_config(url)
+        double('CustomDomain::SsoConfig', provider_type: 'saml', idp_sso_service_url: url)
+      end
+
+      it 'reveals the SSO service URL and derives its origin' do
+        config   = saml_config(concealed('  https://login.idp.example/app/saml/sso  '))
+        instance = fresh_config
+
+        expect(instance.tenant_origin_source(config)).to eq('https://login.idp.example/app/saml/sso')
+        expect(instance.tenant_idp_origin(config)).to eq('https://login.idp.example')
+      end
+
+      it 'never reads the platform SAML_IDP_SSO_SERVICE_URL through the registry' do
+        ENV['SAML_IDP_SSO_SERVICE_URL'] = 'https://platform-idp.example/sso'
+        config                          = saml_config(concealed('https://tenant-idp.example/sso'))
+
+        expect(fresh_config.tenant_idp_origin(config)).to eq('https://tenant-idp.example')
+      ensure
+        ENV.delete('SAML_IDP_SSO_SERVICE_URL')
+      end
+
+      it "answers '' and no origin for an unset field — not the registry fallback" do
+        ENV['SAML_IDP_SSO_SERVICE_URL'] = 'https://platform-idp.example/sso'
+        instance                        = fresh_config
+
+        expect(instance.tenant_origin_source(saml_config(nil))).to eq('')
+        expect(instance.tenant_idp_origin(saml_config(nil))).to be_nil
+      ensure
+        ENV.delete('SAML_IDP_SSO_SERVICE_URL')
+      end
+
+      it "fails closed to '' when the field cannot be decrypted" do
+        unreadable = Class.new { def reveal = raise(Familia::EncryptionError, 'auth tag') }.new
+        instance   = fresh_config
+
+        expect(instance.tenant_origin_source(saml_config(unreadable))).to eq('')
+        expect(instance.tenant_idp_origin(saml_config(unreadable))).to be_nil
+      end
+
+      it 'rejects a hostile SSO URL in the funnel' do
+        config = saml_config(concealed('https://a.example; script-src *'))
+
+        expect(fresh_config.tenant_idp_origin(config)).to be_nil
+      end
+    end
+  end
+
+  # The funnel as a CLASS method (#4450): the domains API accepts a tenant's
+  # SAML SSO URL only if this derives an origin from it, and reaches it as
+  # Onetime::AuthConfig.origin_from_url so the rule does not depend on which
+  # auth_config instance (or test mock) a process installed. The instance
+  # method must stay a pure delegate so both consumers see one rule.
+  describe '.origin_from_url' do
+    {
+      'https://idp.example.com/saml/sso' => 'https://idp.example.com',
+      'https://IDP.example.com:8443/x' => 'https://idp.example.com:8443',
+      'http://internal-idp.corp/sso' => 'http://internal-idp.corp',
+      'https://10.0.0.5/sso' => 'https://10.0.0.5',
+      'https://idp.example.com;/sso' => nil,
+      %(https://idp.example.com'/sso) => nil,
+      'https://a b.example/sso' => nil,
+      'ftp://idp.example.com/sso' => nil,
+      '' => nil,
+      nil => nil,
+    }.each do |url, origin|
+      it "derives #{origin.inspect} from #{url.inspect}" do
+        expect(described_class.origin_from_url(url)).to eq(origin)
+      end
+    end
+
+    it 'is what the instance method answers' do
+      instance = fresh_config
+      ['https://idp.example.com/saml/sso', 'https://idp.example.com;/sso'].each do |url|
+        expect(instance.origin_from_url(url)).to eq(described_class.origin_from_url(url))
+      end
+    end
+  end
+end

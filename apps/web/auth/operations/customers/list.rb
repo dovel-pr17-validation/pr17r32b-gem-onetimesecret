@@ -1,0 +1,528 @@
+# apps/web/auth/operations/customers/list.rb
+#
+# frozen_string_literal: true
+
+require 'auth/account_statuses'
+require 'auth/database'
+
+module Auth
+  module Operations
+    module Customers
+      # List customers for the admin surfaces (colonel API + `bin/ots customers`).
+      #
+      # This is the ONE implementation of "enumerate customers, optionally filtered
+      # by role, paginated." Both the colonel `ListUsers` Logic class and the CLI
+      # `customers list` command are thin adapters over it. It is read-only, so it
+      # writes no audit event (only mutating ops audit).
+      #
+      # ## Pagination: index-backed, not load-all-then-slice (epic #20)
+      #
+      # The unfiltered path is the pagination TEMPLATE every later admin list
+      # endpoint copies. It reads exactly one page directly out of the
+      # `Customer.instances` sorted set with `ZREVRANGE (page-1)*per_page ...`
+      # and loads only that page via `load_multi`. It never loads the whole
+      # customer set into Ruby to slice it (the #2211 blocking-enumeration
+      # incident: no unbounded `KEYS`/`SMEMBERS`/load-all on the request path).
+      #
+      # ### Ordering is index-native (deliberate change, epic #20 CONTRACT 6)
+      #
+      # `Customer.instances` is scored by save time (`instances.add(self, Familia.now)`
+      # on every save), so `ZREVRANGE` yields **most-recently-modified first**. The
+      # previous colonel implementation loaded everything and sorted by `created`
+      # descending. Switching to the index-native order is an accepted, deliberate
+      # consequence of paginating at the source — it is what makes single-page reads
+      # possible. `total_count` / `total_pages` are unchanged; only within-page order
+      # differs.
+      #
+      # ### Role filter (bounded cursor SSCAN — epic #20 CONTRACT 8, #2211)
+      #
+      # When a role filter is supplied we read the role's membership from the
+      # `role_index` multi-index, but via a NON-BLOCKING cursor SSCAN over the
+      # role set — never a blocking `SMEMBERS` of a set whose size we do not
+      # control (the #2211 incident). On the request path (paginated, i.e. not
+      # `:all`) the scan also stops after at most `ROLE_FILTER_SCAN_LIMIT`
+      # members, so a filter on the catch-all `customer` role — whose set grows
+      # with the entire customer base — can NEVER load the whole population into
+      # Ruby on a single request. The operational roles (colonel/admin/staff) are
+      # far below that cap, so their filter stays exact and index-backed.
+      #
+      # Trade-off (documented, deliberate): beyond the cap the catch-all
+      # `customer` filter returns a bounded window rather than an exactly
+      # paginated full set. A per-role SORTED index that lets the filtered path
+      # `ZREVRANGE` a single page (like the unfiltered path) is the follow-up for
+      # exact deep pagination of a high-cardinality role. This replaces the prior
+      # `find_all_by_role` — a blocking `SMEMBERS` + load-all-then-slice, which
+      # was the residual request-path unbounded enumeration flagged on the slice.
+      #
+      # ### Search (bounded email HSCAN + exact identifier lookups)
+      #
+      # "Look up the account that just emailed you" is the #1 admin action, so
+      # the op supports a free-text `search` term. It resolves four ways and
+      # merges the results (deduped by objid):
+      #
+      # 1. Email substring — a bounded cursor HSCAN over the
+      #    `customer:email_index` hash (email -> objid) with a server-side
+      #    `*term*` glob — the same scan-with-match mechanism the sessions
+      #    listing uses, but against the index instead of the keyspace. It
+      #    never enumerates customer objects. Bounded twice (CONTRACT 8 /
+      #    #2211): matches are capped at SEARCH_MATCH_LIMIT and the scan stops
+      #    after SEARCH_SCAN_ROUNDS round-trips, so a no-match search over a
+      #    huge customer base can never turn one request into an unbounded
+      #    walk. The glob term is escaped, so user input cannot inject pattern
+      #    syntax.
+      #
+      #    The glob is CASE-INSENSITIVE (every ASCII letter widened to a `[aA]`
+      #    class via OT::Utils.glob_case_insensitive). Redis MATCH is
+      #    case-sensitive and the index keys are NOT guaranteed lowercase: only
+      #    Customer.create! normalizes the address, so migrated legacy
+      #    customers and pre-normalization writers left keys like
+      #    `Bob@Example.com` in place (the customers doctor downcases both
+      #    sides when comparing, which is the admission). Lowercasing the term
+      #    and matching it literally, as this used to, missed every one of
+      #    those customers even on their exact address.
+      # 2. Exact email — when the term contains `@`, a `find_by_email` on the
+      #    NORMALIZED (NFC, case-folded, stripped) term. This is a raw HGET on
+      #    the same index, so it only hits when the stored key is the
+      #    normalized form; it exists so a pasted address resolves in O(1)
+      #    even when the substring scan is capped or exhausts its round budget
+      #    before reaching that key. Mixed-case keys are the scan's job, not
+      #    this arm's.
+      # 3. External id (extid, `ur…s`) — an exact `find_by_extid` on the
+      #    extid_lookup unique index.
+      # 4. Internal id (objid, the UUID primary key) — an exact
+      #    `find_by_identifier`.
+      #
+      # The three exact lookups are O(1) unique-index gets, never scans, so
+      # they add no enumeration cost and are attempted on every search — a
+      # support agent can paste an address, extid or objid straight into the
+      # box and the non-matching lookups simply return nothing (a garbage term
+      # is rescued).
+      # Search composes with the role filter (applied in Ruby on the already
+      # -bounded matches) and is paginated in memory like the filtered path.
+      #
+      # #### Authdb fallback (address-shaped terms only)
+      #
+      # Every arm above reads the Redis email index, and the index is not the
+      # source of truth for "can this person log in": in full auth mode that
+      # is the Rodauth `accounts` row (PG, citext email). Two states make a
+      # real account invisible to a Redis-only search: the index entry
+      # DRIFTED (a half-completed email change, a legacy key that was never
+      # rewritten, a lost HSET) so no scan or HGET reaches the customer; or
+      # the accounts row has no Customer at all (an ORPHAN, the state
+      # `customers diagnose` and `customers doctor` exist to name). In both
+      # the person can log in, or is failing to, while search says "no such
+      # account, check the other regions".
+      #
+      # So when the term contains `@` the op also asks the authdb for that
+      # ONE row: an exact `accounts.email = normalized term` match restricted
+      # to the LIVE statuses. Exact only, one indexed query, never a LIKE
+      # scan: the accounts table is the whole customer base and this list
+      # is on the request path. The status restriction is what makes the
+      # query indexed at all: the only index on accounts.email is PARTIAL
+      # (`where status_id in (1, 2)`, 001_initial.rb), so a query without a
+      # live-status predicate cannot use it and every miss (a typo, an
+      # unknown address, a closed-only account) would walk the whole table
+      # per submit. Diagnose#find_account keeps its any-status second arm
+      # because it is a single explicit deep read; the list does not, and a
+      # closed row is a Diagnose concern. The two states the fallback exists
+      # for are both live by definition: a person who can (or is failing to)
+      # log in has a live row. If the row links (via `external_id`) to a
+      # customer the Redis arms missed, that customer is appended and the
+      # drift is logged by extid; if it links to nothing, the row is
+      # reported in `orphaned_accounts` (never counted in `total_count`,
+      # which counts customers only) so the admin surface can show the
+      # orphan instead of an empty page.
+      #
+      # `Auth::Database.connection` is nil in simple auth mode (there is no
+      # accounts table) and the fallback is skipped silently. In full mode
+      # the connection is LAZY: an unreachable database surfaces as the first
+      # query raising, never as a nil connection, so the query is rescued and
+      # logged (exception class only) and the Redis results stand on their
+      # own. The list must never 500 because the authdb is down.
+      class List
+        # Immutable result. `customers` is a page of loaded Onetime::Customer
+        # objects; the adapters format them for their respective surfaces (the
+        # colonel API enriches with secret counts, the CLI groups by domain).
+        Result = Data.define(
+          :customers,     # Array<Onetime::Customer> — the requested page
+          :total_count,   # Integer — total matching customers (across all pages)
+          :page,          # Integer — clamped page number
+          :per_page,      # Integer — clamped page size (0 when :all requested)
+          :total_pages,   # Integer — ceil(total_count / per_page), 1 when :all
+          :role,          # String, nil — the applied role filter (nil = none)
+          :capped,        # Boolean — scan hit its cap; total_count understates
+          :orphaned_accounts, # Array<Hash> — authdb rows with no customer (search only)
+        ) do
+          # Only the address-shaped search path produces orphans; every other
+          # path (and every older caller building a Result by hand) gets [].
+          def initialize(orphaned_accounts: [], **members)
+            super
+          end
+        end
+
+        # Wire names for accounts.status_id, keyed on the seed ids the
+        # account_statuses table pins (Auth::AccountStatuses). Anything else
+        # is 'unknown' rather than a raise: a status this code has not heard
+        # of must not blank the search. A 'closed' orphan is a row a closure
+        # left before #4819 (closures now delete the row); `bin/ots customers
+        # prune-closed-accounts` removes them.
+        ORPHAN_STATUS_NAMES = {
+          Auth::AccountStatuses::UNVERIFIED => 'unverified',
+          Auth::AccountStatuses::VERIFIED => 'verified',
+          Auth::AccountStatuses::CLOSED => 'closed',
+        }.freeze
+
+        DEFAULT_PER_PAGE = 50
+        MAX_PER_PAGE     = 100
+
+        # Per-round-trip COUNT hint for the non-blocking role_index cursor SSCAN
+        # (mirrors the maintenance jobs' SCAN_COUNT). Bounds work per Redis
+        # round-trip; it is a hint, not a hard page size.
+        SCAN_COUNT = 100
+
+        # Per-round-trip COUNT hint for the email-index cursor HSCAN. Much larger
+        # than SCAN_COUNT on purpose: MATCH filters server-side and each HSCAN
+        # call is sub-millisecond, so the cost of a search is dominated by
+        # round-trips, not by entries examined. At 1k per call a 200k-address
+        # index is covered in ~200 round-trips instead of ~2,000.
+        SEARCH_SCAN_COUNT = 1_000
+
+        # Request-path cap on how many role_index members the filtered path loads
+        # into Ruby. Bounds the degenerate `role=customer` case (that set grows
+        # with the whole customer base) so a single request can never enumerate
+        # the entire population (#2211 / epic #20 CONTRACT 8). Operational roles
+        # sit far below this, so their filter stays exact. `:all` (the off-request
+        # CLI view) is exempt — it reads the whole set, still via the cursor SSCAN.
+        ROLE_FILTER_SCAN_LIMIT = 10_000
+
+        # Cap on how many email-index MATCHES the search path collects. A page
+        # is at most MAX_PER_PAGE rows, so 1k matches is already 10 pages of
+        # results for a support lookup — anything broader is a filter problem,
+        # not a pagination problem.
+        SEARCH_MATCH_LIMIT = 1_000
+
+        # Cap on HSCAN round-trips for one search. With SEARCH_SCAN_COUNT=1000
+        # per round-trip this bounds the index walk at ~1M entries examined even
+        # when the term matches nothing (HSCAN's MATCH filters server-side, so
+        # a no-match term would otherwise walk the entire index).
+        SEARCH_SCAN_ROUNDS = 1_000
+
+        # @param page [Integer] 1-based page number (clamped to >= 1)
+        # @param per_page [Integer, :all] page size (clamped to 1..MAX_PER_PAGE),
+        #   or :all to load every matching customer in one shot. `:all` is for the
+        #   off-request CLI grouping view only — never pass it from a request handler.
+        # @param role [String, nil] optional role filter (blank string treated as nil)
+        # @param search [String, nil] optional search term: an email substring
+        #   (case-insensitive) and/or an exact extid / objid. Blank string
+        #   treated as nil. Composes with the role filter.
+        def initialize(page: 1, per_page: DEFAULT_PER_PAGE, role: nil, search: nil)
+          @all      = (per_page == :all)
+          @page     = [page.to_i, 1].max
+          @per_page = @all ? 0 : clamp_per_page(per_page)
+          role      = role.to_s.strip
+          @role     = role.empty? ? nil : role
+          search    = search.to_s.strip
+          @search   = search.empty? ? nil : search
+        end
+
+        # @return [Result]
+        def call
+          return call_search if @search
+
+          @role ? call_filtered : call_unfiltered
+        end
+
+        private
+
+        def clamp_per_page(value)
+          per_page = value.to_i
+          per_page = DEFAULT_PER_PAGE if per_page <= 0
+          [per_page, MAX_PER_PAGE].min
+        end
+
+        # Unfiltered: page straight out of the instances sorted set (index-native
+        # order), loading only the requested page.
+        def call_unfiltered
+          total_count = Onetime::Customer.instances.element_count
+
+          if @all
+            # `:all` is the off-request CLI grouping view. Enumerate in the
+            # sorted set's natural (ascending save-time) order — matching the
+            # incumbent `Customer.instances.all` — so the CLI grouping stays
+            # byte-identical. Order is irrelevant to the caller's grouping; the
+            # descending index-native order is reserved for the paginated view.
+            objids = Onetime::Customer.instances.range(0, -1)
+            return build_result(load(objids), total_count)
+          end
+
+          start_idx = (@page - 1) * @per_page
+          end_idx   = start_idx + @per_page - 1
+          objids    = Onetime::Customer.instances.revrange(start_idx, end_idx)
+
+          build_result(load(objids), total_count)
+        end
+
+        # Role-filtered: read the role's members from the role_index via a
+        # bounded, non-blocking cursor SSCAN (see class docs), then order + slice.
+        # On the request path the read is capped at ROLE_FILTER_SCAN_LIMIT so an
+        # unbounded role set is never fully loaded; `:all` (off-request) reads all.
+        def call_filtered
+          limit       = @all ? nil : ROLE_FILTER_SCAN_LIMIT
+          member_ids  = scan_role_member_ids(@role, limit: limit)
+          # capped: on the request path the scan stops at ROLE_FILTER_SCAN_LIMIT, so
+          # a full set is truncated and total_count below understates the real
+          # population. Derive from the scanned ids (pre-`load`, which .compacts).
+          capped      = !@all && member_ids.size >= ROLE_FILTER_SCAN_LIMIT
+          matches     = load(member_ids)
+          # Preserve the incumbent within-page ordering for the filtered path
+          # (created descending) — the role_index is an unordered set, so there is
+          # no index-native order to read here.
+          matches.sort_by! { |cust| -(cust.created || 0).to_f }
+          total_count = matches.size
+
+          page = if @all
+            matches
+          else
+            start_idx = (@page - 1) * @per_page
+            end_idx   = start_idx + @per_page - 1
+            matches[start_idx..end_idx] || []
+          end
+
+          build_result(page, total_count, capped: capped)
+        end
+
+        # Search: bounded cursor HSCAN over the email unique index PLUS exact
+        # extid / objid lookups (see class docs), merged and deduped by objid,
+        # then ordered + sliced exactly like the filtered path. The role filter,
+        # when also present, is applied in Ruby on the loaded matches — the match
+        # set is already bounded, so this stays cheap.
+        def call_search
+          # capped: true when the email HSCAN stopped early — at EITHER the match
+          # cap OR the round cap — so total_count below understates the population.
+          # The identifier lookups merged in next are exact singletons (never
+          # truncated), so they can't add hidden matches; the scan is the only
+          # bounded source.
+          email_ids, capped = scan_email_index_matches(@search)
+          matches           = load(email_ids)
+          merge_identifier_matches(matches)
+          # Orphans are NOT customers: they carry no role, so the role filter
+          # below does not apply to them, and they never count in total_count.
+          # A customer the authdb recovers IS appended to matches first, so it
+          # is role-filtered and ordered like every other match.
+          orphaned_accounts = merge_authdb_account(matches)
+          matches.select! { |cust| cust.role.to_s == @role } if @role
+          # Same within-page ordering as the filtered path (created descending);
+          # the email index is a hash, so there is no index-native order here.
+          matches.sort_by! { |cust| -(cust.created || 0).to_f }
+          total_count       = matches.size
+
+          page = if @all
+            matches
+          else
+            start_idx = (@page - 1) * @per_page
+            end_idx   = start_idx + @per_page - 1
+            matches[start_idx..end_idx] || []
+          end
+
+          build_result(page, total_count, capped: capped, orphaned_accounts: orphaned_accounts)
+        end
+
+        # Non-blocking cursor HSCAN of the email_index hash (email -> objid),
+        # matching `*term*` server-side, case-insensitively: the stored keys
+        # are not guaranteed lowercase (see the class docs), and MATCH has no
+        # case-fold flag, so the letters are widened to `[aA]` classes.
+        # Doubly bounded: stops at SEARCH_MATCH_LIMIT collected matches AND at
+        # SEARCH_SCAN_ROUNDS round-trips (see the constants above).
+        #
+        # @return [Array(Array<String>, Boolean)] the collected objids (capped at
+        #   SEARCH_MATCH_LIMIT) and a `capped` flag — true when matches were
+        #   dropped, so total_count understates the population. Two ways that
+        #   happens: the walk stopped before exhausting the index (cursor != '0',
+        #   the round or match bound), OR a completed walk still collected more
+        #   than SEARCH_MATCH_LIMIT and we sliced the overflow off the return.
+        def scan_email_index_matches(term)
+          dbkey    = Onetime::Customer.email_index.dbkey
+          dbclient = Onetime::Customer.dbclient
+          pattern  = "*#{OT::Utils.glob_case_insensitive(term)}*"
+          objids   = []
+          cursor   = '0'
+          rounds   = 0
+
+          loop do
+            cursor, entries = dbclient.hscan(dbkey, cursor, match: pattern, count: SEARCH_SCAN_COUNT)
+            entries.each { |_email, objid| objids << objid }
+            rounds         += 1
+
+            break if cursor == '0'
+            break if objids.size >= SEARCH_MATCH_LIMIT
+            break if rounds >= SEARCH_SCAN_ROUNDS
+          end
+
+          capped = cursor != '0' || objids.size > SEARCH_MATCH_LIMIT
+          [objids.first(SEARCH_MATCH_LIMIT), capped]
+        end
+
+        # Append the exact email / extid / objid lookups for the search term to
+        # the already-loaded email matches, skipping any customer already
+        # present (deduped by objid). All lookups are O(1) unique-index gets —
+        # never a scan — so they cost nothing when they miss. A malformed term (e.g. a
+        # value the identifier index rejects) is rescued to nil rather than
+        # failing the whole search.
+        def merge_identifier_matches(matches)
+          seen = matches.map(&:objid)
+
+          identifier_lookups(@search).each do |cust|
+            next if seen.include?(cust.objid)
+
+            matches << cust
+            seen << cust.objid
+          end
+        end
+
+        # Exact-match customer lookups by normalized email, external id (extid)
+        # and internal id (objid). Returns a (possibly empty) array of
+        # Onetime::Customer.
+        #
+        # The email arm only runs for a term that looks like an address (`@`),
+        # and it is a raw HGET on the email_index, so it hits only when the
+        # stored key is the normalized form (what Customer.create! writes).
+        # A mixed-case key from a pre-normalization writer is found by the
+        # case-insensitive scan, not here; this arm guarantees the O(1) hit
+        # for the common case even when the scan is capped or runs out of
+        # rounds before reaching that key.
+        def identifier_lookups(term)
+          lookups = []
+          if term.include?('@')
+            lookups << safe_lookup { Onetime::Customer.find_by_email(OT::Utils.normalize_email(term)) }
+          end
+          lookups << safe_lookup { Onetime::Customer.find_by_extid(term) }
+          lookups << safe_lookup { Onetime::Customer.find_by_identifier(term) }
+          lookups.compact
+        end
+
+        # A unique-index lookup on a free-text term can raise on input the index
+        # cannot parse; swallow that so it degrades to "no match" rather than a
+        # 500 on the search endpoint.
+        def safe_lookup
+          yield
+        rescue StandardError
+          nil
+        end
+
+        # Authdb fallback for an address-shaped term (see the class docs). Asks
+        # the Rodauth accounts table for the ONE row whose email equals the
+        # normalized term. A row that links to a customer the Redis arms
+        # missed is appended to `matches` (index drift, logged by extid so
+        # operators can see it); a row that links to no customer is returned
+        # as an orphaned_accounts entry.
+        #
+        # @return [Array<Hash>] zero or one orphaned account entries
+        def merge_authdb_account(matches)
+          return [] unless @search.include?('@')
+
+          # nil in simple auth mode: no accounts table, nothing to consult.
+          db = Auth::Database.connection
+          return [] if db.nil?
+
+          row = find_auth_account_row(db, OT::Utils.normalize_email(@search))
+          return [] if row.nil?
+
+          customer = linked_customer(row)
+          if customer
+            unless matches.any? { |cust| cust.objid == customer.objid }
+              OT.lw "[Customers::List] authdb recovered customer #{customer.extid} " \
+                    'that the email index did not resolve (index drift)'
+              matches << customer
+            end
+            return []
+          end
+
+          [orphaned_account_entry(db, row)]
+        rescue StandardError => ex
+          # The connection is lazy, so an unreachable authdb raises HERE on the
+          # first query rather than returning nil above. The Redis results are
+          # still a valid answer; the fallback is best-effort. No address in
+          # the log line.
+          OT.le "[Customers::List] authdb fallback skipped: #{ex.class}"
+          []
+        end
+
+        # Live statuses ONLY, unlike Diagnose#find_account's second any-status
+        # arm: the unique index on accounts.email is PARTIAL (live statuses
+        # only), so this predicate is the difference between an index probe
+        # and a full accounts scan on every miss. The partial unique index
+        # also guarantees at most one live row per address, so `.first` is
+        # deterministic without an ORDER BY.
+        def find_auth_account_row(db, email)
+          db[:accounts]
+            .where(email: email, status_id: Auth::AccountStatuses::LIVE)
+            .first
+        end
+
+        # The accounts row links to its customer by extid (external_id). A nil
+        # link or an extid that resolves to nothing is the orphan case.
+        def linked_customer(row)
+          extid = row[:external_id].to_s
+          return nil if extid.empty?
+
+          safe_lookup { Onetime::Customer.find_by_extid(extid) }
+        end
+
+        # created_at is the column's default, which the database wrote in
+        # the zone Auth::DatabaseConnection.timestamp knows; Time#to_i on the
+        # value as read would be off by the host's UTC offset on PostgreSQL.
+        def orphaned_account_entry(db, row)
+          {
+            email: row[:email].to_s,
+            account_id: row[:id],
+            external_id: row[:external_id],
+            status: ORPHAN_STATUS_NAMES.fetch(row[:status_id], 'unknown'),
+            created_at: Auth::DatabaseConnection.timestamp(db, row[:created_at])&.to_i,
+          }
+        end
+
+        # Non-blocking cursor SSCAN of a role_index set, collecting member objids.
+        # Bounded per round-trip by SCAN_COUNT and, when `limit` is set (the
+        # request path), capped at `limit` total members — so the catch-all
+        # `customer` role can never be fully enumerated on a request (#2211 /
+        # epic #20 CONTRACT 8). `limit: nil` reads the whole set (the off-request
+        # `:all` view), still via the cursor rather than a blocking SMEMBERS.
+        def scan_role_member_ids(role, limit:)
+          dbkey    = Onetime::Customer.role_index_for(role).dbkey
+          dbclient = Onetime::Customer.dbclient
+          objids   = []
+
+          dbclient.sscan_each(dbkey, count: SCAN_COUNT) do |objid|
+            objids << objid
+            break if limit && objids.size >= limit
+          end
+
+          objids
+        end
+
+        def load(objids)
+          Onetime::Customer.load_multi(objids).compact
+        end
+
+        def build_result(customers, total_count, capped: false, orphaned_accounts: [])
+          total_pages = if @all || @per_page.zero?
+            total_count.positive? ? 1 : 0
+          else
+            (total_count.to_f / @per_page).ceil
+          end
+
+          Result.new(
+            customers: customers,
+            total_count: total_count,
+            page: @page,
+            per_page: @per_page,
+            total_pages: total_pages,
+            role: @role,
+            capped: capped,
+            orphaned_accounts: orphaned_accounts,
+          )
+        end
+      end
+    end
+  end
+end

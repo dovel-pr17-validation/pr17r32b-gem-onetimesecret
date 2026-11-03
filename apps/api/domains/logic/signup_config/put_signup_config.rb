@@ -1,0 +1,223 @@
+# apps/api/domains/logic/signup_config/put_signup_config.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/models/custom_domain/signup_config'
+require_relative 'base'
+require_relative 'change_logger'
+
+module DomainsAPI
+  module Logic
+    module SignupConfig
+      # PUT Domain Signup Configuration (full replacement)
+      #
+      # @api Creates or replaces the signup validation configuration for a custom domain.
+      #   Uses PUT semantics: the request body IS the new state.
+      #   Requires the requesting user to be an organization owner with
+      #   custom_signup_validation entitlement.
+      #
+      # Request body:
+      # - validation_strategy: Required. One of: passthrough, domain_allowlist, mx, smtp
+      # - allowed_signup_domains: Required for domain_allowlist unless allow_base_domain
+      #   is true. Array or comma-separated string
+      # - allow_base_domain: Optional. Boolean; under domain_allowlist also admits
+      #   the custom domain's own registrable domain (default: false). Turning
+      #   it on needs features.organizations.base_domain_signup_enabled and the
+      #   base_domain_signup entitlement
+      # - enabled: Optional. Boolean to enable/disable (default: false)
+      #
+      class PutSignupConfig < Base
+        include ChangeLogger
+
+        VALID_STRATEGY_TYPES = Onetime::CustomDomain::SignupConfig::STRATEGY_TYPES.freeze
+
+        attr_reader :signup_config, :existing_config
+
+        def process_params
+          @domain_id              = sanitize_identifier(params['extid'])
+          @validation_strategy    = sanitize_plain_text(params['validation_strategy'])
+          @allowed_signup_domains = parse_allowed_domains(params['allowed_signup_domains'])
+          @allow_base_domain      = params.key?('allow_base_domain') ? parse_boolean(params['allow_base_domain']) : false
+          @enabled                = parse_boolean(params['enabled'])
+          @signup_enabled         = params.key?('signup_enabled') ? parse_boolean(params['signup_enabled']) : false
+          @autoverify             = params.key?('autoverify') ? parse_boolean(params['autoverify']) : false
+        end
+
+        def raise_concerns
+          # Require authenticated user
+          raise_form_error('Authentication required', field: :user_id, error_type: :authentication_required) if cust.anonymous?
+
+          # Validate domain_id parameter
+          raise_form_error('Domain ID required', field: :domain_id, error_type: :missing) if @domain_id.to_s.empty?
+
+          # Load domain and organization, verify ownership and entitlement
+          authorize_domain_signup_config!(@domain_id)
+
+          # Check if config already exists
+          @existing_config = Onetime::CustomDomain::SignupConfig.find_by_domain_id(@custom_domain.identifier)
+
+          # Validate strategy type
+          if @validation_strategy.to_s.empty?
+            raise_form_error(
+              'Validation strategy is required',
+              field: :validation_strategy,
+              error_type: :missing,
+            )
+          end
+
+          validate_strategy_type(@validation_strategy)
+
+          verify_allow_base_domain_permitted!(
+            requested: @allow_base_domain,
+            stored: @existing_config&.allow_base_domain? || false,
+          )
+
+          # Validate domain_allowlist has at least one domain (listed, or the
+          # domain's own base domain via allow_base_domain). PUT replaces the
+          # stored list, so an unreadable one is never kept.
+          validate_allowlist_requirement(
+            @validation_strategy,
+            @allowed_signup_domains,
+            corrupt: false,
+            allow_base_domain: @allow_base_domain,
+          )
+
+          # Validate domain formats before the model setter (which raises Problem -> 500)
+          validate_domain_formats(@allowed_signup_domains)
+        end
+
+        def process
+          OT.ld "[PutSignupConfig] Replacing signup config for domain #{@domain_id} by user #{cust.extid}"
+
+          if @existing_config
+            # From the record this write replaced, not the one raise_concerns
+            # loaded (see replace_existing_config)
+            was_enabled = replace_existing_config
+            log_signup_change_event(
+              event: :domain_signup_config_replaced,
+              domain: @custom_domain,
+              org: @organization,
+              actor: cust,
+              validation_strategy: @validation_strategy,
+            )
+          else
+            was_enabled = nil
+            guarded_config_write { create_new_config }
+            log_signup_change_event(
+              event: :domain_signup_config_created,
+              domain: @custom_domain,
+              org: @organization,
+              actor: cust,
+              validation_strategy: @validation_strategy,
+            )
+          end
+
+          log_enabled_state_change(was_enabled, @enabled)
+
+          success_data
+        end
+
+        def success_data
+          {
+            user_id: cust.extid,
+            record: serialize_signup_config(@signup_config),
+            details: signup_override_details(@signup_config),
+          }
+        end
+
+        def form_fields
+          {
+            domain_id: @domain_id,
+            validation_strategy: @validation_strategy,
+            allowed_signup_domains: @allowed_signup_domains,
+            allow_base_domain: @allow_base_domain,
+            enabled: @enabled,
+          }
+        end
+
+        private
+
+        def create_new_config
+          @signup_config = Onetime::CustomDomain::SignupConfig.create!(
+            domain_id: @custom_domain.identifier,
+            validation_strategy: @validation_strategy,
+            allowed_signup_domains: @allowed_signup_domains,
+            allow_base_domain: @allow_base_domain,
+            enabled: @enabled,
+            signup_enabled: @signup_enabled,
+            autoverify: @autoverify,
+          )
+        end
+
+        # Replaces existing config with PUT semantics (full replacement), on
+        # the record update_for_domain! re-reads under WATCH
+        # (GuardedConfigWrites), so the enabled event compares against the
+        # state this write replaced.
+        #
+        # @return [Boolean] whether the replaced record was enabled
+        def replace_existing_config
+          @signup_config, was_enabled = guarded_config_write do
+            Onetime::CustomDomain::SignupConfig.update_for_domain!(@custom_domain.identifier) do |config|
+              previously_enabled            = config.enabled?
+              config.validation_strategy    = @validation_strategy
+              config.allowed_signup_domains = @allowed_signup_domains
+              config.allow_base_domain      = @allow_base_domain
+              config.enabled                = @enabled.to_s
+              config.signup_enabled         = @signup_enabled
+              config.autoverify             = @autoverify
+              config.updated                = Familia.now.to_i
+              previously_enabled
+            end
+          end
+          was_enabled
+        end
+
+        def serialize_signup_config(config)
+          {
+            domain_id: @custom_domain.extid,
+            validation_strategy: config.validation_strategy,
+            allowed_signup_domains: config.allowed_signup_domains,
+            allow_base_domain: config.allow_base_domain?,
+            enabled: config.enabled?,
+            signup_enabled: config.signup_enabled?,
+            autoverify: config.autoverify?,
+            uses_allowlist: config.uses_allowlist?,
+            # Former name of uses_allowlist, still sent so a client built
+            # before the rename parses the response during a deploy.
+            # Deprecated; remove in a later release.
+            requires_allowlist: config.uses_allowlist?,
+            network_validation: config.network_validation?,
+            created_at: config.created.to_i,
+            updated_at: config.updated.to_i,
+          }
+        end
+
+        # Log enabled/disabled state change if it occurred.
+        #
+        # @param was_enabled [Boolean, nil] Previous enabled state (nil if new config)
+        # @param is_enabled [Boolean] New enabled state
+        def log_enabled_state_change(was_enabled, is_enabled)
+          return if was_enabled == is_enabled
+
+          if is_enabled && (was_enabled.nil? || was_enabled == false)
+            log_signup_change_event(
+              event: :domain_signup_config_enabled,
+              domain: @custom_domain,
+              org: @organization,
+              actor: cust,
+              validation_strategy: @validation_strategy,
+            )
+          elsif was_enabled == true && !is_enabled
+            log_signup_change_event(
+              event: :domain_signup_config_disabled,
+              domain: @custom_domain,
+              org: @organization,
+              actor: cust,
+              validation_strategy: @validation_strategy,
+            )
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "Enviar uma mensagem confidencial",
+    "source_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "Partilha informação sensível de forma segura com a nossa equipa de suporte",
+    "source_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "A carregar...",
+    "source_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "Falha ao carregar configuração",
+    "source_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "Funcionalidade não disponível",
+    "source_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "Esta funcionalidade está atualmente desativada. Por favor contacta o suporte para assistência.",
+    "source_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "Memorando",
+    "source_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "Descrição breve (p. ex. Pedido de redefinição de palavra-passe)",
+    "source_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "Ajuda-nos a encaminhar a tua mensagem para a pessoa certa",
+    "source_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "Enviar para",
+    "source_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "Seleciona um destinatário",
+    "source_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "Seleciona um destinatário para esta mensagem confidencial",
+    "source_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "Escolhe quem vai receber esta mensagem segura",
+    "source_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "Não há destinatários disponíveis",
+    "source_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "Informação confidencial",
+    "source_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "Cola aqui informação sensível (palavras-passe, chaves, etc.)",
+    "source_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "Esta informação será encriptada e só poderá ser visualizada uma vez",
+    "source_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "Enviar mensagem confidencial",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "Enviar mensagem confidencial",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "A enviar...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "A enviar...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "Limpar formulário",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "Limpar formulário",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "Enviado com sucesso",
+    "source_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "A tua mensagem segura foi entregue.",
+    "source_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "ID de referência",
+    "source_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "O que acontece a seguir?",
+    "source_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "O destinatário poderá ver esta mensagem confidencial apenas uma vez. Depois de a visualizar, a mensagem confidencial será permanentemente eliminada.",
+    "source_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "Enviar outra mensagem confidencial",
+    "source_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "Partilha informação sensível de forma segura",
+    "source_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "Mantém palavras-passe e dados privados fora dos registos de e-mail e chat",
+    "source_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "Guarda o teu {receipt} para os teus registos.",
+    "source_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "recibo",
+    "source_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "Upgrade necessário",
+    "source_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "Esta funcionalidade requer um upgrade do plano. Por favor contacta o proprietário da conta para ativar as mensagens confidenciais recebidas.",
+    "source_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "A nota deve ter {max} caracteres ou menos",
+    "source_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "O conteúdo confidencial é obrigatório",
+    "source_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "Por favor seleciona um destinatário",
+    "source_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "A funcionalidade de mensagens confidenciais recebidas não está ativada",
+    "source_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "Por favor verifica se o formulário tem erros",
+    "source_hash": "9056e064"
+  }
+}

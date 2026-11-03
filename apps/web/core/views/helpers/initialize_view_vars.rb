@@ -1,0 +1,562 @@
+# apps/web/core/views/helpers/initialize_view_vars.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/logger_methods'
+require 'onetime/session/customer_session_evaluator'
+require 'onetime/session/auth_status'
+require 'onetime/session/snapshot_ordering'
+require 'onetime/tenant_sso_resolution'
+
+module Core
+  module Views
+    # InitializeViewVars
+    #
+    # This module is meant to be extended and not included. That's why
+    # initialize_view_vars takes the arguments it does instead of relying on
+    # instance variables and their attr_reader methods.
+    module InitializeViewVars
+      extend Onetime::LoggerMethods
+
+      # Define fields that are safe to expose to the frontend
+      # Explicitly excluding :secret and :authenticity which contain sensitive data
+      @safe_site_fields = %w[
+        host ssl interface
+        secret_options authentication
+        support legal
+      ]
+
+      class << self
+        attr_reader :safe_site_fields
+      end
+
+      # A trailing `:port` on a host or bracketed IPv6 authority, read by
+      # #page_authority. A bare IPv6 address ends in `:digits` too and must
+      # not read as a port.
+      AUTHORITY_PORT = /\A(?:\[[^\]]*\]|[^:\[\]]+):(\d{1,5})\z/
+
+      # Request paths that render head-secret-share (`is_secret_page`), split
+      # by who the page is for so the Open Graph text can address them:
+      # SECRET_LINK_PATH is the recipient's page, RECEIPT_PAGE_PATH the
+      # sender's (/receipt/* and /incoming/:receiptKey).
+      SECRET_LINK_PATH  = %r{\A/secret(?:/|\z)}
+      RECEIPT_PAGE_PATH = %r{\A/receipt(?:/|\z)|\A/incoming/.}
+
+      # Initialize core variables used throughout view rendering. These values
+      # are the source of truth for te values that they represent. Any other
+      # values that the serializers want can be derived from here.
+      #
+      # @param req [Rack::Request] Current request object
+      # @param sess [Hash, nil] Pre-resolved session (optional, extracted from strategy_result if nil)
+      # @return [Hash] Collection of initialized variables
+      def initialize_view_vars(req, sess = nil)
+        # Extract the top-level keys from the YAML configuration.
+        #
+        # SECURITY: This implementation follows an opt-in approach for configuration filtering.
+        # We explicitly whitelist fields that are safe to share and filter nested sensitive data.
+        # This prevents accidental exposure of sensitive information to the frontend.
+        #
+        # Sensitive data types being protected:
+        # - Secret keys and credentials (:secret, nested :cluster)
+        # - Authentication tokens (:authenticity)
+        # - Internal infrastructure details
+        #
+        site_config     = OT.conf.fetch('site', {})
+        features_config = OT.conf.fetch('features', {})
+        development     = OT.conf.fetch('development', {})
+        diagnostics     = OT.conf.fetch('diagnostics', {})
+
+        safe_site     = build_safe_site_config(site_config)
+        safe_features = build_safe_features_config(features_config)
+
+        # Extract the session, then derive all customer identity fields from the
+        # shared evaluator. Strategy results remain useful for route metadata,
+        # but are not an independent identity predicate for public serialization.
+        strategy_result = req.env.fetch('otto.strategy_result', nil)
+        if sess.nil?
+          sess = strategy_result&.session
+          if sess.nil?
+            begin
+              sess = req.session
+            rescue NoMethodError, RuntimeError
+              sess = {}
+            end
+          end
+        end
+
+        # Identity is projected ONLY when a strategy result is present. Without
+        # one this is the error-recovery path (500-style handler entry): the
+        # evaluator MUST NOT run against the raw session, or serializers would
+        # leak custid/email onto responses that historically answered as
+        # anonymous. See Core::Views::BaseView#initialize for the twin gate.
+        #
+        # `auth_status` is the public projection of the verdict (#4462). On the
+        # error-recovery path it is a statement about the raw session only:
+        # `unavailable` when the session names a customer this response cannot
+        # vouch for, `anonymous` otherwise. It never carries identity.
+        if strategy_result
+          verdict       = Onetime::CustomerSessionEvaluator.evaluate(sess, env: req.env)
+          authenticated = verdict.authenticated?
+          cust          = verdict.customer
+          awaiting_mfa  = verdict.mfa_pending?
+          auth_status   = Onetime::SessionAuthStatus.for_verdict(verdict)
+        else
+          authenticated = false
+          cust          = nil
+          awaiting_mfa  = false
+          auth_status   = Onetime::SessionAuthStatus.without_verdict(sess)
+        end
+
+        # Bootstrap snapshot ordering (ADR-046), allocated by
+        # Core::Middleware::SnapshotOrdering ahead of the strategy. Passed
+        # through only when the request reports a session: the pair labels a
+        # complete snapshot of an ORDERED session, and a payload that reports
+        # no session (anonymous, rejected, unavailable, error recovery) is
+        # never subjected to ordering by the client. A failed allocation
+        # ({ error: }) carries no pair and is passed as nil — the degraded
+        # hydration payload.
+        allocation        = req.env[Onetime::SnapshotOrdering::ENV_KEY]
+        reports_session   = authenticated || awaiting_mfa
+        snapshot_ordering = allocation if reports_session && allocation.is_a?(Hash) && allocation[:version]
+        if reports_session && snapshot_ordering.nil?
+          Onetime.session_logger.warn 'Bootstrap snapshot serialized without ordering',
+            {
+              module: 'InitializeViewVars',
+              error: allocation.is_a?(Hash) ? allocation[:error] : 'not_allocated',
+              request_id: req.env['HTTP_X_REQUEST_ID'],
+            }
+        end
+
+        # Generate masked CSRF token from the canonical Rack session, NOT the
+        # strategy-resolved `sess` which may be a detached {} on anonymous
+        # routes (NoAuthStrategy). Using rack.session ensures the token is
+        # persisted in the same store that Rack::Protection checks on submit.
+        # AuthenticityToken.token() handles both generation and per-request
+        # masking (mitigates BREACH).
+        rack_session = req.env['rack.session']
+        shrimp       = if rack_session
+                   Rack::Protection::AuthenticityToken.token(rack_session)
+                 end
+
+        Onetime.session_logger.debug 'Session',
+          {
+            module: 'InitializeViewVars',
+            session_class: sess.class.name,
+            has_account_id: !sess&.[]('account_id').nil?,
+            has_external_id: !sess&.[]('external_id').nil?,
+            awaiting_mfa: awaiting_mfa,
+            authenticated: authenticated,
+            auth_status: auth_status,
+            request_id: req.env['HTTP_X_REQUEST_ID'],
+          }
+
+        # MFA-pending and refused sessions expose state only, never customer or
+        # effective-identity fields.
+        session_email = nil
+
+        # ====================================================================
+        # Bridge Rodauth flash messages to Core app messages
+        # ====================================================================
+        #
+        # When Rodauth sets flash messages (e.g., SSO failure), they are stored
+        # in session['_flash'] by Roda's flash plugin. We read these and convert
+        # them to the Core app's messages format, then clear them (standard flash
+        # behavior - messages shown once).
+        #
+        # Flash keys from Rodauth:
+        # - :error - Error messages (e.g., "SSO authentication failed")
+        # - :notice - Success/info messages
+        #
+        messages   = []
+        flash_data = sess&.delete('_flash') || sess&.delete(:_flash)
+        if flash_data.is_a?(Hash)
+          error_msg  = flash_data[:error] || flash_data['error']
+          notice_msg = flash_data[:notice] || flash_data['notice']
+
+          messages << { 'type' => 'error', 'content' => error_msg } if error_msg
+          messages << { 'type' => 'info', 'content' => notice_msg } if notice_msg
+        end
+
+        # Extract values from rack request object
+        nonce           = req.env.fetch('onetime.nonce', nil)
+        domain_strategy = req.env.fetch('onetime.domain_strategy', :default)
+        display_domain  = req.env.fetch('onetime.display_domain', nil)
+        locale          = req.env.fetch('otto.locale', OT.default_locale)
+
+        # Normalize locale for I18n - validate against available_locales
+        # Otto may detect locales that aren't configured in I18n backend
+        # (e.g., from Accept-Language header or URL params)
+        i18n_locale = if I18n.available_locales.include?(locale.to_sym)
+                        locale.to_sym
+                      else
+                        I18n.default_locale
+                      end
+
+        # Controller-level flag whether to display the "internal use only"
+        # message. Possible values are nil, 'protected'.
+        homepage_mode = req.env.fetch('onetime.homepage_mode', nil)
+
+        # Extract organization from strategy result metadata
+        # This is populated by OrganizationLoader in the auth strategy
+        organization = nil
+        if authenticated && strategy_result&.metadata
+          org_context  = strategy_result.metadata[:organization_context]
+          organization = org_context[:organization] if org_context
+        end
+
+        # HTML Tag vars. These are meant for the view templates themselves
+        # and not the onetime state window data passed on to the Vue app (
+        # although a serializer could still choose to include any of them).
+        description          = I18n.t('web.COMMON.description', locale: i18n_locale, default: 'Keep sensitive info out of your chat logs & email')
+        keywords             = I18n.t('web.COMMON.keywords', locale: i18n_locale, default: 'secret,password,share,private,link')
+
+        # Brand config — source of truth for tag-level branding (page_title,
+        # mask-icon, etc.) and for default Vue app theming on first paint.
+        brand_config         = OT.conf.fetch('brand', {})
+        brand_product_name   = brand_config['product_name'] ||
+                               Onetime::CustomDomain::BrandSettingsConstants::GLOBAL_DEFAULTS[:product_name]
+
+        # Use the display domain name for branded instances, otherwise the
+        # configured brand product name. The deprecated
+        # site.interface.ui.header.branding.site_name tier was retired in
+        # #3612 — a legacy SITE_NAME now reaches brand.product_name via the
+        # normalize_brand fallback, so this reads the brand block only. The
+        # neutral terminal keeps the server-rendered <title>/og:title from
+        # going empty on an unconfigured canonical install (display_domain
+        # can be nil there), matching the mail-surface fallback.
+        page_title           = display_domain || brand_product_name ||
+                               Onetime::CustomDomain::BrandSettingsConstants::NEUTRAL_PRODUCT_NAME
+        no_cache             = false
+        frontend_host        = development['frontend_host']
+        frontend_development = development['enabled']
+        script_element_id    = 'onetime-state'
+
+        # URI helpers for templates
+        site_host            = safe_site['host']
+        scheme               = safe_site['ssl'] == false ? 'http' : 'https'
+        base_scheme          = "#{scheme}://"
+        baseuri              = base_scheme + site_host
+
+        # The page's own URL for <link rel="canonical">, og:url and
+        # twitter:url, which Open Graph defines as the object's canonical URL:
+        # the authority the request was served on (display_domain is
+        # sanitized by DomainStrategy, so a page on a custom domain points at
+        # that domain, never at the install's site host; see #page_authority
+        # for the public port) and the path without the query string. Rhales
+        # escapes it at the attribute.
+        page_url             = base_scheme + page_authority(req.env, display_domain, site_host, scheme) + req.path
+
+        # Pages that carry a secret or receipt key (/secret/*, /receipt/*,
+        # and /incoming/:receiptKey, the sender's receipt for an incoming
+        # secret) render the head-secret-share partial: robots noindex and
+        # neutral Open Graph text, so a link pasted into a chat unfurls
+        # without naming the page. The text addresses the recipient on a
+        # secret link and the sender on a receipt. robots.rue disallows the
+        # same paths. /incoming itself is the public submission form and
+        # stays indexable.
+        receipt_page             = req.path.match?(RECEIPT_PAGE_PATH)
+        secret_page              = receipt_page || req.path.match?(SECRET_LINK_PATH)
+        og_title, og_description = secret_share_copy(receipt_page, i18n_locale)
+
+        brand_defaults              = Onetime::CustomDomain::BrandSettingsConstants::DEFAULTS
+        brand_primary_color         = brand_config['primary_color']
+        has_brand_color             = !brand_primary_color.to_s.strip.empty?
+        support_email               = brand_config['support_email'] ||
+                                      Onetime::CustomDomain::BrandSettingsConstants::GLOBAL_DEFAULTS[:support_email]
+        # docs_host: full documentation URL exposed to bootstrap. Sources from
+        # DOCS_URL env var with the same default the YAML footer link uses, since
+        # the legacy site.support.host path was retired in #1461.
+        docs_host                   = ENV.fetch('DOCS_URL', 'https://docs.onetimesecret.com/')
+        brand_corner_style          = brand_config['corner_style'] || brand_defaults[:corner_style]
+        brand_font_family           = brand_config['font_family'] || brand_defaults[:font_family]
+        brand_button_text_light     = brand_config.fetch('button_text_light', brand_defaults[:button_text_light])
+        brand_allow_public_homepage = brand_config.fetch('allow_public_homepage', false)
+        brand_allow_public_api      = brand_config.fetch('allow_public_api', false)
+        # Site-wide brand fields not in DEFAULTS (per-domain Data class) —
+        # sourced from GLOBAL_DEFAULTS or directly from brand_config. Frontend
+        # falls through to NEUTRAL_BRAND_DEFAULTS when nil.
+        brand_global_defaults       = Onetime::CustomDomain::BrandSettingsConstants::GLOBAL_DEFAULTS
+        brand_product_domain        = brand_config['product_domain']
+        brand_support_email         = brand_config['support_email'] || brand_global_defaults[:support_email]
+        brand_logo_url              = brand_config['logo_url'] || brand_global_defaults[:logo_url]
+        brand_logo_dark_url         = brand_config['logo_dark_url']
+        brand_logo_alt              = brand_config['logo_alt'] || brand_global_defaults[:logo_alt]
+        brand_favicon_url           = brand_config['favicon_url'] || brand_global_defaults[:favicon_url]
+        # Mobile/social variety-pack URLs used by the HTML head. apple-touch-icon
+        # resolves to the bundled NEUTRAL asset so the head always emits a valid,
+        # brand-agnostic pack; operators set BRAND_APPLE_TOUCH_ICON_URL (or drop a
+        # replacement file into the brand directory) to override.
+        brand_apple_touch_icon_url  = brand_config['apple_touch_icon_url'] || '/apple-touch-icon.png'
+
+        # og:image / twitter:image are OPT-IN and may legitimately be absent
+        # (#4150) — see normalize_brand, which resolves brand.og_image_url from
+        # the pack asset and leaves it nil when no pack carries a social card.
+        # Two further gates apply here, both about the card travelling off-site:
+        #
+        #   - custom domains get NO card. brand_config is the INSTALL's brand
+        #     (OT.conf), not the domain's, and there is no per-domain social
+        #     image field, so anything we emitted here would put the install
+        #     operator's card on a customer's shared link. Same reasoning as
+        #     show_default_svg_favicon below, which suppresses the canonical SVG
+        #     for exactly this class of shadowing.
+        #   - any value that is not already scheme-resolvable (no `scheme:`, no
+        #     protocol-relative `//`) is treated as a path and absolutized
+        #     against baseuri, since social scrapers require an absolute
+        #     og:image. That covers the pack-resolved `/social-preview.png` and
+        #     also an operator's bare `social-preview.png`, which serves from
+        #     the root like every other pack asset.
+        #
+        # nil means "emit no image tags"; the head partial branches on it, and
+        # twitter:card degrades from summary_large_image to summary so the card
+        # still renders correctly without an image.
+        brand_og_image_url          = brand_config['og_image_url'].to_s.strip
+        brand_og_image_url          = nil if brand_og_image_url.empty? || domain_strategy == :custom
+        if brand_og_image_url && !brand_og_image_url.match?(%r{\A(?:[a-z][a-z0-9+.-]*:|//)}i)
+          brand_og_image_url = "#{baseuri}/#{brand_og_image_url.delete_prefix('/')}"
+        end
+        twitter_card_type           = brand_og_image_url ? 'summary_large_image' : 'summary'
+
+        # Whether to emit the static neutral SVG favicon link. Modern browsers
+        # prefer an SVG <link rel="icon"> over the .ico, so we must NOT emit it
+        # when a higher-precedence favicon is in play, or the neutral keyhole
+        # would shadow it:
+        #   - custom domains serve their uploaded icon via the /favicon.ico
+        #     route (no favicon_url field), and
+        #   - brand.favicon_url installs serve via a /favicon.ico redirect.
+        # In both cases we fall back to the .ico link alone, which the route
+        # resolves correctly. Canonical/default installs get the crisp SVG.
+        show_default_svg_favicon    = domain_strategy != :custom &&
+                                      brand_favicon_url.to_s.strip.empty?
+
+        # Return all view variables as a hash
+        {
+          'auth_status' => auth_status,
+          'authenticated' => authenticated,
+          'awaiting_mfa' => awaiting_mfa,
+          'baseuri' => baseuri,
+          'is_secret_page' => secret_page,
+          'page_url' => page_url,
+          'cust' => cust,
+          'description' => description,
+          'og_title' => og_title,
+          'og_description' => og_description,
+          'development' => development,
+          'diagnostics' => diagnostics,
+          'display_domain' => display_domain,
+          'domain_strategy' => domain_strategy,
+          # The CustomDomain record DomainStrategy resolved for a :custom
+          # request (#4220); nil on every other classification. The domain
+          # serializer reads it rather than looking the display domain up
+          # again.
+          'custom_domain' => req.env.fetch('onetime.custom_domain', nil),
+          'features' => safe_features,
+          'frontend_development' => frontend_development,
+          'frontend_host' => frontend_host,
+          'homepage_mode' => homepage_mode,
+          # The verdict-only CIDR matcher IPPrivacyMiddleware installed over
+          # the resolved PRE-MASK client IP (a Proc, never the address). The
+          # domain serializer hands it to HomepageConfig#network_allowed? so
+          # a homepage with allowed/denied ranges renders the private landing
+          # page to visitors outside them. Server-side only: no serializer
+          # emits this key.
+          'ip_match' => req.env.fetch('otto.ip_match', nil),
+          'keywords' => keywords,
+          'locale' => locale,
+          'messages' => messages.empty? ? nil : messages,
+          'no_cache' => no_cache,
+          'nonce' => nonce,
+          'organization' => organization,
+          'page_title' => page_title,
+          'script_element_id' => script_element_id,
+          'sess' => sess,
+          'session_email' => session_email,
+          'shrimp' => shrimp,
+          'snapshot_ordering' => snapshot_ordering,
+          'site' => safe_site,
+          'site_host' => site_host,
+          # The request's tenant SSO answer, resolved lazily and ONCE (#4173).
+          # Every serializer that asks — the SSO button (ConfigSerializer),
+          # the password affordance (AuthenticationSerializer) — shares this
+          # object with Onetime::Middleware::TenantCspExtras, which reads it
+          # off the same rack env on the way out to widen CSP form-action.
+          # Server-side only: serializers select the keys they emit, and none
+          # of them emits this one.
+          Onetime::TenantSsoResolution::VIEW_VAR_KEY =>
+            Onetime::TenantSsoResolution.for(req.env),
+          'brand_primary_color' => brand_primary_color,
+          'has_brand_color' => has_brand_color,
+          'brand_product_name' => brand_product_name,
+          'brand_corner_style' => brand_corner_style,
+          'brand_font_family' => brand_font_family,
+          'brand_button_text_light' => brand_button_text_light,
+          'brand_allow_public_homepage' => brand_allow_public_homepage,
+          'brand_allow_public_api' => brand_allow_public_api,
+          'brand_product_domain' => brand_product_domain,
+          'brand_support_email' => brand_support_email,
+          'brand_logo_url' => brand_logo_url,
+          'brand_logo_dark_url' => brand_logo_dark_url,
+          'brand_logo_alt' => brand_logo_alt,
+          'brand_favicon_url' => brand_favicon_url,
+          'brand_apple_touch_icon_url' => brand_apple_touch_icon_url,
+          'brand_og_image_url' => brand_og_image_url,
+          'twitter_card_type' => twitter_card_type,
+          'show_default_svg_favicon' => show_default_svg_favicon,
+          'support_email' => support_email,
+          'docs_host' => docs_host,
+        }
+      end
+
+      # The Open Graph title and description head-secret-share renders:
+      # addressed to the sender on a receipt page, to the recipient otherwise.
+      #
+      # @param receipt_page [Boolean] the path matched RECEIPT_PAGE_PATH
+      # @param locale [Symbol] I18n locale
+      # @return [Array(String, String)] title, description
+      def secret_share_copy(receipt_page, locale)
+        if receipt_page
+          [
+            I18n.t('web.COMMON.receipt_og_title', locale: locale, default: 'Receipt for a secret you sent'),
+            I18n.t(
+              'web.COMMON.receipt_og_description',
+              locale: locale,
+              default: 'This page shows the status of a secret you sent. Only the recipient can view the content.',
+            ),
+          ]
+        else
+          [
+            I18n.t('web.COMMON.secret_og_title', locale: locale, default: 'A secret link was shared with you'),
+            I18n.t(
+              'web.COMMON.secret_og_description',
+              locale: locale,
+              default: 'This secure link works one time. Open it when you are ready to view the content.',
+            ),
+          ]
+        end
+      end
+
+      # The authority page_url names: the display domain and, when one is
+      # known, its public port.
+      #
+      # DetectHost publishes the display domain without a port, so the port
+      # is read from the first of these that names the same hostname and
+      # carries one:
+      #
+      #   1. the authority DetectHost validated on the trusted
+      #      X-Forwarded-Host (the port in that header, or the single-valued
+      #      X-Forwarded-Port sent with it). PublicHostRewrite writes the
+      #      same value into HTTP_HOST when the rewrite is on; this reads it
+      #      whether or not the rewrite is on.
+      #   2. the display domain itself. With the domains feature off it is
+      #      site.host as configured, port included.
+      #   3. the configured canonical set (features.domains.default,
+      #      site.host, link_domains), each written as the operator wrote it.
+      #      A canonical page reached without forwarded headers keeps the
+      #      port the operator configured.
+      #
+      # A custom domain reached without a forwarded port is written bare.
+      # The inbound Host is never read: behind a proxy its port is the
+      # origin hop's. The default port of the configured scheme is left out,
+      # as a browser leaves it out of Host.
+      #
+      # @param env [Hash] Rack environment
+      # @param display_domain [String, nil] env['onetime.display_domain']
+      # @param site_host [String] site.host as configured
+      # @param scheme [String] 'https' or 'http', from site.ssl
+      # @return [String] host, or host:port
+      def page_authority(env, display_domain, site_host, scheme)
+        return site_host if display_domain.nil?
+
+        parser   = Onetime::Utils::DomainParser
+        hostname = parser.extract_hostname(display_domain)
+        return display_domain if hostname.nil?
+
+        # extract_hostname returns an IPv6 literal without its brackets; an
+        # authority needs them back.
+        host = hostname.include?(':') ? "[#{hostname}]" : hostname
+
+        candidates = [
+          env[Rack::DetectHost.forwarded_authority_field_name],
+          display_domain,
+          *Array(Onetime::Middleware::DomainStrategy.canonical_domains),
+        ]
+        authority  = candidates.compact.find do |candidate|
+          candidate.match?(AUTHORITY_PORT) && parser.extract_hostname(candidate) == hostname
+        end
+        return host if authority.nil?
+
+        port = authority[AUTHORITY_PORT, 1].to_i
+        return host if port == Rack::Request::DEFAULT_PORTS[scheme]
+
+        "#{host}:#{port}"
+      end
+
+      # Build safe site configuration for frontend exposure
+      #
+      # Filters site configuration to include only whitelisted fields and removes
+      # nested sensitive data like cluster credentials and authentication secrets.
+      #
+      # @param site_config [Hash] Raw site configuration from OT.conf
+      # @return [Hash] Filtered configuration safe for frontend
+      def build_safe_site_config(site_config)
+        # Populate a new hash with the site config settings that are safe
+        # to share with the front-end app (i.e. public).
+        #
+        # SECURITY: This is an opt-in approach that explicitly selects which
+        # configuration values to share with the frontend while protecting
+        # sensitive data. We copy only the whitelisted fields and then
+        # filter specific nested sensitive data from complex structures.
+        safe_site = InitializeViewVars.safe_site_fields.each_with_object({}) do |field, hash|
+          field_str = field.to_s
+          unless site_config.key?(field_str)
+            log_metadata = {
+              field: field_str,
+              module: 'InitializeViewVars',
+            }
+            Onetime.app_logger.debug('Site config missing expected field', log_metadata)
+            next
+          end
+
+          # Perform deep copy to prevent unintended mutations to the original config
+          hash[field] = OT::Config.deep_clone(site_config[field_str])
+        end
+
+        # Additional filtering for nested sensitive data
+        if (safe_site['authentication']) && safe_site['authentication'].is_a?(Hash)
+          # Add auth mode from auth config (separate from site config)
+          safe_site['authentication']['mode'] = Onetime.auth_config.mode
+        end
+
+        safe_site
+      end
+
+      # Build safe features configuration for frontend exposure
+      #
+      # Filters features configuration to include only safe fields and removes
+      # nested sensitive data like cluster credentials.
+      #
+      # @param features_config [Hash] Raw features configuration from OT.conf
+      # @return [Hash] Filtered configuration safe for frontend
+      def build_safe_features_config(features_config)
+        return {} if features_config.nil? || features_config.empty?
+
+        # Deep copy to prevent mutations
+        safe_features = OT::Config.deep_clone(features_config)
+
+        # Remove sensitive credentials and internal endpoints from the domains
+        # config. 'approximated' carries the Approximated API key and proxy
+        # settings; 'acme' is the internal ACME listener; 'cluster' is the
+        # pre-rename key the approximated block used to live under. This scrub
+        # was blocklisting only 'cluster' after the rename, which is how the
+        # Approximated api_key reached view_vars — ConfigSerializer's
+        # transform_domains allowlist is the primary gate, this is depth.
+        if safe_features['domains'].is_a?(Hash)
+          %w[cluster approximated acme].each do |sensitive_key|
+            safe_features['domains'].delete(sensitive_key)
+          end
+        end
+
+        safe_features
+      end
+    end
+  end
+end

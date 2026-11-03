@@ -1,0 +1,758 @@
+{
+  "web.admin.organizations.retry": {
+    "text": "Повторен опит",
+    "source_hash": "942087cc"
+  },
+  "web.admin.organizations.detail.backToList": {
+    "text": "Обратно към организациите",
+    "source_hash": "2257dc4a"
+  },
+  "web.admin.organizations.detail.notFound": {
+    "text": "Организацията не е намерена",
+    "source_hash": "00c50f7a"
+  },
+  "web.admin.organizations.detail.notFoundDescription": {
+    "text": "Тази организация може да е била изтрита или ИД е неправилен.",
+    "source_hash": "e5459ef5"
+  },
+  "web.admin.organizations.detail.loadError": {
+    "text": "Тази организация не можа да бъде заредена.",
+    "source_hash": "9df8ad50"
+  },
+  "web.admin.organizations.detail.none": {
+    "text": "—",
+    "source_hash": "bda05058"
+  },
+  "web.admin.organizations.detail.badges.default": {
+    "text": "Работна област по подразбиране",
+    "source_hash": "6d67c6eb"
+  },
+  "web.admin.organizations.detail.badges.archived": {
+    "text": "Архивирана",
+    "source_hash": "bdb86505"
+  },
+  "web.admin.organizations.detail.domains.domain": {
+    "text": "Домейн",
+    "source_hash": "79fa3361"
+  },
+  "web.admin.organizations.detail.domains.state": {
+    "text": "Състояние",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.organizations.detail.domains.created": {
+    "text": "Създаден",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.organizations.detail.domains.ready": {
+    "text": "Готов",
+    "source_hash": "5fa7aac5"
+  },
+  "web.admin.organizations.detail.domains.resolving": {
+    "text": "Разрешаване",
+    "source_hash": "3287a034"
+  },
+  "web.admin.organizations.detail.domains.empty": {
+    "text": "Няма домейни.",
+    "source_hash": "1b840c7e"
+  },
+  "web.admin.organizations.detail.entitlements.description": {
+    "text": "Ефективните правомощия се разрешават до (план ∪ предоставяния) − отнемания. Прегледайте разбивката, преди да направите заместване.",
+    "source_hash": "23080475"
+  },
+  "web.admin.organizations.detail.entitlements.inSync": {
+    "text": "Синхронизирани",
+    "source_hash": "5701958c"
+  },
+  "web.admin.organizations.detail.entitlements.driftBadge": {
+    "text": "Отклонение",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.organizations.detail.entitlements.staleBadge": {
+    "text": "Планът е остарял",
+    "source_hash": "ffe63800"
+  },
+  "web.admin.organizations.detail.entitlements.driftWarning": {
+    "text": "Материализираните правомощия не съответстват на очаквания набор. Съгласувайте, за да ги материализирате отново.",
+    "source_hash": "4859983a"
+  },
+  "web.admin.organizations.detail.entitlements.driftExtra": {
+    "text": "Допълнителни (материализирани, неочаквани)",
+    "source_hash": "08d60730"
+  },
+  "web.admin.organizations.detail.entitlements.driftMissing": {
+    "text": "Липсващи (очаквани, нематериализирани)",
+    "source_hash": "fe12c83a"
+  },
+  "web.admin.organizations.detail.entitlements.plan": {
+    "text": "От план",
+    "source_hash": "1d346b26"
+  },
+  "web.admin.organizations.detail.entitlements.materialized": {
+    "text": "Материализирани (ефективни)",
+    "source_hash": "72ca5f45"
+  },
+  "web.admin.organizations.detail.members.email": {
+    "text": "Член",
+    "source_hash": "7c968fb7"
+  },
+  "web.admin.organizations.detail.members.role": {
+    "text": "Роля",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.organizations.detail.members.status": {
+    "text": "Състояние",
+    "source_hash": "920e413c"
+  },
+  "web.admin.organizations.detail.members.joined": {
+    "text": "Присъединил се",
+    "source_hash": "69318b0c"
+  },
+  "web.admin.organizations.detail.members.owner": {
+    "text": "Собственик",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.empty": {
+    "text": "Няма членове.",
+    "source_hash": "b99c59dc"
+  },
+  "web.admin.organizations.detail.reconcile.button": {
+    "text": "Съгласуване",
+    "source_hash": "b59be565"
+  },
+  "web.admin.organizations.detail.reconcile.confirmTitle": {
+    "text": "Да се съгласува ли фактурирането на организацията?",
+    "source_hash": "fc1a2762"
+  },
+  "web.admin.organizations.detail.reconcile.confirmDescription": {
+    "text": "Това извлича отново Stripe и презаписва състоянието на фактурирането и правомощията за {org}. Въведете отново ИД на организацията за потвърждение.",
+    "source_hash": "b4ef0850"
+  },
+  "web.admin.organizations.detail.reconcile.success": {
+    "text": "Организацията е съгласувана.",
+    "source_hash": "caf87844"
+  },
+  "web.admin.organizations.detail.reconcile.resultTitle": {
+    "text": "Резултат от съгласуването",
+    "source_hash": "11f4c6b8"
+  },
+  "web.admin.organizations.detail.reconcile.before": {
+    "text": "Преди",
+    "source_hash": "9bb72500"
+  },
+  "web.admin.organizations.detail.reconcile.after": {
+    "text": "След",
+    "source_hash": "7b68fe55"
+  },
+  "web.admin.organizations.detail.reconcile.materializedCount": {
+    "text": "Брой правомощия",
+    "source_hash": "59cede5c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.stripe_sync": {
+    "text": "Синхронизиране със Stripe",
+    "source_hash": "02f9546c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.entitlements_only": {
+    "text": "Само правомощия",
+    "source_hash": "8cf49a5d"
+  },
+  "web.admin.organizations.detail.sections.billing": {
+    "text": "Фактуриране",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.organizations.detail.sections.members": {
+    "text": "Членове",
+    "source_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.sections.domains": {
+    "text": "Домейни",
+    "source_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.sections.investigate": {
+    "text": "Проучване и съгласуване",
+    "source_hash": "b05aa349"
+  },
+  "web.admin.organizations.entitlements.section": {
+    "text": "Замествания на правомощия",
+    "source_hash": "48812068"
+  },
+  "web.admin.organizations.entitlements.description": {
+    "text": "Предоставяйте или отнемайте правомощия независимо от плана. Ефективни = правомощия от плана + предоставяния - отнемания.",
+    "source_hash": "4c38425b"
+  },
+  "web.admin.organizations.entitlements.inputLabel": {
+    "text": "Правомощие",
+    "source_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.placeholder": {
+    "text": "напр. custom_domains",
+    "source_hash": "05346c68"
+  },
+  "web.admin.organizations.entitlements.grant": {
+    "text": "Предоставяне",
+    "source_hash": "78b7d037"
+  },
+  "web.admin.organizations.entitlements.revoke": {
+    "text": "Отнемане",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.organizations.entitlements.clear": {
+    "text": "Изчистване на всички замествания",
+    "source_hash": "f0e485c3"
+  },
+  "web.admin.organizations.entitlements.effective": {
+    "text": "Ефективни правомощия",
+    "source_hash": "b840f8c8"
+  },
+  "web.admin.organizations.entitlements.grants": {
+    "text": "Предоставяния",
+    "source_hash": "b3e1c95a"
+  },
+  "web.admin.organizations.entitlements.revokes": {
+    "text": "Отнемания",
+    "source_hash": "f0e69b17"
+  },
+  "web.admin.organizations.entitlements.noOverrides": {
+    "text": "Извършете действие, за да видите текущото състояние на заместванията на тази организация.",
+    "source_hash": "98d2e30d"
+  },
+  "web.admin.organizations.entitlements.confirm.grantTitle": {
+    "text": "Да се предостави ли правомощие?",
+    "source_hash": "a4b2c57b"
+  },
+  "web.admin.organizations.entitlements.confirm.grantDescription": {
+    "text": "Предоставяне на „{entitlement}“ на {org}. Това променя правомощията за фактуриране на организацията.",
+    "source_hash": "542ce26a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeTitle": {
+    "text": "Да се отнеме ли правомощие?",
+    "source_hash": "c93d520a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeDescription": {
+    "text": "Отнемане на „{entitlement}“ от {org}. Това променя правомощията за фактуриране на организацията.",
+    "source_hash": "a5d2a8a6"
+  },
+  "web.admin.organizations.entitlements.confirm.clearTitle": {
+    "text": "Да се изчистят ли всички замествания на правомощия?",
+    "source_hash": "e36eb218"
+  },
+  "web.admin.organizations.entitlements.confirm.clearDescription": {
+    "text": "Премахване на всяко предоставяне и отнемане за {org}, връщайки я към правомощията от нейния план.",
+    "source_hash": "96bad079"
+  },
+  "web.admin.organizations.entitlements.success.granted": {
+    "text": "Правомощието „{entitlement}“ е предоставено.",
+    "source_hash": "cf52fb0e"
+  },
+  "web.admin.organizations.entitlements.success.revoked": {
+    "text": "Правомощието „{entitlement}“ е отнето.",
+    "source_hash": "279d425d"
+  },
+  "web.admin.organizations.entitlements.success.cleared": {
+    "text": "Всички замествания на правомощия са изчистени.",
+    "source_hash": "a482743b"
+  },
+  "web.admin.organizations.fields.contactEmail": {
+    "text": "Имейл за контакт",
+    "source_hash": "6d7fce11"
+  },
+  "web.admin.organizations.fields.owner": {
+    "text": "Собственик",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.fields.plan": {
+    "text": "План",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.fields.subscription": {
+    "text": "Състояние на абонамента",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.organizations.fields.periodEnd": {
+    "text": "Край на периода",
+    "source_hash": "eeae9fdd"
+  },
+  "web.admin.organizations.fields.billingEmail": {
+    "text": "Имейл за фактуриране",
+    "source_hash": "8805b928"
+  },
+  "web.admin.organizations.fields.stripeCustomer": {
+    "text": "Stripe клиент",
+    "source_hash": "8f169be1"
+  },
+  "web.admin.organizations.fields.stripeSubscription": {
+    "text": "Stripe абонамент",
+    "source_hash": "53f71e08"
+  },
+  "web.admin.organizations.fields.orgId": {
+    "text": "ИД на организацията",
+    "source_hash": "1f466322"
+  },
+  "web.admin.organizations.fields.created": {
+    "text": "Създадена",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.organizations.fields.updated": {
+    "text": "Актуализирана",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.organizations.investigate.description": {
+    "text": "Сравнете локалното състояние на фактурирането с активния абонамент в Stripe.",
+    "source_hash": "d7bbe9ed"
+  },
+  "web.admin.organizations.investigate.rawPayload": {
+    "text": "Необработени данни от проучването",
+    "source_hash": "29ca7df2"
+  },
+  "web.admin.organizations.investigate.parseError": {
+    "text": "Отговорът от проучването не съответства на очаквания формат.",
+    "source_hash": "db59cab1"
+  },
+  "web.admin.organizations.list.loadError": {
+    "text": "Организациите не можаха да бъдат заредени.",
+    "source_hash": "130d5e70"
+  },
+  "web.admin.organizations.addMember.button": {
+    "text": "Добавяне на съществуващ акаунт",
+    "source_hash": "45a3b757"
+  },
+  "web.admin.organizations.addMember.title": {
+    "text": "Добавяне на съществуващ акаунт",
+    "source_hash": "2f676a94"
+  },
+  "web.admin.organizations.addMember.description": {
+    "text": "Добавете някой, който вече има акаунт, към {org}. Използвайте това, когато човек се е регистрирал самостоятелно и не може да бъде поканен, защото акаунтът вече съществува.",
+    "source_hash": "bb41faa6"
+  },
+  "web.admin.organizations.addMember.searchLabel": {
+    "text": "Имейл адрес или идентификатор на акаунт",
+    "source_hash": "82b3040b"
+  },
+  "web.admin.organizations.addMember.searchPlaceholder": {
+    "text": "Търсене по имейл адрес",
+    "source_hash": "b75cc66c"
+  },
+  "web.admin.organizations.addMember.searchHint": {
+    "text": "Съвпада с част от имейл адрес или с точен идентификатор на акаунт.",
+    "source_hash": "84547a60"
+  },
+  "web.admin.organizations.addMember.searchError": {
+    "text": "Не можа да се търси в акаунти. Проверете връзката и опитайте отново.",
+    "source_hash": "4b6caa41"
+  },
+  "web.admin.organizations.addMember.searchParseError": {
+    "text": "Търсенето на акаунти върна неочакван отговор. Резултатите може да са непълни.",
+    "source_hash": "0c814231"
+  },
+  "web.admin.organizations.addMember.idle": {
+    "text": "Въведете имейл адрес, за да намерите акаунта.",
+    "source_hash": "f6340d35"
+  },
+  "web.admin.organizations.addMember.noResults": {
+    "text": "Няма акаунт, съответстващ на \"{term}\".",
+    "source_hash": "199b662a"
+  },
+  "web.admin.organizations.addMember.noResultsHint": {
+    "text": "Тук могат да се добавят само съществуващи акаунти. Ако човекът никога не се е регистрирал, поканете го вместо това.",
+    "source_hash": "ee90aeeb"
+  },
+  "web.admin.organizations.addMember.select": {
+    "text": "Избиране",
+    "source_hash": "2a78025d"
+  },
+  "web.admin.organizations.addMember.selectedEyebrow": {
+    "text": "Избран акаунт",
+    "source_hash": "8b63d947"
+  },
+  "web.admin.organizations.addMember.change": {
+    "text": "Избиране на друг акаунт",
+    "source_hash": "d4fe39ab"
+  },
+  "web.admin.organizations.addMember.createdOn": {
+    "text": "Регистриран на {date}",
+    "source_hash": "cfc0e19f"
+  },
+  "web.admin.organizations.addMember.organizationsUnavailable": {
+    "text": "Не можаха да се заредят текущите организации на този акаунт.",
+    "source_hash": "a35b6bfc"
+  },
+  "web.admin.organizations.addMember.defaultOrg": {
+    "text": "по подразбиране",
+    "source_hash": "37a8eec1"
+  },
+  "web.admin.organizations.addMember.roleLabel": {
+    "text": "Роля в тази организация",
+    "source_hash": "817475fa"
+  },
+  "web.admin.organizations.addMember.submit": {
+    "text": "Добавяне към организация",
+    "source_hash": "0e0cb636"
+  },
+  "web.admin.organizations.addMember.success": {
+    "text": "Добавен е {account} като {role}.",
+    "source_hash": "533be0dc"
+  },
+  "web.admin.organizations.addMember.badges.verified": {
+    "text": "Потвърден",
+    "source_hash": "4f783840"
+  },
+  "web.admin.organizations.addMember.badges.unverified": {
+    "text": "Непотвърден",
+    "source_hash": "15133907"
+  },
+  "web.admin.organizations.addMember.badges.suspended": {
+    "text": "Спрян",
+    "source_hash": "e392a389"
+  },
+  "web.admin.organizations.addMember.badges.alreadyMember": {
+    "text": "Вече е член",
+    "source_hash": "1739ed7c"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMember": {
+    "text": "Този акаунт вече е член на тази организация с роля {role}. Добавянето не променя съществуваща роля — използвайте действието за задаване на роля за това.",
+    "source_hash": "cb6a4774"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMemberUnknownRole": {
+    "text": "Този акаунт вече е член на тази организация. Добавянето не променя съществуваща роля.",
+    "source_hash": "035641ec"
+  },
+  "web.admin.organizations.addMember.errors.notFound": {
+    "text": "Този акаунт или организация вече не съществува. Търсете отново, за да потвърдите акаунта.",
+    "source_hash": "bd88db18"
+  },
+  "web.admin.organizations.addMember.errors.invalidRole": {
+    "text": "Тази роля беше отхвърлена. Изберете една от изброените роли и опитайте отново.",
+    "source_hash": "eb696a8f"
+  },
+  "web.admin.organizations.addMember.errors.noSelection": {
+    "text": "Не е избран акаунт.",
+    "source_hash": "dd15bb5b"
+  },
+  "web.admin.organizations.addMember.fields.created": {
+    "text": "Регистриран",
+    "source_hash": "486b3fe0"
+  },
+  "web.admin.organizations.addMember.fields.verified": {
+    "text": "Проверка",
+    "source_hash": "7140f4f1"
+  },
+  "web.admin.organizations.addMember.fields.lastLogin": {
+    "text": "Последно влизане",
+    "source_hash": "0b70af7a"
+  },
+  "web.admin.organizations.addMember.fields.organizations": {
+    "text": "Текущи организации",
+    "source_hash": "cbb5b92f"
+  },
+  "web.admin.organizations.addMember.roleHints.member": {
+    "text": "Ежедневен достъп до тайните и домейните на организацията.",
+    "source_hash": "d0c7439e"
+  },
+  "web.admin.organizations.addMember.roleHints.admin": {
+    "text": "Може да управлява членове, домейни и настройки на организацията.",
+    "source_hash": "beaa50d7"
+  },
+  "web.admin.organizations.addMember.roleHints.owner": {
+    "text": "Пълен контрол, включително таксуване. Предоставяйте само когато е поискано.",
+    "source_hash": "614ace63"
+  },
+  "web.admin.organizations.addMember.roles.member": {
+    "text": "Член",
+    "source_hash": "7c968fb7"
+  },
+  "web.admin.organizations.addMember.roles.admin": {
+    "text": "Администратор",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.organizations.addMember.roles.owner": {
+    "text": "Собственик",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.openCustomer": {
+    "text": "Отваряне на запис за клиент",
+    "source_hash": "c057ca13"
+  },
+  "web.admin.organizations.detail.reconcile.memberships": {
+    "text": "Членствата са пресъздадени:",
+    "source_hash": "fe7db10c"
+  },
+  "web.admin.organizations.detail.reconcile.membershipsFailed": {
+    "text": "неуспешни, остават остарели права:",
+    "source_hash": "cc4dae37"
+  },
+  "web.admin.organizations.entitlements.catalogWarning": {
+    "text": "\"{entitlement}\" не е в каталога за таксуване — проверете за правописна грешка. Продължаване въпреки това: предоставянето на право, което ще бъде включено в по-късен каталог, се поддържа и умишлено не е блокирано.",
+    "source_hash": "cbde548a"
+  },
+  "web.admin.organizations.entitlements.matrix.caption": {
+    "text": "Матрица за разрешаване на права: план, предоставяния и отмени на заменки, разрешен набор и какво е материализирано.",
+    "source_hash": "9eac8999"
+  },
+  "web.admin.organizations.entitlements.matrix.yes": {
+    "text": "Да",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.matrix.no": {
+    "text": "Не",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.matrix.empty": {
+    "text": "Тази организация няма права от плана си и няма заменки.",
+    "source_hash": "f6cf2169"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.entitlement": {
+    "text": "Право",
+    "source_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.inPlan": {
+    "text": "В плана",
+    "source_hash": "e2222361"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.granted": {
+    "text": "Предоставено",
+    "source_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.revoked": {
+    "text": "Отменено",
+    "source_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.expected": {
+    "text": "Очаквано",
+    "source_hash": "ca99b7f1"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.materialized": {
+    "text": "Материализирано",
+    "source_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.state": {
+    "text": "Състояние",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.formula": {
+    "text": "Разрешаване: очаквано = (план ∪ предоставени) − отменени. Материализирано е това, което реално е съхранено в организацията.",
+    "source_hash": "bc4bff2d"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.orphaned": {
+    "text": "Осиротяло — материализирано, но не очаквано, обикновено оставено след отмяна, която никога не е била рематериализирана. Съгласуването го премахва.",
+    "source_hash": "3a27a9af"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.missing": {
+    "text": "Липсващо — очаквано, но не материализирано. Това е разрешението, което членовете реално липсва в момента.",
+    "source_hash": "485e44ad"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.revoked": {
+    "text": "Зачеркнатите редове са отменени от администраторска заменка, която ги премахва от очаквания набор.",
+    "source_hash": "89a2e9b6"
+  },
+  "web.admin.organizations.entitlements.matrix.state.plan": {
+    "text": "От плана",
+    "source_hash": "1d346b26"
+  },
+  "web.admin.organizations.entitlements.matrix.state.granted": {
+    "text": "Предоставено",
+    "source_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.state.revoked": {
+    "text": "Отменено",
+    "source_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.state.orphaned": {
+    "text": "Осиротяло",
+    "source_hash": "8d827807"
+  },
+  "web.admin.organizations.entitlements.matrix.state.missing": {
+    "text": "Липсващо",
+    "source_hash": "6be36ca4"
+  },
+  "web.admin.organizations.entitlements.picker.selectPlaceholder": {
+    "text": "Изберете право…",
+    "source_hash": "53af3be8"
+  },
+  "web.admin.organizations.entitlements.picker.other": {
+    "text": "Друго — не е в каталога…",
+    "source_hash": "f08bc3a3"
+  },
+  "web.admin.organizations.entitlements.picker.customLabel": {
+    "text": "Име на право (не е в каталога)",
+    "source_hash": "52783229"
+  },
+  "web.admin.organizations.entitlements.picker.backToCatalog": {
+    "text": "Обратно към каталога",
+    "source_hash": "9b727f40"
+  },
+  "web.admin.organizations.entitlements.picker.uncategorized": {
+    "text": "Некатегоризирано",
+    "source_hash": "8d40d123"
+  },
+  "web.admin.organizations.entitlements.picker.catalogUnavailable": {
+    "text": "Каталогът за таксуване не можа да бъде прочетен, така че имената на правата не се проверяват тук.",
+    "source_hash": "724869ec"
+  },
+  "web.admin.organizations.entitlements.picker.tags.inPlan": {
+    "text": "в плана",
+    "source_hash": "5f2251bb"
+  },
+  "web.admin.organizations.entitlements.picker.tags.granted": {
+    "text": "предоставено",
+    "source_hash": "dd515d19"
+  },
+  "web.admin.organizations.entitlements.picker.tags.revoked": {
+    "text": "отменено",
+    "source_hash": "4bb47f18"
+  },
+  "web.admin.organizations.entitlements.summary.sync": {
+    "text": "Синхронизиране",
+    "source_hash": "8d261a37"
+  },
+  "web.admin.organizations.entitlements.summary.materialized": {
+    "text": "Материализирано",
+    "source_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.summary.materializedAt": {
+    "text": "Последно материализиране",
+    "source_hash": "9325dce9"
+  },
+  "web.admin.organizations.entitlements.summary.planDefinition": {
+    "text": "Дефиниция на план",
+    "source_hash": "6b531454"
+  },
+  "web.admin.organizations.entitlements.summary.yes": {
+    "text": "Да",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.summary.no": {
+    "text": "Не",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.summary.never": {
+    "text": "Никога",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.organizations.entitlements.summary.planStale": {
+    "text": "Променено след материализация",
+    "source_hash": "e682d8a4"
+  },
+  "web.admin.organizations.entitlements.summary.planCurrent": {
+    "text": "Текущо",
+    "source_hash": "e0d1b682"
+  },
+  "web.admin.organizations.entitlements.summary.planUnknown": {
+    "text": "Неизвестно — не можа да се сравни",
+    "source_hash": "b607e540"
+  },
+  "web.admin.organizations.actions.plan.label": {
+    "text": "План",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.actions.plan.apply": {
+    "text": "Прилагане",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.organizations.actions.plan.confirmTitle": {
+    "text": "Да се промени ли планът?",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.organizations.actions.plan.confirmDescription": {
+    "text": "Промяна на {org} към плана {plan}.",
+    "source_hash": "aecf8277"
+  },
+  "web.admin.organizations.actions.plan.success": {
+    "text": "Планът е актуализиран.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.organizations.actions.plan.problem": {
+    "text": "Планът е запазен, но правомощията не бяха актуализирани. Изпълнете съгласуване за тази организация.",
+    "source_hash": "2addb095"
+  },
+  "web.admin.organizations.actions.plan.localConfigWarning": {
+    "text": "Плановете са заредени от локална конфигурация — Stripe не е конфигуриран или е недостъпен.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.organizations.detail.delete.button": {
+    "text": "Изтриване на организацията",
+    "source_hash": "a70d189a"
+  },
+  "web.admin.organizations.detail.delete.previewing": {
+    "text": "Зареждане на плана за изтриване…",
+    "source_hash": "c9773eb9"
+  },
+  "web.admin.organizations.detail.delete.warning": {
+    "text": "Изтрива перманентно организацията, членствата ѝ и чакащите ѝ покани и изпраща имейл на бившите членове. Това не може да бъде отменено.",
+    "source_hash": "fd314131"
+  },
+  "web.admin.organizations.detail.delete.confirmTitle": {
+    "text": "Да се изтрие ли тази организация?",
+    "source_hash": "6a3bba0f"
+  },
+  "web.admin.organizations.detail.delete.confirmDescription": {
+    "text": "Това изтрива перманентно {org}. Въведете отново ИД на организацията за потвърждение.",
+    "source_hash": "c63a0221"
+  },
+  "web.admin.organizations.detail.delete.membersLabel": {
+    "text": "Членове",
+    "source_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.delete.invitationsLabel": {
+    "text": "Чакащи покани",
+    "source_hash": "76198e63"
+  },
+  "web.admin.organizations.detail.delete.domainsLabel": {
+    "text": "Домейни",
+    "source_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.delete.defaultOrgLabel": {
+    "text": "Изчиства работната област по подразбиране за",
+    "source_hash": "d535ac2a"
+  },
+  "web.admin.organizations.detail.delete.forceDefault": {
+    "text": "Това е работната област по подразбиране (лична) на собственика. Изтриване въпреки това.",
+    "source_hash": "1a8b0f7d"
+  },
+  "web.admin.organizations.detail.delete.forceSubscription": {
+    "text": "Абонаментът е активен. Изтриване въпреки това — това не анулира фактурирането в Stripe.",
+    "source_hash": "51cb3456"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsLabel": {
+    "text": "Домейни с разминавания",
+    "source_hash": "fef96f49"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsRepair": {
+    "text": "Поправка с: bin/ots domains doctor --all --repair",
+    "source_hash": "14c9c59f"
+  },
+  "web.admin.organizations.detail.delete.success": {
+    "text": "{org} е изтрита.",
+    "source_hash": "9cdda5d0"
+  },
+  "web.admin.organizations.detail.delete.blocked.hasDomains": {
+    "text": "Блокирано: първо премахнете потребителските домейни ({domains}).",
+    "source_hash": "dc3248b2"
+  },
+  "web.admin.organizations.detail.delete.blocked.driftedDomains": {
+    "text": "Блокирано: тези записи на домейни все още препращат към тази организация, но липсват в списъка ѝ с домейни ({domains}). Първо изпълнете bin/ots domains doctor --all --repair — няма възможност за заместване.",
+    "source_hash": "3136496c"
+  },
+  "web.admin.organizations.detail.delete.blocked.isDefault": {
+    "text": "Блокирано: това е работната област по подразбиране на собственика. Отметнете заместването по-долу, за да я изтриете въпреки това.",
+    "source_hash": "09d5baa4"
+  },
+  "web.admin.organizations.detail.delete.blocked.activeSubscription": {
+    "text": "Блокирано: организацията има активен абонамент. Първо го анулирайте в Stripe или отметнете заместването по-долу.",
+    "source_hash": "68663641"
+  },
+  "web.admin.organizations.detail.delete.blocked.lastOrg": {
+    "text": "Блокирано: това е единствената организация, към която принадлежи {owner}, и изтриването ѝ ще го остави без работна област. Няма възможност за заместване — първо създайте заместваща организация.",
+    "source_hash": "f09b4f9a"
+  },
+  "web.admin.organizations.detail.delete.errors.planUnreadable": {
+    "text": "Планът за изтриване не можа да бъде прочетен от сървъра. Нищо не е изтрито.",
+    "source_hash": "91406cbb"
+  },
+  "web.admin.organizations.detail.delete.errors.unverified": {
+    "text": "Отговорът на сървъра не можа да бъде проверен. Презаредете списъка с организации, за да проверите дали изтриването е завършило.",
+    "source_hash": "7a261fb0"
+  },
+  "web.admin.organizations.detail.delete.errors.notApplied": {
+    "text": "Сървърът върна преглед, а не изтриване. Нищо не е изтрито.",
+    "source_hash": "9d84971d"
+  }
+}

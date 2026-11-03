@@ -1,0 +1,117 @@
+// src/tests/apps/workspace/routes/dashboard.spec.ts
+
+import dashboardRoutes from '@/apps/workspace/routes/dashboard';
+import {
+  OWNERSHIP_CHECKING_STRATEGIES,
+  setDomainValidationStrategy,
+} from '@tests/support/domainValidationStrategy';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { RouteRecordRaw } from 'vue-router';
+
+// Control the install's validation strategy for the DNS/verify route guards.
+// The real capability table is evaluated, not a boolean stub.
+vi.mock('@/utils/features', async (importOriginal) => {
+  const { featuresForStrategy } = await import('@tests/support/domainValidationStrategy');
+  return featuresForStrategy(await importOriginal<typeof import('@/utils/features')>());
+});
+
+const findRoute = (name: string) =>
+  dashboardRoutes.find((r: RouteRecordRaw) => r.name === name);
+
+/** Invoke a route's single beforeEnter guard with a minimal `to` stub. */
+const runGuard = (name: string, params: Record<string, string>) => {
+  const guard = findRoute(name)?.beforeEnter;
+  if (typeof guard !== 'function') throw new Error(`no beforeEnter on ${name}`);
+  // Invoked via `.call(undefined, ...)` rather than a bare `guard(...)`: the
+  // guard's type declares `this: undefined`, and a bare call would instead
+  // check this enclosing (non-method) function's own inferred `this` type
+  // (`void`) against it, which isn't assignable.
+  return guard.call(undefined, { params } as never, {} as never, (() => {}) as never);
+};
+
+describe('Dashboard Routes', () => {
+  describe('Dashboard Route', () => {
+    it('should define dashboard route correctly', () => {
+      const route = dashboardRoutes.find((route: RouteRecordRaw) => route.path === '/dashboard');
+      expect(route).toBeDefined();
+      expect(route?.meta?.requiresAuth).toBe(true);
+      // Routes use single component (direct import), not named components
+      expect(route?.component).toBeDefined();
+      expect(route?.meta?.layout).toBeDefined();
+    });
+  });
+
+  describe('Recents Route', () => {
+    it('should define recents route correctly', () => {
+      const route = dashboardRoutes.find((route: RouteRecordRaw) => route.path === '/recent');
+      expect(route).toBeDefined();
+      expect(route?.meta?.requiresAuth).toBe(true);
+      // Routes use single component (direct import), not named components
+      expect(route?.component).toBeDefined();
+      expect(route?.meta?.layout).toBeDefined();
+    });
+  });
+
+  describe('DomainDns Route', () => {
+    it('should define the DNS setup route correctly', () => {
+      const route = findRoute('DomainDns');
+      expect(route?.path).toBe('/org/:orgid/domains/:extid/dns');
+      expect(route?.meta?.requiresAuth).toBe(true);
+      expect(route?.meta?.requiresOrgRole).toBe('admin');
+      expect(route?.component).toBeDefined();
+    });
+  });
+
+  describe('DomainSigninSso Route', () => {
+    it('mirrors the DomainSignin entry under /signin/sso', () => {
+      const signin = findRoute('DomainSignin');
+      const route = findRoute('DomainSigninSso');
+      expect(signin?.path).toBe('/org/:orgid/domains/:extid/signin');
+      expect(route?.path).toBe('/org/:orgid/domains/:extid/signin/sso');
+      expect(route?.meta?.title).toBe('web.TITLES.domain_signin_sso');
+      expect(route?.props).toBe(true);
+      expect(route?.component).toBeDefined();
+      // Same access and layout as the sign-in page it hangs off.
+      const { title: _signinTitle, ...signinMeta } = signin?.meta ?? {};
+      const { title: _ssoTitle, ...ssoMeta } = route?.meta ?? {};
+      expect(ssoMeta).toEqual(signinMeta);
+      expect(route?.meta?.requiresOrgRole).toBe('admin');
+    });
+  });
+
+  describe('DNS / verification route guards', () => {
+    const params = { orgid: 'org-1', extid: 'dm-1' };
+
+    beforeEach(() => {
+      setDomainValidationStrategy('approximated');
+    });
+
+    describe.each(OWNERSHIP_CHECKING_STRATEGIES)('under %s', (strategy) => {
+      beforeEach(() => {
+        setDomainValidationStrategy(strategy);
+      });
+
+      it('DomainVerify is allowed', () => {
+        expect(runGuard('DomainVerify', params)).toBe(true);
+      });
+
+      it('DomainDns redirects to DomainVerify, keeping the params', () => {
+        expect(runGuard('DomainDns', params)).toEqual({ name: 'DomainVerify', params });
+      });
+    });
+
+    describe.each(['passthrough', 'some_future_strategy', null])('under %s', (strategy) => {
+      beforeEach(() => {
+        setDomainValidationStrategy(strategy);
+      });
+
+      it('DomainVerify redirects to DomainDns, keeping the params', () => {
+        expect(runGuard('DomainVerify', params)).toEqual({ name: 'DomainDns', params });
+      });
+
+      it('DomainDns is allowed', () => {
+        expect(runGuard('DomainDns', params)).toBe(true);
+      });
+    });
+  });
+});

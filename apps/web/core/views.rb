@@ -1,0 +1,107 @@
+# apps/web/core/views.rb
+#
+# frozen_string_literal: true
+
+require_relative 'views/base'
+
+module Core
+  module Views
+    ##
+    # The VuePoint class serves as a bridge between the Ruby Rack application
+    # and the Vue.js frontend. It is responsible for initializing and passing
+    # JavaScript variables from the backend to the frontend.
+    #
+    # Example usage:
+    #   view = Core::Views::VuePoint.new(req)
+    #   html = view.render('index')
+    #
+    class VuePoint < Core::Views::BaseView
+      use_serializers(
+        ConfigSerializer,
+        AuthenticationSerializer,
+        DomainSerializer,
+        I18nSerializer,
+        MessagesSerializer,
+        OrganizationSerializer,
+        SystemSerializer,
+        DiagnosticsSerializer,
+      )
+
+      def init(*args); end
+    end
+
+    ##
+    # AdminPoint renders the rebuilt Colonel admin console shell.
+    #
+    # It reuses VuePoint's serializers (identical window.__BOOTSTRAP_ME__ state)
+    # but selects the `admin` template and the `admin.ts` Vite entry, so /colonel
+    # loads the isolated admin bundle. Since the cutover
+    # (docs/specs/colonel-ui/50-cutover-hardening.md) this is the sole shell
+    # served at /colonel (see Core::Controllers::Page#colonel); the legacy
+    # colonel SPA has been retired.
+    #
+    class AdminPoint < Core::Views::BaseView
+      use_serializers(
+        ConfigSerializer,
+        AuthenticationSerializer,
+        DomainSerializer,
+        I18nSerializer,
+        MessagesSerializer,
+        OrganizationSerializer,
+        SystemSerializer,
+        DiagnosticsSerializer,
+      )
+
+      def init(*args); end
+
+      def vite_entry
+        'admin.ts'
+      end
+
+      def render(template_name = 'admin')
+        super
+      end
+    end
+
+    class BootstrapMe < Core::Views::BaseView
+      use_serializers(
+        ConfigSerializer,
+        AuthenticationSerializer,
+        DomainSerializer,
+        I18nSerializer,
+        MessagesSerializer,
+        OrganizationSerializer,
+        SystemSerializer,
+        DiagnosticsSerializer,
+      )
+
+      def init(*args); end
+    end
+
+    # The robots.txt file
+    class RobotsTxt < Core::Views::BaseView
+      def init(*_args); end
+
+      def render(template_name = 'robots')
+        # Override to return plain text without hydration
+        # Template-only variables (NOT serialized to window state)
+        template_vars = {
+          'baseuri' => view_vars['baseuri'],
+        }
+
+        rhales_view = Rhales::View.new(
+          req,
+          client: {},                   # No client data for robots.txt
+          server: template_vars,        # Only baseuri for template
+          config: Rhales.configuration,
+        )
+
+        rhales_view.render(template_name)
+      end
+    end
+
+    class UnknownSecret < Core::Views::BaseView
+      def init(*_args); end
+    end
+  end
+end

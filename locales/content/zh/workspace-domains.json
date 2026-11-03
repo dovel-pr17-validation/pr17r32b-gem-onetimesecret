@@ -1,0 +1,1694 @@
+{
+  "web.domains.learn_more_dns": {
+    "text": "了解更多关于 DNS 配置的信息",
+    "source_hash": "c592a5c6"
+  },
+  "web.domains.view_domain_verification_status": {
+    "text": "查看域名验证状态",
+    "source_hash": "23635e2d"
+  },
+  "web.domains.domain_already_in_organization": {
+    "text": "此域名已在您的组织中注册",
+    "source_hash": "6e0d628f"
+  },
+  "web.domains.domain_in_other_organization": {
+    "text": "此域名已注册到另一个组织。如果您认为这是一个错误，请联系支持团队。",
+    "source_hash": "7fae16a9"
+  },
+  "web.domains.domain_claimed_successfully": {
+    "text": "域名已成功声明并添加到您的组织",
+    "source_hash": "d53e1ac1"
+  },
+  "web.domains.privacy_defaults_title": {
+    "text": "隐私默认值",
+    "source_hash": "5bce069d"
+  },
+  "web.domains.privacy_defaults_description": {
+    "text": "为此域名下创建的内容设置默认隐私选项。创建新内容时将预填这些设置。",
+    "source_hash": "1d98959c"
+  },
+  "web.domains.privacy_defaults": {
+    "text": "隐私默认值",
+    "source_hash": "5bce069d"
+  },
+  "web.domains.privacy_defaults_icon": {
+    "text": "隐私默认值图标",
+    "source_hash": "c6bef509"
+  },
+  "web.domains.default_ttl_label": {
+    "text": "默认有效期",
+    "source_hash": "ce3c65fe"
+  },
+  "web.domains.default_ttl_hint": {
+    "text": "内容默认保持可访问的时间",
+    "source_hash": "777b978d"
+  },
+  "web.domains.passphrase_required_label": {
+    "text": "需要口令",
+    "source_hash": "3a448e69"
+  },
+  "web.domains.passphrase_required_hint": {
+    "text": "使口令对此域名下的所有内容强制要求",
+    "source_hash": "6ac05bce"
+  },
+  "web.domains.notify_enabled_label": {
+    "text": "启用通知",
+    "source_hash": "682be64a"
+  },
+  "web.domains.notify_enabled_hint": {
+    "text": "默认在内容被查看时启用邮件通知",
+    "source_hash": "3e16dd5f"
+  },
+  "web.domains.use_global_default": {
+    "text": "使用全局默认",
+    "source_hash": "a83c91e4"
+  },
+  "web.domains.global_default": {
+    "text": "全局",
+    "source_hash": "a258b30f"
+  },
+  "web.domains.required": {
+    "text": "必需",
+    "source_hash": "4850b174"
+  },
+  "web.domains.optional": {
+    "text": "可选",
+    "source_hash": "59be7133"
+  },
+  "web.domains.enabled": {
+    "text": "启用",
+    "source_hash": "5342e09f"
+  },
+  "web.domains.disabled": {
+    "text": "已禁用",
+    "source_hash": "75081b59"
+  },
+  "web.domains.custom": {
+    "text": "自定义",
+    "source_hash": "494ca78f"
+  },
+  "web.domains.edit_defaults": {
+    "text": "编辑默认值",
+    "source_hash": "50f49b87"
+  },
+  "web.domains.ttl_short": {
+    "text": "TTL",
+    "source_hash": "76f6014f"
+  },
+  "web.domains.passphrase_short": {
+    "text": "口令",
+    "source_hash": "e7611f05"
+  },
+  "web.domains.notify_short": {
+    "text": "通知",
+    "source_hash": "78801183"
+  },
+  "web.domains.scope_switch_label": {
+    "text": "切换域名范围",
+    "source_hash": "c776f846"
+  },
+  "web.domains.switcher_locked": {
+    "text": "此页面不可切换域名",
+    "source_hash": "ccd202fe"
+  },
+  "web.domains.scope_list_label": {
+    "text": "可用域名",
+    "source_hash": "026552b3"
+  },
+  "web.domains.scope_header": {
+    "text": "域名",
+    "source_hash": "ced67718"
+  },
+  "web.domains.add_domain": {
+    "text": "添加域名",
+    "source_hash": "d86476ae"
+  },
+  "web.domains.domain_settings": {
+    "text": "域名设置",
+    "source_hash": "3dedc533"
+  },
+  "web.domains.canonical_no_settings": {
+    "text": "默认域名没有设置页面",
+    "source_hash": "59b8806e"
+  },
+  "web.domains.please_enter_a_domain_name": {
+    "text": "请输入一个 {0} 域名",
+    "source_hash": "167f2d19"
+  },
+  "web.domains.domain_name": {
+    "text": "域名",
+    "source_hash": "421b1e61"
+  },
+  "web.domains.control_whether_users_can_create_secret_links": {
+    "text": "控制用户是否可以从您域名的主页创建一次性链接",
+    "source_hash": "a25d6fca"
+  },
+  "web.domains.homepage_access": {
+    "text": "主页访问",
+    "source_hash": "00c89609"
+  },
+  "web.domains.and_status": {
+    "text": "和状态",
+    "source_hash": "fe871d2c"
+  },
+  "web.domains.domain": {
+    "text": "域名",
+    "source_hash": "79fa3361"
+  },
+  "web.domains.manage_and_configure_your_verified_custom_domains": {
+    "text": "管理和配置您已验证的自定义域名",
+    "source_hash": "4e7f8311"
+  },
+  "web.domains.domains": {
+    "text": "域名",
+    "source_hash": "ced67718"
+  },
+  "web.domains.last_monitored": {
+    "text": "最后监控",
+    "source_hash": "8d39d1d0"
+  },
+  "web.domains.ssl_status": {
+    "text": "SSL 状态",
+    "source_hash": "bec72630"
+  },
+  "web.domains.ssl_renews": {
+    "text": "SSL 续期",
+    "source_hash": "c49a8cff"
+  },
+  "web.domains.dns_record": {
+    "text": "DNS 记录",
+    "source_hash": "33cbb244"
+  },
+  "web.domains.target_address": {
+    "text": "目标地址",
+    "source_hash": "5e812179"
+  },
+  "web.domains.domain_status": {
+    "text": "域名状态",
+    "source_hash": "cd6b089b"
+  },
+  "web.domains.custom_domains_count": {
+    "text": "自定义域名数量",
+    "source_hash": "a9929be0"
+  },
+  "web.domains.custom_domain": {
+    "text": "自定义域名",
+    "source_hash": "c1683eeb"
+  },
+  "web.domains.open_domain_in_new_tab": {
+    "text": "在新标签页中打开域名",
+    "source_hash": "01571f31"
+  },
+  "web.domains.back_to_domains": {
+    "text": "返回域名列表",
+    "source_hash": "d1dc32ad"
+  },
+  "web.domains.return_to_domains_list": {
+    "text": "返回域名列表",
+    "source_hash": "c7632413"
+  },
+  "web.domains.verify_domain": {
+    "text": "验证域名",
+    "source_hash": "b416f537"
+  },
+  "web.domains.manage_brand": {
+    "text": "管理品牌",
+    "source_hash": "b6ec5cd4"
+  },
+  "web.domains.added_formatdistancetonow_domain_created_addsuffix_true": {
+    "text": "已添加 {0}",
+    "source_hash": "dc9ff9ec"
+  },
+  "web.domains.add_your_domain": {
+    "text": "添加您的域名",
+    "source_hash": "6b95c91c"
+  },
+  "web.domains.get_started_by_adding_a_custom_domain": {
+    "text": "通过添加自定义域名开始使用。",
+    "source_hash": "abdbe9ab"
+  },
+  "web.domains.no_domains_found": {
+    "text": "未找到域名。",
+    "source_hash": "574264df"
+  },
+  "web.domains.loading_domain_information": {
+    "text": "正在加载域名信息...",
+    "source_hash": "b5549ff7"
+  },
+  "web.domains.in_order_to_connect_your_domain_youll_need_to_ha": {
+    "text": "为了连接您的域名，您需要在 DNS 中创建一个指向的 CNAME 记录",
+    "source_hash": "c560710e"
+  },
+  "web.domains.if_you_already_have_a_cname_record_for_that_addr": {
+    "text": "如果您已经为该地址创建了 CNAME 记录，请将其更改为指向",
+    "source_hash": "6f23e6db"
+  },
+  "web.domains.a_cname_record_is_not_allowed_instead_youll_need": {
+    "text": "），不允许使用 CNAME 记录。相反，您需要创建 A 记录。有关如何执行此操作的详细信息将在页面下方提供。",
+    "source_hash": "76d5ab5f"
+  },
+  "web.domains.and_remove_any_other_a_aaaa_or_cname_records_for": {
+    "text": "并删除该确切地址的任何其他 A、AAAA 或 CNAME 记录。",
+    "source_hash": "8978f5e7"
+  },
+  "web.domains.youll_need_to_complete_these_steps": {
+    "text": "，您需要完成以下步骤。",
+    "source_hash": "1d81c53e"
+  },
+  "web.domains.before_we_can_activate_links_for": {
+    "text": "在我们为以下域名激活链接之前",
+    "source_hash": "aae43a00"
+  },
+  "web.domains.please_note_that_for_apex_domains": {
+    "text": "请注意，对于顶级域名（例如",
+    "source_hash": "09a4b0ca"
+  },
+  "web.domains.verify_your_domain": {
+    "text": "验证您的域名",
+    "source_hash": "afa10517"
+  },
+  "web.domains.secrets_example_dot_com": {
+    "text": "secrets.example.com",
+    "source_hash": "9ea4d0d6"
+  },
+  "web.domains.customize_your_domain_branding": {
+    "text": "自定义您的域名品牌",
+    "source_hash": "e3f97ac1"
+  },
+  "web.domains.it_may_take_a_few_minutes_for_your_ssl_certifica": {
+    "text": "您的 SSL 证书可能需要几分钟才能生效。",
+    "source_hash": "2e4f3179"
+  },
+  "web.domains.dns_changes_can_take_as_little_as_60_seconds_or_": {
+    "text": "DNS 更改可能需要 60 秒到 24 小时才能生效。",
+    "source_hash": "38774290"
+  },
+  "web.domains.3_wait_for_propagation": {
+    "text": "3. 等待传播",
+    "source_hash": "3e6cf4e1"
+  },
+  "web.domains.value_2": {
+    "text": "值",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.value_1": {
+    "text": "值",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.host_1": {
+    "text": "主机",
+    "source_hash": "4a823118"
+  },
+  "web.domains.type_2": {
+    "text": "类型",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.type_1": {
+    "text": "类型",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.2_create_the_cname_record": {
+    "text": "2. 创建 CNAME 记录",
+    "source_hash": "781e438b"
+  },
+  "web.domains.value_0": {
+    "text": "值",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.host_0": {
+    "text": "主机",
+    "source_hash": "4a823118"
+  },
+  "web.domains.type_0": {
+    "text": "类型",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.2_create_the_a_record": {
+    "text": "2. 创建 A 记录",
+    "source_hash": "7b5aa1fc"
+  },
+  "web.domains.add_this_hostname_to_your_dns_configuration": {
+    "text": "将此主机名添加到您的 DNS 配置：",
+    "source_hash": "4bf09ead"
+  },
+  "web.domains.1_create_a_txt_record": {
+    "text": "1. 创建 TXT 记录",
+    "source_hash": "62766ffd"
+  },
+  "web.domains.follow_these_steps_to_verify_domain_ownership_an": {
+    "text": "按照以下步骤验证域名所有权并提升您的在线形象：",
+    "source_hash": "a33f94d3"
+  },
+  "web.domains.domain_verification_steps": {
+    "text": "域名验证步骤",
+    "source_hash": "16dca977"
+  },
+  "web.domains.domain_verification_initiated_successfully": {
+    "text": "域名验证已成功启动。",
+    "source_hash": "5969b924"
+  },
+  "web.domains.are_you_sure_you_want_to_remove_this_domain": {
+    "text": "您确定要删除此域名吗？此操作无法撤销。",
+    "source_hash": "403c6d3b"
+  },
+  "web.domains.remove_domain": {
+    "text": "移除域名",
+    "source_hash": "07a1675d"
+  },
+  "web.domains.domain_removed_successfully": {
+    "text": "域名移除成功",
+    "source_hash": "2984d483"
+  },
+  "web.domains.failed_to_add_domain": {
+    "text": "添加域名失败",
+    "source_hash": "5fc4c4b3"
+  },
+  "web.domains.domain_added_successfully": {
+    "text": "域名添加成功",
+    "source_hash": "dd8180cf"
+  },
+  "web.domains.passphrase_set": {
+    "text": "已保护",
+    "source_hash": "b0ed2633"
+  },
+  "web.domains.manage_domains": {
+    "text": "管理域名",
+    "source_hash": "36dd9781"
+  },
+  "web.domains.global_defaults": {
+    "text": "全局默认值",
+    "source_hash": "4526107f"
+  },
+  "web.domains.edit_ttl": {
+    "text": "编辑有效期设置",
+    "source_hash": "ea8afd62"
+  },
+  "web.domains.edit_passphrase": {
+    "text": "编辑口令要求",
+    "source_hash": "0b5555b5"
+  },
+  "web.domains.edit_notify": {
+    "text": "编辑通知设置",
+    "source_hash": "2e9e1ea0"
+  },
+  "web.domains.configure_dns_records": {
+    "text": "配置 DNS 记录",
+    "source_hash": "5932f0cb"
+  },
+  "web.domains.dns_widget_description": {
+    "text": "使用下方工具自动检测您的 DNS 提供商，并获取配置域名的分步说明。",
+    "source_hash": "91c1af2e"
+  },
+  "web.domains.email.title": {
+    "text": "邮件发送",
+    "source_hash": "6c428e5f"
+  },
+  "web.domains.email.config_title": {
+    "text": "邮件配置",
+    "source_hash": "6f38aa51"
+  },
+  "web.domains.email.config_description": {
+    "text": "为此域名配置邮件发送",
+    "source_hash": "1c275ff0"
+  },
+  "web.domains.email.provider_label": {
+    "text": "邮件提供商",
+    "source_hash": "a7ed3f4e"
+  },
+  "web.domains.email.provider_placeholder": {
+    "text": "选择邮件提供商",
+    "source_hash": "63c8080c"
+  },
+  "web.domains.email.from_name_label": {
+    "text": "发件人名称",
+    "source_hash": "2f13b589"
+  },
+  "web.domains.email.from_name_placeholder": {
+    "text": "例如：安全团队",
+    "source_hash": "03c0f138"
+  },
+  "web.domains.email.from_address_label": {
+    "text": "发件人地址",
+    "source_hash": "60643eae"
+  },
+  "web.domains.email.from_address_placeholder": {
+    "text": "例如：secrets{'@'}example.com",
+    "source_hash": "a09b3928"
+  },
+  "web.domains.email.reply_to_label": {
+    "text": "回复地址",
+    "source_hash": "4538ea9c"
+  },
+  "web.domains.email.reply_to_placeholder": {
+    "text": "例如：support{'@'}example.com",
+    "source_hash": "fa3e5f0b"
+  },
+  "web.domains.email.save_changes": {
+    "text": "保存更改",
+    "source_hash": "35322b5b"
+  },
+  "web.domains.email.discard_changes": {
+    "text": "放弃更改",
+    "source_hash": "e07e053c"
+  },
+  "web.domains.email.provider_ses": {
+    "text": "Amazon SES",
+    "source_hash": "15de4969"
+  },
+  "web.domains.email.provider_sendgrid": {
+    "text": "SendGrid",
+    "source_hash": "b889d002"
+  },
+  "web.domains.email.provider_lettermint": {
+    "text": "Lettermint",
+    "source_hash": "ec994dad"
+  },
+  "web.domains.email.provider_inherit": {
+    "text": "使用账户默认设置",
+    "source_hash": "f6fa84e7"
+  },
+  "web.domains.email.provider_ses_description": {
+    "text": "需要通过 DKIM 和 SPF 记录进行域名验证",
+    "source_hash": "4df5aa60"
+  },
+  "web.domains.email.provider_sendgrid_description": {
+    "text": "需要域名认证设置",
+    "source_hash": "71b53242"
+  },
+  "web.domains.email.provider_lettermint_description": {
+    "text": "需要域名验证",
+    "source_hash": "87073c93"
+  },
+  "web.domains.email.provider_inherit_description": {
+    "text": "使用您账户的默认邮件发送配置",
+    "source_hash": "3f798263"
+  },
+  "web.domains.email.dns_records_title": {
+    "text": "DNS 记录",
+    "source_hash": "34d2c307"
+  },
+  "web.domains.email.dns_records_description": {
+    "text": "添加以下 DNS 记录以验证您的域名用于邮件发送。",
+    "source_hash": "9fa85863"
+  },
+  "web.domains.email.dns_column_type": {
+    "text": "类型",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.email.dns_column_name": {
+    "text": "名称",
+    "source_hash": "dcd1d522"
+  },
+  "web.domains.email.dns_column_value": {
+    "text": "值",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.email.dns_optional_label": {
+    "text": "Recommended",
+    "source_hash": "d70604e8"
+  },
+  "web.domains.email.dns_optional_hint": {
+    "text": "This record is recommended but not required for verification. A DMARC policy at your organizational domain may already cover this subdomain.",
+    "source_hash": "58e1a12b"
+  },
+  "web.domains.email.copy": {
+    "text": "复制",
+    "source_hash": "e21f935f"
+  },
+  "web.domains.email.copied": {
+    "text": "已复制",
+    "source_hash": "8d525e5f"
+  },
+  "web.domains.email.status_verified": {
+    "text": "已验证",
+    "source_hash": "4f783840"
+  },
+  "web.domains.email.status_pending": {
+    "text": "待处理",
+    "source_hash": "331551b0"
+  },
+  "web.domains.email.status_failed": {
+    "text": "失败",
+    "source_hash": "031a8f0f"
+  },
+  "web.domains.email.revalidate": {
+    "text": "重新验证",
+    "source_hash": "4918da12"
+  },
+  "web.domains.email.validating": {
+    "text": "验证中...",
+    "source_hash": "b28b48d5"
+  },
+  "web.domains.email.domain_verified": {
+    "text": "域名已验证",
+    "source_hash": "08e0df67"
+  },
+  "web.domains.email.validation_failed": {
+    "text": "验证失败",
+    "source_hash": "23a86f5a"
+  },
+  "web.domains.email.last_validated": {
+    "text": "上次验证",
+    "source_hash": "887dd486"
+  },
+  "web.domains.email.upgrade_to_configure": {
+    "text": "升级您的套餐以配置此域名的邮件发送。",
+    "source_hash": "16a876f7"
+  },
+  "web.domains.email.configure_email": {
+    "text": "配置邮件",
+    "source_hash": "a48c0d40"
+  },
+  "web.domains.email.access_denied": {
+    "text": "访问被拒绝",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.email.access_denied_description": {
+    "text": "您没有权限管理此域名的邮件设置。请联系您的组织管理员。",
+    "source_hash": "32049ff0"
+  },
+  "web.domains.email.update_success": {
+    "text": "邮件配置已成功保存",
+    "source_hash": "dd3607fc"
+  },
+  "web.domains.email.delete_success": {
+    "text": "邮件配置已成功移除",
+    "source_hash": "2ba99a91"
+  },
+  "web.domains.email.default_sender_notice": {
+    "text": "此域名的邮件目前从全局发件人发送。完成邮件配置以使用您自己的发件人身份。",
+    "source_hash": "ffcf39fb"
+  },
+  "web.domains.email.disabled_notice": {
+    "text": "自定义邮件发送目前已禁用。邮件将从全局发件人发送。启用以下功能以使用您的自定义发件人身份。",
+    "source_hash": "60a26f5b"
+  },
+  "web.domains.email.badge_not_configured": {
+    "text": "未配置",
+    "source_hash": "dd1841d2"
+  },
+  "web.domains.email.badge_default_sender": {
+    "text": "使用默认发件人",
+    "source_hash": "e1afb18f"
+  },
+  "web.domains.email.badge_verified": {
+    "text": "已验证",
+    "source_hash": "4f783840"
+  },
+  "web.domains.email.badge_pending": {
+    "text": "待验证",
+    "source_hash": "417a6b7e"
+  },
+  "web.domains.email.badge_disabled": {
+    "text": "已禁用",
+    "source_hash": "75081b59"
+  },
+  "web.domains.email.tooltip_not_configured": {
+    "text": "未配置发件人——邮件使用平台默认发件人",
+    "source_hash": "360083bb"
+  },
+  "web.domains.email.tooltip_pending": {
+    "text": "发件人配置待验证——邮件使用平台默认发件人",
+    "source_hash": "c8c2449c"
+  },
+  "web.domains.email.tooltip_disabled": {
+    "text": "发件人已禁用——邮件使用平台默认发件人",
+    "source_hash": "64e84955"
+  },
+  "web.domains.email.tooltip_verified": {
+    "text": "发件人已验证——邮件将从此域名发送",
+    "source_hash": "0e9a005c"
+  },
+  "web.domains.incoming.title": {
+    "text": "接收内容",
+    "source_hash": "883dbca9"
+  },
+  "web.domains.incoming.config_title": {
+    "text": "接收内容配置",
+    "source_hash": "b3fef15b"
+  },
+  "web.domains.incoming.config_description": {
+    "text": "允许外部用户直接向此域名的指定接收人发送内容",
+    "source_hash": "452ab4fe"
+  },
+  "web.domains.incoming.access_denied": {
+    "text": "访问被拒绝",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.incoming.access_denied_description": {
+    "text": "您没有权限管理此域名的接收内容设置。请联系您的组织管理员。",
+    "source_hash": "3e9d8adc"
+  },
+  "web.domains.incoming.upgrade_to_configure": {
+    "text": "升级您的套餐以配置此域名的接收内容。",
+    "source_hash": "9dfdfeb5"
+  },
+  "web.domains.incoming.configure_incoming": {
+    "text": "配置接收内容",
+    "source_hash": "eab52939"
+  },
+  "web.domains.incoming.not_configured_notice": {
+    "text": "此域名未配置接收内容。添加接收人以允许外部用户向您的团队发送内容。",
+    "source_hash": "dbc443a6"
+  },
+  "web.domains.incoming.disabled_notice": {
+    "text": "接收内容目前已禁用。外部用户无法向此域名的接收人发送内容。启用以下功能以允许接收内容。",
+    "source_hash": "d1f8dafb"
+  },
+  "web.domains.incoming.recipients_title": {
+    "text": "接收人",
+    "source_hash": "1e8568a8"
+  },
+  "web.domains.incoming.recipients_description": {
+    "text": "定义谁可以接收此域名的内容。当有内容发送给接收人时，他们将收到邮件通知。",
+    "source_hash": "026f9d9d"
+  },
+  "web.domains.incoming.add_recipient": {
+    "text": "添加接收人",
+    "source_hash": "25f93c13"
+  },
+  "web.domains.incoming.remove_recipient": {
+    "text": "移除",
+    "source_hash": "c3812fc4"
+  },
+  "web.domains.incoming.email_label": {
+    "text": "邮箱地址",
+    "source_hash": "09bf25ef"
+  },
+  "web.domains.incoming.email_placeholder": {
+    "text": "recipient{'@'}example.com",
+    "source_hash": "55d1508e"
+  },
+  "web.domains.incoming.name_label": {
+    "text": "显示名称",
+    "source_hash": "18d67c99"
+  },
+  "web.domains.incoming.name_placeholder": {
+    "text": "例如：安全团队",
+    "source_hash": "0c52400c"
+  },
+  "web.domains.incoming.empty_state": {
+    "text": "未配置接收人",
+    "source_hash": "bc8c2058"
+  },
+  "web.domains.incoming.empty_state_description": {
+    "text": "添加接收人以允许外部用户向您的团队发送内容。",
+    "source_hash": "2a647a40"
+  },
+  "web.domains.incoming.validation_invalid_email": {
+    "text": "邮箱地址无效",
+    "source_hash": "4eaf1d80"
+  },
+  "web.domains.incoming.validation_duplicate_email": {
+    "text": "此邮箱地址已添加",
+    "source_hash": "f89de141"
+  },
+  "web.domains.incoming.validation_max_recipients": {
+    "text": "最多允许 {max} 个接收人",
+    "source_hash": "e2585847"
+  },
+  "web.domains.incoming.validation_name_required": {
+    "text": "显示名称为必填项",
+    "source_hash": "c6892c89"
+  },
+  "web.domains.incoming.validation_email_required": {
+    "text": "邮箱地址为必填项",
+    "source_hash": "41381ba2"
+  },
+  "web.domains.incoming.save_changes": {
+    "text": "保存更改",
+    "source_hash": "35322b5b"
+  },
+  "web.domains.incoming.discard_changes": {
+    "text": "放弃更改",
+    "source_hash": "e07e053c"
+  },
+  "web.domains.incoming.update_success": {
+    "text": "接收内容配置已成功保存",
+    "source_hash": "9317e02d"
+  },
+  "web.domains.incoming.delete_success": {
+    "text": "接收内容配置已成功移除",
+    "source_hash": "4c4a33ae"
+  },
+  "web.domains.incoming.recipient_count": {
+    "text": "{count} 个接收人",
+    "source_hash": "0e4f5985"
+  },
+  "web.domains.incoming.badge_not_configured": {
+    "text": "未配置",
+    "source_hash": "dd1841d2"
+  },
+  "web.domains.incoming.badge_configured": {
+    "text": "已配置",
+    "source_hash": "84aebc69"
+  },
+  "web.domains.incoming.badge_disabled": {
+    "text": "已禁用",
+    "source_hash": "75081b59"
+  },
+  "web.domains.incoming.tooltip_not_configured": {
+    "text": "未配置接收内容——外部用户无法向此域名发送内容",
+    "source_hash": "79786d5c"
+  },
+  "web.domains.incoming.tooltip_configured": {
+    "text": "已启用接收内容，共 {count} 个接收人",
+    "source_hash": "c205cc54"
+  },
+  "web.domains.incoming.tooltip_disabled": {
+    "text": "此域名的接收内容功能已禁用",
+    "source_hash": "0413f96b"
+  },
+  "web.domains.incoming.enabled_label": {
+    "text": "启用接收内容",
+    "source_hash": "c0b25980"
+  },
+  "web.domains.incoming.enabled_hint": {
+    "text": "允许外部用户向此域名的接收人发送内容",
+    "source_hash": "24aadd31"
+  },
+  "web.domains.incoming.public_url_label": {
+    "text": "公开网址",
+    "source_hash": "f7b60b04"
+  },
+  "web.domains.incoming.public_url_description": {
+    "text": "与外部用户分享此网址，允许他们发送内容",
+    "source_hash": "df47a894"
+  },
+  "web.domains.incoming.copy_url": {
+    "text": "复制网址",
+    "source_hash": "b26d1037"
+  },
+  "web.domains.incoming.url_copied": {
+    "text": "网址已复制到剪贴板",
+    "source_hash": "2f396c3e"
+  },
+  "web.domains.incoming.remove_all_confirmation": {
+    "text": "确定要移除所有接收人吗？外部用户将无法再向此域名发送内容。",
+    "source_hash": "06f9e551"
+  },
+  "web.domains.incoming.max_recipients_reached": {
+    "text": "已达到接收人数量上限",
+    "source_hash": "ba659e54"
+  },
+  "web.domains.incoming.duplicate_recipient": {
+    "text": "此邮箱地址已添加",
+    "source_hash": "ca598f6d"
+  },
+  "web.domains.incoming.save_will_replace_confirmation": {
+    "text": "保存将用您的待处理更改替换所有现有接收人。确定吗？",
+    "source_hash": "f497862e"
+  },
+  "web.domains.incoming.delete_all_recipients": {
+    "text": "删除所有接收人",
+    "source_hash": "207d0dbe"
+  },
+  "web.domains.sso.title": {
+    "text": "单点登录",
+    "source_hash": "cf7cd744"
+  },
+  "web.domains.sso.config_title": {
+    "text": "SSO 配置",
+    "source_hash": "afd5751e"
+  },
+  "web.domains.sso.config_description": {
+    "text": "为此域名配置单点登录认证",
+    "source_hash": "f37a0b47"
+  },
+  "web.domains.sso.access_denied": {
+    "text": "访问被拒绝",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.sso.access_denied_description": {
+    "text": "您没有权限管理此域名的 SSO 设置。请联系您的组织管理员。",
+    "source_hash": "db7fcfeb"
+  },
+  "web.domains.sso.upgrade_to_configure": {
+    "text": "升级您的套餐以配置此域名的单点登录。",
+    "source_hash": "71fc0069"
+  },
+  "web.domains.sso.create_success": {
+    "text": "SSO 配置已成功创建",
+    "source_hash": "531c7d92"
+  },
+  "web.domains.sso.update_success": {
+    "text": "SSO 配置已成功更新",
+    "source_hash": "d98d8e83"
+  },
+  "web.domains.sso.delete_success": {
+    "text": "SSO 配置已成功移除",
+    "source_hash": "2e924798"
+  },
+  "web.domains.sso.configure_sso": {
+    "text": "配置 SSO",
+    "source_hash": "80d3a144"
+  },
+  "web.domains.sso.not_configured_notice": {
+    "text": "此域名尚未配置 SSO。启用单点登录以允许团队成员使用您组织的身份提供商进行认证。",
+    "source_hash": "c439214b"
+  },
+  "api.domains.errors.add_admin_required": {
+    "text": "只有组织所有者和管理员才能添加自定义域名",
+    "source_hash": "3324aabe"
+  },
+  "web.domains.public_homepage": {
+    "text": "公开主页",
+    "source_hash": "2ae3ccba"
+  },
+  "web.domains.status_tooltip_active": {
+    "text": "域名已验证并处于活跃状态",
+    "source_hash": "e4b6a6e1"
+  },
+  "web.domains.status_tooltip_dns_incorrect": {
+    "text": "DNS 未配置 — 点击修复",
+    "source_hash": "892cb2cb"
+  },
+  "web.domains.status_tooltip_not_verified": {
+    "text": "域名未验证 — 点击验证",
+    "source_hash": "a9806710"
+  },
+  "web.domains.status_tooltip_unverified": {
+    "text": "域名状态未验证 — 点击刷新",
+    "source_hash": "a45aa76d"
+  },
+  "web.domains.last_check_failed": {
+    "text": "上次验证检查失败",
+    "source_hash": "88b594b8"
+  },
+  "web.domains.last_check_failed_ago": {
+    "text": "上次检查失败于 {0}",
+    "source_hash": "ddfb6412"
+  },
+  "web.domains.verify_now": {
+    "text": "立即验证",
+    "source_hash": "db383efb"
+  },
+  "web.domains.click_to_verify": {
+    "text": "点击验证",
+    "source_hash": "6eae7d9c"
+  },
+  "web.domains.remove_domain_description": {
+    "text": "永久移除此域名及其全部配置。",
+    "source_hash": "73946b9e"
+  },
+  "web.domains.add_access_denied": {
+    "text": "访问被拒绝",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.add_access_denied_description": {
+    "text": "您无权向此组织添加域名。请联系您的组织管理员。",
+    "source_hash": "25e035c6"
+  },
+  "web.domains.dns_widget_load_failed": {
+    "text": "加载 DNS 小组件失败",
+    "source_hash": "5a1d8ab5"
+  },
+  "web.domains.dns_widget_not_available": {
+    "text": "DNS 小组件不可用",
+    "source_hash": "4eed448b"
+  },
+  "web.domains.dns_widget_init_failed": {
+    "text": "初始化 DNS 小组件失败",
+    "source_hash": "de477585"
+  },
+  "web.domains.verified": {
+    "text": "已验证",
+    "source_hash": "4f783840"
+  },
+  "web.domains.pending_verification": {
+    "text": "等待验证",
+    "source_hash": "77e07795"
+  },
+  "web.domains.unsaved_changes_confirmation": {
+    "text": "您有未保存的更改。确定要离开吗？",
+    "source_hash": "322380c1"
+  },
+  "web.domains.entitlement_required_owner": {
+    "text": "此功能需要升级方案。",
+    "source_hash": "6de1f752"
+  },
+  "web.domains.entitlement_required_member": {
+    "text": "此功能在您当前的方案中不可用。请联系您的组织所有者。",
+    "source_hash": "8f1688b2"
+  },
+  "web.domains.detail.manage": {
+    "text": "管理",
+    "source_hash": "5a234448"
+  },
+  "web.domains.detail.features": {
+    "text": "功能",
+    "source_hash": "5697d03d"
+  },
+  "web.domains.detail.homepage_title": {
+    "text": "主页内容",
+    "source_hash": "6360f7ec"
+  },
+  "web.domains.detail.homepage_description": {
+    "text": "允许公众访问以在您的域名主页上创建内容",
+    "source_hash": "209b3ded"
+  },
+  "web.domains.detail.brand_description": {
+    "text": "Logo、颜色和自定义品牌",
+    "source_hash": "69f7a9e8"
+  },
+  "web.domains.detail.sso_description": {
+    "text": "单点登录提供商设置",
+    "source_hash": "234e6150"
+  },
+  "web.domains.detail.email_description": {
+    "text": "自定义邮件发件人配置",
+    "source_hash": "7fcde01b"
+  },
+  "web.domains.detail.incoming_description": {
+    "text": "接收内容的收件人设置",
+    "source_hash": "37c1fd6d"
+  },
+  "web.domains.detail.signup_description": {
+    "text": "按域名设置的注册验证策略",
+    "source_hash": "3c5a511f"
+  },
+  "web.domains.detail.signin_description": {
+    "text": "按域名设置的登录方式配置",
+    "source_hash": "73e01e36"
+  },
+  "web.domains.email.dns_check_label": {
+    "text": "DNS",
+    "source_hash": "020965a2"
+  },
+  "web.domains.email.provider_check_label": {
+    "text": "提供商",
+    "source_hash": "472590ae"
+  },
+  "web.domains.email.test_email_title": {
+    "text": "测试邮件投递",
+    "source_hash": "c1b3dee2"
+  },
+  "web.domains.email.test_email_hint": {
+    "text": "使用已保存的配置向自己发送一封测试邮件。即使该功能尚未启用也可使用。",
+    "source_hash": "33e876ad"
+  },
+  "web.domains.email.send_test": {
+    "text": "发送测试",
+    "source_hash": "22d7b11d"
+  },
+  "web.domains.email.test_email_sent": {
+    "text": "测试邮件发送成功",
+    "source_hash": "561617fd"
+  },
+  "web.domains.email.test_email_failed": {
+    "text": "测试邮件发送失败",
+    "source_hash": "95ce63bc"
+  },
+  "web.domains.email.test_email_rate_limited": {
+    "text": "近期发送的测试邮件过多。请稍后重试。",
+    "source_hash": "90b8ca17"
+  },
+  "web.domains.email.test_email_rate_limited_retry": {
+    "text": "近期发送的测试邮件过多。请在约 {minutes} 分钟后重试。",
+    "source_hash": "218146cc"
+  },
+  "web.domains.email.test_email_sent_to": {
+    "text": "已发送至 {email}",
+    "source_hash": "8ceb9588"
+  },
+  "web.domains.email.delivered_via": {
+    "text": "通过 {provider} 投递",
+    "source_hash": "f741959b"
+  },
+  "web.domains.incoming.feature_disabled": {
+    "text": "接收内容功能不可用",
+    "source_hash": "0f96c5ec"
+  },
+  "web.domains.incoming.feature_disabled_description": {
+    "text": "此实例未启用接收内容功能。请联系您的管理员。",
+    "source_hash": "dce981e0"
+  },
+  "web.domains.signin.title": {
+    "text": "登录配置",
+    "source_hash": "2da38c03"
+  },
+  "web.domains.signin.configure_signin": {
+    "text": "配置登录",
+    "source_hash": "f72b58b5"
+  },
+  "web.domains.signin.config_description": {
+    "text": "为此域名配置登录身份验证方式",
+    "source_hash": "8efce428"
+  },
+  "web.domains.signin.access_denied": {
+    "text": "访问被拒绝",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.signin.upgrade_to_configure": {
+    "text": "升级方案以便为此域名配置登录方式。",
+    "source_hash": "e242bb74"
+  },
+  "web.domains.signin.not_configured_notice": {
+    "text": "尚未为此域名设置登录配置。配置覆盖项可控制此域名登录页面上提供哪些身份验证方式。",
+    "source_hash": "cb788a2d"
+  },
+  "web.domains.signin.signin_enabled_label": {
+    "text": "已启用登录",
+    "source_hash": "cabe4898"
+  },
+  "web.domains.signin.header_toggle_label": {
+    "text": "登录",
+    "source_hash": "5bbbe531"
+  },
+  "web.domains.signin.signin_enabled_hint": {
+    "text": "用户是否可以在此域名上登录",
+    "source_hash": "57a92aee"
+  },
+  "web.domains.signin.restrict_to_label": {
+    "text": "限制登录方式",
+    "source_hash": "edbec83f"
+  },
+  "web.domains.signin.restrict_to_hint": {
+    "text": "将此域名限制为单一身份验证方式。设置后，登录页面仅显示所选方式。",
+    "source_hash": "682bc4c5"
+  },
+  "web.domains.signin.all_methods": {
+    "text": "全部方式",
+    "source_hash": "e601c19e"
+  },
+  "web.domains.signin.all_methods_description": {
+    "text": "在登录页面显示所有已启用的身份验证方式",
+    "source_hash": "62723340"
+  },
+  "web.domains.signin.method_password": {
+    "text": "密码",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.domains.signin.method_email_auth": {
+    "text": "邮件身份验证",
+    "source_hash": "68c38f94"
+  },
+  "web.domains.signin.method_webauthn": {
+    "text": "WebAuthn / 通行密钥",
+    "source_hash": "c40224ce"
+  },
+  "web.domains.signin.method_sso": {
+    "text": "单点登录",
+    "source_hash": "cf7cd744"
+  },
+  "web.domains.signin.method_overrides_label": {
+    "text": "方式覆盖项",
+    "source_hash": "5496cba6"
+  },
+  "web.domains.signin.method_overrides_hint": {
+    "text": "为此域名启用或禁用各个身份验证方式",
+    "source_hash": "394e3878"
+  },
+  "web.domains.signin.mode_question": {
+    "text": "用户如何登录？",
+    "source_hash": "3694eb23"
+  },
+  "web.domains.signin.mode_any": {
+    "text": "任何可用方式",
+    "source_hash": "23665425"
+  },
+  "web.domains.signin.mode_any_hint": {
+    "text": "显示此域名上的所有可用方式。可在下方收窄各个方式。",
+    "source_hash": "2f3dcba6"
+  },
+  "web.domains.signin.mode_one": {
+    "text": "一种指定方式",
+    "source_hash": "601f5768"
+  },
+  "web.domains.signin.mode_one_hint": {
+    "text": "将登录页面限制为单一方式。仅列出此域名上的可用方式。",
+    "source_hash": "58bde6d5"
+  },
+  "web.domains.signin.mode_disabled": {
+    "text": "已禁用登录",
+    "source_hash": "bb807607"
+  },
+  "web.domains.signin.mode_disabled_hint": {
+    "text": "用户无法在此域名上登录。",
+    "source_hash": "8938f098"
+  },
+  "web.domains.signin.mode_disabled_notice": {
+    "text": "访问此域名登录页面的访客会看到一条提示，说明登录不可用，并附有返回主页的链接。您之前的方式设置将被保留，并在您重新启用登录时恢复。",
+    "source_hash": "1a04de18"
+  },
+  "web.domains.signin.methods_list_label": {
+    "text": "登录页面显示的方式",
+    "source_hash": "66fd133b"
+  },
+  "web.domains.signin.restrict_picker_hint": {
+    "text": "仅列出此域名上的可用方式。",
+    "source_hash": "c7a56f44"
+  },
+  "web.domains.signin.availability_always": {
+    "text": "始终可用",
+    "source_hash": "0fda3772"
+  },
+  "web.domains.signin.availability_global_on": {
+    "text": "遵循全局策略 · 开启",
+    "source_hash": "3844e6f7"
+  },
+  "web.domains.signin.availability_global_off": {
+    "text": "不可用",
+    "source_hash": "67a926f7"
+  },
+  "web.domains.signin.availability_unavailable": {
+    "text": "全站不可用",
+    "source_hash": "da29c1be"
+  },
+  "web.domains.signin.allow_on_domain": {
+    "text": "在此域名上允许",
+    "source_hash": "760b578e"
+  },
+  "web.domains.signin.method_password_blurb": {
+    "text": "仅密码",
+    "source_hash": "ed1a02fd"
+  },
+  "web.domains.signin.method_email_auth_blurb": {
+    "text": "无密码魔法链接登录",
+    "source_hash": "7f776a85"
+  },
+  "web.domains.signin.method_webauthn_blurb": {
+    "text": "生物识别和安全密钥",
+    "source_hash": "7d6a7bd5"
+  },
+  "web.domains.signin.method_sso_blurb": {
+    "text": "外部身份提供商",
+    "source_hash": "a3442088"
+  },
+  "web.domains.signin.email_auth_label": {
+    "text": "邮件身份验证",
+    "source_hash": "68c38f94"
+  },
+  "web.domains.signin.email_auth_hint": {
+    "text": "在此域名上允许无密码邮件身份验证",
+    "source_hash": "6ad82127"
+  },
+  "web.domains.signin.sso_enabled_label": {
+    "text": "单点登录",
+    "source_hash": "cf7cd744"
+  },
+  "web.domains.signin.sso_enabled_hint": {
+    "text": "在此域名上允许 SSO 身份验证",
+    "source_hash": "22d78ad5"
+  },
+  "web.domains.signin.enabled_label": {
+    "text": "启用登录配置",
+    "source_hash": "dbd8e11c"
+  },
+  "web.domains.signin.enabled_hint": {
+    "text": "启用后，此域名将使用上方配置的登录设置",
+    "source_hash": "6259f8a2"
+  },
+  "web.domains.signin.save_config": {
+    "text": "保存配置",
+    "source_hash": "b2b158f2"
+  },
+  "web.domains.signin.update_success": {
+    "text": "登录配置更新成功",
+    "source_hash": "10ea50d8"
+  },
+  "web.domains.signin.reset_to_defaults": {
+    "text": "重置为默认值",
+    "source_hash": "e240e635"
+  },
+  "web.domains.signin.reset_confirm": {
+    "text": "将登录重置为全局默认值？",
+    "source_hash": "2c6bbc32"
+  },
+  "web.domains.signin.reset_keeps_sso": {
+    "text": "您的 SSO 凭据将被保留。请在 SSO 配置界面单独移除它们。",
+    "source_hash": "edc0c756"
+  },
+  "web.domains.signin.reset_action": {
+    "text": "是，重置",
+    "source_hash": "4bb21d8b"
+  },
+  "web.domains.signin.reset_success": {
+    "text": "登录设置已重置为全局默认值",
+    "source_hash": "0c364d89"
+  },
+  "web.domains.signup.title": {
+    "text": "注册验证",
+    "source_hash": "2c34ac0a"
+  },
+  "web.domains.signup.config_description": {
+    "text": "为此域名配置注册验证",
+    "source_hash": "e9c81e8a"
+  },
+  "web.domains.signup.access_denied": {
+    "text": "访问被拒绝",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.signup.upgrade_to_configure": {
+    "text": "升级方案以便配置按域名设置的注册验证。",
+    "source_hash": "d87d6614"
+  },
+  "web.domains.signup.configure_signup": {
+    "text": "配置注册",
+    "source_hash": "e2697662"
+  },
+  "web.domains.signup.not_configured_notice": {
+    "text": "尚未为此域名配置注册验证。配置一项策略可控制谁能通过此域名注册。",
+    "source_hash": "fc6c6eb8"
+  },
+  "web.domains.signup.site_signups_disabled_warning": {
+    "text": "目前已在站点级别禁用注册。此按域名设置的策略虽已配置，但在启用站点注册之前不会对任何流量生效。",
+    "source_hash": "c0e59f86"
+  },
+  "web.domains.signup.strategy_label": {
+    "text": "验证策略",
+    "source_hash": "a2e95531"
+  },
+  "web.domains.signup.strategy_description": {
+    "text": "选择用户在此域名上注册时如何验证邮箱地址。",
+    "source_hash": "8e232b03"
+  },
+  "web.domains.signup.network_validation_warning": {
+    "text": "此策略在注册过程中会执行网络调用，可能增加延迟或被某些提供商屏蔽。",
+    "source_hash": "53d4c266"
+  },
+  "web.domains.signup.allowed_domains_label": {
+    "text": "允许注册的域名",
+    "source_hash": "9b5bb5b1"
+  },
+  "web.domains.signup.allowed_domains_hint": {
+    "text": "仅允许这些邮箱域名注册。每行添加一个域名。",
+    "source_hash": "c082414d"
+  },
+  "web.domains.signup.domain_placeholder": {
+    "text": "example.com",
+    "source_hash": "a379a6f6"
+  },
+  "web.domains.signup.invalid_domain": {
+    "text": "请输入有效的域名（例如 example.com）",
+    "source_hash": "16807983"
+  },
+  "web.domains.signup.domain_exists": {
+    "text": "此域名已在列表中",
+    "source_hash": "3fccb721"
+  },
+  "web.domains.signup.remove_domain": {
+    "text": "移除 {domain}",
+    "source_hash": "ae708a1d"
+  },
+  "web.domains.signup.enabled_label": {
+    "text": "启用按域名设置的验证",
+    "source_hash": "db103925"
+  },
+  "web.domains.signup.enabled_hint": {
+    "text": "启用后，此域名上的注册将使用上方的策略，而非全局策略。",
+    "source_hash": "99de2008"
+  },
+  "web.domains.signup.delete_config": {
+    "text": "删除配置",
+    "source_hash": "a9a30c7f"
+  },
+  "web.domains.signup.delete_confirm": {
+    "text": "删除注册验证配置？注册将回退到全局策略。",
+    "source_hash": "a8c9086e"
+  },
+  "web.domains.signup.save_config": {
+    "text": "保存配置",
+    "source_hash": "b2b158f2"
+  },
+  "web.domains.signup.update_success": {
+    "text": "注册验证更新成功",
+    "source_hash": "57a529ac"
+  },
+  "web.domains.signup.delete_success": {
+    "text": "注册验证配置移除成功",
+    "source_hash": "eb6add4d"
+  },
+  "web.domains.signup.domain_overrides_label": {
+    "text": "域名覆盖项",
+    "source_hash": "d25da3cd"
+  },
+  "web.domains.signup.domain_overrides_hint": {
+    "text": "为此域名覆盖全局注册设置",
+    "source_hash": "53101057"
+  },
+  "web.domains.signup.signup_enabled_label": {
+    "text": "已启用注册",
+    "source_hash": "296ac66d"
+  },
+  "web.domains.signup.signup_enabled_hint": {
+    "text": "覆盖此域名是否启用注册",
+    "source_hash": "2ee146b6"
+  },
+  "web.domains.signup.autoverify_label": {
+    "text": "自动验证账户",
+    "source_hash": "4b103cd5"
+  },
+  "web.domains.signup.autoverify_hint": {
+    "text": "覆盖此域名上的新账户是否自动验证",
+    "source_hash": "63866ecd"
+  },
+  "web.domains.sso.test_success": {
+    "text": "连接测试成功 — 提供商响应正常",
+    "source_hash": "1570ddb0"
+  },
+  "web.domains.sso.test_failed": {
+    "text": "连接测试失败",
+    "source_hash": "a45a37dd"
+  },
+  "web.domains.sso.edit_credentials": {
+    "text": "编辑凭据",
+    "source_hash": "5a6622b6"
+  },
+  "web.domains.sso.configure_button": {
+    "text": "配置",
+    "source_hash": "6defafa2"
+  },
+  "web.domains.sso.upgrade_required": {
+    "text": "升级以配置",
+    "source_hash": "571cfa98"
+  },
+  "web.domains.add.field_label": {
+    "text": "自定义域名",
+    "source_hash": "d7d4c1e4"
+  },
+  "web.domains.add.field_help": {
+    "text": "您的团队将使用的确切主机名，例如 {example}。",
+    "source_hash": "3ba71f78"
+  },
+  "web.domains.add.echo_label": {
+    "text": "您的一次性链接将位于",
+    "source_hash": "ad60b17d"
+  },
+  "web.domains.add.apex_question": {
+    "text": "那是您的整个域名——一次性链接应位于何处？",
+    "source_hash": "efacad1b"
+  },
+  "web.domains.add.apex_help": {
+    "text": "使用子域名可以让 {domain} 的其余部分保持不变。",
+    "source_hash": "0f7e6181"
+  },
+  "web.domains.add.recommended": {
+    "text": "推荐",
+    "source_hash": "d70604e8"
+  },
+  "web.domains.add.no_wrong_answer": {
+    "text": "没有错误的选择——选择您的团队能识别的即可。",
+    "source_hash": "a04f0086"
+  },
+  "web.domains.add.subdomains_label": {
+    "text": "常用子域名",
+    "source_hash": "d6ee8eac"
+  },
+  "web.domains.add.root_group_label": {
+    "text": "或使用您的整个域名",
+    "source_hash": "5c23c007"
+  },
+  "web.domains.add.root_domain_label": {
+    "text": "使用我的根域名",
+    "source_hash": "9fbbe253"
+  },
+  "web.domains.add.root_domain_description": {
+    "text": "这会将整个 {domain} 指向我们——该处的网站将停止解析——并需要一条 A / ALIAS 记录。",
+    "source_hash": "fae93847"
+  },
+  "web.domains.add.error_unrecognized_suffix": {
+    "text": "「.{0}」不是可识别的域名结尾——请检查是否有拼写错误（例如 {1}）。",
+    "source_hash": "4b90033d"
+  },
+  "web.domains.add.error_invalid_hostname": {
+    "text": "请输入有效的主机名——字母、数字、单个点和短横线（例如 {0}）。",
+    "source_hash": "c4ceabc1"
+  },
+  "web.domains.add.error_empty": {
+    "text": "请输入域名。",
+    "source_hash": "d8e2c1e4"
+  },
+  "web.domains.add.continue_with": {
+    "text": "继续使用 {0}",
+    "source_hash": "73f8ab40"
+  },
+  "web.domains.auth_override.workspace_default_badge": {
+    "text": "工作区默认",
+    "source_hash": "da3706ee"
+  },
+  "web.domains.detail.dns_title": {
+    "text": "DNS 设置",
+    "source_hash": "6c63df31"
+  },
+  "web.domains.detail.dns_description": {
+    "text": "使用 CNAME 记录将您的域名指向此服务器",
+    "source_hash": "080f84f0"
+  },
+  "web.domains.dns.title": {
+    "text": "DNS 配置",
+    "source_hash": "da78c35d"
+  },
+  "web.domains.dns.point_domain_intro": {
+    "text": "将",
+    "source_hash": "2fc0c524"
+  },
+  "web.domains.dns.point_domain_outro": {
+    "text": "指向此服务器，方法是在您的提供商处添加以下 DNS 记录。",
+    "source_hash": "8d260c05"
+  },
+  "web.domains.dns.cname_heading": {
+    "text": "创建一条 CNAME 记录",
+    "source_hash": "11aeef5a"
+  },
+  "web.domains.dns.apex_heading": {
+    "text": "创建一条 ALIAS 或 ANAME 记录",
+    "source_hash": "41135375"
+  },
+  "web.domains.dns.apex_notice": {
+    "text": "顶级（根）域名无法使用 CNAME 记录。请改用您的 DNS 提供商的 ALIAS 或 ANAME 记录，或将一条 A 记录指向您服务器的 IP 地址。",
+    "source_hash": "2d1c3298"
+  },
+  "web.domains.email.from_address_local_placeholder": {
+    "text": "no-reply",
+    "source_hash": "510d274d"
+  },
+  "web.domains.homepage.title": {
+    "text": "主页",
+    "source_hash": "9e3391e9"
+  },
+  "web.domains.homepage.description": {
+    "text": "访客可以在您的域名主页上做什么",
+    "source_hash": "974d159e"
+  },
+  "web.domains.homepage.option_private_title": {
+    "text": "私密着陆页",
+    "source_hash": "dfd5bd1c"
+  },
+  "web.domains.homepage.option_private_description": {
+    "text": "访客看到一个没有交互式表单的私密着陆页",
+    "source_hash": "4d9aaf6f"
+  },
+  "web.domains.homepage.option_create_title": {
+    "text": "内容创建表单",
+    "source_hash": "6539dfc1"
+  },
+  "web.domains.homepage.option_create_description": {
+    "text": "访客可以创建自己的一次性链接",
+    "source_hash": "884310f4"
+  },
+  "web.domains.homepage.option_incoming_title": {
+    "text": "接收内容表单",
+    "source_hash": "882997bf"
+  },
+  "web.domains.homepage.option_incoming_description": {
+    "text": "访客可以向您配置的收件人发送内容",
+    "source_hash": "86bdaedb"
+  },
+  "web.domains.homepage.incoming_requires_recipients": {
+    "text": "需要启用接收内容并至少设置一个收件人",
+    "source_hash": "0462611d"
+  },
+  "web.domains.homepage.configure_recipients": {
+    "text": "配置收件人",
+    "source_hash": "1c3df8b4"
+  },
+  "web.domains.homepage.status_private": {
+    "text": "私密着陆页",
+    "source_hash": "dfd5bd1c"
+  },
+  "web.domains.homepage.status_create": {
+    "text": "公开：访客创建内容",
+    "source_hash": "251cfb95"
+  },
+  "web.domains.homepage.status_incoming": {
+    "text": "公开：访客向您发送内容",
+    "source_hash": "baa926b8"
+  },
+  "web.domains.homepage.status_incoming_unready": {
+    "text": "接收内容未就绪——显示私密着陆页",
+    "source_hash": "a5cc237c"
+  },
+  "web.domains.homepage.badge_incoming": {
+    "text": "接收",
+    "source_hash": "e301820a"
+  },
+  "web.domains.homepage.update_success": {
+    "text": "主页设置已保存",
+    "source_hash": "4eac9f45"
+  },
+  "web.domains.homepage.homepage_uses_incoming_warning": {
+    "text": "此域名的主页当前显示接收内容表单。禁用接收内容或移除所有收件人后，主页将切换为私密着陆页，直到接收内容再次就绪。",
+    "source_hash": "cc0d4997"
+  },
+  "web.domains.signin.effective_status_label": {
+    "text": "此域名上的登录",
+    "source_hash": "d8b884c3"
+  },
+  "web.domains.signin.dormant_notice": {
+    "text": "登录已在整个工作区范围内关闭，因此在每个域名上都不可用。此处的设置会被保留，并在再次启用工作区登录时生效。",
+    "source_hash": "723d35dc"
+  },
+  "web.domains.signup.effective_status_label": {
+    "text": "此域名上的注册",
+    "source_hash": "115ab21b"
+  },
+  "web.domains.signup.dormant_notice": {
+    "text": "注册已在整个工作区范围内关闭，因此在每个域名上都不可用。此处的设置会被保留，并在再次启用工作区注册时生效。",
+    "source_hash": "49faefe4"
+  },
+  "web.domains.link_domain_no_settings": {
+    "text": "此域名没有设置页面",
+    "source_hash": "8a8430fe"
+  },
+  "web.domains.signin.sso_restrict_warning_title": {
+    "text": "限制为 SSO 会关闭此域名上的登录",
+    "source_hash": "3476cb5c"
+  },
+  "web.domains.signin.sso_restrict_warning_body": {
+    "text": "此域名上无法使用 SSO，而无法生效的限制会完全阻止登录。在 SSO 正常工作之前，任何人都无法在此登录。请先修复 SSO，或者仍然限制并完成设置。",
+    "source_hash": "086e3247"
+  },
+  "web.domains.signin.sso_restrict_warning_confirm": {
+    "text": "仍然限制",
+    "source_hash": "4674e3cf"
+  },
+  "web.domains.signin.restriction_unavailable_notice": {
+    "text": "此域名上的登录不可用：它被限制为 {method}，而该方式在此无法使用。请选择其他方式，或使 {method} 可用。",
+    "source_hash": "ca1b7f69"
+  },
+  "web.domains.signin.restriction_unavailable_unknown_notice": {
+    "text": "此域名上的登录不可用：它被限制为一种在此无法使用的方式。请选择其他方式，或将此域名重置为默认值。",
+    "source_hash": "8c2cce6b"
+  },
+  "web.domains.signin.restriction_conflict_notice": {
+    "text": "此域名将登录限制为与工作区范围限制（{method}）不同的方式，因此两者都无法生效，此处的登录不可用。请与工作区范围的方式保持一致，或将此域名重置为默认值。",
+    "source_hash": "15398362"
+  },
+  "web.domains.signin.method_webauthn_unavailable": {
+    "text": "通行密钥与主登录域名绑定，目前尚不支持自定义域名",
+    "source_hash": "88833e0f"
+  },
+  "web.domains.sso.connection_disabled_badge": {
+    "text": "连接已禁用",
+    "source_hash": "99d6092c"
+  },
+  "web.domains.sso.connection_disabled_hint": {
+    "text": "SSO 凭据已保存，但连接已关闭。请在「编辑凭据」中启用。",
+    "source_hash": "90180d6c"
+  },
+  "web.domains.sso.status_active_badge": {
+    "text": "已启用",
+    "source_hash": "92340695"
+  },
+  "web.domains.sso.status_active_hint": {
+    "text": "成员可以在此域名上使用此 SSO 连接登录。",
+    "source_hash": "313ec61e"
+  },
+  "web.domains.sso.status_not_configured_badge": {
+    "text": "未配置",
+    "source_hash": "dd1841d2"
+  },
+  "web.domains.sso.status_not_configured_hint": {
+    "text": "尚未为此域名保存 SSO 凭据。",
+    "source_hash": "d817ad9c"
+  },
+  "web.domains.sso.status_not_permitted_badge": {
+    "text": "此域名不允许",
+    "source_hash": "afbd20ba"
+  },
+  "web.domains.sso.status_not_permitted_hint": {
+    "text": "此域名已关闭 SSO，因此登录页面不提供此方式。",
+    "source_hash": "ef092481"
+  },
+  "web.domains.sso.status_auth_disabled_badge": {
+    "text": "登录已禁用",
+    "source_hash": "bb807607"
+  },
+  "web.domains.sso.status_auth_disabled_hint": {
+    "text": "此域名已关闭登录，因此不提供任何登录方式 — 包括 SSO。",
+    "source_hash": "3a98964b"
+  },
+  "web.domains.sso.status_unsupported_provider_badge": {
+    "text": "不支持的提供商",
+    "source_hash": "1609d5fb"
+  },
+  "web.domains.sso.status_unsupported_provider_hint": {
+    "text": "保存的提供商无法用于域名 SSO。请编辑凭据并选择 Microsoft Entra ID 或通用 OIDC。",
+    "source_hash": "72ea0a2e"
+  },
+  "web.domains.sso.status_unavailable_badge": {
+    "text": "不可用",
+    "source_hash": "ca184496"
+  },
+  "web.domains.sso.status_unavailable_hint": {
+    "text": "目前无法在此域名上提供 SSO。请检查 SSO 凭据以及此域名的登录设置。",
+    "source_hash": "b03b14f4"
+  },
+  "web.domains.status_tooltip_pending_ssl": {
+    "text": "域名已验证 — 正在等待证书签发",
+    "source_hash": "541bd705"
+  },
+  "web.domains.2_create_the_alias_record": {
+    "text": "2. 创建 ALIAS 或 ANAME 记录",
+    "source_hash": "17b04e6a"
+  },
+  "web.domains.sso.status_saml_disabled_badge": {
+    "text": "SAML 已关闭",
+    "source_hash": "4e2eab51"
+  },
+  "web.domains.sso.status_saml_disabled_hint": {
+    "text": "站点运营方已为此安装实例关闭 SAML。您的配置会被保留，并在重新开启 SAML 后恢复生效。在此之前，此域名不提供 SAML 登录。",
+    "source_hash": "5ba9624c"
+  },
+  "web.domains.sso.status_domain_unverified_badge": {
+    "text": "等待域名验证",
+    "source_hash": "ea7459c2"
+  },
+  "web.domains.sso.status_domain_unverified_hint": {
+    "text": "此域名尚未完成验证，因此其 SSO 连接尚未在登录页面上启用。域名验证通过且此处允许该域名使用 SSO 后，SSO 将随即开启。",
+    "source_hash": "57ee0066"
+  },
+  "web.domains.verify_outcome.indeterminate": {
+    "text": "我们暂时无法完成 DNS 检查。这并不表示您的记录有误。请在几分钟后重试。",
+    "source_hash": "4e76a9ef"
+  },
+  "web.domains.verify_outcome.record_not_found": {
+    "text": "我们未找到预期的 TXT 记录。请确认该记录存在且其值完全匹配。新的 DNS 记录可能需要几分钟才会生效。",
+    "source_hash": "6c847d46"
+  },
+  "web.domains.sso.diagnostics_passed": {
+    "text": "已保存配置检查通过",
+    "source_hash": "91fc2d97"
+  },
+  "web.domains.sso.diagnostics_failed": {
+    "text": "已保存配置检查发现问题",
+    "source_hash": "18ca7a0e"
+  },
+  "web.domains.sso.diagnostics_inconclusive": {
+    "text": "已保存配置检查无法得出结论",
+    "source_hash": "2be86c66"
+  },
+  "web.domains.sso.diagnostics_error": {
+    "text": "无法检查已保存的配置",
+    "source_hash": "e1fe6a59"
+  },
+  "web.domains.sso.diagnostics_rate_limited": {
+    "text": "此配置近期检查次数过多。请稍后重试。",
+    "source_hash": "4b8d53b8"
+  },
+  "web.domains.sso.diagnostics_rate_limited_retry": {
+    "text": "此配置近期检查次数过多。请在约 {minutes} 分钟后重试。",
+    "source_hash": "fdbdeaf6"
+  }
+}

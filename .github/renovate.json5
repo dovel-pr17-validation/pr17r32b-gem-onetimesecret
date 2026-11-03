@@ -1,0 +1,117 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+
+  // Core presets
+  extends: [
+    'config:recommended',
+    'docker:pinDigests',
+    'helpers:pinGitHubActionDigests',
+    ':pinDevDependencies',
+    ':pinDependencies',
+  ],
+
+  // Update control
+  minimumReleaseAge: '14 days',
+  separateMinorPatch: false,
+  separateMultipleMajor: true,
+  separateMultipleMinor: false,
+  recreateWhen: 'auto',
+  rebaseWhen: 'auto',
+
+  // Security settings
+  vulnerabilityAlerts: {
+    labels: ['security'],
+    assignees: ['delano'],
+    schedule: 'at any time',
+  },
+
+  // PR management
+  dependencyDashboard: true,
+  dependencyDashboardAutoclose: true,
+  dependencyDashboardLabels: ['auto-update', 'dependencies'],
+  prCreation: 'immediate',
+  prConcurrentLimit: 10,
+  prHourlyLimit: 10,
+  labels: ['auto-update'],
+  assignees: ['delano'],
+  reviewers: [],
+
+  // Branch settings
+  branchPrefix: 'deps/',
+  branchNameStrict: true,
+  pruneStaleBranches: true,
+
+  // Automerge settings
+  // automergeType 'pr', not 'branch': from April 2025 to September 2026 no
+  // update landed on main by branch automerge (every one came through a PR),
+  // and branch-automerge updates without a PR sat unseen for weeks. A PR gets
+  // CI, which only runs on pushes to main and on PRs.
+  automerge: true,
+  automergeType: 'pr',
+  automergeStrategy: 'merge-commit',
+  major: { automerge: false },
+  minor: { automerge: false },
+  patch: { automerge: false },
+  pin: { automerge: true },
+  lockFileMaintenance: { automerge: true },
+
+  // Package-specific rules
+  packageRules: [
+    {
+      // brace-expansion is dev-only and transitive (three minimatch majors:
+      // minimatch@3 from eslint 9, @9 from glob@10/editorconfig, @10 from
+      // typescript-estree/glob@13). Renovate cannot express that — it proposes a
+      // single flat version, and for CVE-2026-14257 it proposed v5, whose CJS
+      // build exports `{expand, ...}` rather than a callable and so breaks
+      // minimatch@3/9 at require() time. Patched floors are pinned per major
+      // line in pnpm-workspace.yaml `overrides:`; see the comments there.
+      matchPackageNames: ['brace-expansion'],
+      enabled: false,
+    },
+    {
+      matchPackageNames: ['encryptor'],
+      recreateWhen: 'never',
+    },
+    {
+      matchPackageNames: ['rack'],
+      recreateWhen: 'never',
+    },
+    {
+      matchDatasources: ['docker'],
+      matchPackageNames: ['ghcr.io/onetimesecret/onetimesecret'],
+      enabled: false,
+    },
+    {
+      matchPackageNames: ['/^@types//'],
+      groupName: 'TypeScript type definitions',
+      groupSlug: 'types-updates',
+    },
+  ],
+
+  // Bump the translation-rules DATA ref (TRANSLATION_RULES_REF) in both derive
+  // gates to the latest vX.Y.Z release tag:
+  //   - resolved-derive-gate.yml (authority freshness/integrity)
+  //   - validate-register.yml    (cross-locale content register lint)
+  // This is the human-readable tag the derive action resolves at run time — a
+  // bare tag string, not a digest. The separate `uses:` action digest (the code
+  // that runs) is pinned to a SHA and bumped by the built-in github-actions
+  // manager (helpers:pinGitHubActionDigests). Two independent axes that normally
+  // land on the same release.
+  customManagers: [
+    {
+      customType: 'regex',
+      managerFilePatterns: ['/^\\.github/workflows/(resolved-derive-gate|validate-register)\\.yml$/'],
+      matchStrings: [
+        // Optional quotes tolerated: the workflows emit the bare form
+        // (TRANSLATION_RULES_REF: v0.1.1), but a quoted value ('v0.1.1' or
+        // "v0.1.1") must still match so auto-bumps don't silently stop.
+        'TRANSLATION_RULES_REF:\\s+["\']?(?<currentValue>v\\d+\\.\\d+\\.\\d+)["\']?',
+      ],
+      depNameTemplate: 'onetimesecret/translation-rules',
+      datasourceTemplate: 'github-tags',
+    },
+  ],
+
+  // Additional settings
+  forkProcessing: 'enabled',
+}

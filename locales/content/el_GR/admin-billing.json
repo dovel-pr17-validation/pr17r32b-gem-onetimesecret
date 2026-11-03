@@ -1,0 +1,362 @@
+{
+  "web.admin.billing.title": {
+    "text": "Κατάλογος χρέωσης",
+    "source_hash": "bfde7e68"
+  },
+  "web.admin.billing.description": {
+    "text": "Προβολή μόνο για ανάγνωση των διαμορφωμένων προγραμμάτων και των δικαιωμάτων τους, καθώς και τυχόν αποκλίσεων από τον ενεργό κατάλογο που συγχρονίζεται με το Stripe.",
+    "source_hash": "05d5b332"
+  },
+  "web.admin.billing.retry": {
+    "text": "Επανάληψη",
+    "source_hash": "942087cc"
+  },
+  "web.admin.billing.loadError": {
+    "text": "Δεν ήταν δυνατή η φόρτωση του καταλόγου χρέωσης.",
+    "source_hash": "c3110f77"
+  },
+  "web.admin.billing.localConfigWarning": {
+    "text": "Η κρυφή μνήμη προγραμμάτων που συγχρονίζεται με το Stripe είναι κενή, επομένως τα ενεργά προγράμματα και οι αποκλίσεις δεν μπορούν να αξιολογηθούν. Εμφανίζεται μόνο ο διαμορφωμένος κατάλογος (billing.yaml) — τυπικό στο περιβάλλον ανάπτυξης ή όταν το Stripe δεν έχει διαμορφωθεί.",
+    "source_hash": "905d95f8"
+  },
+  "web.admin.billing.inSync": {
+    "text": "Συγχρονισμένο",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.driftCount": {
+    "text": "{count} διαφορά(ές)",
+    "source_hash": "166538f5"
+  },
+  "web.admin.billing.inSyncDetail": {
+    "text": "Ο διαμορφωμένος κατάλογος ταιριάζει με τα ενεργά προγράμματα. Δεν εντοπίστηκε απόκλιση.",
+    "source_hash": "57ab60a6"
+  },
+  "web.admin.billing.columns.planid": {
+    "text": "ID προγράμματος",
+    "source_hash": "1f0d4dc6"
+  },
+  "web.admin.billing.columns.name": {
+    "text": "Όνομα",
+    "source_hash": "dcd1d522"
+  },
+  "web.admin.billing.columns.tier": {
+    "text": "Βαθμίδα",
+    "source_hash": "cb9e8664"
+  },
+  "web.admin.billing.columns.status": {
+    "text": "Κατάσταση",
+    "source_hash": "920e413c"
+  },
+  "web.admin.billing.diff.title": {
+    "text": "Διαφορές προγράμματος: {planid}",
+    "source_hash": "bc86e5f7"
+  },
+  "web.admin.billing.diff.subtitle": {
+    "text": "Διαμορφωμένος κατάλογος (billing.yaml) έναντι ενεργού προγράμματος συγχρονισμένου με το Stripe, δίπλα δίπλα.",
+    "source_hash": "d92e93ae"
+  },
+  "web.admin.billing.diff.config": {
+    "text": "Διαμορφωμένο (billing.yaml)",
+    "source_hash": "6bf2ff04"
+  },
+  "web.admin.billing.diff.live": {
+    "text": "Ενεργό (κρυφή μνήμη Stripe)",
+    "source_hash": "4886945d"
+  },
+  "web.admin.billing.diff.absentConfig": {
+    "text": "Αυτό το πρόγραμμα δεν υπάρχει στον διαμορφωμένο κατάλογο.",
+    "source_hash": "0b594c88"
+  },
+  "web.admin.billing.diff.absentLive": {
+    "text": "Αυτό το πρόγραμμα δεν υπάρχει στην ενεργή κρυφή μνήμη που συγχρονίζεται με το Stripe.",
+    "source_hash": "c53f31c3"
+  },
+  "web.admin.billing.plans.title": {
+    "text": "Προγράμματα",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.admin.billing.plans.empty": {
+    "text": "Δεν βρέθηκαν προγράμματα στον κατάλογο.",
+    "source_hash": "39db3c13"
+  },
+  "web.admin.billing.plans.viewDiff": {
+    "text": "Προβολή διαφορών",
+    "source_hash": "0e5d6873"
+  },
+  "web.admin.billing.source.stripe": {
+    "text": "Κρυφή μνήμη Stripe",
+    "source_hash": "b5577327"
+  },
+  "web.admin.billing.source.localConfig": {
+    "text": "Τοπική διαμόρφωση",
+    "source_hash": "49de43d2"
+  },
+  "web.admin.billing.stats.configured": {
+    "text": "Διαμορφωμένα προγράμματα",
+    "source_hash": "4fda4796"
+  },
+  "web.admin.billing.stats.live": {
+    "text": "Ενεργά προγράμματα",
+    "source_hash": "faaa88d9"
+  },
+  "web.admin.billing.stats.source": {
+    "text": "Πηγή",
+    "source_hash": "0e570ca6"
+  },
+  "web.admin.billing.stats.drift": {
+    "text": "Απόκλιση",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.billing.status.in_sync": {
+    "text": "Συγχρονισμένο",
+    "source_hash": "5701958c"
+  },
+  "web.admin.billing.status.only_config": {
+    "text": "Μόνο διαμόρφωση",
+    "source_hash": "15836cba"
+  },
+  "web.admin.billing.status.only_live": {
+    "text": "Μόνο ενεργό",
+    "source_hash": "8f4ed495"
+  },
+  "web.admin.billing.status.changed": {
+    "text": "Άλλαξε",
+    "source_hash": "2a6141e4"
+  },
+  "web.admin.billing.diff.backToCatalog": {
+    "text": "Επιστροφή στον κατάλογο χρεώσεων",
+    "source_hash": "8532b373"
+  },
+  "web.admin.billing.diff.driftedFields": {
+    "text": "Πεδία που διαφέρουν:",
+    "source_hash": "9890c95b"
+  },
+  "web.admin.billing.diff.notFound": {
+    "text": "Το πλάνο δεν βρίσκεται στον κατάλογο",
+    "source_hash": "0253898b"
+  },
+  "web.admin.billing.diff.notFoundDescription": {
+    "text": "Δεν βρέθηκε πλάνο με αναγνωριστικό {planid} στον διαμορφωμένο κατάλογο ή στην ενεργή κρυφή μνήμη συγχρονισμού Stripe.",
+    "source_hash": "2e69551c"
+  },
+  "web.admin.billing.stripeOrgs.title": {
+    "text": "Πελάτες Stripe",
+    "source_hash": "0463ae27"
+  },
+  "web.admin.billing.stripeOrgs.description": {
+    "text": "Οργανισμοί συνδεδεμένοι με εγγραφή πελάτη Stripe.",
+    "source_hash": "2ab09aec"
+  },
+  "web.admin.billing.stripeOrgs.searchPlaceholder": {
+    "text": "Αναζήτηση με αναγνωριστικό πελάτη Stripe",
+    "source_hash": "d5acf08f"
+  },
+  "web.admin.billing.stripeOrgs.empty": {
+    "text": "Κανένας οργανισμός δεν έχει αναγνωριστικό πελάτη Stripe.",
+    "source_hash": "2e373537"
+  },
+  "web.admin.billing.stripeOrgs.emptySearch": {
+    "text": "Κανένα αναγνωριστικό πελάτη Stripe δεν ταιριάζει με αυτή την αναζήτηση.",
+    "source_hash": "75011174"
+  },
+  "web.admin.billing.stripeOrgs.loadError": {
+    "text": "Δεν ήταν δυνατή η φόρτωση της λίστας πελατών Stripe.",
+    "source_hash": "15e2d9a7"
+  },
+  "web.admin.billing.stripeOrgs.unavailable": {
+    "text": "Η λίστα πελατών Stripe δεν είναι ακόμη διαθέσιμη σε αυτόν τον διακομιστή.",
+    "source_hash": "aab6451a"
+  },
+  "web.admin.billing.stripeOrgs.none": {
+    "text": "Κανένα",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.billing.stripeOrgs.capped": {
+    "text": "Η σάρωση ευρετηρίου έφτασε το όριό της, επομένως το σύνολο είναι κατώτατο όριο — περιορίστε την αναζήτηση για να δείτε τα υπόλοιπα.",
+    "source_hash": "20bcaa38"
+  },
+  "web.admin.billing.stripeOrgs.stale": {
+    "text": "{count} καταχώρηση/καταχωρήσεις ευρετηρίου σε αυτή τη σελίδα οδηγούν σε οργανισμό που δεν φορτώνεται πλέον και παραλείφθηκαν.",
+    "source_hash": "51980f83"
+  },
+  "web.admin.billing.stripeOrgs.copyStripeId": {
+    "text": "Αντιγραφή αναγνωριστικού πελάτη Stripe",
+    "source_hash": "a77d18b1"
+  },
+  "web.admin.billing.stripeOrgs.columns.organization": {
+    "text": "Οργανισμός",
+    "source_hash": "d764d425"
+  },
+  "web.admin.billing.stripeOrgs.columns.owner": {
+    "text": "Ιδιοκτήτης",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.billing.stripeOrgs.columns.plan": {
+    "text": "Πλάνο",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.billing.stripeOrgs.columns.subscription": {
+    "text": "Συνδρομή",
+    "source_hash": "4999c6c6"
+  },
+  "web.admin.billing.stripeOrgs.columns.stripeCustomer": {
+    "text": "Αναγνωριστικό πελάτη Stripe",
+    "source_hash": "7e1d8bbb"
+  },
+  "web.admin.billing.pendingFederated.title": {
+    "text": "Εκκρεμείς ομοσπονδιακές συνδρομές",
+    "source_hash": "8bc81ff7"
+  },
+  "web.admin.billing.pendingFederated.description": {
+    "text": "Συνδρομές που αναμένουν έναν επαληθευμένο λογαριασμό σε αυτήν την περιοχή για να διεκδικήσει τα προνόμιά τους.",
+    "source_hash": "e4c714c8"
+  },
+  "web.admin.billing.pendingFederated.correlationRetention": {
+    "text": "Οι εκκρεμείς συνδρομές μπορούν να παραμείνουν για 90 ημέρες, αλλά οι τοπικές εγγραφές webhook διατηρούνται μόνο για πέντε ημέρες. Μια συσχέτιση που έληξε ή δεν είναι διαθέσιμη δεν υποδεικνύει αποτέλεσμα επεξεργασίας.",
+    "source_hash": "c846410e"
+  },
+  "web.admin.billing.pendingFederated.loadError": {
+    "text": "Δεν ήταν δυνατή η φόρτωση των εκκρεμών ομοσπονδιακών συνδρομών.",
+    "source_hash": "a1ecc6cb"
+  },
+  "web.admin.billing.pendingFederated.capped": {
+    "text": "Η σάρωση εκκρεμών συνδρομών έφτασε το όριό της, επομένως το σύνολο είναι κατώτατο όριο.",
+    "source_hash": "a1e02735"
+  },
+  "web.admin.billing.pendingFederated.stale": {
+    "text": "{count} καταχώρηση/καταχωρήσεις ευρετηρίου σε αυτή τη σελίδα οδηγούν σε εκκρεμή συνδρομή που δεν φορτώνεται πλέον και παραλείφθηκαν.",
+    "source_hash": "56b4bd53"
+  },
+  "web.admin.billing.pendingFederated.empty": {
+    "text": "Δεν βρέθηκαν εκκρεμείς ομοσπονδιακές συνδρομές.",
+    "source_hash": "91453fda"
+  },
+  "web.admin.billing.pendingFederated.unresolvedPlan": {
+    "text": "Μη επιλυμένο",
+    "source_hash": "36afca80"
+  },
+  "web.admin.billing.pendingFederated.columns.status": {
+    "text": "Κατάσταση συνδρομής",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.billing.pendingFederated.columns.planid": {
+    "text": "Αποθηκευμένο ID προγράμματος",
+    "source_hash": "159600ef"
+  },
+  "web.admin.billing.pendingFederated.columns.region": {
+    "text": "Περιοχή",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.billing.pendingFederated.columns.received": {
+    "text": "Λήψη",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.pendingFederated.columns.webhook": {
+    "text": "Webhook προέλευσης",
+    "source_hash": "e96bd1ef"
+  },
+  "web.admin.billing.pendingFederated.webhook.no_correlation": {
+    "text": "Μη διαθέσιμο — δεν καταγράφηκε συσχετισμένο τοπικό webhook.",
+    "source_hash": "57ed7d3a"
+  },
+  "web.admin.billing.pendingFederated.webhook.expired": {
+    "text": "Μη διαθέσιμο — το συσχετισμένο τοπικό webhook έληξε μετά από πέντε ημέρες.",
+    "source_hash": "6173ad4b"
+  },
+  "web.admin.billing.webhookEvents.title": {
+    "text": "Συμβάντα webhook του Stripe",
+    "source_hash": "3a7c05f8"
+  },
+  "web.admin.billing.webhookEvents.description": {
+    "text": "Τοπική εγγραφή μόνο για ανάγνωση της επεξεργασίας webhook του Stripe.",
+    "source_hash": "adc1e97f"
+  },
+  "web.admin.billing.webhookEvents.retention": {
+    "text": "Οι τοπικές εγγραφές συμβάντων webhook διατηρούνται για πέντε ημέρες. Τα παλαιότερα συμβάντα δεν είναι διαθέσιμα εδώ.",
+    "source_hash": "de4c2f78"
+  },
+  "web.admin.billing.webhookEvents.loadError": {
+    "text": "Δεν ήταν δυνατή η φόρτωση της λίστας συμβάντων webhook.",
+    "source_hash": "b070d441"
+  },
+  "web.admin.billing.webhookEvents.capped": {
+    "text": "Η σάρωση συμβάντων έφτασε το όριό της, επομένως το σύνολο είναι κατώτατο όριο.",
+    "source_hash": "5b96b15b"
+  },
+  "web.admin.billing.webhookEvents.stale": {
+    "text": "{count} καταχώρηση/καταχωρήσεις ευρετηρίου σε αυτή τη σελίδα οδηγούν σε συμβάν webhook που δεν φορτώνεται πλέον και παραλείφθηκαν.",
+    "source_hash": "879c2d98"
+  },
+  "web.admin.billing.webhookEvents.empty": {
+    "text": "Δεν βρέθηκαν τοπικά διατηρούμενα συμβάντα webhook.",
+    "source_hash": "7e33e23d"
+  },
+  "web.admin.billing.webhookEvents.viewDetail": {
+    "text": "Προβολή λεπτομερειών",
+    "source_hash": "d1bf045b"
+  },
+  "web.admin.billing.webhookEvents.columns.eventId": {
+    "text": "ID συμβάντος",
+    "source_hash": "3045abaf"
+  },
+  "web.admin.billing.webhookEvents.columns.type": {
+    "text": "Τύπος",
+    "source_hash": "baaddf70"
+  },
+  "web.admin.billing.webhookEvents.columns.status": {
+    "text": "Κατάσταση επεξεργασίας",
+    "source_hash": "3f6498ae"
+  },
+  "web.admin.billing.webhookEvents.columns.received": {
+    "text": "Λήψη",
+    "source_hash": "49f19bee"
+  },
+  "web.admin.billing.webhookEvents.columns.outcome": {
+    "text": "Αποτέλεσμα",
+    "source_hash": "4e80abb5"
+  },
+  "web.admin.billing.webhookEvents.detail.title": {
+    "text": "Λεπτομέρειες συμβάντος webhook",
+    "source_hash": "829b940c"
+  },
+  "web.admin.billing.webhookEvents.detail.notFound": {
+    "text": "Αυτό το τοπικό συμβάν δεν είναι πλέον διαθέσιμο.",
+    "source_hash": "b029d878"
+  },
+  "web.admin.billing.webhookEvents.detail.loadError": {
+    "text": "Δεν ήταν δυνατή η φόρτωση των λεπτομερειών του συμβάντος webhook.",
+    "source_hash": "39f7a33b"
+  },
+  "web.admin.billing.webhookEvents.detail.received": {
+    "text": "Λήψη στις",
+    "source_hash": "1ddb1a75"
+  },
+  "web.admin.billing.webhookEvents.detail.lastAttempt": {
+    "text": "Τελευταία προσπάθεια επεξεργασίας",
+    "source_hash": "b1325ebb"
+  },
+  "web.admin.billing.webhookEvents.detail.processed": {
+    "text": "Επεξεργασία στις",
+    "source_hash": "2eb2da28"
+  },
+  "web.admin.billing.webhookEvents.detail.attempts": {
+    "text": "Προσπάθειες",
+    "source_hash": "06e70139"
+  },
+  "web.admin.billing.webhookEvents.detail.mode": {
+    "text": "Λειτουργία",
+    "source_hash": "5e23ec6a"
+  },
+  "web.admin.billing.webhookEvents.detail.live": {
+    "text": "Πραγματική",
+    "source_hash": "b64ac05f"
+  },
+  "web.admin.billing.webhookEvents.detail.test": {
+    "text": "Δοκιμαστική",
+    "source_hash": "532eaabd"
+  },
+  "web.admin.billing.webhookEvents.detail.apiVersion": {
+    "text": "Έκδοση API του Stripe",
+    "source_hash": "9cd61c6f"
+  }
+}

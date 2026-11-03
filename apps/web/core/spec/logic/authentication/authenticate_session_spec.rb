@@ -1,0 +1,1144 @@
+# apps/web/core/spec/logic/authentication/authenticate_session_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+RSpec.describe Core::Logic::Authentication::AuthenticateSession do
+  subject(:logic) { described_class.new(strategy_result, params, 'en') }
+
+  let(:test_email) { 'test@example.com' }
+  let(:test_password) { 'password123' }
+  let(:session_data) { {} }
+
+  let(:rack_session) do
+    session = double('RackSession')
+    allow(session).to receive(:id).and_return(double(public_id: 'sess_def456'))
+    allow(session).to receive(:clear) { session_data.clear }
+    allow(session).to receive(:[]) { |key| session_data[key] }
+    allow(session).to receive(:[]=) { |key, value| session_data[key] = value }
+    session
+  end
+
+  let(:customer) do
+    cust = double('Customer')
+    allow(cust).to receive(:passphrase?).with(test_password).and_return(true)
+    allow(cust).to receive(:passphrase?).with('definitely-wrong').and_return(false)
+    allow(cust).to receive_messages(
+      objid: 'cust_test123',
+      custid: test_email,
+      email: test_email,
+      extid: 'ur_test123',
+      verified: 'true',
+      obscure_email: 'te***@example.com',
+      role: :customer,
+      anonymous?: false,
+      pending?: false,
+      suspended?: false,
+      argon2_hash?: true,
+      passphrase: '$argon2id$...'
+    )
+    allow(cust).to receive(:role=)
+    allow(cust).to receive(:save)
+    cust
+  end
+
+  let(:anonymous_customer) do
+    anon = double('AnonymousCustomer')
+    allow(anon).to receive_messages(
+      anonymous?: true,
+      obscure_email: 'anonymous',
+      objid: nil,
+      role: :anonymous
+    )
+    anon
+  end
+
+  let(:strategy_result) do
+    result = double('StrategyResult')
+    allow(result).to receive_messages(
+      session: rack_session,
+      user: anonymous_customer,
+      metadata: { ip: '127.0.0.1' },
+      authenticated?: false
+    )
+    result
+  end
+
+  let(:params) { { 'login' => test_email, 'password' => test_password } }
+
+  let(:mock_logger) { double('Logger', info: nil, warn: nil, error: nil, debug: nil) }
+
+  before do
+    # I18n setup
+    I18n.available_locales = [:en] unless I18n.available_locales.include?(:en)
+    I18n.default_locale = :en
+
+    # Stub OT.conf
+    allow(OT).to receive_messages(
+      conf: {
+        'site' => {
+          'authentication' => {
+            'autoverify' => nil,
+          },
+        },
+        'features' => {},
+      },
+      default_locale: 'en'
+    )
+
+    # Stub customer lookup - use a lambda so we can override in tests
+    allow(Onetime::Customer).to receive(:find_by_email).and_return(customer)
+    # Note: Customer.anonymous singleton removed in PR #2733 - anonymous users have cust=nil
+
+    # Stub logging on the class so it works before subject is created
+    allow_any_instance_of(described_class).to receive(:auth_logger).and_return(mock_logger)
+
+    # M-4: stub the login rate limiter so unit specs never touch Redis. Real
+    # throttling behavior is covered in the dedicated 'login rate limiting'
+    # describe below by overriding these per-example.
+    allow_any_instance_of(described_class).to receive(:check_login_rate_limit!)
+    allow_any_instance_of(described_class).to receive(:record_failed_login_attempt!)
+    allow_any_instance_of(described_class).to receive(:clear_login_rate_limit!)
+
+    # The session-id rotation is the store's business (its own specs, and the
+    # real-route spec/integration/simple/login_session_rotation_spec.rb). Here
+    # a complete rotation by default; the '#4466 session id rotation' group
+    # below asserts the calls and overrides the result.
+    allow(Onetime::SessionRotation).to receive(:rotate!).and_return(complete_rotation)
+  end
+
+  let(:complete_rotation) do
+    Onetime::SessionRotation::Result.new(old_sid: 'sess_def456', new_sid: 'sess_new789', complete: true)
+  end
+
+  describe '#process_params' do
+    it 'normalizes and stores the potential email address' do
+      logic.process_params
+      expect(logic.potential_email_address).to eq('test@example.com')
+    end
+
+    it 'strips and downcases the email' do
+      params['login'] = '  TEST@EXAMPLE.COM  '
+      logic.process_params
+      expect(logic.potential_email_address).to eq('test@example.com')
+    end
+
+    it 'sets stay to true by default' do
+      logic.process_params
+      expect(logic.stay).to be true
+    end
+
+    it 'reports the session TTL the middleware actually applies (configured expire_after)' do
+      logic.process_params
+      # session_config falls back to SESSION_DEFAULTS (24h) when site.session
+      # is not configured — the same value write_session re-applies per commit.
+      expect(logic.session_ttl).to eq(86_400)
+      expect(logic.session_ttl).to eq(Onetime.session_config['expire_after'].to_i)
+    end
+
+    it 'sets objid when customer exists and passphrase matches' do
+      logic.process_params
+      expect(logic.objid).to eq('cust_test123')
+    end
+
+    context 'when passphrase does not match' do
+      let(:customer) do
+        cust = double('Customer')
+        allow(cust).to receive(:passphrase?).and_return(false)
+        allow(cust).to receive_messages(
+          objid: 'cust_test123',
+          email: test_email,
+          argon2_hash?: true,
+          passphrase: '$argon2id$...'
+        )
+        cust
+      end
+
+      it 'does not set objid' do
+        logic.process_params
+        expect(logic.objid).to be_nil
+      end
+    end
+
+    context 'when customer does not exist' do
+      before do
+        allow(Onetime::Customer).to receive(:find_by_email).and_return(nil)
+      end
+
+      it 'does not set objid' do
+        logic.process_params
+        expect(logic.objid).to be_nil
+      end
+    end
+  end
+
+  describe '#raise_concerns' do
+    # Note: Anonymous users have @cust = nil (PR #2733 removed Customer.anonymous).
+    # The raise_concerns method handles the nil case by checking anonymous_user?.
+    # Actual authentication error handling happens in #process via success? check.
+
+    context 'when customer exists and authenticated' do
+      before do
+        logic.process_params
+      end
+
+      it 'does not raise any concerns' do
+        expect { logic.raise_concerns }.not_to raise_error
+      end
+    end
+
+    context 'when authentication failed (password mismatch)' do
+      let(:customer) do
+        cust = double('Customer')
+        allow(cust).to receive(:passphrase?).and_return(false)
+        allow(cust).to receive_messages(
+          objid: 'cust_test123',
+          email: test_email,
+          # The failure funnel asks the ATTEMPTED account for its role (#4339);
+          # a real Customer always answers, so the double must too.
+          role: :customer,
+          argon2_hash?: true,
+          passphrase: '$argon2id$...'
+        )
+        cust
+      end
+
+      # Production-typical failure path: an anonymous login POST carries
+      # user=nil (PR #2733), so @cust starts nil (Logic::Base#initialize) and
+      # stays nil on a mismatch. Since the attempted-identity fix, a non-nil
+      # .user changes nothing — process_params overwrites the seed — so
+      # raise_concerns is the single failure funnel either way (pinned in the
+      # 'attempted-identity authentication' describe below).
+      let(:strategy_result) do
+        result = double('StrategyResult')
+        allow(result).to receive_messages(
+          session: rack_session,
+          user: nil,
+          auth_method: :anonymous,
+          metadata: { ip: '127.0.0.1' },
+          authenticated?: false
+        )
+        result
+      end
+
+      it 'raises a non-enumerating form error for the unmatched credential' do
+        # @cust stays nil when the passphrase does not match, so raise_concerns
+        # is the single failure funnel that rejects the attempt.
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError, 'Invalid email or password')
+      end
+    end
+  end
+
+  describe '#process' do
+    before do
+      logic.process_params
+    end
+
+    context 'when authentication is successful' do
+      context 'and customer is pending' do
+        before do
+          allow(customer).to receive(:pending?).and_return(true)
+          allow(logic).to receive(:send_verification_email)
+        end
+
+        context 'when autoverify is disabled' do
+          before do
+            allow(OT).to receive(:conf).and_return({
+              'site' => {
+                'authentication' => {
+                  'autoverify' => 'false',
+                },
+              },
+            })
+          end
+
+          it 'sends verification email' do
+            expect(logic).to receive(:send_verification_email).with(nil)
+            logic.process
+          end
+
+          it 'logs pending customer login' do
+            expect(mock_logger).to receive(:info).with('Login pending customer verification', hash_including(:customer_id, :email))
+            expect(mock_logger).to receive(:info).with('Resending verification email (autoverify disabled)', hash_including(:customer_id, :email))
+            logic.process
+          end
+        end
+
+        context 'when autoverify is enabled' do
+          before do
+            allow(OT).to receive(:conf).and_return({
+              'site' => {
+                'authentication' => {
+                  'autoverify' => 'true',
+                },
+              },
+            })
+          end
+
+          it 'does not send verification email' do
+            expect(logic).not_to receive(:send_verification_email)
+            logic.process
+          end
+        end
+      end
+
+      context 'and customer is not pending' do
+        before do
+          allow(customer).to receive(:pending?).and_return(false)
+        end
+
+        it 'sets greenlighted to true' do
+          logic.process
+          expect(logic.greenlighted).to be true
+        end
+
+        it 'sets session authentication fields' do
+          logic.process
+          expect(session_data['external_id']).to eq('ur_test123')
+          expect(session_data['authenticated']).to be true
+          expect(session_data['authenticated_at']).to be_a(Integer)
+        end
+
+        it 'saves customer' do
+          expect(customer).to receive(:save)
+          logic.process
+        end
+
+        it 'logs successful login' do
+          expect(mock_logger).to receive(:info).with('Login successful', hash_including(:user_id, :email, :role))
+          logic.process
+        end
+
+        it 'stores customer role in session' do
+          # Role is managed via CLI (bin/ots customers role promote) and stored on customer record
+          # Authentication just reads the existing role and stores it in session
+          allow(customer).to receive(:role).and_return('colonel')
+          logic.process
+          expect(session_data['role']).to eq('colonel')
+        end
+      end
+    end
+
+    context 'when authentication fails' do
+      before do
+        allow(customer).to receive(:passphrase?).with(test_password).and_return(false)
+        # Need to re-run process_params after changing the stub
+        logic.process_params
+      end
+
+      it 'logs failure and raises form error' do
+        expect(mock_logger).to receive(:warn).with('Login failed', hash_including(:email, :reason))
+        expect { logic.process }.to raise_error(Onetime::FormError) do |error|
+          expect(error.message).to eq('Invalid email or password')
+        end
+      end
+    end
+  end
+
+  # #4466: both success paths start the signed-in session under a new id.
+  # The previous occupant's data is cleared, Onetime::SessionRotation.rotate!
+  # re-keys the LIVE Rack session (the strategy result's session, which is
+  # env['rack.session']), and only then is any identity key written. The
+  # paths that refuse the login never rotate. The end-to-end check against
+  # the real store is spec/integration/simple/login_session_rotation_spec.rb.
+  describe '#4466 session id rotation' do
+    let(:session_data) { { 'seeded_by_previous_occupant' => 'yes', 'csrf' => 'pre-login-token' } }
+
+    before do
+      allow(logic).to receive(:send_verification_email)
+      logic.process_params
+    end
+
+    def expect_rotation_of_the_emptied_session
+      expect(Onetime::SessionRotation).to receive(:rotate!).with(rack_session).once do
+        expect(session_data).to be_empty
+        complete_rotation
+      end
+    end
+
+    it 'clears, then rotates, then writes the identity for a verified account', :aggregate_failures do
+      expect_rotation_of_the_emptied_session
+
+      logic.process
+
+      expect(session_data).to include('external_id' => 'ur_test123', 'authenticated' => true)
+      expect(session_data).not_to have_key('seeded_by_previous_occupant')
+      expect(session_data).not_to have_key('csrf')
+    end
+
+    it 'clears and rotates for a pending account, whose identity the controller writes' do
+      allow(customer).to receive(:pending?).and_return(true)
+      expect_rotation_of_the_emptied_session
+
+      logic.process
+
+      expect(session_data).to be_empty
+    end
+
+    it 'logs the rotation by session handle' do
+      expect(mock_logger).to receive(:info).with(
+        'Login session id rotated',
+        hash_including(
+          previous_session_handle: Onetime::SessionEnded.handle_for('sess_def456'),
+          session_handle: Onetime::SessionEnded.handle_for('sess_new789'),
+        ),
+      )
+
+      logic.process
+    end
+
+    it 'does not touch the session when the credentials are rejected', :aggregate_failures do
+      allow(customer).to receive(:passphrase?).with(test_password).and_return(false)
+      logic.process_params
+
+      expect { logic.process }.to raise_error(Onetime::FormError)
+      expect(Onetime::SessionRotation).not_to have_received(:rotate!)
+      expect(session_data).to include('seeded_by_previous_occupant' => 'yes')
+    end
+
+    it 'does not touch the session for a suspended account', :aggregate_failures do
+      allow(customer).to receive(:suspended?).and_return(true)
+
+      expect { logic.process }.to raise_error(Onetime::FormError)
+      expect(Onetime::SessionRotation).not_to have_received(:rotate!)
+      expect(session_data).to include('seeded_by_previous_occupant' => 'yes')
+    end
+
+    # An impersonation marker in the session is stopped, and its stop
+    # recorded, before the clear (logout does the same). Over HTTP the login
+    # does not see a live marker today, since ImpersonationContext refuses
+    # /auth requests on such a session; see start_new_session!.
+    context 'when the session still carries a colonel impersonation' do
+      let(:marker) do
+        {
+          'id' => 'imp_0123456789abcdef',
+          'target_extid' => 'ur_target',
+          'target_email' => 'target@example.com',
+          'reason' => 'support ticket',
+          'started_at' => Familia.now.to_i - 60,
+          'expires_at' => Familia.now.to_i + 600,
+        }
+      end
+      let(:session_data) do
+        { 'external_id' => 'ur_colonel_principal', Onetime::SessionImpersonation::SESSION_KEY => marker }
+      end
+
+      before { allow(Onetime::ColonelAuditEvent).to receive(:record) }
+
+      it 'records the stop, attributed to the principal, before the session is cleared', :aggregate_failures do
+        expect(Onetime::SessionRotation).to receive(:rotate!).with(rack_session).once do
+          expect(Onetime::ColonelAuditEvent).to have_received(:record).with(
+            hash_including(
+              actor: 'ur_colonel_principal',
+              verb: Onetime::SessionImpersonation::AUDIT_VERB_STOP,
+              target: 'ur_target',
+              detail: hash_including(
+                impersonation_id: 'imp_0123456789abcdef',
+                ended_by: Onetime::SessionImpersonation::ENDED_BY_LOGOUT,
+              ),
+            ),
+          ).once
+          expect(session_data).to be_empty
+          complete_rotation
+        end
+
+        logic.process
+
+        expect(session_data).not_to have_key(Onetime::SessionImpersonation::SESSION_KEY)
+        expect(session_data).to include('external_id' => 'ur_test123')
+      end
+    end
+
+    it 'records no impersonation stop for a session without a marker' do
+      allow(Onetime::ColonelAuditEvent).to receive(:record)
+
+      logic.process
+
+      expect(Onetime::ColonelAuditEvent).not_to have_received(:record)
+        .with(hash_including(verb: Onetime::SessionImpersonation::AUDIT_VERB_STOP))
+    end
+
+    it 'continues for a session with no server-side id (nil result)', :aggregate_failures do
+      allow(Onetime::SessionRotation).to receive(:rotate!).and_return(nil)
+      expect(mock_logger).to receive(:warn).with('Login session not rotated: no server-side session id', anything)
+
+      logic.process
+
+      expect(session_data).to include('authenticated' => true)
+    end
+
+    context 'when the old id cannot be ended' do
+      let(:incomplete_rotation) do
+        Onetime::SessionRotation::Result.new(
+          old_sid: 'sess_def456', new_sid: 'sess_def456', complete: false, reason: :marker_not_written,
+        )
+      end
+
+      before { allow(Onetime::SessionRotation).to receive(:rotate!).and_return(incomplete_rotation) }
+
+      it 'refuses the login with nothing signed in left in the session', :aggregate_failures do
+        expect { logic.process }.to raise_error(Onetime::SessionRotation::Incomplete, /marker_not_written/)
+        expect(session_data).to be_empty
+        expect(logic.greenlighted).to be_nil
+        expect(customer).not_to have_received(:save)
+      end
+
+      it 'refuses a pending account before resending its verification email' do
+        allow(customer).to receive(:pending?).and_return(true)
+
+        expect { logic.process }.to raise_error(Onetime::SessionRotation::Incomplete)
+        expect(logic).not_to have_received(:send_verification_email)
+      end
+
+      it 'logs the refusal at error level by handle, never by session id' do
+        expect(mock_logger).to receive(:error).with(
+          'Login refused: the previous session id could not be ended',
+          hash_including(reason: :marker_not_written, previous_session_handle: Onetime::SessionEnded.handle_for('sess_def456')),
+        ) do |_message, payload|
+          expect(payload.values.map(&:to_s)).not_to include('sess_def456')
+        end
+
+        expect { logic.process }.to raise_error(Onetime::SessionRotation::Incomplete)
+      end
+
+      it 'refuses the login when the rotation raises', :aggregate_failures do
+        allow(Onetime::SessionRotation).to receive(:rotate!).and_raise(Redis::ConnectionError, 'connection refused')
+
+        expect { logic.process }.to raise_error(Onetime::SessionRotation::Incomplete, /error/)
+        expect(session_data).to be_empty
+      end
+    end
+  end
+
+  # Simple auth mode's session-establishment site for the colonel.signin audit
+  # event (full mode's counterpart is Auth::Operations::SyncSession). Colonel
+  # activity is overwhelmingly reads, and reads never audit by design
+  # (CONTRACT 4), so session establishment is the one signal of operator
+  # presence the trail can carry.
+  describe 'colonel.signin audit event' do
+    before do
+      allow(Onetime::ColonelAuditEvent).to receive(:record)
+      # A wrong-credential example below now reaches the failed-sign-in emitter
+      # (#4339); stub the security trail too so no example here touches Valkey.
+      allow(Onetime::ColonelAuditEvent).to receive(:record_security)
+      logic.process_params
+    end
+
+    it 'records nothing for a non-colonel login' do
+      logic.process
+
+      expect(Onetime::ColonelAuditEvent).not_to have_received(:record)
+    end
+
+    context 'when the customer is a colonel' do
+      before { allow(customer).to receive(:role).and_return('colonel') }
+
+      it 'records one colonel.signin event with public identities only' do
+        logic.process
+
+        expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(
+          actor: 'ur_test123',
+          verb: 'colonel.signin',
+          target: 'ur_test123',
+          result: :success,
+          detail: { auth_method: 'password', ip: '127.0.0.1' },
+        )
+      end
+
+      # The hard constraint, unchanged by #4339: the OPERATOR trail is capped by
+      # COUNT with no TTL, so an event a failed login can trigger would be a
+      # log-eviction primitive against it. A failure still writes nothing here —
+      # it writes to the separately-budgeted security trail instead (see the
+      # colonel.signin_failed group below).
+      it 'records NOTHING on the operator trail when the credentials are wrong' do
+        params['password'] = 'definitely-wrong'
+        logic.process_params
+
+        expect { logic.process }.to raise_error(Onetime::FormError)
+        expect(Onetime::ColonelAuditEvent).not_to have_received(:record)
+      end
+
+      it 'records NOTHING when the account is suspended' do
+        allow(customer).to receive(:suspended?).and_return(true)
+
+        expect { logic.process }.to raise_error(Onetime::FormError)
+        expect(Onetime::ColonelAuditEvent).not_to have_received(:record)
+      end
+
+      it 'records NOTHING for a pending (unverified) account' do
+        allow(customer).to receive(:pending?).and_return(true)
+        allow(logic).to receive(:send_verification_email)
+
+        logic.process
+
+        expect(Onetime::ColonelAuditEvent).not_to have_received(:record)
+      end
+    end
+  end
+
+  # Simple auth mode's half of colonel.signin_failed (#4339). Full mode's half
+  # is the Rodauth after_login_failure hook, covered in
+  # apps/web/auth/spec/config/hooks/login_colonel_signin_failure_spec.rb; both
+  # go through Onetime::ColonelSigninFailure, so the shape is pinned twice on
+  # purpose — the two modes must never drift.
+  #
+  # These examples drive raise_concerns, which is the PRODUCTION failure funnel:
+  # an anonymous login POST carries user=nil (PR #2733), so @cust is nil for
+  # both unknown-email and wrong-password and process is never reached.
+  describe 'colonel.signin_failed audit event (#4339)' do
+    # A colonel whose passphrase does NOT match the submitted one.
+    let(:customer) do
+      cust = double('Customer')
+      allow(cust).to receive(:passphrase?).and_return(false)
+      allow(cust).to receive_messages(
+        objid: 'cust_colonel',
+        email: 'colonel@example.com',
+        obscure_email: 'co***@e***.com',
+        role: 'colonel',
+        anonymous?: false,
+        argon2_hash?: true,
+        passphrase: '$argon2id$...'
+      )
+      cust
+    end
+
+    let(:strategy_result) do
+      result = double('StrategyResult')
+      allow(result).to receive_messages(
+        session: rack_session,
+        user: nil,
+        auth_method: :anonymous,
+        metadata: { ip: '127.0.0.1' },
+        authenticated?: false
+      )
+      result
+    end
+
+    before do
+      allow(Onetime::ColonelAuditEvent).to receive(:record)
+      allow(Onetime::ColonelAuditEvent).to receive(:record_security)
+      allow(OT).to receive(:le)
+    end
+
+    it 'records exactly one event, with the OBSCURED email as target' do
+      expect { logic.raise_concerns }.to raise_error(Onetime::FormError)
+
+      # actor is 'anonymous', not 'unknown': the caller is unauthenticated by
+      # construction here, and nobody has proven they are this account, so an
+      # extid would be the wrong identity to stamp as well as a leak.
+      expect(Onetime::ColonelAuditEvent).to have_received(:record_security).once.with(
+        actor: 'anonymous',
+        verb: 'colonel.signin_failed',
+        target: 'co***@e***.com',
+        result: :failure,
+        detail: { auth_mode: 'simple', failure_reason: 'invalid_credentials' },
+      )
+    end
+
+    it 'uses the single-sourced verb constant (both auth modes must agree)' do
+      expect(Onetime::ColonelAuditEvent::VERB_COLONEL_SIGNIN_FAILED).to eq('colonel.signin_failed')
+    end
+
+    # The verb string choice, pinned: ColonelAuditReader matches a verb exactly
+    # or as a DOTTED category prefix, so a `colonel.signin.failed` spelling
+    # would silently widen the existing `colonel.signin` filter to include
+    # failures. Sibling verbs keep "who signed in" and "who tried" separable.
+    it 'is not a dotted child of colonel.signin' do
+      expect(Onetime::ColonelAuditEvent::VERB_COLONEL_SIGNIN_FAILED).not_to start_with(
+        "#{Onetime::ColonelAuditEvent::VERB_COLONEL_SIGNIN}.",
+      )
+    end
+
+    it 'never writes the operator trail (its budget is the whole point)' do
+      expect { logic.raise_concerns }.to raise_error(Onetime::FormError)
+
+      expect(Onetime::ColonelAuditEvent).not_to have_received(:record)
+    end
+
+    context 'when the attempted account is not a colonel' do
+      before { allow(customer).to receive(:role).and_return('customer') }
+
+      it 'records nothing (CONTRACT 4: not an admin account)' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError)
+
+        expect(Onetime::ColonelAuditEvent).not_to have_received(:record_security)
+      end
+    end
+
+    context 'when the attempted account does not exist' do
+      before { allow(Onetime::Customer).to receive(:find_by_email).and_return(nil) }
+
+      it 'records nothing, so arbitrary submitted addresses cannot mint events' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError)
+
+        expect(Onetime::ColonelAuditEvent).not_to have_received(:record_security)
+      end
+
+      it 'does not re-look-up the address the failure funnel already resolved' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError)
+
+        # process_params (which runs in the constructor) did the ONE lookup and
+        # the funnel reuses its result — nil here meaning "already looked, no
+        # such account" — rather than paying a second round trip on the path an
+        # attacker drives.
+        expect(Onetime::Customer).to have_received(:find_by_email).once
+      end
+    end
+
+    it 'still rejects the login when the audit write blows up' do
+      allow(Onetime::ColonelAuditEvent).to receive(:record_security).and_raise(StandardError, 'boom')
+
+      # The failure response is unaffected: the caller sees the same
+      # non-enumerating form error, never the audit exception.
+      expect { logic.raise_concerns }.to raise_error(Onetime::FormError, 'Invalid email or password')
+      expect(OT).to have_received(:le).with('[colonel.signin_failed] audit record failed', hash_including(:exception))
+    end
+
+    # The second credential-rejection branch. Since the attempted-identity fix
+    # a carried customer no longer routes here — process_params clears the
+    # strategy_result.user seed on a mismatch, so raise_concerns raises first
+    # in production. The branch survives as a defense-in-depth recheck (state
+    # gone stale between construction and #process, e.g. a concurrent password
+    # change), exercised here by driving #process directly. Still mutually
+    # exclusive with the funnel above, which is what bounds this to one event
+    # per attempt.
+    context 'when the rejection happens in #process instead' do
+      let(:strategy_result) do
+        result = double('StrategyResult')
+        allow(result).to receive_messages(
+          session: rack_session,
+          user: customer,
+          auth_method: :session,
+          metadata: { ip: '127.0.0.1' },
+          authenticated?: false
+        )
+        result
+      end
+
+      it 'records exactly one event there too' do
+        expect { logic.process }.to raise_error(Onetime::FormError)
+
+        expect(Onetime::ColonelAuditEvent).to have_received(:record_security).once.with(
+          hash_including(verb: 'colonel.signin_failed', target: 'co***@e***.com', result: :failure),
+        )
+      end
+
+      # ATTRIBUTION. strategy_result.user is whoever the REQUEST'S SESSION
+      # already belonged to, which need not be the account named in the
+      # `login` param. Attributing to it would let anyone holding (or forging)
+      # a session mint failed-attempt events against an admin account nobody
+      # was trying — a false brute-force signal — while the identity actually
+      # being worked on went unrecorded. Both branches attribute to the
+      # ATTEMPTED identity, as full mode's hook does; since the
+      # attempted-identity fix, @cust cannot even carry the session identity
+      # into #process (the success?/log-line halves are pinned in their own
+      # describe below).
+      context 'and the session belongs to a different account than the login param' do
+        # The colonel whose session the request carries. Not the account being
+        # tried: the login param below names someone else entirely.
+        let(:session_colonel) do
+          cust = double('SessionColonel')
+          allow(cust).to receive(:passphrase?).and_return(false)
+          allow(cust).to receive_messages(
+            objid: 'cust_session_colonel',
+            email: 'carried@example.com',
+            obscure_email: 'ca***@e***.com',
+            role: 'colonel',
+            anonymous?: false,
+            argon2_hash?: true,
+            passphrase: '$argon2id$...'
+          )
+          cust
+        end
+
+        let(:strategy_result) do
+          result = double('StrategyResult')
+          allow(result).to receive_messages(
+            session: rack_session,
+            user: session_colonel,
+            auth_method: :session,
+            metadata: { ip: '127.0.0.1' },
+            authenticated?: false
+          )
+          result
+        end
+
+        let(:params) { { 'login' => 'someone-else@example.com', 'password' => 'definitely-wrong' } }
+
+        context 'when the attempted identity is an ordinary account' do
+          before { allow(customer).to receive(:role).and_return('customer') }
+
+          it 'records nothing — least of all against the carried colonel' do
+            expect { logic.process }.to raise_error(Onetime::FormError)
+
+            expect(Onetime::ColonelAuditEvent).not_to have_received(:record_security)
+          end
+        end
+
+        context 'when the attempted identity is the colonel' do
+          it 'targets the account that was tried, not the one in the session' do
+            expect { logic.process }.to raise_error(Onetime::FormError)
+
+            expect(Onetime::ColonelAuditEvent).to have_received(:record_security).once.with(
+              hash_including(verb: 'colonel.signin_failed', target: 'co***@e***.com'),
+            )
+            expect(Onetime::ColonelAuditEvent).not_to have_received(:record_security).with(
+              hash_including(target: 'ca***@e***.com'),
+            )
+          end
+        end
+
+        context 'when the attempted address matches no account at all' do
+          before { allow(Onetime::Customer).to receive(:find_by_email).and_return(nil) }
+
+          it 'records nothing, so a carried session cannot mint events' do
+            expect { logic.process }.to raise_error(Onetime::FormError)
+
+            expect(Onetime::ColonelAuditEvent).not_to have_received(:record_security)
+          end
+        end
+      end
+    end
+  end
+
+  # The success? comparison and the 'Login failed' log line, brought into line
+  # with the audit attribution fixed in #4361: authentication is against the
+  # ATTEMPTED identity — the account the `login` param names — never against
+  # strategy_result.user. Full mode has no carried-session fallback (Rodauth
+  # resolves the account from the submitted `login` and verifies the password
+  # against that account alone; its already_logged_in, configured in
+  # apps/web/auth/config/base.rb, refuses a session the app has marked
+  # authenticated before the password is checked), so simple mode must not
+  # either. These scenarios mirror the carried-session-vs-login-param contexts
+  # in the colonel.signin_failed describe above.
+  describe 'attempted-identity authentication (parity with full mode)' do
+    # The customer whose session the request carries. Its passphrase MATCHES
+    # the submitted password — the pre-fix hazard: on a mismatch with the
+    # attempted account, process_params left this object in @cust, so success?
+    # re-authenticated the carried identity while the `login` param named
+    # someone else entirely.
+    let(:session_customer) do
+      cust = double('SessionCustomer')
+      allow(cust).to receive(:passphrase?).and_return(true)
+      allow(cust).to receive_messages(
+        objid: 'cust_carried',
+        email: 'carried@example.com',
+        extid: 'ur_carried',
+        obscure_email: 'ca***@e***.com',
+        role: :customer,
+        anonymous?: false
+      )
+      cust
+    end
+
+    let(:strategy_result) do
+      result = double('StrategyResult')
+      allow(result).to receive_messages(
+        session: rack_session,
+        user: session_customer,
+        auth_method: :session,
+        metadata: { ip: '127.0.0.1' },
+        authenticated?: false
+      )
+      result
+    end
+
+    let(:params) { { 'login' => 'someone-else@example.com', 'password' => test_password } }
+
+    context 'when the submitted password does not match the attempted account' do
+      # The account the `login` param names. Rejects every passphrase — the
+      # submitted password belongs to the CARRIED customer, not this one.
+      let(:customer) do
+        cust = double('AttemptedCustomer')
+        allow(cust).to receive(:passphrase?).and_return(false)
+        allow(cust).to receive_messages(
+          objid: 'cust_attempted',
+          email: 'someone-else@example.com',
+          obscure_email: 'so***@e***.com',
+          role: :customer,
+          anonymous?: false,
+          argon2_hash?: true,
+          passphrase: '$argon2id$...'
+        )
+        cust
+      end
+
+      it 'does not fall back to the carried identity: success? is false' do
+        logic.process_params
+
+        expect(logic.success?).to be false
+      end
+
+      it 'never asks the carried identity to vouch for the submitted password' do
+        logic.process_params
+        logic.success?
+
+        expect(session_customer).not_to have_received(:passphrase?)
+      end
+
+      it 'rejects through the single failure funnel, counting the attempt' do
+        # Pre-fix, a carried session skipped raise_concerns entirely (@cust was
+        # non-nil), so the failed attempt against the attempted account was
+        # never recorded against the rate limiter.
+        expect(logic).to receive(:record_failed_login_attempt!)
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError, 'Invalid email or password')
+      end
+
+      # The log-line half of the #4361 attribution fix, mirroring the audit
+      # event's 'targets the account that was tried' example: the failure is
+      # about the identity that was TRIED, not whoever the session carried.
+      it 'attributes the failure log to the attempted identity, not the carried session' do
+        logic.process_params
+
+        expect(mock_logger).to receive(:warn).with(
+          'Login failed',
+          hash_including(email: 'so***@e***.com', role: :customer),
+        )
+        expect { logic.process }.to raise_error(Onetime::FormError)
+      end
+    end
+
+    context 'when the attempted address matches no account at all' do
+      before { allow(Onetime::Customer).to receive(:find_by_email).and_return(nil) }
+
+      it 'is false — not a second chance for the carried identity' do
+        logic.process_params
+
+        expect(logic.success?).to be false
+      end
+
+      it 'rejects through the failure funnel like any unknown address' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError, 'Invalid email or password')
+      end
+    end
+
+    context 'when the submitted password matches the ATTEMPTED account' do
+      # find_by_email resolves the login param to the default `customer`
+      # double, whose passphrase accepts test_password. This is the identity
+      # SWITCH full mode performs (Rodauth's login → update_session replaces
+      # the session with the account the login named), already working before
+      # the fix and pinned here so the fix cannot regress it.
+      it 'authenticates as the attempted account, replacing the carried identity' do
+        logic.process_params
+        logic.process
+
+        expect(logic.greenlighted).to be true
+        expect(session_data['external_id']).to eq('ur_test123')
+        expect(session_data['external_id']).not_to eq('ur_carried')
+      end
+
+      it 'logs the success as the attempted identity' do
+        logic.process_params
+
+        expect(mock_logger).to receive(:info).with(
+          'Login successful',
+          hash_including(email: 'te***@example.com'),
+        )
+        logic.process
+      end
+    end
+  end
+
+  describe '#success?' do
+    context 'when customer is not anonymous and passphrase matches' do
+      before do
+        logic.process_params
+      end
+
+      it 'returns true' do
+        expect(logic.success?).to be true
+      end
+    end
+
+    context 'when customer does not exist' do
+      before do
+        allow(Onetime::Customer).to receive(:find_by_email).and_return(nil)
+        logic.process_params
+      end
+
+      it 'returns false' do
+        expect(logic.success?).to be false
+      end
+    end
+
+    context 'when passphrase does not match' do
+      let(:customer) do
+        cust = double('Customer')
+        allow(cust).to receive(:passphrase?).and_return(false)
+        allow(cust).to receive_messages(
+          objid: 'cust_test123',
+          email: test_email,
+          anonymous?: false,
+          argon2_hash?: true,
+          passphrase: '$argon2id$...'
+        )
+        cust
+      end
+
+      before do
+        logic.process_params
+      end
+
+      it 'returns false' do
+        expect(logic.success?).to be false
+      end
+    end
+  end
+
+  describe '.normalize_password' do
+    it 'strips whitespace from password' do
+      result = described_class.normalize_password('  password123  ')
+      expect(result).to eq('password123')
+    end
+
+    it 'limits password length to max_length' do
+      long_password = 'a' * 200
+      result = described_class.normalize_password(long_password, 10)
+      expect(result.length).to eq(10)
+    end
+
+    it 'handles nil password' do
+      result = described_class.normalize_password(nil)
+      expect(result).to eq('')
+    end
+  end
+
+  describe 'login rate limiting (M-4) — pre-gated lockout' do
+    # #3516/#3807 moved check_login_rate_limit! ahead of the argon2 comparison,
+    # into process_params, which fires from Onetime::Logic::Base#initialize. A
+    # locked subject therefore raises at construction — before any credential is
+    # evaluated and before record_failed_login_attempt! (which lives only in
+    # raise_concerns) can run. Arm the raise via any_instance so the gate is
+    # active before .new, then assert against described_class.new to exercise
+    # the real gated path rather than a re-invocation on an already-built object.
+    before do
+      allow_any_instance_of(described_class).to receive(:check_login_rate_limit!).and_raise(
+        Onetime::LimitExceeded.new(
+          'Too many login attempts. Please try again later.',
+          retry_after: 1800,
+          max_attempts: 5,
+        ),
+      )
+    end
+
+    it 'raises LimitExceeded at construction, before evaluating credentials' do
+      expect_any_instance_of(described_class).not_to receive(:record_failed_login_attempt!)
+      expect { described_class.new(strategy_result, params, 'en') }.to raise_error(Onetime::LimitExceeded)
+    end
+  end
+
+  describe 'login rate limiting (M-4)' do
+    before do
+      logic.process_params
+    end
+
+    context 'on a failed credential attempt' do
+      let(:customer) do
+        cust = double('Customer')
+        allow(cust).to receive(:passphrase?).and_return(false)
+        allow(cust).to receive_messages(
+          objid: 'cust_test123',
+          email: test_email,
+          # See the note on the #raise_concerns double: the failure funnel asks
+          # the attempted account for its role (#4339).
+          role: :customer,
+          argon2_hash?: true,
+          passphrase: '$argon2id$...'
+        )
+        cust
+      end
+
+      # Production-accurate failure path: anonymous login POST has user=nil
+      # (PR #2733), so @cust starts nil and stays nil on a mismatch, making
+      # raise_concerns reach the record + raise funnel.
+      let(:strategy_result) do
+        result = double('StrategyResult')
+        allow(result).to receive_messages(
+          session: rack_session,
+          user: nil,
+          auth_method: :anonymous,
+          metadata: { ip: '127.0.0.1' },
+          authenticated?: false
+        )
+        result
+      end
+
+      it 'records a failed login attempt before raising the form error' do
+        # raise_form_error aborts raise_concerns, so a satisfied expectation
+        # here proves the record call precedes the raise.
+        expect(logic).to receive(:record_failed_login_attempt!)
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError)
+      end
+
+      it 'scopes the subject to the email + ip two-tier keys' do
+        # Two-tier limiter (RL-2/RL-3): email drives the global backstop, ip the
+        # tight per-origin tier, passed as separate args (not an "email|ip"
+        # composite) so a nil ip cleanly skips the tight tier.
+        expect(logic).to receive(:record_failed_login_attempt!).with(test_email, '127.0.0.1')
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError)
+      end
+    end
+
+    context 'on a successful login' do
+      before do
+        allow(customer).to receive(:pending?).and_return(false)
+      end
+
+      it 'clears the login rate limit for the subject' do
+        expect(logic).to receive(:clear_login_rate_limit!).with(test_email, '127.0.0.1')
+        logic.process
+      end
+    end
+  end
+
+  describe 'security considerations' do
+    it 'does not log the actual password' do
+      expect(mock_logger).not_to receive(:info).with(a_string_matching(/password123/))
+      expect(mock_logger).not_to receive(:warn).with(a_string_matching(/password123/))
+      logic.process_params
+    end
+
+    it 'uses obscured email in logs for successful login' do
+      logic.process_params
+      expect(mock_logger).to receive(:info).with('Login successful', hash_including(email: 'te***@example.com'))
+      logic.process
+    end
+  end
+
+  # Regression for #3812: the synchronous verification-email path bypasses the
+  # EmailWorker locale-normalization chokepoint. A blank @locale ("") is truthy,
+  # so it would slip past the delivery site's `||` into an invalid I18n lookup
+  # (:"") and raise I18n::InvalidLocale, silently failing the email.
+  describe '#send_verification_email locale normalization' do
+    subject(:blank_locale_logic) { described_class.new(strategy_result, params, '') }
+
+    let(:secret) do
+      double('Secret', identifier: 'sec_abc123').tap do |s|
+        allow(s).to receive(:verification=)
+        allow(s).to receive(:custid=)
+        allow(s).to receive(:save)
+      end
+    end
+
+    before do
+      allow(customer).to receive(:reset_secret=)
+      allow(Onetime::Receipt).to receive(:spawn_pair).and_return([double('Receipt'), secret])
+      allow(Onetime::Mail::Mailer).to receive(:deliver)
+    end
+
+    it 'reproduces the blank @locale from a blank locale param' do
+      expect(blank_locale_logic.locale).to eq('')
+    end
+
+    it 'delivers the welcome email with the default locale when @locale is blank' do
+      blank_locale_logic.send(:send_verification_email, nil, customer: customer)
+
+      expect(Onetime::Mail::Mailer).to have_received(:deliver).with(
+        :welcome,
+        hash_including(email_address: test_email),
+        locale: OT.default_locale,
+      )
+    end
+  end
+end

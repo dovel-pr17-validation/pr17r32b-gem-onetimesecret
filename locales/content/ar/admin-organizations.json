@@ -1,0 +1,758 @@
+{
+  "web.admin.organizations.retry": {
+    "text": "إعادة المحاولة",
+    "source_hash": "942087cc"
+  },
+  "web.admin.organizations.detail.backToList": {
+    "text": "العودة إلى المؤسسات",
+    "source_hash": "2257dc4a"
+  },
+  "web.admin.organizations.detail.notFound": {
+    "text": "لم يتم العثور على المؤسسة",
+    "source_hash": "00c50f7a"
+  },
+  "web.admin.organizations.detail.notFoundDescription": {
+    "text": "قد تكون هذه المؤسسة قد حُذفت، أو أن المعرّف غير صحيح.",
+    "source_hash": "e5459ef5"
+  },
+  "web.admin.organizations.detail.loadError": {
+    "text": "تعذّر تحميل هذه المؤسسة.",
+    "source_hash": "9df8ad50"
+  },
+  "web.admin.organizations.detail.none": {
+    "text": "—",
+    "source_hash": "bda05058"
+  },
+  "web.admin.organizations.detail.badges.default": {
+    "text": "مساحة العمل الافتراضية",
+    "source_hash": "6d67c6eb"
+  },
+  "web.admin.organizations.detail.badges.archived": {
+    "text": "مؤرشف",
+    "source_hash": "bdb86505"
+  },
+  "web.admin.organizations.detail.domains.domain": {
+    "text": "النطاق",
+    "source_hash": "79fa3361"
+  },
+  "web.admin.organizations.detail.domains.state": {
+    "text": "الحالة",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.organizations.detail.domains.created": {
+    "text": "تاريخ الإنشاء",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.organizations.detail.domains.ready": {
+    "text": "جاهز",
+    "source_hash": "5fa7aac5"
+  },
+  "web.admin.organizations.detail.domains.resolving": {
+    "text": "قيد التحليل",
+    "source_hash": "3287a034"
+  },
+  "web.admin.organizations.detail.domains.empty": {
+    "text": "لا توجد نطاقات.",
+    "source_hash": "1b840c7e"
+  },
+  "web.admin.organizations.detail.entitlements.description": {
+    "text": "تُحسب الاستحقاقات الفعلية بالصيغة (الخطة ∪ المنح) − عمليات الإلغاء. راجع التفصيل قبل إجراء أي تجاوز.",
+    "source_hash": "23080475"
+  },
+  "web.admin.organizations.detail.entitlements.inSync": {
+    "text": "متزامن",
+    "source_hash": "5701958c"
+  },
+  "web.admin.organizations.detail.entitlements.driftBadge": {
+    "text": "انحراف",
+    "source_hash": "8b4c8240"
+  },
+  "web.admin.organizations.detail.entitlements.staleBadge": {
+    "text": "خطة قديمة",
+    "source_hash": "ffe63800"
+  },
+  "web.admin.organizations.detail.entitlements.driftWarning": {
+    "text": "الاستحقاقات المُجسَّدة لا تطابق المجموعة المتوقعة. قم بالمطابقة لإعادة التجسيد.",
+    "source_hash": "4859983a"
+  },
+  "web.admin.organizations.detail.entitlements.driftExtra": {
+    "text": "إضافية (مُجسَّدة، غير متوقعة)",
+    "source_hash": "08d60730"
+  },
+  "web.admin.organizations.detail.entitlements.driftMissing": {
+    "text": "مفقودة (متوقعة، غير مُجسَّدة)",
+    "source_hash": "fe12c83a"
+  },
+  "web.admin.organizations.detail.entitlements.plan": {
+    "text": "من الخطة",
+    "source_hash": "1d346b26"
+  },
+  "web.admin.organizations.detail.entitlements.materialized": {
+    "text": "مُجسَّدة (فعلية)",
+    "source_hash": "72ca5f45"
+  },
+  "web.admin.organizations.detail.members.email": {
+    "text": "العضو",
+    "source_hash": "7c968fb7"
+  },
+  "web.admin.organizations.detail.members.role": {
+    "text": "الدور",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.organizations.detail.members.status": {
+    "text": "الحالة",
+    "source_hash": "920e413c"
+  },
+  "web.admin.organizations.detail.members.joined": {
+    "text": "تاريخ الانضمام",
+    "source_hash": "69318b0c"
+  },
+  "web.admin.organizations.detail.members.owner": {
+    "text": "المالك",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.empty": {
+    "text": "لا يوجد أعضاء.",
+    "source_hash": "b99c59dc"
+  },
+  "web.admin.organizations.detail.reconcile.button": {
+    "text": "مطابقة",
+    "source_hash": "b59be565"
+  },
+  "web.admin.organizations.detail.reconcile.confirmTitle": {
+    "text": "مطابقة فوترة المؤسسة؟",
+    "source_hash": "fc1a2762"
+  },
+  "web.admin.organizations.detail.reconcile.confirmDescription": {
+    "text": "يؤدي هذا إلى إعادة سحب Stripe وإعادة كتابة حالة الفوترة والاستحقاقات لـ {org}. أعد كتابة معرّف المؤسسة للتأكيد.",
+    "source_hash": "b4ef0850"
+  },
+  "web.admin.organizations.detail.reconcile.success": {
+    "text": "تمت مطابقة المؤسسة.",
+    "source_hash": "caf87844"
+  },
+  "web.admin.organizations.detail.reconcile.resultTitle": {
+    "text": "نتيجة المطابقة",
+    "source_hash": "11f4c6b8"
+  },
+  "web.admin.organizations.detail.reconcile.before": {
+    "text": "قبل",
+    "source_hash": "9bb72500"
+  },
+  "web.admin.organizations.detail.reconcile.after": {
+    "text": "بعد",
+    "source_hash": "7b68fe55"
+  },
+  "web.admin.organizations.detail.reconcile.materializedCount": {
+    "text": "عدد الاستحقاقات",
+    "source_hash": "59cede5c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.stripe_sync": {
+    "text": "مزامنة Stripe",
+    "source_hash": "02f9546c"
+  },
+  "web.admin.organizations.detail.reconcile.mode.entitlements_only": {
+    "text": "الاستحقاقات فقط",
+    "source_hash": "8cf49a5d"
+  },
+  "web.admin.organizations.detail.sections.billing": {
+    "text": "الفوترة",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.organizations.detail.sections.members": {
+    "text": "الأعضاء",
+    "source_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.sections.domains": {
+    "text": "النطاقات",
+    "source_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.sections.investigate": {
+    "text": "التحقيق والمطابقة",
+    "source_hash": "b05aa349"
+  },
+  "web.admin.organizations.entitlements.section": {
+    "text": "تجاوزات الاستحقاقات",
+    "source_hash": "48812068"
+  },
+  "web.admin.organizations.entitlements.description": {
+    "text": "امنح أو ألغِ الاستحقاقات بشكل مستقل عن الخطة. الفعلية = استحقاقات الخطة + المنح - عمليات الإلغاء.",
+    "source_hash": "4c38425b"
+  },
+  "web.admin.organizations.entitlements.inputLabel": {
+    "text": "الاستحقاق",
+    "source_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.placeholder": {
+    "text": "مثال: custom_domains",
+    "source_hash": "05346c68"
+  },
+  "web.admin.organizations.entitlements.grant": {
+    "text": "منح",
+    "source_hash": "78b7d037"
+  },
+  "web.admin.organizations.entitlements.revoke": {
+    "text": "إلغاء",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.organizations.entitlements.clear": {
+    "text": "مسح جميع التجاوزات",
+    "source_hash": "f0e485c3"
+  },
+  "web.admin.organizations.entitlements.effective": {
+    "text": "الاستحقاقات الفعلية",
+    "source_hash": "b840f8c8"
+  },
+  "web.admin.organizations.entitlements.grants": {
+    "text": "المنح",
+    "source_hash": "b3e1c95a"
+  },
+  "web.admin.organizations.entitlements.revokes": {
+    "text": "عمليات الإلغاء",
+    "source_hash": "f0e69b17"
+  },
+  "web.admin.organizations.entitlements.noOverrides": {
+    "text": "نفّذ إجراءً لعرض حالة التجاوز الحالية لهذه المؤسسة.",
+    "source_hash": "98d2e30d"
+  },
+  "web.admin.organizations.entitlements.confirm.grantTitle": {
+    "text": "منح الاستحقاق؟",
+    "source_hash": "a4b2c57b"
+  },
+  "web.admin.organizations.entitlements.confirm.grantDescription": {
+    "text": "منح ”{entitlement}“ لـ {org}. يغيّر هذا استحقاقات الفوترة الخاصة بالمؤسسة.",
+    "source_hash": "542ce26a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeTitle": {
+    "text": "إلغاء الاستحقاق؟",
+    "source_hash": "c93d520a"
+  },
+  "web.admin.organizations.entitlements.confirm.revokeDescription": {
+    "text": "إلغاء ”{entitlement}“ من {org}. يغيّر هذا استحقاقات الفوترة الخاصة بالمؤسسة.",
+    "source_hash": "a5d2a8a6"
+  },
+  "web.admin.organizations.entitlements.confirm.clearTitle": {
+    "text": "مسح جميع تجاوزات الاستحقاقات؟",
+    "source_hash": "e36eb218"
+  },
+  "web.admin.organizations.entitlements.confirm.clearDescription": {
+    "text": "إزالة كل تجاوزات المنح والإلغاء لـ {org}، وإعادة تعيينها إلى استحقاقات خطتها.",
+    "source_hash": "96bad079"
+  },
+  "web.admin.organizations.entitlements.success.granted": {
+    "text": "تم منح الاستحقاق ”{entitlement}“.",
+    "source_hash": "cf52fb0e"
+  },
+  "web.admin.organizations.entitlements.success.revoked": {
+    "text": "تم إلغاء الاستحقاق ”{entitlement}“.",
+    "source_hash": "279d425d"
+  },
+  "web.admin.organizations.entitlements.success.cleared": {
+    "text": "تم مسح جميع تجاوزات الاستحقاقات.",
+    "source_hash": "a482743b"
+  },
+  "web.admin.organizations.fields.contactEmail": {
+    "text": "بريد التواصل الإلكتروني",
+    "source_hash": "6d7fce11"
+  },
+  "web.admin.organizations.fields.owner": {
+    "text": "المالك",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.fields.plan": {
+    "text": "الخطة",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.fields.subscription": {
+    "text": "حالة الاشتراك",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.organizations.fields.periodEnd": {
+    "text": "نهاية الفترة",
+    "source_hash": "eeae9fdd"
+  },
+  "web.admin.organizations.fields.billingEmail": {
+    "text": "بريد الفوترة الإلكتروني",
+    "source_hash": "8805b928"
+  },
+  "web.admin.organizations.fields.stripeCustomer": {
+    "text": "عميل Stripe",
+    "source_hash": "8f169be1"
+  },
+  "web.admin.organizations.fields.stripeSubscription": {
+    "text": "اشتراك Stripe",
+    "source_hash": "53f71e08"
+  },
+  "web.admin.organizations.fields.orgId": {
+    "text": "معرّف المؤسسة",
+    "source_hash": "1f466322"
+  },
+  "web.admin.organizations.fields.created": {
+    "text": "تاريخ الإنشاء",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.organizations.fields.updated": {
+    "text": "تاريخ التحديث",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.organizations.investigate.description": {
+    "text": "قارن حالة الفوترة المحلية بالاشتراك المباشر في Stripe.",
+    "source_hash": "d7bbe9ed"
+  },
+  "web.admin.organizations.investigate.rawPayload": {
+    "text": "حمولة التحقيق الخام",
+    "source_hash": "29ca7df2"
+  },
+  "web.admin.organizations.investigate.parseError": {
+    "text": "لم تتطابق استجابة التحقيق مع التنسيق المتوقع.",
+    "source_hash": "db59cab1"
+  },
+  "web.admin.organizations.list.loadError": {
+    "text": "تعذّر تحميل المؤسسات.",
+    "source_hash": "130d5e70"
+  },
+  "web.admin.organizations.addMember.button": {
+    "text": "إضافة حساب موجود",
+    "source_hash": "45a3b757"
+  },
+  "web.admin.organizations.addMember.title": {
+    "text": "إضافة حساب موجود",
+    "source_hash": "2f676a94"
+  },
+  "web.admin.organizations.addMember.description": {
+    "text": "أضف شخصاً لديه حساب بالفعل إلى {org}. استخدم هذا عندما يكون الشخص قد سجل بنفسه ولا يمكن دعوته لأن الحساب موجود بالفعل.",
+    "source_hash": "bb41faa6"
+  },
+  "web.admin.organizations.addMember.searchLabel": {
+    "text": "عنوان البريد الإلكتروني أو معرف الحساب",
+    "source_hash": "82b3040b"
+  },
+  "web.admin.organizations.addMember.searchPlaceholder": {
+    "text": "البحث بعنوان البريد الإلكتروني",
+    "source_hash": "b75cc66c"
+  },
+  "web.admin.organizations.addMember.searchHint": {
+    "text": "يطابق جزءاً من عنوان البريد الإلكتروني، أو معرف حساب محدد.",
+    "source_hash": "84547a60"
+  },
+  "web.admin.organizations.addMember.searchError": {
+    "text": "تعذر البحث في الحسابات. تحقق من الاتصال وحاول مرة أخرى.",
+    "source_hash": "4b6caa41"
+  },
+  "web.admin.organizations.addMember.searchParseError": {
+    "text": "أرجع البحث في الحسابات استجابة غير متوقعة. قد تكون النتائج غير مكتملة.",
+    "source_hash": "0c814231"
+  },
+  "web.admin.organizations.addMember.idle": {
+    "text": "أدخل عنوان بريد إلكتروني للعثور على الحساب.",
+    "source_hash": "f6340d35"
+  },
+  "web.admin.organizations.addMember.noResults": {
+    "text": "لا يوجد حساب يطابق \"{term}\".",
+    "source_hash": "199b662a"
+  },
+  "web.admin.organizations.addMember.noResultsHint": {
+    "text": "يمكن إضافة الحسابات الموجودة فقط هنا. إذا لم يسجل الشخص من قبل، قم بدعوته بدلاً من ذلك.",
+    "source_hash": "ee90aeeb"
+  },
+  "web.admin.organizations.addMember.select": {
+    "text": "اختيار",
+    "source_hash": "2a78025d"
+  },
+  "web.admin.organizations.addMember.selectedEyebrow": {
+    "text": "الحساب المحدد",
+    "source_hash": "8b63d947"
+  },
+  "web.admin.organizations.addMember.change": {
+    "text": "اختيار حساب مختلف",
+    "source_hash": "d4fe39ab"
+  },
+  "web.admin.organizations.addMember.createdOn": {
+    "text": "تم التسجيل {date}",
+    "source_hash": "cfc0e19f"
+  },
+  "web.admin.organizations.addMember.organizationsUnavailable": {
+    "text": "تعذر تحميل مؤسسات هذا الحساب الحالية.",
+    "source_hash": "a35b6bfc"
+  },
+  "web.admin.organizations.addMember.defaultOrg": {
+    "text": "افتراضي",
+    "source_hash": "37a8eec1"
+  },
+  "web.admin.organizations.addMember.roleLabel": {
+    "text": "الدور في هذه المؤسسة",
+    "source_hash": "817475fa"
+  },
+  "web.admin.organizations.addMember.submit": {
+    "text": "إضافة إلى المؤسسة",
+    "source_hash": "0e0cb636"
+  },
+  "web.admin.organizations.addMember.success": {
+    "text": "تمت إضافة {account} كـ {role}.",
+    "source_hash": "533be0dc"
+  },
+  "web.admin.organizations.addMember.badges.verified": {
+    "text": "تم التحقق",
+    "source_hash": "4f783840"
+  },
+  "web.admin.organizations.addMember.badges.unverified": {
+    "text": "لم يتم التحقق",
+    "source_hash": "15133907"
+  },
+  "web.admin.organizations.addMember.badges.suspended": {
+    "text": "موقوف",
+    "source_hash": "e392a389"
+  },
+  "web.admin.organizations.addMember.badges.alreadyMember": {
+    "text": "عضو بالفعل",
+    "source_hash": "1739ed7c"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMember": {
+    "text": "هذا الحساب عضو بالفعل في هذه المؤسسة، بدور {role}. الإضافة لا تغير دوراً موجوداً — استخدم إجراء تعيين الدور لذلك.",
+    "source_hash": "cb6a4774"
+  },
+  "web.admin.organizations.addMember.errors.alreadyMemberUnknownRole": {
+    "text": "هذا الحساب عضو بالفعل في هذه المؤسسة. الإضافة لا تغير دوراً موجوداً.",
+    "source_hash": "035641ec"
+  },
+  "web.admin.organizations.addMember.errors.notFound": {
+    "text": "هذا الحساب أو المؤسسة لم يعد موجوداً. ابحث مرة أخرى للتأكد من الحساب.",
+    "source_hash": "bd88db18"
+  },
+  "web.admin.organizations.addMember.errors.invalidRole": {
+    "text": "تم رفض هذا الدور. اختر أحد الأدوار المدرجة وحاول مرة أخرى.",
+    "source_hash": "eb696a8f"
+  },
+  "web.admin.organizations.addMember.errors.noSelection": {
+    "text": "لم يتم تحديد حساب.",
+    "source_hash": "dd15bb5b"
+  },
+  "web.admin.organizations.addMember.fields.created": {
+    "text": "تاريخ التسجيل",
+    "source_hash": "486b3fe0"
+  },
+  "web.admin.organizations.addMember.fields.verified": {
+    "text": "التحقق",
+    "source_hash": "7140f4f1"
+  },
+  "web.admin.organizations.addMember.fields.lastLogin": {
+    "text": "آخر تسجيل دخول",
+    "source_hash": "0b70af7a"
+  },
+  "web.admin.organizations.addMember.fields.organizations": {
+    "text": "المؤسسات الحالية",
+    "source_hash": "cbb5b92f"
+  },
+  "web.admin.organizations.addMember.roleHints.member": {
+    "text": "الوصول اليومي إلى أسرار المؤسسة ونطاقاتها.",
+    "source_hash": "d0c7439e"
+  },
+  "web.admin.organizations.addMember.roleHints.admin": {
+    "text": "يمكنه إدارة الأعضاء والنطاقات وإعدادات المؤسسة.",
+    "source_hash": "beaa50d7"
+  },
+  "web.admin.organizations.addMember.roleHints.owner": {
+    "text": "تحكم كامل، بما في ذلك الفوترة. امنح هذا فقط عند الطلب.",
+    "source_hash": "614ace63"
+  },
+  "web.admin.organizations.addMember.roles.member": {
+    "text": "عضو",
+    "source_hash": "7c968fb7"
+  },
+  "web.admin.organizations.addMember.roles.admin": {
+    "text": "مشرف",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.organizations.addMember.roles.owner": {
+    "text": "مالك",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.admin.organizations.detail.members.openCustomer": {
+    "text": "فتح سجل العميل",
+    "source_hash": "c057ca13"
+  },
+  "web.admin.organizations.detail.reconcile.memberships": {
+    "text": "تمت إعادة تجسيد العضويات:",
+    "source_hash": "fe7db10c"
+  },
+  "web.admin.organizations.detail.reconcile.membershipsFailed": {
+    "text": "فشل، تبقى الاستحقاقات القديمة:",
+    "source_hash": "cc4dae37"
+  },
+  "web.admin.organizations.entitlements.catalogWarning": {
+    "text": "\"{entitlement}\" غير موجود في كتالوج الفوترة — تحقق من الأخطاء الإملائية. المتابعة على أي حال: منح استحقاق سيُشحن في كتالوج لاحق مدعوم ولا يُحظر عمداً.",
+    "source_hash": "cbde548a"
+  },
+  "web.admin.organizations.entitlements.matrix.caption": {
+    "text": "مصفوفة حل الاستحقاقات: الخطة، تجاوزات المنح والإلغاء، المجموعة المحلولة، وما هو مجسد.",
+    "source_hash": "9eac8999"
+  },
+  "web.admin.organizations.entitlements.matrix.yes": {
+    "text": "نعم",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.matrix.no": {
+    "text": "لا",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.matrix.empty": {
+    "text": "هذه المؤسسة ليس لديها استحقاقات من خطتها ولا تجاوزات.",
+    "source_hash": "f6cf2169"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.entitlement": {
+    "text": "الاستحقاق",
+    "source_hash": "0d8f0b2d"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.inPlan": {
+    "text": "في الخطة",
+    "source_hash": "e2222361"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.granted": {
+    "text": "ممنوح",
+    "source_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.revoked": {
+    "text": "ملغى",
+    "source_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.expected": {
+    "text": "المتوقع",
+    "source_hash": "ca99b7f1"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.materialized": {
+    "text": "المجسد",
+    "source_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.matrix.columns.state": {
+    "text": "الحالة",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.formula": {
+    "text": "الحل: المتوقع = (الخطة ∪ المنح) − الإلغاءات. المجسد هو ما يُخزن فعلياً على المؤسسة.",
+    "source_hash": "bc4bff2d"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.orphaned": {
+    "text": "يتيم — مجسد لكن غير متوقع، عادة متروك من إلغاء لم تُعد تجسيده. التسوية تزيله.",
+    "source_hash": "3a27a9af"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.missing": {
+    "text": "مفقود — متوقع لكن غير مجسد. هذا هو الإذن الذي يفتقده الأعضاء فعلياً الآن.",
+    "source_hash": "485e44ad"
+  },
+  "web.admin.organizations.entitlements.matrix.legend.revoked": {
+    "text": "الصفوف المشطوبة ملغاة بواسطة تجاوز مشرف، مما يزيلها من المجموعة المتوقعة.",
+    "source_hash": "89a2e9b6"
+  },
+  "web.admin.organizations.entitlements.matrix.state.plan": {
+    "text": "من الخطة",
+    "source_hash": "1d346b26"
+  },
+  "web.admin.organizations.entitlements.matrix.state.granted": {
+    "text": "ممنوح",
+    "source_hash": "62026a42"
+  },
+  "web.admin.organizations.entitlements.matrix.state.revoked": {
+    "text": "ملغى",
+    "source_hash": "f6f738d0"
+  },
+  "web.admin.organizations.entitlements.matrix.state.orphaned": {
+    "text": "يتيم",
+    "source_hash": "8d827807"
+  },
+  "web.admin.organizations.entitlements.matrix.state.missing": {
+    "text": "مفقود",
+    "source_hash": "6be36ca4"
+  },
+  "web.admin.organizations.entitlements.picker.selectPlaceholder": {
+    "text": "اختر استحقاقاً…",
+    "source_hash": "53af3be8"
+  },
+  "web.admin.organizations.entitlements.picker.other": {
+    "text": "آخر — غير موجود في الكتالوج…",
+    "source_hash": "f08bc3a3"
+  },
+  "web.admin.organizations.entitlements.picker.customLabel": {
+    "text": "اسم الاستحقاق (غير موجود في الكتالوج)",
+    "source_hash": "52783229"
+  },
+  "web.admin.organizations.entitlements.picker.backToCatalog": {
+    "text": "العودة إلى الكتالوج",
+    "source_hash": "9b727f40"
+  },
+  "web.admin.organizations.entitlements.picker.uncategorized": {
+    "text": "غير مصنف",
+    "source_hash": "8d40d123"
+  },
+  "web.admin.organizations.entitlements.picker.catalogUnavailable": {
+    "text": "تعذرت قراءة كتالوج الفوترة، لذا لا يتم التحقق من أسماء الاستحقاقات هنا.",
+    "source_hash": "724869ec"
+  },
+  "web.admin.organizations.entitlements.picker.tags.inPlan": {
+    "text": "في الخطة",
+    "source_hash": "5f2251bb"
+  },
+  "web.admin.organizations.entitlements.picker.tags.granted": {
+    "text": "ممنوح",
+    "source_hash": "dd515d19"
+  },
+  "web.admin.organizations.entitlements.picker.tags.revoked": {
+    "text": "ملغى",
+    "source_hash": "4bb47f18"
+  },
+  "web.admin.organizations.entitlements.summary.sync": {
+    "text": "مزامنة",
+    "source_hash": "8d261a37"
+  },
+  "web.admin.organizations.entitlements.summary.materialized": {
+    "text": "مجسد",
+    "source_hash": "1298eb6e"
+  },
+  "web.admin.organizations.entitlements.summary.materializedAt": {
+    "text": "آخر تجسيد",
+    "source_hash": "9325dce9"
+  },
+  "web.admin.organizations.entitlements.summary.planDefinition": {
+    "text": "تعريف الخطة",
+    "source_hash": "6b531454"
+  },
+  "web.admin.organizations.entitlements.summary.yes": {
+    "text": "نعم",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.organizations.entitlements.summary.no": {
+    "text": "لا",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.organizations.entitlements.summary.never": {
+    "text": "أبداً",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.organizations.entitlements.summary.planStale": {
+    "text": "تغير منذ التجسيد",
+    "source_hash": "e682d8a4"
+  },
+  "web.admin.organizations.entitlements.summary.planCurrent": {
+    "text": "حالي",
+    "source_hash": "e0d1b682"
+  },
+  "web.admin.organizations.entitlements.summary.planUnknown": {
+    "text": "غير معروف — تعذرت المقارنة",
+    "source_hash": "b607e540"
+  },
+  "web.admin.organizations.actions.plan.label": {
+    "text": "الخطة",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.organizations.actions.plan.apply": {
+    "text": "تطبيق",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.organizations.actions.plan.confirmTitle": {
+    "text": "تغيير الخطة؟",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.organizations.actions.plan.confirmDescription": {
+    "text": "تغيير {org} إلى خطة {plan}.",
+    "source_hash": "aecf8277"
+  },
+  "web.admin.organizations.actions.plan.success": {
+    "text": "تم تحديث الخطة.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.organizations.actions.plan.problem": {
+    "text": "تم حفظ الخطة، لكن لم يتم تحديث الاستحقاقات. قم بتشغيل المطابقة على هذه المؤسسة.",
+    "source_hash": "2addb095"
+  },
+  "web.admin.organizations.actions.plan.localConfigWarning": {
+    "text": "تم تحميل الخطط من الإعداد المحلي — Stripe غير مُعدّ أو يتعذّر الوصول إليه.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.organizations.detail.delete.button": {
+    "text": "حذف المؤسسة",
+    "source_hash": "a70d189a"
+  },
+  "web.admin.organizations.detail.delete.previewing": {
+    "text": "جاري تحميل خطة الحذف…",
+    "source_hash": "c9773eb9"
+  },
+  "web.admin.organizations.detail.delete.warning": {
+    "text": "يحذف المؤسسة وعضوياتها ودعواتها المعلّقة نهائياً، ويرسل بريداً إلكترونياً إلى الأعضاء السابقين. لا يمكن التراجع عن ذلك.",
+    "source_hash": "fd314131"
+  },
+  "web.admin.organizations.detail.delete.confirmTitle": {
+    "text": "حذف هذه المؤسسة؟",
+    "source_hash": "6a3bba0f"
+  },
+  "web.admin.organizations.detail.delete.confirmDescription": {
+    "text": "يؤدي هذا إلى حذف {org} نهائياً. أعد كتابة معرّف المؤسسة للتأكيد.",
+    "source_hash": "c63a0221"
+  },
+  "web.admin.organizations.detail.delete.membersLabel": {
+    "text": "الأعضاء",
+    "source_hash": "1044a4c0"
+  },
+  "web.admin.organizations.detail.delete.invitationsLabel": {
+    "text": "الدعوات المعلّقة",
+    "source_hash": "76198e63"
+  },
+  "web.admin.organizations.detail.delete.domainsLabel": {
+    "text": "النطاقات",
+    "source_hash": "ced67718"
+  },
+  "web.admin.organizations.detail.delete.defaultOrgLabel": {
+    "text": "يمسح مساحة العمل الافتراضية لـ",
+    "source_hash": "d535ac2a"
+  },
+  "web.admin.organizations.detail.delete.forceDefault": {
+    "text": "هذه هي مساحة العمل الافتراضية (الشخصية) للمالك. احذفها على أي حال.",
+    "source_hash": "1a8b0f7d"
+  },
+  "web.admin.organizations.detail.delete.forceSubscription": {
+    "text": "الاشتراك نشط. احذف على أي حال — لا يؤدي هذا إلى إلغاء الفوترة في Stripe.",
+    "source_hash": "51cb3456"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsLabel": {
+    "text": "النطاقات المنحرفة",
+    "source_hash": "fef96f49"
+  },
+  "web.admin.organizations.detail.delete.driftedDomainsRepair": {
+    "text": "الإصلاح باستخدام: bin/ots domains doctor --all --repair",
+    "source_hash": "14c9c59f"
+  },
+  "web.admin.organizations.detail.delete.success": {
+    "text": "تم حذف {org}.",
+    "source_hash": "9cdda5d0"
+  },
+  "web.admin.organizations.detail.delete.blocked.hasDomains": {
+    "text": "محظور: أزل النطاقات المخصّصة أولاً ({domains}).",
+    "source_hash": "dc3248b2"
+  },
+  "web.admin.organizations.detail.delete.blocked.driftedDomains": {
+    "text": "محظور: لا تزال سجلات النطاقات هذه تشير إلى هذه المؤسسة لكنها غير موجودة في قائمة نطاقاتها ({domains}). شغّل bin/ots domains doctor --all --repair أولاً — لا يوجد تجاوز.",
+    "source_hash": "3136496c"
+  },
+  "web.admin.organizations.detail.delete.blocked.isDefault": {
+    "text": "محظور: هذه هي مساحة العمل الافتراضية للمالك. حدّد خيار التجاوز أدناه لحذفها على أي حال.",
+    "source_hash": "09d5baa4"
+  },
+  "web.admin.organizations.detail.delete.blocked.activeSubscription": {
+    "text": "محظور: لدى المؤسسة اشتراك نشط. ألغِه في Stripe أولاً، أو حدّد خيار التجاوز أدناه.",
+    "source_hash": "68663641"
+  },
+  "web.admin.organizations.detail.delete.blocked.lastOrg": {
+    "text": "محظور: هذه هي المؤسسة الوحيدة التي ينتمي إليها {owner}، وحذفها سيتركه بلا مساحة عمل. لا يوجد تجاوز — أنشئ مؤسسة بديلة أولاً.",
+    "source_hash": "f09b4f9a"
+  },
+  "web.admin.organizations.detail.delete.errors.planUnreadable": {
+    "text": "تعذّرت قراءة خطة الحذف من الخادم. لم يتم حذف أي شيء.",
+    "source_hash": "91406cbb"
+  },
+  "web.admin.organizations.detail.delete.errors.unverified": {
+    "text": "تعذّر التحقق من استجابة الخادم. أعد تحميل قائمة المؤسسات للتحقق مما إذا اكتمل الحذف.",
+    "source_hash": "7a261fb0"
+  },
+  "web.admin.organizations.detail.delete.errors.notApplied": {
+    "text": "أعاد الخادم معاينة وليس عملية حذف. لم يتم حذف أي شيء.",
+    "source_hash": "9d84971d"
+  }
+}

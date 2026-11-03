@@ -1,0 +1,74 @@
+{
+  "web.feedback.your_feedback": {
+    "text": "Geri bildiriminiz",
+    "source_hash": "cdb1c0a5"
+  },
+  "web.feedback.all_feedback_welcome": {
+    "text": "Her türlü geri bildirime açığız!",
+    "source_hash": "c57d3006"
+  },
+  "web.feedback.help_us_improve": {
+    "text": "İyileştirmemize yardımcı olun",
+    "source_hash": "f35439c4"
+  },
+  "web.feedback.close_feedback_modal": {
+    "text": "Geri bildirim penceresini kapat",
+    "source_hash": "41689bb4"
+  },
+  "web.feedback.share_your_feedback": {
+    "text": "Geri bildiriminizi paylaşın",
+    "source_hash": "6d62dfbd"
+  },
+  "web.feedback.delano_mandelbaum": {
+    "text": "Delano Mandelbaum",
+    "source_hash": "6da0b72b"
+  },
+  "web.feedback.delano": {
+    "text": "Delano",
+    "source_hash": "f58154f7"
+  },
+  "web.feedback.help_content_goes_here": {
+    "text": "Yardım içeriği burada görüntülenir.",
+    "source_hash": "796979ea"
+  },
+  "web.feedback.founder_note_line1": {
+    "text": "Buraya gelen her geri bildirimi okurum. Zamanımı neye harcayacağımı bu şekilde belirliyorum.",
+    "source_hash": "8b430d93"
+  },
+  "web.feedback.founder_note_line2": {
+    "text": "Bir şeyler yolunda gitmiyorsa veya nasıl çalışması gerektiği hakkında fikirleriniz varsa, doğru yerdesiniz.",
+    "source_hash": "d4b8f073"
+  },
+  "web.feedback.open_feedback_form": {
+    "text": "Geri bildirim formunu aç",
+    "source_hash": "acd8409b"
+  },
+  "web.feedback.enter_your_feedback": {
+    "text": "Geri bildiriminizi girin",
+    "source_hash": "1bb310f4"
+  },
+  "web.feedback.send_feedback": {
+    "text": "Geri bildirim gönder",
+    "source_hash": "8235980b"
+  },
+  "web.feedback.sending_ellipses": {
+    "text": "Gönderiliyor...",
+    "source_hash": "286a3af7"
+  },
+  "web.feedback.reason_email_change_unauthorized": {
+    "text": "Hesabınızda yetkisiz bir e-posta değişikliği bildirdiğiniz anlaşılıyor. Lütfen ne olduğunu açıklayın, hemen araştıracağız.",
+    "source_hash": "00e56551"
+  },
+  "web.feedback.anonymous_no_reply": {
+    "text": "Not: yanıt almak isterseniz, lütfen mesajı imzalayın veya mesaja bir e-posta adresi ekleyin.",
+    "source_hash": "c984f705"
+  },
+  "web.feedback.characters_remaining": {
+    "text": "{count} karakter kaldı",
+    "source_hash": "8d796f40"
+  },
+  "web.feedback.character_limit_reached": {
+    "text": "Karakter sınırına ulaşıldı",
+    "source_hash": "031e9310"
+  }
+}

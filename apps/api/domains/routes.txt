@@ -1,0 +1,69 @@
+# apps/api/domains/routes
+#
+# Otto Routes - Domains API (Site-Only Endpoints)
+# Using direct Logic class routing with authentication strategies
+#
+# Domains API handles custom domain management endpoints.
+# These endpoints are not part of the public API and don't need versioning.
+# All endpoints require authentication and organization context.
+
+# Domain Management
+GET    /dns-widget/token                  DomainsAPI::Logic::Domains::GetDnsWidgetToken response=json auth=sessionauth,basicauth
+POST   /add                               DomainsAPI::Logic::Domains::AddDomain response=json auth=sessionauth
+POST   /:extid/remove                     DomainsAPI::Logic::Domains::RemoveDomain response=json auth=sessionauth
+GET    /:extid                            DomainsAPI::Logic::Domains::GetDomain response=json auth=sessionauth,basicauth
+POST   /:extid/verify                     DomainsAPI::Logic::Domains::VerifyDomain response=json auth=sessionauth,basicauth
+PUT    /:extid/brand                      DomainsAPI::Logic::Domains::UpdateDomainBrand response=json auth=sessionauth,basicauth
+GET    /:extid/brand                      DomainsAPI::Logic::Domains::GetDomainBrand response=json auth=sessionauth,basicauth
+DELETE /:extid/logo                       DomainsAPI::Logic::Domains::RemoveDomainLogo response=json auth=sessionauth,basicauth
+POST   /:extid/logo                       DomainsAPI::Logic::Domains::UpdateDomainLogo response=json auth=sessionauth,basicauth
+GET    /:extid/logo                       DomainsAPI::Logic::Domains::GetDomainLogo response=json auth=sessionauth,basicauth
+DELETE /:extid/icon                       DomainsAPI::Logic::Domains::RemoveDomainIcon response=json auth=sessionauth,basicauth
+POST   /:extid/icon                       DomainsAPI::Logic::Domains::UpdateDomainIcon response=json auth=sessionauth,basicauth
+GET    /:extid/icon                       DomainsAPI::Logic::Domains::GetDomainIcon response=json auth=sessionauth,basicauth
+POST   /:extid/icon/refresh               DomainsAPI::Logic::Domains::RefreshDomainFavicon response=json auth=sessionauth,basicauth
+GET    /                                  DomainsAPI::Logic::Domains::ListDomains response=json auth=sessionauth,basicauth
+
+# Domain SSO Configuration
+GET    /:extid/sso                        DomainsAPI::Logic::SsoConfig::GetSsoConfig response=json auth=sessionauth
+PUT    /:extid/sso                        DomainsAPI::Logic::SsoConfig::PutSsoConfig response=json auth=sessionauth
+PATCH  /:extid/sso                        DomainsAPI::Logic::SsoConfig::PatchSsoConfig response=json auth=sessionauth
+DELETE /:extid/sso                        DomainsAPI::Logic::SsoConfig::DeleteSsoConfig response=json auth=sessionauth
+POST   /:extid/sso/test                   DomainsAPI::Logic::SsoConfig::TestConnection response=json auth=sessionauth
+POST   /:extid/sso/metadata               DomainsAPI::Logic::SsoConfig::FetchIdpMetadata response=json auth=sessionauth
+POST   /:extid/sso/diagnostics            DomainsAPI::Logic::SsoConfig::RunDiagnostics response=json auth=sessionauth
+
+# Domain Sender Configuration (Email)
+GET    /:extid/email-config              DomainsAPI::Logic::SenderConfig::GetSenderConfig response=json auth=sessionauth
+PUT    /:extid/email-config              DomainsAPI::Logic::SenderConfig::PutSenderConfig response=json auth=sessionauth
+PATCH  /:extid/email-config              DomainsAPI::Logic::SenderConfig::PatchSenderConfig response=json auth=sessionauth
+DELETE /:extid/email-config              DomainsAPI::Logic::SenderConfig::DeleteSenderConfig response=json auth=sessionauth
+POST   /:extid/email-config/validate    DomainsAPI::Logic::SenderConfig::ValidateSenderConfig response=json auth=sessionauth
+POST   /:extid/email-config/provision    DomainsAPI::Logic::SenderConfig::ProvisionSenderConfig response=json auth=sessionauth
+POST   /:extid/email-config/test         DomainsAPI::Logic::SenderConfig::SendTestEmail response=json auth=sessionauth
+
+# Domain Homepage Configuration
+GET    /:extid/homepage-config           DomainsAPI::Logic::HomepageConfig::GetHomepageConfig response=json auth=sessionauth,basicauth
+PUT    /:extid/homepage-config           DomainsAPI::Logic::HomepageConfig::PutHomepageConfig response=json auth=sessionauth,basicauth
+DELETE /:extid/homepage-config           DomainsAPI::Logic::HomepageConfig::DeleteHomepageConfig response=json auth=sessionauth,basicauth
+
+# Domain API Configuration
+GET    /:extid/api-config                DomainsAPI::Logic::ApiConfig::GetApiConfig response=json auth=sessionauth,basicauth
+PUT    /:extid/api-config                DomainsAPI::Logic::ApiConfig::PutApiConfig response=json auth=sessionauth,basicauth
+DELETE /:extid/api-config                DomainsAPI::Logic::ApiConfig::DeleteApiConfig response=json auth=sessionauth,basicauth
+
+# Domain Incoming Configuration (Recipients)
+GET    /:extid/incoming-config           DomainsAPI::Logic::IncomingConfig::GetIncomingConfig response=json auth=sessionauth
+PUT    /:extid/incoming-config           DomainsAPI::Logic::IncomingConfig::PutIncomingConfig response=json auth=sessionauth
+DELETE /:extid/incoming-config           DomainsAPI::Logic::IncomingConfig::DeleteIncomingConfig response=json auth=sessionauth
+
+# Domain Signin Configuration (Per-domain sign-in method policy)
+GET    /:extid/signin-config             DomainsAPI::Logic::SigninConfig::GetSigninConfig response=json auth=sessionauth
+PUT    /:extid/signin-config             DomainsAPI::Logic::SigninConfig::PutSigninConfig response=json auth=sessionauth
+DELETE /:extid/signin-config             DomainsAPI::Logic::SigninConfig::DeleteSigninConfig response=json auth=sessionauth
+
+# Domain Signup Configuration (Per-domain email validation strategy)
+GET    /:extid/signup-config             DomainsAPI::Logic::SignupConfig::GetSignupConfig response=json auth=sessionauth
+PUT    /:extid/signup-config             DomainsAPI::Logic::SignupConfig::PutSignupConfig response=json auth=sessionauth
+PATCH  /:extid/signup-config             DomainsAPI::Logic::SignupConfig::PatchSignupConfig response=json auth=sessionauth
+DELETE /:extid/signup-config             DomainsAPI::Logic::SignupConfig::DeleteSignupConfig response=json auth=sessionauth

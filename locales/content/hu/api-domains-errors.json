@@ -1,0 +1,62 @@
+{
+  "api.domains.errors.domain_id_required": {
+    "text": "Doménazonosító szükséges",
+    "source_hash": "6837426b"
+  },
+  "api.domains.errors.domain_not_found": {
+    "text": "A domén nem található: %{extid}",
+    "source_hash": "a0fd1025"
+  },
+  "api.domains.errors.organization_not_found": {
+    "text": "Nem található szervezet a doménhez: %{domain}",
+    "source_hash": "632afc93"
+  },
+  "api.domains.errors.incoming_secrets_disabled": {
+    "text": "A bejövő titkok nincsenek engedélyezve ezen a példányon",
+    "source_hash": "45c0b5c4"
+  },
+  "api.domains.errors.incoming_secrets_entitlement_required": {
+    "text": "A bejövő titkok kezeléséhez az incoming_secrets jogosultság szükséges. Kérjük, frissítse a csomagját.",
+    "source_hash": "1af54ec2"
+  },
+  "api.domains.errors.incoming_config_not_found": {
+    "text": "Nem található bejövő konfiguráció a doménhez: %{extid}",
+    "source_hash": "491644a8"
+  },
+  "api.domains.errors.recipients_max_exceeded": {
+    "text": "Legfeljebb %{max} címzett engedélyezett",
+    "source_hash": "159842ad"
+  },
+  "api.domains.errors.recipients_invalid_email": {
+    "text": "Érvénytelen e-mail-cím: %{email}",
+    "source_hash": "e9c729c7"
+  },
+  "api.domains.errors.recipients_duplicate": {
+    "text": "Ismétlődő címzett e-mail-címek nem engedélyezettek",
+    "source_hash": "6de22182"
+  },
+  "api.domains.errors.homepage_secrets_mode_invalid": {
+    "text": "Érvénytelen secrets_mode: %{secrets_mode}",
+    "source_hash": "cf093a04"
+  },
+  "api.domains.errors.homepage_incoming_entitlement_required": {
+    "text": "A bejövő titkok mód az incoming_secrets jogosultságot igényli. Kérjük, frissítse a csomagját.",
+    "source_hash": "d68b13d8"
+  },
+  "api.domains.errors.homepage_incoming_not_ready": {
+    "text": "A bejövő titkokat legalább egy címzettel engedélyezni kell, mielőtt kezdőlapként használhatók lennének.",
+    "source_hash": "556da6e2"
+  },
+  "api.domains.errors.related_origins_invalid": {
+    "text": "Érvénytelen origin: %{origins}. Adja meg a sémát és a gazdagépet, például https://vault.example.com",
+    "source_hash": "5acb92ca"
+  },
+  "api.domains.errors.related_origins_foreign_organization": {
+    "text": "Ezek az originek egy másik szervezethez tartoznak, és nem adhatók hozzá: %{origins}",
+    "source_hash": "ac21c1e7"
+  },
+  "api.domains.errors.allowed_signup_domains_invalid": {
+    "text": "Érvénytelen domén: %{domains}. Adjon meg egy regisztrálható doménnevet, például example.com",
+    "source_hash": "2d93472c"
+  }
+}

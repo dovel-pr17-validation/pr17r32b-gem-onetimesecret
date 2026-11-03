@@ -1,0 +1,173 @@
+# apps/web/auth/config/hooks/restrict_to.rb
+#
+# frozen_string_literal: true
+
+#
+# Rodauth wiring for restrict_to enforcement
+# (ADR-034#restrict-to-is-an-access-control-not-a-display-preference
+# / #reject-as-not-found-not-forbidden, issue #4139).
+#
+# This file registers BOTH pre-auth gates, because before_rodauth can only be
+# defined once (hooks do not chain): the restrict_to axis (Auth::RestrictTo)
+# and the ADR-024 sign-in/sign-up opt-in axis (Auth::SigninGate, #4163).
+#
+# The POLICY — the route → sign-in-method table, resolution input gathering,
+# and the 404 reject shape — lives in apps/web/auth/restrict_to.rb
+# (Auth::RestrictTo), because it also has non-Rodauth callers that must not be
+# forced to load anything under config/. This file is only the hook
+# registration. See that file's header for the rationale and for the two other
+# surfaces (OmniAuth, simple mode) that this hook cannot reach.
+#
+# MECHANISM: before_rodauth fires inside the matched route, after
+# @current_route is set and after CSRF has been checked. It is the one hook
+# that runs for EVERY route, so it must stay cheap and must never be redefined
+# elsewhere (hooks do not chain — see config/hooks.rb).
+#
+
+# WHY THIS FILE OWNS THREE GATES
+#
+# `before_rodauth` and `before_email_auth_request` are SINGLY OWNED: Rodauth
+# hooks do not chain, so a second `auth.before_rodauth do ... end` anywhere
+# would REPLACE this one rather than run alongside it (config/hooks.rb states
+# the rule; config.rb's hook list is a precedence list for exactly this
+# reason). The per-domain availability gates (Auth::SigninEnabled and
+# Auth::SignupEnabled, ADR-024) need the same chokepoint, so they are invoked
+# from inside these blocks instead of registering their own. Their POLICY
+# lives in their own sibling modules beside apps/web/auth/restrict_to.rb; only
+# the call sites are shared.
+#
+# THE GATES ARE DIFFERENT QUESTIONS AND ARE ANDed, NOT MERGED:
+#   Auth::SigninEnabled — IS password/email sign-in available on this host at
+#     all? Defaults CLOSED on custom domains (ADR-024 opt-in only).
+#   Auth::SignupEnabled — MAY an account be created on this host? A separate
+#     opt-in (SignupConfig#signup_enabled) on separate routes; also defaults
+#     CLOSED on custom domains. Independent of sign-in: an SSO-only tenant can
+#     run open registration with password sign-in off.
+#   Auth::RestrictTo    — GIVEN that sign-in is offered, WHICH methods may be
+#     offered? Defaults OPEN; an absence of restriction gates nothing, by
+#     invariant.
+# Collapsing any into another is the #4139 shape — see the header of
+# apps/web/auth/signin_enabled.rb.
+#
+# AND ONE REFUSAL AFTER THEM. The same block ends by refusing a request whose
+# params hold a String that is not valid in its encoding (Auth::ParamEncoding,
+# SEC-B01/SEC-B08): one 400 whatever the account, still before every route
+# hook and account lookup. It runs LAST so that on a host that gates a route
+# away the gate's 404 stands whatever the params hold, as an undefined path's
+# does (ADR-034#reject-as-not-found-not-forbidden, SEC-B11).
+
+require_relative '../../param_encoding'
+require_relative '../../restrict_to'
+require_relative '../../signin_enabled'
+require_relative '../../signin_gate'
+require_relative '../../signup_enabled'
+
+module Auth::Config::Hooks
+  module RestrictTo
+    def self.configure(auth)
+      auth.before_rodauth do
+        # The request's domain record could not be read (#4668): one answer
+        # for every Rodauth route on such a host, before any gate runs. The
+        # gates rescue only Redis::BaseError around their own reads, so the
+        # same unreadable record used to answer 503 SigninPolicyUnavailable
+        # or 500 ServerError depending on the exception class. See
+        # refuse_unavailable_domain! below.
+        Auth::Config::Hooks::RestrictTo.refuse_unavailable_domain!(self)
+        # Availability first, then method narrowing: a host that is not
+        # offering sign-in (or registration) at all has no method question to
+        # answer. The two availability gates cover DISJOINT route sets (the
+        # subtraction in SigninEnabled::GATED_ROUTES guarantees it), and all
+        # three reject with the same 404 body, so the order is not
+        # observable — it is written this way to read in policy order.
+        Auth::SigninEnabled.enforce_route!(self)
+        Auth::SignupEnabled.enforce_route!(self)
+        Auth::RestrictTo.enforce_route!(self)
+        # SECOND AXIS, same hook (#4163). restrict_to says WHICH sign-in method
+        # a host may offer; Auth::SigninGate says whether the host opted into
+        # sign-in / sign-up at all (ADR-024). Hooks do not chain, so both must
+        # be driven from this one registration.
+        #
+        # ORDER IS LOAD-BEARING ONLY IN ONE DIRECTION: the reject bodies are
+        # byte-identical, so neither order leaks which gate fired, but
+        # restrict_to runs first so the narrower method-level verdict is the one
+        # that stands where both apply.
+        Auth::SigninGate.enforce_route!(self)
+        # LAST, after every gate: a request whose params hold an
+        # invalid-encoding String gets one 400 before any route hook or
+        # account lookup (SEC-B01/SEC-B08). Ahead of the gates it would turn a
+        # gated route's 404 into a 400 that an undefined path never gives
+        # (SEC-B11).
+        Auth::ParamEncoding.refuse_invalid!(self)
+      end
+    end
+
+    # Refuse every Rodauth route on a host whose CustomDomain record could
+    # not be read (#4668), with Onetime::DomainUnavailable (503).
+    #
+    # Consults only the lookup DomainStrategy published for the request
+    # (Onetime::CustomDomain::Lookup, state read_failed: the host classified
+    # :invalid because its read raised) and never reads itself. A canonical
+    # host classifies without a read and publishes nothing, so it is
+    # untouched; an internal request (Rodauth's internal_request feature
+    # calls before_rodauth with a bare env) carries no lookup and passes.
+    #
+    # The exception class the read raised is logged, not answered: the
+    # response is the same whatever it was. The gates' own rescue of
+    # Redis::BaseError stays with them; it also covers their SigninConfig
+    # reads, a different failure that keeps SigninPolicyUnavailable.
+    #
+    # @param rodauth [Rodauth::Auth]
+    # @raise [Onetime::DomainUnavailable] when the request's domain read failed
+    def self.refuse_unavailable_domain!(rodauth)
+      lookup = rodauth.request.env[Onetime::CustomDomain::Lookup::ENV_KEY]
+      return unless lookup.is_a?(Onetime::CustomDomain::Lookup) && lookup.read_failed?
+
+      Auth::Logging.log_auth_event(
+        :rodauth_domain_lookup_failed,
+        level: :error,
+        route: rodauth.current_route,
+        host: lookup.host,
+        error_class: lookup.error.class.name,
+        error: lookup.error.message,
+      )
+
+      raise Onetime::DomainUnavailable
+    end
+
+    # SECONDARY email_auth surface that is NOT its own route: with the
+    # email_auth feature loaded, `use_multi_phase_login?` is true, so a POST to
+    # the LOGIN route for a passwordless account reaches
+    # `after_login_entered_during_multi_phase_login` and dispatches a magic link
+    # (`force_email_auth?`). The login route is gated on 'password', so on a
+    # password-restricted host that path would still emit an email_auth
+    # credential. This hook closes it at the one chokepoint both entry points
+    # share.
+    #
+    # BOTH AXES hang here, for the same reason they both hang on before_rodauth:
+    # the restrict_to gate answers "may this host offer magic links as a METHOD"
+    # and Auth::SigninGate answers "did this host opt into sign-in at all, and
+    # is email_auth effective for it" (SigninConfig.resolve_email_auth_enabled).
+    # before_rodauth cannot cover this path — it sees route :login and applies
+    # only the plain sign-in axis, so leaving SigninGate off this hook leaves a
+    # host that disabled magic links still sending them.
+    #
+    # Registered separately because `before_email_auth_request` only EXISTS as a
+    # configuration method when the email_auth feature is loaded — see the call
+    # site in config.rb, inside the email_auth_enabled? branch.
+    def self.configure_email_auth(auth)
+      auth.before_email_auth_request do
+        # Same pairing as before_rodauth above, and needed for the same reason:
+        # this path emits an email_auth credential from the LOGIN route, so a
+        # host that never opted into sign-in (ADR-024 default-OFF) would
+        # otherwise still get a magic link mailed on its behalf.
+        Auth::SigninEnabled.enforce!(self, :email_auth_request)
+        Auth::RestrictTo.enforce_method!(self, 'email_auth', :email_auth_request)
+        Auth::SigninGate.enforce_email_auth!(self)
+        # Then the per-source magic-link budget (RISK-2026-08-14-M04), which the
+        # login route's dispatch would otherwise skip; email_login_request.rb
+        # configures the limiter alongside this hook (config.rb).
+        Auth::Config::Hooks::EmailLoginRequest.charge_login_dispatch!(self)
+      end
+    end
+  end
+end

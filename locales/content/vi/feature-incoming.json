@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "Gửi bí mật",
+    "source_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "Chia sẻ thông tin nhạy cảm một cách an toàn với đội ngũ hỗ trợ của chúng tôi",
+    "source_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "Đang tải...",
+    "source_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "Không thể tải cấu hình",
+    "source_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "Tính năng không khả dụng",
+    "source_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "Tính năng này hiện đang bị vô hiệu hóa. Vui lòng liên hệ hỗ trợ để được trợ giúp.",
+    "source_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "Ghi nhớ",
+    "source_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "Mô tả ngắn (ví dụ: Yêu cầu đặt lại mật khẩu)",
+    "source_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "Giúp chúng tôi chuyển tin nhắn đến đúng người",
+    "source_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "Gửi đến",
+    "source_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "Chọn người nhận",
+    "source_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "Chọn người nhận cho bí mật này",
+    "source_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "Chọn ai sẽ nhận tin nhắn an toàn này",
+    "source_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "Không có người nhận khả dụng",
+    "source_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "Thông tin bí mật",
+    "source_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "Dán thông tin nhạy cảm tại đây (mật khẩu, khóa, v.v.)",
+    "source_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "Thông tin này sẽ được mã hóa và chỉ có thể xem một lần",
+    "source_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "Gửi bí mật",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "Gửi bí mật",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "Đang gửi...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "Đang gửi...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "Xóa biểu mẫu",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "Xóa biểu mẫu",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "Đã gửi thành công",
+    "source_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "Tin nhắn an toàn của bạn đã được gửi.",
+    "source_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "ID tham chiếu",
+    "source_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "Điều gì xảy ra tiếp theo?",
+    "source_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "Người nhận sẽ chỉ có thể xem bí mật này một lần. Sau khi họ xem, bí mật sẽ bị xóa vĩnh viễn.",
+    "source_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "Gửi bí mật khác",
+    "source_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "Chia sẻ thông tin nhạy cảm một cách an toàn",
+    "source_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "Giữ mật khẩu và dữ liệu riêng tư khỏi email và nhật ký chat",
+    "source_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "Lưu {receipt} của bạn để lưu trữ.",
+    "source_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "biên lai",
+    "source_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "Yêu cầu nâng cấp",
+    "source_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "Tính năng này yêu cầu nâng cấp gói. Vui lòng liên hệ chủ sở hữu tài khoản để bật tính năng bí mật đến.",
+    "source_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "Ghi chú phải có {max} ký tự hoặc ít hơn",
+    "source_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "Nội dung bí mật là bắt buộc",
+    "source_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "Vui lòng chọn người nhận",
+    "source_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "Tính năng bí mật đến chưa được bật",
+    "source_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "Vui lòng kiểm tra biểu mẫu để tìm lỗi",
+    "source_hash": "9056e064"
+  }
+}

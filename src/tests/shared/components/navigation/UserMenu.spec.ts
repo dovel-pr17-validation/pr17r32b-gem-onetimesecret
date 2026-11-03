@@ -1,0 +1,1050 @@
+// src/tests/shared/components/navigation/UserMenu.spec.ts
+
+import UserMenu from '@/shared/components/navigation/UserMenu.vue';
+import { createTestingPinia } from '@pinia/testing';
+import { mockCustomer } from '@tests/fixtures/bootstrap.fixture';
+import { createTestI18n } from '@tests/setup';
+import { mount, VueWrapper } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { nextTick, ref } from 'vue';
+
+// Mock HeadlessUI components (Menu + Dialog for PlanPreviewModal)
+vi.mock('@headlessui/vue', () => ({
+  Menu: {
+    name: 'Menu',
+    template: '<div class="menu"><slot /></div>',
+    props: ['as'],
+  },
+  MenuButton: {
+    name: 'MenuButton',
+    template: `<button
+      aria-haspopup="true"
+      :aria-expanded="$parent?.open || false"
+      :aria-label="ariaLabel"
+      @click="$emit('click')">
+      <slot />
+    </button>`,
+    props: ['as', 'ariaLabel'],
+    emits: ['click'],
+  },
+  MenuItems: {
+    name: 'MenuItems',
+    template: '<div role="menu" aria-label="User menu"><slot /></div>',
+    props: ['as', 'class'],
+  },
+  MenuItem: {
+    name: 'MenuItem',
+    template: '<div role="menuitem" v-slot="{ active }"><slot :active="false" /></div>',
+    props: ['as', 'disabled'],
+  },
+  // Dialog components for PlanPreviewModal
+  Dialog: {
+    name: 'Dialog',
+    template: '<div role="dialog"><slot /></div>',
+    props: ['class'],
+    emits: ['close'],
+  },
+  DialogPanel: {
+    name: 'DialogPanel',
+    template: '<div class="dialog-panel"><slot /></div>',
+    props: ['class'],
+  },
+  DialogTitle: {
+    name: 'DialogTitle',
+    template: '<h3><slot /></h3>',
+    props: ['as', 'class'],
+  },
+  TransitionRoot: {
+    name: 'TransitionRoot',
+    template: '<div v-if="show"><slot /></div>',
+    props: ['as', 'show'],
+  },
+  TransitionChild: {
+    name: 'TransitionChild',
+    template: '<div><slot /></div>',
+    props: ['as', 'enter', 'enterFrom', 'enterTo', 'leave', 'leaveFrom', 'leaveTo'],
+  },
+}));
+
+// Mock OIcon component
+vi.mock('@/shared/components/icons/OIcon.vue', () => ({
+  default: {
+    name: 'OIcon',
+    template: '<span class="o-icon" :data-icon="name" />',
+    props: ['collection', 'name', 'class'],
+  },
+}));
+
+// Mock FancyIcon component
+vi.mock('@/shared/components/icons/FancyIcon.vue', () => ({
+  default: {
+    name: 'FancyIcon',
+    template: '<span class="fancy-icon" />',
+    props: ['icon', 'class'],
+  },
+}));
+
+// Mock useAuth composable
+const mockLogout = vi.fn();
+vi.mock('@/shared/composables/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    logout: mockLogout,
+  })),
+}));
+
+// Mock router
+const mockPush = vi.fn();
+vi.mock('vue-router', () => ({
+  useRouter: vi.fn(() => ({
+    push: mockPush,
+  })),
+  RouterLink: {
+    template: '<a :href="to"><slot /></a>',
+    props: ['to'],
+  },
+}));
+
+// Mock organization store state (mutable for per-test customization)
+// The component uses storeToRefs(useOrganizationStore()), so currentOrganization
+// must be a ref for storeToRefs to extract it properly.
+const mockCurrentOrganizationRef = ref<{
+  current_user_role: string | null;
+  extid?: string;
+  entitlements?: string[];
+} | null>(null);
+
+vi.mock('@/shared/stores/organizationStore', () => ({
+  useOrganizationStore: () => ({
+    currentOrganization: mockCurrentOrganizationRef,
+  }),
+}));
+
+const mockCurrentDomainContext = ref({
+  domain: '',
+  extid: undefined as string | undefined,
+  displayName: '',
+  isCanonical: true,
+});
+const mockIsDomainContextActive = ref(false);
+vi.mock('@/shared/composables/useDomainContext', () => ({
+  useDomainContext: () => ({
+    currentContext: mockCurrentDomainContext,
+    isContextActive: mockIsDomainContextActive,
+  }),
+}));
+
+// Mock the scope-switcher visibility composable. UserMenu only consumes
+// isSoloDefaultContext (the same gate the org switcher uses); mocking it keeps
+// the route-aware composable out of the unit test.
+const mockIsSoloDefaultContext = ref(false);
+vi.mock('@/shared/composables/useScopeSwitcherVisibility', () => ({
+  useScopeSwitcherVisibility: () => ({
+    isSoloDefaultContext: mockIsSoloDefaultContext,
+  }),
+}));
+
+// Instance-level audit-logs flag (ORGS_AUDIT_LOGS_ENABLED). Default-ON, so the
+// ref starts true; the Activity tests flip it. Spreads the real module so the
+// other feature helpers this component graph reaches keep their behaviour.
+const mockAuditLogsEnabled = ref(true);
+vi.mock('@/utils/features', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/utils/features')>()),
+  isOrgsAuditLogsEnabled: () => mockAuditLogsEnabled.value,
+}));
+
+// Mock product identity store state (mutable for per-test customization)
+// The component uses storeToRefs(useProductIdentity()), so isCustom must be
+// a ref for storeToRefs to extract it properly.
+const mockIsCustomRef = ref(false);
+
+vi.mock('@/shared/stores/identityStore', () => ({
+  useProductIdentity: () => ({
+    isCustom: mockIsCustomRef,
+  }),
+}));
+
+const i18n = createTestI18n();
+
+describe('UserMenu', () => {
+  let wrapper: VueWrapper;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockLogout.mockReset();
+    mockPush.mockReset();
+    // Reset mock store states to defaults
+    mockCurrentOrganizationRef.value = null;
+    mockCurrentDomainContext.value = {
+      domain: '',
+      extid: undefined,
+      displayName: '',
+      isCanonical: true,
+    };
+    mockIsDomainContextActive.value = false;
+    mockIsCustomRef.value = false;
+    mockIsSoloDefaultContext.value = false;
+    mockAuditLogsEnabled.value = true;
+  });
+
+  afterEach(() => {
+    if (wrapper) {
+      wrapper.unmount();
+    }
+  });
+
+  const mountComponent = (
+    props: Record<string, unknown> = {},
+    bootstrapState: Record<string, unknown> = {}
+  ) =>
+    mount(UserMenu, {
+      props: {
+        cust: mockCustomer,
+        colonel: false,
+        awaitingMfa: false,
+        ...props,
+      },
+      global: {
+        plugins: [
+          i18n,
+          createTestingPinia({
+            createSpy: vi.fn,
+            initialState: {
+              bootstrap: {
+                authenticated: true,
+                billing_enabled: bootstrapState.billing_enabled ?? true,
+                entitlement_preview_planid: bootstrapState.entitlement_preview_planid ?? null,
+                entitlement_preview_plan_name: bootstrapState.entitlement_preview_plan_name ?? null,
+                cust: mockCustomer,
+              },
+            },
+          }),
+        ],
+        stubs: {
+          RouterLink: {
+            template: '<a :href="to"><slot /></a>',
+            props: ['to'],
+          },
+        },
+      },
+    });
+
+  describe('Basic Rendering', () => {
+    it('renders user menu trigger button', () => {
+      wrapper = mountComponent();
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      expect(trigger.exists()).toBe(true);
+    });
+
+    it('displays user email initials in avatar', () => {
+      wrapper = mountComponent();
+
+      const html = wrapper.html();
+      // First letter of test@example.com
+      expect(html).toContain('T');
+    });
+
+    it('shows menu when trigger is clicked', async () => {
+      wrapper = mountComponent();
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const menu = wrapper.find('[role="menu"]');
+      expect(menu.exists()).toBe(true);
+    });
+  });
+
+  describe('Test Plan Mode Menu Item - Colonel Users', () => {
+    it('shows "Test Plan Mode" item for colonels', async () => {
+      wrapper = mountComponent({ colonel: true });
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const html = wrapper.html().toLowerCase();
+      const hasPreviewPlanMode = html.includes('test') && html.includes('plan');
+
+      expect(hasPreviewPlanMode).toBe(true);
+    });
+
+    it('hides "Test Plan Mode" item for non-colonels', async () => {
+      wrapper = mountComponent({ colonel: false });
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const html = wrapper.html().toLowerCase();
+
+      // Should not contain test plan mode references
+      const hasPreviewPlanMode = html.includes('test plan') || html.includes('testplanmode');
+
+      expect(hasPreviewPlanMode).toBe(false);
+    });
+
+    it('shows item with beaker icon for colonels', async () => {
+      wrapper = mountComponent({ colonel: true });
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      // Look for beaker icon
+      const beakerIcon = wrapper.find('[data-icon="beaker"]');
+      expect(beakerIcon.exists()).toBe(true);
+    });
+  });
+
+  describe('Test Plan Mode - Visual Variants', () => {
+    it('shows caution variant when test mode is active', async () => {
+      wrapper = mountComponent({ colonel: true }, { entitlement_preview_planid: 'identity_v1' });
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const html = wrapper.html().toLowerCase();
+      // Should have amber/caution styling
+      const hasCautionStyling = html.includes('amber') || html.includes('caution');
+
+      expect(hasCautionStyling).toBe(true);
+    });
+
+    it('shows default variant when test mode is inactive', async () => {
+      wrapper = mountComponent({ colonel: true }, { entitlement_preview_planid: null });
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      // Find the test plan menu item specifically
+      const menuItems = wrapper.findAll('[role="menuitem"]');
+      const testPlanItem = menuItems.find((item) => {
+        const html = item.html().toLowerCase();
+        return html.includes('test') || html.includes('beaker');
+      });
+
+      if (testPlanItem) {
+        const html = testPlanItem.html().toLowerCase();
+        // Should NOT have amber styling when inactive
+        expect(html).not.toContain('amber');
+      }
+    });
+  });
+
+  describe('Test Plan Mode - Click Behavior', () => {
+    it('is hidden when awaiting MFA', async () => {
+      wrapper = mountComponent({
+        colonel: true,
+        awaitingMfa: true,
+      });
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const html = wrapper.html().toLowerCase();
+
+      // Test plan mode should not be shown during MFA flow
+      const hasPreviewPlanMode = html.includes('test plan') || html.includes('testplanmode');
+
+      expect(hasPreviewPlanMode).toBe(false);
+    });
+  });
+
+  describe('Integration with Other Menu Items', () => {
+    it('shows all expected menu items for colonels', async () => {
+      wrapper = mountComponent({ colonel: true });
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const html = wrapper.html().toLowerCase();
+
+      // Should have standard items plus colonel items
+      expect(html).toContain('dashboard');
+      expect(html).toContain('account');
+      expect(html).toContain('colonel');
+      expect(html).toContain('logout');
+    });
+
+    // The admin console is a separate bundle on the same origin: a full-page
+    // navigation in place, not a new tab.
+    it('opens the admin console in the same window', async () => {
+      wrapper = mountComponent({ colonel: true });
+
+      await wrapper.find('button[aria-haspopup="true"]').trigger('click');
+      await nextTick();
+
+      const link = wrapper.find('[data-testid="user-menu-link-colonel"]');
+      expect(link.exists()).toBe(true);
+      expect(link.element.tagName).toBe('A');
+      expect(link.attributes('href')).toBe('/colonel');
+      expect(link.attributes('target')).toBeUndefined();
+      expect(link.attributes('rel')).toBeUndefined();
+      expect(link.find('[name="arrow-top-right-on-square"]').exists()).toBe(false);
+    });
+
+    it('keeps the help docs link opening in a new tab', async () => {
+      wrapper = mountComponent({ colonel: true });
+
+      await wrapper.find('button[aria-haspopup="true"]').trigger('click');
+      await nextTick();
+
+      const link = wrapper.find('[data-testid="user-menu-link-help"]');
+      expect(link.exists()).toBe(true);
+      expect(link.attributes('target')).toBe('_blank');
+      expect(link.attributes('rel')).toBe('noopener noreferrer');
+    });
+
+    it('shows billing item when billing is enabled (owner)', async () => {
+      mockCurrentOrganizationRef.value = { current_user_role: 'owner' };
+      wrapper = mountComponent({ colonel: true }, { billing_enabled: true });
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const html = wrapper.html().toLowerCase();
+      expect(html).toContain('billing');
+    });
+
+    it('does not show billing item when billing is disabled', async () => {
+      wrapper = mountComponent({ colonel: false }, { billing_enabled: false });
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const html = wrapper.html().toLowerCase();
+      expect(html).not.toContain('billing');
+    });
+  });
+
+  describe('Activity menu item', () => {
+    const openMenu = async () => {
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+    };
+
+    it('deep-links to the active org audit trail for owners', async () => {
+      mockCurrentOrganizationRef.value = { current_user_role: 'owner', extid: 'org_abc' };
+
+      wrapper = mountComponent();
+      await openMenu();
+
+      const link = wrapper.find('a[href="/org/org_abc/activity"]');
+      expect(link.exists()).toBe(true);
+    });
+
+    it('is shown for admins', async () => {
+      mockCurrentOrganizationRef.value = { current_user_role: 'admin', extid: 'org_abc' };
+
+      wrapper = mountComponent();
+      await openMenu();
+
+      expect(wrapper.find('a[href="/org/org_abc/activity"]').exists()).toBe(true);
+    });
+
+    it('is hidden for members (route requires owner/admin)', async () => {
+      mockCurrentOrganizationRef.value = { current_user_role: 'member', extid: 'org_abc' };
+
+      wrapper = mountComponent();
+      await openMenu();
+
+      expect(wrapper.find('a[href="/org/org_abc/activity"]').exists()).toBe(false);
+    });
+
+    it('is hidden when no organization is loaded', async () => {
+      mockCurrentOrganizationRef.value = null;
+
+      wrapper = mountComponent();
+      await openMenu();
+
+      expect(wrapper.find('a[href$="/activity"]').exists()).toBe(false);
+    });
+
+    it('is hidden while awaiting MFA', async () => {
+      mockCurrentOrganizationRef.value = { current_user_role: 'owner', extid: 'org_abc' };
+
+      wrapper = mountComponent({ awaitingMfa: true });
+      await openMenu();
+
+      expect(wrapper.find('a[href="/org/org_abc/activity"]').exists()).toBe(false);
+    });
+
+    // Instance-flag axis, distinct from role and from the audit_logs
+    // entitlement: with ORGS_AUDIT_LOGS_ENABLED=false the Activity tab does not
+    // exist, so the menu entry must not either — otherwise an owner clicks
+    // through and lands silently on the Domains panel.
+    it('is hidden when the instance audit-logs flag is off', async () => {
+      mockCurrentOrganizationRef.value = { current_user_role: 'owner', extid: 'org_abc' };
+      mockAuditLogsEnabled.value = false;
+
+      wrapper = mountComponent();
+      await openMenu();
+
+      expect(wrapper.find('a[href="/org/org_abc/activity"]').exists()).toBe(false);
+    });
+  });
+
+  describe('Customer external ID header', () => {
+    it('shows the customer external ID beneath the email, rather than the active organization ID', async () => {
+      mockCurrentOrganizationRef.value = { current_user_role: 'owner', extid: 'org_abc' };
+
+      wrapper = mountComponent({
+        cust: { ...mockCustomer, extid: 'customer_xyz' },
+      });
+      await wrapper.find('button[aria-haspopup="true"]').trigger('click');
+      await nextTick();
+
+      const extid = wrapper.find('[data-testid="user-menu-customer-extid"]');
+      expect(extid.exists()).toBe(true);
+      expect(extid.text()).toContain('customer_xyz');
+      expect(extid.text()).not.toContain('org_abc');
+      expect(extid.element.closest('nav')).toBeNull();
+    });
+  });
+
+  describe('Domain context footer', () => {
+    it('shows the full active domain and links its gear to domain settings', async () => {
+      mockCurrentOrganizationRef.value = {
+        current_user_role: 'owner',
+        extid: 'org_abc',
+        entitlements: ['manage_org'],
+      };
+      mockCurrentDomainContext.value = {
+        domain: 'very-long-domain-name.example.com',
+        extid: 'domain_xyz',
+        displayName: 'very-long-domain-name.example.com',
+        isCanonical: false,
+      };
+      mockIsDomainContextActive.value = true;
+
+      wrapper = mountComponent();
+      await wrapper.find('button[aria-haspopup="true"]').trigger('click');
+      await nextTick();
+
+      expect(wrapper.text()).toContain('very-long-domain-name.example.com');
+      const settingsLink = wrapper.find('a[href="/org/org_abc/domains/domain_xyz"]');
+      expect(settingsLink.exists()).toBe(true);
+      expect(settingsLink.find('[data-icon="cog"]').exists()).toBe(true);
+    });
+
+    it('links the owner badge to the active organization domains list', async () => {
+      mockCurrentOrganizationRef.value = {
+        current_user_role: 'owner',
+        extid: 'org_abc',
+        entitlements: ['manage_orgs'],
+      };
+      mockIsSoloDefaultContext.value = false;
+      wrapper = mountComponent();
+      await wrapper.find('button[aria-haspopup="true"]').trigger('click');
+      await nextTick();
+
+      const badge = wrapper.find('[data-testid="user-menu-role-badge"]');
+      expect(badge.attributes('href')).toBe('/org/org_abc');
+    });
+  });
+
+  describe('MFA State', () => {
+    it('shows limited menu when awaiting MFA', async () => {
+      wrapper = mountComponent({
+        awaitingMfa: true,
+      });
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const menuItems = wrapper.findAll('[role="menuitem"]');
+
+      // Should have limited items during MFA
+      expect(menuItems.length).toBeLessThanOrEqual(3);
+
+      const html = wrapper.html().toLowerCase();
+      expect(html).toContain('mfa');
+    });
+
+    it('shows amber avatar styling when awaiting MFA', () => {
+      wrapper = mountComponent({ awaitingMfa: true });
+
+      const html = wrapper.html().toLowerCase();
+      // Should have amber styling on avatar area
+      expect(html).toContain('amber');
+    });
+  });
+
+  describe('Logout Functionality', () => {
+    it('calls logout when logout is clicked', async () => {
+      wrapper = mountComponent();
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const menuItems = wrapper.findAll('[role="menuitem"]');
+      const logoutItem = menuItems.find((item) => item.text().toLowerCase().includes('logout'));
+
+      if (logoutItem) {
+        await logoutItem.trigger('click');
+        await nextTick();
+
+        expect(mockLogout).toHaveBeenCalled();
+      }
+    });
+
+    it('shows logout with danger/red styling', async () => {
+      wrapper = mountComponent();
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const menuItems = wrapper.findAll('[role="menuitem"]');
+      const logoutItem = menuItems.find((item) => item.text().toLowerCase().includes('logout'));
+
+      if (logoutItem) {
+        const html = logoutItem.html().toLowerCase();
+        const hasDangerStyling = html.includes('red') || html.includes('danger');
+        expect(hasDangerStyling).toBe(true);
+      }
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('handles missing customer data gracefully', () => {
+      expect(() => {
+        wrapper = mountComponent({ cust: null });
+      }).not.toThrow();
+
+      expect(wrapper.exists()).toBe(true);
+    });
+
+    it('handles long email addresses gracefully', () => {
+      const longEmail = 'verylongemailaddress@verylongdomainname.com';
+
+      wrapper = mountComponent({
+        cust: { ...mockCustomer, email: longEmail },
+      });
+
+      // Should render without errors
+      expect(wrapper.exists()).toBe(true);
+    });
+
+    it('handles uninitialized store gracefully', () => {
+      // Should not crash with minimal bootstrap state
+      expect(() => {
+        wrapper = mount(UserMenu, {
+          props: {
+            cust: mockCustomer,
+            colonel: true,
+            awaitingMfa: false,
+          },
+          global: {
+            plugins: [
+              i18n,
+              createTestingPinia({
+                createSpy: vi.fn,
+                initialState: {
+                  bootstrap: {
+                    authenticated: false,
+                    billing_enabled: false,
+                    cust: null,
+                  },
+                },
+              }),
+            ],
+          },
+        });
+      }).not.toThrow();
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('has proper ARIA attributes on trigger', () => {
+      wrapper = mountComponent();
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+
+      expect(trigger.attributes('aria-haspopup')).toBe('true');
+    });
+
+    it('menu has role="menu"', async () => {
+      wrapper = mountComponent();
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const menu = wrapper.find('[role="menu"]');
+      expect(menu.exists()).toBe(true);
+    });
+
+    it('menu items have role="menuitem"', async () => {
+      wrapper = mountComponent();
+
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const menuItems = wrapper.findAll('[role="menuitem"]');
+      expect(menuItems.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Identity chip (role badge vs. Free plan chip)', () => {
+    const openMenu = async () => {
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+    };
+
+    it('shows the Free plan chip linking to billing for a solo owner without manage_orgs when billing is enabled', async () => {
+      mockCurrentOrganizationRef.value = { current_user_role: 'owner', entitlements: [] };
+      mockIsSoloDefaultContext.value = true;
+      wrapper = mountComponent({}, { billing_enabled: true });
+      await openMenu();
+
+      const chip = wrapper.find('[data-testid="user-menu-plan-chip"]');
+      expect(chip.exists()).toBe(true);
+      expect(chip.attributes('href')).toBe('/billing');
+      expect(wrapper.find('[data-testid="user-menu-role-badge"]').exists()).toBe(false);
+    });
+
+    it('hides the identity chip entirely for a solo owner when billing is disabled', async () => {
+      mockCurrentOrganizationRef.value = { current_user_role: 'owner', entitlements: [] };
+      mockIsSoloDefaultContext.value = true;
+      wrapper = mountComponent({}, { billing_enabled: false });
+      await openMenu();
+
+      expect(wrapper.find('[data-testid="user-menu-plan-chip"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="user-menu-role-badge"]').exists()).toBe(false);
+    });
+
+    it('shows the role badge (not the Free chip) for an owner with a non-solo org context', async () => {
+      mockCurrentOrganizationRef.value = { current_user_role: 'owner', entitlements: [] };
+      mockIsSoloDefaultContext.value = false;
+      wrapper = mountComponent({}, { billing_enabled: true });
+      await openMenu();
+
+      expect(wrapper.find('[data-testid="user-menu-role-badge"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="user-menu-plan-chip"]').exists()).toBe(false);
+    });
+
+    it('shows the role badge for a solo owner that still holds the manage_orgs entitlement', async () => {
+      mockCurrentOrganizationRef.value = {
+        current_user_role: 'owner',
+        entitlements: ['manage_orgs'],
+      };
+      mockIsSoloDefaultContext.value = true;
+      wrapper = mountComponent({}, { billing_enabled: true });
+      await openMenu();
+
+      expect(wrapper.find('[data-testid="user-menu-role-badge"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="user-menu-plan-chip"]').exists()).toBe(false);
+    });
+  });
+
+  describe('Custom Domain Members - Simplified Menu', () => {
+    // Helper to get menu item text content from visible items
+    const getVisibleMenuItemTexts = async () => {
+      const trigger = wrapper.find('button[aria-haspopup="true"]');
+      await trigger.trigger('click');
+      await nextTick();
+
+      const menuItems = wrapper.findAll('[role="menuitem"]');
+      return menuItems.map((item) => item.text().toLowerCase());
+    };
+
+    // Helper to check if menu contains specific items
+    const expectMenuContains = (texts: string[], itemLabels: string[]) => {
+      for (const label of itemLabels) {
+        const found = texts.some((t) => t.includes(label.toLowerCase()));
+        expect(found, `Expected menu to contain "${label}"`).toBe(true);
+      }
+    };
+
+    // Helper to check if menu does NOT contain specific items
+    const expectMenuNotContains = (texts: string[], itemLabels: string[]) => {
+      for (const label of itemLabels) {
+        const found = texts.some((t) => t.includes(label.toLowerCase()));
+        expect(found, `Expected menu NOT to contain "${label}"`).toBe(false);
+      }
+    };
+
+    describe('Custom domain member (role: member)', () => {
+      beforeEach(() => {
+        mockIsCustomRef.value = true;
+        mockCurrentOrganizationRef.value = {
+          current_user_role: 'member',
+        };
+      });
+
+      it('should see dashboard, domains, account, help, and logout', async () => {
+        wrapper = mountComponent();
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        expectMenuContains(menuTexts, ['dashboard', 'domains', 'account', 'help', 'logout']);
+      });
+
+      it('should NOT see billing, colonel, or feedback', async () => {
+        wrapper = mountComponent({ colonel: true }, { billing_enabled: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        expectMenuNotContains(menuTexts, ['billing', 'colonel', 'feedback']);
+      });
+    });
+
+    describe('Custom domain admin (role: admin)', () => {
+      beforeEach(() => {
+        mockIsCustomRef.value = true;
+        mockCurrentOrganizationRef.value = {
+          current_user_role: 'admin',
+        };
+      });
+
+      it('should see full menu (same as owner on custom domain)', async () => {
+        wrapper = mountComponent({ colonel: true }, { billing_enabled: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        // Admin sees the full menu, but billing is owner-only
+        expectMenuContains(menuTexts, [
+          'dashboard',
+          'domains',
+          'account',
+          'colonel',
+          'help',
+          'feedback',
+          'logout',
+        ]);
+        expectMenuNotContains(menuTexts, ['billing']);
+      });
+
+      it('should see test plan mode when colonel', async () => {
+        wrapper = mountComponent({ colonel: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        expectMenuContains(menuTexts, ['web.colonel.previewPlanMode']);
+      });
+    });
+
+    describe('Custom domain owner (role: owner)', () => {
+      beforeEach(() => {
+        mockIsCustomRef.value = true;
+        mockCurrentOrganizationRef.value = {
+          current_user_role: 'owner',
+        };
+      });
+
+      it('should see full menu (same as canonical site)', async () => {
+        wrapper = mountComponent({ colonel: true }, { billing_enabled: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        // Owner sees all items
+        expectMenuContains(menuTexts, [
+          'dashboard',
+          'domains',
+          'billing',
+          'account',
+          'colonel',
+          'help',
+          'feedback',
+          'logout',
+        ]);
+      });
+
+      it('should see test plan mode when colonel', async () => {
+        wrapper = mountComponent({ colonel: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        expectMenuContains(menuTexts, ['web.colonel.previewPlanMode']);
+      });
+    });
+
+    describe('Canonical site member (not custom domain)', () => {
+      beforeEach(() => {
+        mockIsCustomRef.value = false;
+        mockCurrentOrganizationRef.value = {
+          current_user_role: 'member',
+        };
+      });
+
+      it('should see full menu regardless of role', async () => {
+        wrapper = mountComponent({ colonel: false }, { billing_enabled: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        // Non-colonel members on canonical site see standard menu, but billing is owner-only
+        expectMenuContains(menuTexts, [
+          'dashboard',
+          'domains',
+          'account',
+          'help',
+          'feedback',
+          'logout',
+        ]);
+        expectMenuNotContains(menuTexts, ['billing']);
+      });
+    });
+
+    describe('Canonical site with no organization (null role)', () => {
+      beforeEach(() => {
+        mockIsCustomRef.value = false;
+        mockCurrentOrganizationRef.value = null;
+      });
+
+      it('should see full menu', async () => {
+        wrapper = mountComponent({ colonel: false }, { billing_enabled: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        // Users without organization on canonical see standard menu; billing is owner-only
+        expectMenuContains(menuTexts, [
+          'dashboard',
+          'domains',
+          'account',
+          'help',
+          'feedback',
+          'logout',
+        ]);
+        expectMenuNotContains(menuTexts, ['billing']);
+      });
+    });
+
+    describe('Custom domain with null organization (edge case)', () => {
+      beforeEach(() => {
+        mockIsCustomRef.value = true;
+        mockCurrentOrganizationRef.value = null;
+      });
+
+      it('should see full menu when organization has not loaded yet', async () => {
+        // Edge case: custom domain but org not loaded (race condition, bootstrap error)
+        // Show full menu to avoid blocking navigation - fail open, not closed
+        wrapper = mountComponent({ colonel: false }, { billing_enabled: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        expectMenuContains(menuTexts, [
+          'dashboard',
+          'domains',
+          'account',
+          'help',
+          'feedback',
+          'logout',
+        ]);
+        expectMenuNotContains(menuTexts, ['billing']);
+      });
+    });
+
+    describe('MFA precedence over domain/role restrictions', () => {
+      it('should restrict menu when awaitingMfa=true even for custom domain member', async () => {
+        mockIsCustomRef.value = true;
+        mockCurrentOrganizationRef.value = {
+          current_user_role: 'member',
+        };
+
+        wrapper = mountComponent({ awaitingMfa: true, colonel: true }, { billing_enabled: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        // MFA takes precedence - only MFA verification and logout should be visible
+        expectMenuContains(menuTexts, ['mfa', 'logout']);
+        expectMenuNotContains(menuTexts, [
+          'dashboard',
+          'domains',
+          'billing',
+          'account',
+          'help',
+          'feedback',
+        ]);
+      });
+
+      it('should restrict menu when awaitingMfa=true even for custom domain owner', async () => {
+        mockIsCustomRef.value = true;
+        mockCurrentOrganizationRef.value = {
+          current_user_role: 'owner',
+        };
+
+        wrapper = mountComponent({ awaitingMfa: true, colonel: true }, { billing_enabled: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        // MFA takes precedence over owner permissions
+        expectMenuContains(menuTexts, ['mfa', 'logout']);
+        expectMenuNotContains(menuTexts, ['dashboard', 'domains', 'billing', 'account', 'colonel']);
+      });
+
+      it('should restrict menu when awaitingMfa=true on canonical site', async () => {
+        mockIsCustomRef.value = false;
+        mockCurrentOrganizationRef.value = {
+          current_user_role: 'owner',
+        };
+
+        wrapper = mountComponent({ awaitingMfa: true, colonel: true }, { billing_enabled: true });
+        const menuTexts = await getVisibleMenuItemTexts();
+
+        // MFA takes precedence regardless of domain type
+        expectMenuContains(menuTexts, ['mfa', 'logout']);
+        expectMenuNotContains(menuTexts, ['dashboard', 'domains', 'billing', 'account', 'colonel']);
+      });
+    });
+
+    describe('Divider logic for simplified menu', () => {
+      it('should not have orphan dividers when menu is simplified', async () => {
+        mockIsCustomRef.value = true;
+        mockCurrentOrganizationRef.value = {
+          current_user_role: 'member',
+        };
+
+        wrapper = mountComponent();
+
+        const trigger = wrapper.find('button[aria-haspopup="true"]');
+        await trigger.trigger('click');
+        await nextTick();
+
+        const menu = wrapper.find('[role="menu"]');
+        const html = menu.html();
+
+        // Count dividers (border-t elements within the menu)
+        const dividers = menu.findAll('.border-t');
+        const _menuItems = menu.findAll('[role="menuitem"]');
+
+        // Simplified menu (account, help, logout) should have appropriate dividers:
+        // - Divider before help section
+        // - Divider before logout
+        // But NOT multiple consecutive dividers or dividers at the start/end
+
+        // Each divider should be preceded and followed by menu content
+        // This ensures no orphan dividers at boundaries
+        for (let i = 0; i < dividers.length; i++) {
+          const divider = dividers[i];
+          const dividerIndex = html.indexOf(divider.html());
+
+          // Divider should not be at the very beginning of menu items
+          expect(dividerIndex).toBeGreaterThan(0);
+        }
+      });
+
+      it('should have proper dividers for full menu (canonical site)', async () => {
+        mockIsCustomRef.value = false;
+        mockCurrentOrganizationRef.value = null;
+
+        wrapper = mountComponent({ colonel: true }, { billing_enabled: true });
+
+        const trigger = wrapper.find('button[aria-haspopup="true"]');
+        await trigger.trigger('click');
+        await nextTick();
+
+        const menu = wrapper.find('[role="menu"]');
+        const dividers = menu.findAll('.border-t');
+
+        // Full menu should have dividers:
+        // - Before colonel section
+        // - Before help section
+        // - Before logout
+        expect(dividers.length).toBeGreaterThanOrEqual(2);
+      });
+    });
+  });
+});

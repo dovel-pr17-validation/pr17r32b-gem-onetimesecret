@@ -1,0 +1,120 @@
+# apps/web/billing/errors.rb
+#
+# frozen_string_literal: true
+
+module Billing
+  # General billing operations problem - inherits from Onetime::Problem
+  # for consistency with the application's error hierarchy.
+  class OpsProblem < Onetime::Problem
+  end
+
+  # Raised when an operation is explicitly forbidden by business rules.
+  # For example, attempting to update an existing Stripe price (which
+  # is immutable in Stripe's API design).
+  #
+  # Uses a custom exit code (87) to distinguish from general errors
+  # when running CLI commands.
+  class ForbiddenOperation < RuntimeError
+    EXIT_CODE = 87
+
+    def exit_code
+      EXIT_CODE
+    end
+  end
+
+  # PlanCacheMissError - Raised when a plan_id cannot be resolved
+  #
+  # This error indicates a billing integrity issue where:
+  # - The plan_id is not in Redis cache AND
+  # - The plan_id is not in billing.yaml config
+  #
+  # Fail-closed behavior: We raise rather than silently degrading to free tier,
+  # which could mask misconfiguration or catalog sync issues.
+  #
+  class PlanCacheMissError < OpsProblem
+    attr_reader :plan_id, :context, :resource, :organization_id
+
+    def initialize(message = nil, plan_id: nil, context: nil, resource: nil, organization_id: nil)
+      @plan_id         = plan_id
+      @context         = context
+      @resource        = resource
+      @organization_id = organization_id
+      message        ||= "Plan not found in cache or config: #{plan_id}"
+      super(message)
+    end
+  end
+
+  # InvalidPlanMetadataError - Raised when subscription metadata carries a
+  # malformed canonical plan_id.
+  #
+  # The federated subscription path reads the plan_id from Stripe subscription
+  # metadata (cross-region price IDs aren't in the local catalog). Unlike the
+  # owner path, that value is not catalog-validated, so a typo or stale value
+  # would otherwise be written straight onto org.planid.
+  #
+  # Fail-closed behavior: we raise rather than assigning a malformed plan_id,
+  # which would corrupt entitlement resolution downstream. This mirrors the
+  # owner path's CatalogMissError fail-closed semantics.
+  #
+  class InvalidPlanMetadataError < OpsProblem
+    attr_reader :plan_id, :context
+
+    def initialize(message = nil, plan_id: nil, context: nil)
+      @plan_id   = plan_id
+      @context   = context
+      message  ||= "Malformed canonical plan_id in subscription metadata: #{plan_id.inspect}"
+      super(message)
+    end
+  end
+
+  # CatalogValidationError - Raised when Stripe products fail metadata validation
+  #
+  # This error indicates managed products (app=onetimesecret) have invalid or
+  # missing required metadata. The sync aborts before upsert/prune to prevent
+  # data loss from silent skips being mistaken for legitimate deletions.
+  #
+  # All validation failures are accumulated so operators can fix everything
+  # in one pass rather than fix-one-rerun-fix-one.
+  #
+  # @example Handling validation failures
+  #   result = Billing::Operations::Catalog::Pull.call
+  #   unless result.success
+  #     result.errors.each { |err| puts err }
+  #   end
+  #
+  class CatalogValidationError < OpsProblem
+    attr_reader :errors
+
+    # @param message [String] Summary message
+    # @param errors [Array<Hash>] List of validation failures with :product_id, :price_id, :error
+    def initialize(message, errors: [])
+      @errors = errors
+      super(message)
+    end
+  end
+
+  # Raised when the Stripe circuit breaker is open.
+  #
+  # The circuit breaker opens after consecutive Stripe API failures to prevent
+  # cascade failures and allow Stripe time to recover. Callers should catch
+  # this error and either fail gracefully or use cached data.
+  #
+  # @example Handling circuit open state
+  #   begin
+  #     Billing::StripeCircuitBreaker.call { Stripe::Product.list }
+  #   rescue Billing::CircuitOpenError => e
+  #     # Use cached catalog data or return error to user
+  #     OT.logger.warn "Circuit open: #{e.message}"
+  #   end
+  #
+  class CircuitOpenError < OpsProblem
+    attr_reader :retry_after
+
+    # @param message [String] Error description
+    # @param retry_after [Integer, nil] Seconds until circuit may close (half-open timeout)
+    def initialize(message = 'Stripe circuit breaker is open', retry_after: nil)
+      @retry_after = retry_after
+      super(message)
+    end
+  end
+end

@@ -1,0 +1,551 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "Behöver du ett konto?",
+    "source_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "Registrera dig.",
+    "source_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "Glömt ditt lösenord?",
+    "source_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "Logga in",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "Ange dina uppgifter",
+    "source_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "Kom ihåg mig",
+    "source_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "Skicka inloggningslänk",
+    "source_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "En säker länk skickas till din e-post.",
+    "source_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "eller",
+    "source_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "Logga in med lösenord",
+    "source_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "Använd lösenordsfri inloggning",
+    "source_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "Skapa konto",
+    "source_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "Tillbaka till startsidan",
+    "source_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "Lösenord",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "Magisk länk",
+    "source_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "Nyckel",
+    "source_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "Behöver du hjälp?",
+    "source_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "Eller fortsätt med",
+    "source_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "Logga in med SSO",
+    "source_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "Logga in med {provider}",
+    "source_hash": "b8794f11"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "Omdirigerar till identitetsleverantör...",
+    "source_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "SSO-inloggning misslyckades. Försök igen.",
+    "source_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "SSO-autentisering misslyckades. Försök igen eller logga in med lösenord.",
+    "source_hash": "13a2210a"
+  },
+  "web.login.errors.token_missing": {
+    "text": "Autentiseringslänken är ofullständig. Begär en ny inloggningslänk.",
+    "source_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "Denna inloggningslänk har gått ut. Begär en ny.",
+    "source_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "Denna inloggningslänk är ogiltig. Begär en ny.",
+    "source_hash": "270c6401"
+  },
+  "web.signup.create_your_account": {
+    "text": "Skapa ditt konto",
+    "source_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "Har du redan ett konto?",
+    "source_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "Logga in.",
+    "source_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "Fel vid kontoskapande",
+    "source_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "Lösenord",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "E-post",
+    "source_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": "Email verification flow after signup"
+  },
+  "web.auth.verify.title": {
+    "text": "Verifiera ditt konto",
+    "source_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "Ditt konto har verifierats",
+    "source_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "Ogiltig eller utgången verifieringsnyckel",
+    "source_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "Denna verifieringslänk har gått ut. Vänligen begär en ny.",
+    "source_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "Detta konto har redan verifierats. Du kan logga in nu.",
+    "source_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "Kunde inte verifiera kontot. Försök igen eller kontakta support.",
+    "source_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "Kontrollera din e-post för en verifieringslänk",
+    "source_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "Kontoverifiering misslyckades. Kontrollera din verifieringslänk eller begär en ny.",
+    "source_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "Verifiering misslyckades",
+    "source_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "Vad ska jag göra?",
+    "source_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "Kontrollera din e-post för den senaste verifieringslänken",
+    "source_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "Kontrollera din skräppost om du inte hittar e-postmeddelandet",
+    "source_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "Kontakta support om du fortsätter ha problem",
+    "source_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "Verifieringslänk krävs",
+    "source_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "Använd verifieringslänken som skickats till din e-postadress för att verifiera ditt konto.",
+    "source_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "Skapa nytt konto",
+    "source_hash": "0e24ec84"
+  },
+  "web.auth.change_password.title": {
+    "text": "Ändra lösenord",
+    "source_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "Nuvarande lösenord",
+    "source_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "Nytt lösenord",
+    "source_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "Bekräfta nytt lösenord",
+    "source_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "Ditt lösenord har ändrats",
+    "source_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "Lösenordsändring misslyckades. Vänligen verifiera ditt nuvarande lösenord och försök igen.",
+    "source_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "Stäng konto",
+    "source_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "Denna åtgärd kan inte ångras. Alla dina hemligheter kommer att raderas permanent.",
+    "source_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "Jag förstår att denna åtgärd är permanent",
+    "source_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "Ange ditt lösenord för att bekräfta",
+    "source_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "Stäng konto permanent",
+    "source_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "Avbryt",
+    "source_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "Begär lösenordsåterställning",
+    "source_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "Ange din e-postadress nedan så skickar vi en länk för att återställa ditt lösenord",
+    "source_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "Skicka återställningslänk",
+    "source_hash": "7d5f16d4"
+  },
+  "web.auth.password_reset.title": {
+    "text": "Välj ett nytt lösenord",
+    "context": "Password reset request flow - user requests a reset link",
+    "source_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "Vänligen ange ditt nya lösenord nedan. Se till att det är starkt och unikt för att skydda ditt konto.",
+    "source_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "Ett e-postmeddelande har skickats till dig med en länk för att återställa lösenordet för ditt konto",
+    "source_hash": "63a6af45"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "Jag godkänner",
+    "source_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "Kontoinformation",
+    "context": "User account overview/dashboard section",
+    "source_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "E-postadress",
+    "source_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "Konto skapat",
+    "source_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "E-post verifierad",
+    "source_hash": "bc512ab0"
+  },
+  "web.auth.account.region": {
+    "text": "Region",
+    "source_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "E-post ej verifierad",
+    "source_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "Verifiera e-postadress",
+    "source_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "Tvåfaktorsautentisering",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "Aktiverad",
+    "source_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "Inaktiverad",
+    "source_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "Aktiva sessioner",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "{count} aktiv(a) session(er)",
+    "source_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "Snabbåtgärder",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "Hantera tvåfaktorsautentisering",
+    "source_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "Hantera aktiva sessioner",
+    "source_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "Ändra lösenord",
+    "source_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "Stäng konto",
+    "source_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "Hjälp och support",
+    "source_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "Felsökning vid inloggning",
+    "source_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "Kommer inte magisk länk fram?",
+    "source_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "Kontrollera din skräppost",
+    "source_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "Kontrollera att du angav din e-postadress korrekt",
+    "source_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "Vänta några minuter - e-post kan ibland fördröjas",
+    "source_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "Försök begära en ny länk om det gått mer än 10 minuter",
+    "source_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "Glömt ditt lösenord?",
+    "source_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "Du kan begära en länk för lösenordsåterställning för att skapa ett nytt lösenord.",
+    "source_hash": "3c3eabad"
+  },
+  "web.help.account_locked": {
+    "text": "Konto tillfälligt låst?",
+    "source_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "Efter flera misslyckade inloggningsförsök låses konton tillfälligt av säkerhetsskäl. Vänta 15 minuter och försök igen, eller använd Magisk länk för att logga in.",
+    "source_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "Behöver du fortfarande hjälp?",
+    "source_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "Om du fortfarande har problem finns vi här för att hjälpa. Skicka oss ett meddelande så återkommer vi så snart som möjligt.",
+    "source_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "Kontakta support",
+    "source_hash": "f8d47b82"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "SSO-konto",
+    "source_hash": "b8f4c728"
+  },
+  "web.help.reset_password_link": {
+    "text": "Återställ lösenord",
+    "source_hash": "e0edfeb3"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "Single sign-on är tillgängligt för den här domänen",
+    "source_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "Organisationsadministratören kan aktivera SSO så att teammedlemmar kan logga in här. Kontakta administratören för åtkomst.",
+    "source_hash": "f3726509"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "Inloggning är inte tillgänglig",
+    "source_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "Inloggning är för närvarande inte tillgänglig på den här domänen.",
+    "source_hash": "b681c35d"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "Single sign-on är inte konfigurerat för den här domänen. Kontakta din administratör.",
+    "source_hash": "b39ef93e"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "E-postadressen från din identitetsleverantör är ogiltig. Kontakta din administratör.",
+    "source_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "Din e-postdomän är inte behörig för SSO-registrering. Kontakta din administratör.",
+    "source_hash": "87603782"
+  },
+  "web.auth.check_email.title": {
+    "text": "Kontrollera din e-post",
+    "source_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "Vi skickade en verifieringslänk till",
+    "source_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "Vi skickade en verifieringslänk till din e-postadress.",
+    "source_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "Klicka på länken i e-postmeddelandet för att aktivera ditt konto.",
+    "source_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "Kan du inte hitta den? Kolla din skräppostmapp.",
+    "source_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "Angav du fel adress?",
+    "source_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "Börja om",
+    "source_hash": "5eed7e9f"
+  },
+  "web.auth.field-errors.password": {
+    "text": "Lösenord",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "Fick du inte verifieringsmeddelandet? Ange din e-post för att skicka det igen.",
+    "source_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "Skicka verifieringsmeddelande igen",
+    "source_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "Om ett konto behöver verifieras har ett nytt e-postmeddelande skickats. Kontrollera din inkorg och skräppostmapp.",
+    "source_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "Det gick inte att skicka verifieringsmeddelandet. Kontrollera din anslutning och försök igen.",
+    "source_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "Skicka e-post igen",
+    "source_hash": "4f44603e"
+  },
+  "web.login.verified_notice": {
+    "text": "Din e-post har verifierats – du kan nu logga in.",
+    "source_hash": "c8d4b5a8"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "Ställ in ett lösenord",
+    "source_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "Ditt konto har inget lösenord ännu. Vi skickar dig en säker länk via e-post för att ställa in ett så att du också kan logga in direkt.",
+    "source_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "Skicka inställningslänk",
+    "source_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "Ett e-postmeddelande har skickats till dig med en länk för att ställa in ett lösenord för ditt konto",
+    "source_hash": "82b686c7"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "Ett konto med denna e-postadress finns redan men är inte länkat till denna inloggningsmetod. Logga in med din befintliga metod och länka sedan denna leverantör under Säkerhetsinställningar → Anslutna identiteter.",
+    "source_hash": "7fbbb7e7"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "Den här identiteten kunde inte anslutas. Den kanske redan tillhör ett annat konto.",
+    "source_hash": "d8b71cf8"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "Vi kunde inte slutföra att lägga till dig i din organisation. Kontakta din administratör.",
+    "source_hash": "155e71bb"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "Vi kunde inte länka den inloggningsmetoden. Logga in med ditt befintliga lösenord och anslut sedan denna leverantör under Säkerhetsinställningar → Anslutna identiteter.",
+    "source_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "Kontrollera din inkorg — vi har skickat dig en länk via e-post för att bekräfta anslutningen av ditt konto. Öppna den för att slutföra inloggningen.",
+    "source_hash": "b251c8f3"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "Inloggningen avbröts. Du kan försöka igen när du vill.",
+    "source_hash": "b5f3d3ec"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "Inloggning med den här leverantören är felkonfigurerad. Kontakta din administratör.",
+    "source_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "Single sign-on för den här domänen är konfigurerat men kan inte användas just nu. Kontakta din organisations administratör.",
+    "source_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "Single sign-on för den här domänen är inte aktivt ännu eftersom verifieringen av domänen inte har slutförts. Kontakta din administratör.",
+    "source_hash": "bd981480"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "Den här identiteten är inte ansluten till något konto på den här domänen. Om du kan logga in på den här domänen med ett konto som tillhör den här organisationen kan du ansluta den under Anslutna identiteter. Annars kan du be en ägare av organisationen att bjuda in den här SSO-identiteten, eller kontakta supporten.",
+    "source_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "Den här identiteten kunde inte anslutas på den här domänen. Starta anslutningen från webbplatsen där du är inloggad; på en organisations domän måste ditt konto redan tillhöra den organisationen.",
+    "source_hash": "d967c761"
+  }
+}

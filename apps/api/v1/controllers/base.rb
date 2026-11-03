@@ -1,0 +1,281 @@
+# apps/api/v1/controllers/base.rb
+#
+# frozen_string_literal: true
+
+require 'digest'
+
+require 'onetime/security/conceal_secret_rate_limiter'
+require_relative 'helpers'
+
+module V1
+
+  module ControllerBase
+    include V1::ControllerHelpers
+    include Onetime::Security::ConcealSecretRateLimiter
+
+    attr_reader :req, :res
+    attr_reader :cust, :locale, :sess
+
+    def initialize req, res
+      @req, @res = req, res
+    end
+
+    # Access the current session via Rack::Request extension
+    # Required by SessionHelpers module
+    def session
+      req.session
+    end
+
+    # Alias for req to support SessionHelpers
+    # Required by SessionHelpers#authenticate! which calls request.session_options
+    def request
+      req
+    end
+
+    # Authorize API v1 requests using Basic Auth or anonymous access only.
+    #
+    # Session/cookie authentication is NOT supported for API v1 routes.
+    # This eliminates CSRF attack vectors - the Rack::Protection middleware
+    # handles CSRF for web routes, while API routes use API keys.
+    #
+    # @example Basic Auth
+    #   curl -F 'ttl=7200' -u 'EMAIL:APITOKEN' http://HOST:3000/api/v1/generate
+    #
+    # @param allow_anonymous [Boolean] Whether to allow unauthenticated requests
+    def authorized(allow_anonymous = false)
+      carefully('application/json') do
+        check_locale!
+
+        req.env['otto.auth'] ||= Rack::Auth::Basic::Request.new(req.env)
+        auth = req.env['otto.auth']
+
+        if auth.provided?
+          # Basic Auth path
+          # Use identical error messages to prevent user enumeration
+          raise OT::Unauthorized, 'Invalid credentials' unless auth.basic?
+
+          custid, apitoken = *(auth.credentials || [])
+          raise OT::Unauthorized, 'Invalid credentials' if custid.to_s.empty? || apitoken.to_s.empty?
+
+          # Returns 404 (not 401) when auth is disabled — intentional for
+          # backwards compatibility but can mask config issues. See #2620.
+          return disabled_response(req.path) unless session_auth_enforced?
+
+          safe_custid = sanitize_for_log(custid)
+          OT.ld "[authorized] Attempt for '#{safe_custid}' via #{req.client_ipaddress} (basic auth)"
+          possible = Onetime::Customer.load_by_extid_or_email(custid)
+
+          @cust = verify_apitoken(possible, apitoken)
+          raise OT::Unauthorized, 'Invalid credentials' if cust.nil?
+
+          OT.ld "[authorized] '#{safe_custid}' via #{req.client_ipaddress} (basic auth authenticated)"
+
+        elsif allow_anonymous
+          # Anonymous path - only for routes that explicitly opt-in
+          # @cust stays nil for anonymous requests
+
+          if OT.debug?
+            ip_address = req.client_ipaddress.to_s
+            OT.ld "[authorized] Anonymous request via #{ip_address}"
+          end
+
+        else
+          # No credentials and anonymous not allowed
+          raise OT::Unauthorized, 'Invalid credentials'
+        end
+
+        # For authenticated paths, cust must be set (anonymous paths have nil cust)
+        raise OT::Unauthorized, 'Invalid credentials' if !allow_anonymous && cust.nil?
+
+        yield
+      end
+    end
+
+    # Fixed digest compared against when the username doesn't resolve to a
+    # customer. Comparing SHA-256 hexdigests keeps both operands the same
+    # length, so the compare cost matches the real-token path and response
+    # timing can't distinguish existing from nonexistent usernames.
+    V1_DUMMY_TOKEN_DIGEST = Digest::SHA256.hexdigest('v1-basic-auth-dummy-token').freeze
+
+    # Verify an API token with equivalent work whether or not the customer
+    # exists (prevents timing-based username enumeration). Returns the
+    # customer on success, nil otherwise.
+    def verify_apitoken(customer, apitoken)
+      return customer.apitoken?(apitoken) ? customer : nil if customer
+
+      # Dummy compare of equivalent cost; result intentionally discarded.
+      Rack::Utils.secure_compare(
+        Digest::SHA256.hexdigest(apitoken.to_s),
+        V1_DUMMY_TOKEN_DIGEST,
+      )
+      nil
+    end
+
+    # Strip control characters (CR, LF, ESC, NUL, etc.) and truncate before
+    # interpolating untrusted input into line-oriented log output.
+    def sanitize_for_log(value)
+      value.to_s.gsub(/[[:cntrl:]]/, '')[0, 256]
+    end
+
+    # Applies domain context from the DomainStrategy middleware to a logic
+    # object. The middleware sets env['onetime.domain_strategy'] and
+    # env['onetime.display_domain'] for every request. V1 logic objects
+    # declare these as attr_accessor but don't receive a strategy_result
+    # (unlike the main Logic::Base), so we bridge the gap here.
+    #
+    # Creation actions also pass these values into the constructor because TTL
+    # policy is resolved during process_params. This post-construction bridge is
+    # retained for the remaining V1 actions whose domain checks run later.
+    def apply_domain_context(logic)
+      logic.domain_strategy = req.env['onetime.domain_strategy']
+      logic.display_domain  = req.env['onetime.display_domain']
+      logic.ip_match        = req.env['otto.ip_match']
+      logic
+    end
+
+    def json hsh
+      res.headers['content-type'] = "application/json; charset=utf-8"
+      res.body = hsh.to_json
+    end
+
+    def handle_form_error(ex, hsh = {})
+      hsh ||= {}
+      error_response ex.message, hsh
+    end
+
+    # V1 rate limiting [#2621]
+    #
+    # v0.23.x had rate limiting in the web layer; V1 reconstitution omitted
+    # it. This adds basic per-IP rate limiting for secret creation endpoints
+    # using Redis counters with a 20-minute fixed window, matching v0.23.x
+    # behavior. Rate limits are now enforced externally (infrastructure
+    # layer), so this is vestigial — preserved for V1 API contract only.
+    #
+    # Counts sourced from rel/0.23 etc/defaults/config.defaults.yaml:
+    #   create_secret: 1000, show_secret: 1000 (per 20-min window)
+    #
+    # Paid-plan exemptions: authenticated users with a non-anonymous plan
+    # bypass rate limits, matching v0.23.x behavior.
+    V1_RATE_LIMIT_WINDOW = 1200  # 20 minutes in seconds
+    V1_RATE_LIMIT_MAX_CREATES = 1000 # v0.23: limits.create_secret
+    V1_RATE_LIMIT_MAX_READS = 1000   # v0.23: limits.show_secret
+
+    # Lua script for atomic INCR + EXPIRE (prevents race condition
+    # where a crash between the two commands leaves a permanent key).
+    V1_RATE_LIMIT_LUA = <<~LUA.freeze
+      local c = redis.call('INCR', KEYS[1])
+      if tonumber(c) == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+      return c
+    LUA
+
+    def check_rate_limit!(event, max_count)
+      # Paid-plan exemption: skip rate limiting for authenticated paid users
+      return if cust && !cust.anonymous? && cust.planid.to_s != 'anonymous'
+
+      ip = req.client_ipaddress.to_s
+      return if ip.empty?
+
+      key = "v1:ratelimit:#{event}:#{ip}"
+      begin
+        # Atomic INCR + EXPIRE via Lua script to prevent race condition.
+        # Without atomicity, a crash between INCR and EXPIRE could leave
+        # a permanent key that never expires, causing permanent IP blocking.
+        count = Familia.dbclient.eval(
+          V1_RATE_LIMIT_LUA, keys: [key], argv: [V1_RATE_LIMIT_WINDOW]
+        )
+
+        if count > max_count
+          error_response "Rate limit exceeded. Please try again later."
+          return :limited
+        end
+      rescue StandardError => e
+        # Fail open: if Redis is down, don't block the request
+        OT.le "[V1 rate_limit] fail-open event/#{event} ip/#{ip} #{e.class}: #{e.message}"
+      end
+
+      nil
+    end
+
+    # Registry-managed cap on ANONYMOUS secret creation (finding F-02), the
+    # secret-creation counterpart of the legacy per-IP counter above. This one is
+    # the `create_secret` kind in the ratelimit Registry — shared with the V2/V3
+    # logic-layer enforcement and clearable via `bin/ots ratelimit` — and is
+    # keyed on the edge-masked env['otto.client_ip'] so its keyspace matches the
+    # V2 call site exactly. Charged only to guests: an authenticated caller is
+    # accountable and is the legitimate high-volume creator.
+    #
+    # Returns :limited (and renders the error) when the tier is over its cap, nil
+    # otherwise, mirroring #check_rate_limit! so the call sites keep V1's
+    # return-based idiom rather than raising into #carefully's catch-all.
+    def enforce_create_secret_limit!
+      return unless cust.nil? || cust.anonymous?
+
+      enforce_conceal_secret_rate_limit!(req.env['otto.client_ip'])
+      nil
+    rescue Onetime::LimitExceeded => ex
+      error_response ex.message
+      :limited
+    end
+
+    def secret_not_found_response
+      not_found_response "Unknown secret", :secret_key => req.params['key']
+    end
+
+    # Minimum length for a valid secret/receipt identifier. V0.23 keys
+    # were 31 chars (base36), v0.24 keys are 62 chars (VerifiableIdentifier).
+    # Any key shorter than this cannot be a real identifier — it's likely
+    # a sub-path segment (e.g. "burn") that reached a :key route after
+    # Rack::Protection::PathTraversal collapsed double slashes.
+    V1_MIN_IDENTIFIER_LENGTH = 20
+
+    # Returns true when the key param is structurally valid as an
+    # identifier (meets minimum length). Short strings like "burn"
+    # or "recent" fail this check, matching v0.23 behavior where
+    # such paths returned Otto's default 404.
+    def valid_identifier?(key)
+      key.to_s.length >= V1_MIN_IDENTIFIER_LENGTH
+    end
+
+    # Return a 404 when a route matched but the key param is
+    # structurally invalid (too short to be a real identifier).
+    # Uses V1's standard not_found_response for a consistent
+    # error shape across all V1 endpoints.
+    def otto_not_found
+      not_found_response 'Not Found'
+    end
+
+    def disabled_response path
+      not_found_response "#{path} is not available"
+    end
+
+    def not_found_response msg, hsh={}
+      hsh[:message] = msg
+      res.status = 404
+      json hsh
+    end
+
+    # DEPRECATED: The v1 API historically returned 404 for auth errors, which
+    # violates HTTP semantics (should be 401). This is preserved for backward
+    # compatibility with existing API consumers. Use API v2 for correct status codes.
+    #
+    # The X-OTS-Intended-Status header indicates the correct HTTP status code.
+    def not_authorized_error hsh={}
+      hsh[:message] = "Not authorized"
+      res['X-OTS-Intended-Status'] = '401'
+      res.status = 404  # Legacy: should be 401
+      json hsh
+    end
+
+    # DEPRECATED: Returns 404 for all errors instead of appropriate status codes.
+    # Preserved for backward compatibility. Use API v2 for correct status codes.
+    #
+    # The X-OTS-Intended-Status header indicates the correct HTTP status code.
+    def error_response msg, hsh={}
+      hsh[:message] = msg
+      res['X-OTS-Intended-Status'] = '400'
+      res.status = 404  # Legacy: should be 400
+      json hsh
+    end
+
+  end
+end

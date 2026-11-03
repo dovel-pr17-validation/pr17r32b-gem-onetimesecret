@@ -1,0 +1,44 @@
+# Security Policy
+
+We take the security of this project seriously and appreciate your efforts to responsibly disclose vulnerabilities. This document outlines our security policy and provides guidelines on how to report vulnerabilities.
+
+## Supported Versions
+
+The most recent minor release receives full support including new features, bug fixes, and security updates. The previous minor release receives bug fixes and security updates only. All older versions are end of life and unsupported.
+
+If you are using an unsupported version, we strongly recommend upgrading to receive the latest security updates.
+
+## Reporting a Vulnerability
+
+If you discover a security vulnerability within this project, we encourage you to report it as soon as possible. Here’s how you can do it:
+
+> [!NOTE]
+> Before emailing, confirm your question isn't already answered here. If this is your first time contacting us, please mention that you've read this policy. That tells us we're starting from a shared understanding of how reports are handled.
+
+### How to Report
+
+1. **Email**: Send an email to `security@onetimesecret.com` with the subject line "Vulnerability Report: [Brief Description]".
+2. **Details**: Include as much information as possible about the vulnerability. This should include:
+   - A detailed description of the vulnerability.
+   - Steps to reproduce the issue.
+   - Any potential impact.
+   - Your contact information for follow-up questions.
+
+### What to Expect
+
+1. **Acknowledgment**: You will receive an acknowledgment of your report within 5 business days.
+2. **Initial Assessment**: We will conduct an initial assessment of the vulnerability within 14 business days.
+3. **Updates**: You can expect to receive updates on the status of your report at least once every 7 days until the issue is resolved or a decision is made.
+
+We do not currently operate a paid bounty program but are open to discussing rewards on a case-by-case basis for significant vulnerabilities.
+
+### Resolution Process
+
+1. **Accepted Vulnerabilities**: If the vulnerability is accepted, we will work on a fix and aim to release it as soon as possible. You will be notified once the fix is deployed.
+2. **Declined Vulnerabilities**: If the vulnerability is declined, we will provide a detailed explanation as to why it was not accepted.
+
+### Confidentiality
+
+We take your privacy seriously. We use encrypted email (ProtonMail). All reports will be kept confidential, and we will work with you to ensure that any details of the vulnerability are not disclosed until a fix is in place.
+
+Thank you for helping us keep Onetime Secret secure and excellent 🤾

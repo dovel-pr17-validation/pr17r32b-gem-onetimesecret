@@ -1,0 +1,224 @@
+# lib/onetime/operations/email/send_test.rb
+#
+# frozen_string_literal: true
+
+# Central (cross-cutting) admin operation — see decision D3 in
+# lib/onetime/operations/README.md. Email delivery diagnostics have no single
+# domain owner (the mailer is site-wide infrastructure), so — like
+# {Onetime::Operations::Banner} — this lives in
+# the central operations home. Loaded at the call site (colonel logic + the
+# `bin/ots email test` CLI), so require the audit dependency explicitly.
+require 'socket'
+require 'onetime/mail'
+require 'onetime/models/colonel_audit_event'
+require 'onetime/audited_failure'
+require 'onetime/operations/audit_attempt'
+
+module Onetime
+  module Operations
+    module Email
+      # Send a plain-text diagnostic email to verify delivery connectivity — the
+      # SINGLE, audited implementation of the email test-send verb (ticket #44 /
+      # CONTRACT 4). The colonel endpoint (`POST /api/colonel/email/test`) and the
+      # `bin/ots email test` CLI are thin adapters over it.
+      #
+      # ## Behavioural parity
+      #
+      # {.build} constructs the one diagnostic email both callers send and
+      # print, so the CLI's rendered output and the console preview cannot
+      # drift from what is delivered. The CLI keeps its own
+      # timing + status-line printing and simply routes the actual send through
+      # this op; the op adds exactly one thing the inline send lacked: one
+      # {Onetime::ColonelAuditEvent} per SUCCESSFUL real send.
+      #
+      # ## Audit rule (CONTRACT 4)
+      #
+      # A real send that succeeds records EXACTLY ONE audit event (verb
+      # `email.test_send`, actor = PUBLIC id, target = recipient). A dry-run sends
+      # nothing and records none. A send that RAISES records one
+      # `result: :failure` event via {Onetime::AuditedFailure} — the raise happens
+      # after the provider has been handed the message, so a trail with no entry
+      # left "did the operator's test send go out?" unanswerable. Delivery
+      # exceptions are still NOT swallowed: they propagate to the caller so the
+      # CLI's existing rescue blocks (and the colonel logic's form-error handling)
+      # behave exactly as before.
+      class SendTest
+        include Onetime::AuditedFailure
+        include Onetime::Operations::AuditAttempt
+
+        # Audit verb recorded for every successful real send.
+        AUDIT_VERB = 'email.test_send'
+
+        # This op has NO refusal STATUS — a delivery or enqueue failure RAISES
+        # (documented on #call), and it raises AFTER the provider has been
+        # handed the message, so "did the operator's test send actually go out?"
+        # was unanswerable from the trail. Records one `result: :failure` and
+        # re-raises, leaving the CLI/colonel rescue blocks untouched.
+        #
+        # `dry_run` is in the detail because the success event is
+        # applied-path-only. Never the message content — same rule as the
+        # success event.
+        audit_failures :call,
+          verb: AUDIT_VERB,
+          target: -> { @to },
+          detail: -> { { dry_run: @dry_run, enqueue: @enqueue } }
+
+        # The fully-built diagnostic email plus the delivery context the CLI prints.
+        Diagnostic = Data.define(:to, :from, :subject, :text_body, :provider, :host, :timestamp)
+
+        # @!attribute status [r]
+        #   @return [Symbol] :dry_run (nothing sent), :sent (delivered / enqueued
+        #     synchronously via fallback), or :enqueued (handed to the worker queue).
+        Result = Data.define(:status, :diagnostic)
+
+        # Build the diagnostic email verbatim (pure — no side effects, no audit).
+        # Shared by the op's own {#call} AND by the CLI's pre-send output block, so
+        # the two can never drift. Brand-aware copy: a hardcoded vendor literal
+        # would leak into a white-label install's outbound test email (#3612).
+        #
+        # The RECIPIENT is often a customer, not an operator: the usual reason
+        # to send one is a support report that emails are not arriving. So the
+        # message is written for them, and it carries no delivery internals.
+        # The provider and the sending host are returned on the Diagnostic for
+        # the operator-facing output (CLI text/JSON, console response), but
+        # they never go into the subject or body: a mail provider name means
+        # nothing to a customer, and the host is an internal machine name.
+        #
+        # @param to [String] recipient email address.
+        # @return [Diagnostic]
+        def self.build(to:)
+          provider  = Onetime::Mail::Mailer.send(:determine_provider)
+          hostname  = Socket.gethostname
+          sent_at   = Time.now.utc
+          timestamp = sent_at.iso8601
+          from      = Onetime::Mail::Mailer.from_address
+
+          product_name = Onetime::CustomDomain::BrandSettingsConstants.global_defaults[:product_name] ||
+                         Onetime::CustomDomain::BrandSettingsConstants::NEUTRAL_PRODUCT_NAME
+
+          Diagnostic.new(
+            to: to,
+            from: from,
+            subject: "Test email from #{product_name}",
+            text_body: recipient_body(product_name: product_name, from: from, sent_at: sent_at),
+            provider: provider,
+            host: hostname,
+            timestamp: timestamp,
+          )
+        end
+
+        # Plain-text body addressed to the person who receives it. English
+        # only: the op is not told the recipient's locale.
+        #
+        # @param product_name [String] brand product name.
+        # @param from [String] sending address, named so the recipient can
+        #   allow-list it.
+        # @param sent_at [Time] UTC send time.
+        # @return [String]
+        def self.recipient_body(product_name:, from:, sent_at:)
+          <<~BODY
+            Hello,
+
+            This is a test message from #{product_name}. We sent it to check that email from us reaches this address. You don't need to do anything.
+
+            If you contacted us about emails that didn't arrive: this message reached you, so delivery to this address is working. If other emails from us still go missing, check your spam or junk folder and add #{from} to your contacts.
+
+            Sent #{sent_at.strftime('%-d %B %Y at %H:%M UTC')}.
+          BODY
+        end
+
+        # @param to [String] recipient email address (caller validates format).
+        # @param actor [String, #extid, #email] acting admin's PUBLIC identity
+        #   (colonel extid/email, or the CLI sentinel). Never an internal objid.
+        # @param dry_run [Boolean] when true, build only — send nothing, audit none.
+        # @param enqueue [Boolean] when true, dispatch via the background worker
+        #   queue instead of direct delivery.
+        def initialize(to:, actor:, dry_run: false, enqueue: false)
+          @to      = to
+          @actor   = actor
+          @dry_run = dry_run
+          @enqueue = enqueue
+        end
+
+        # @return [Result]
+        # @raise [StandardError] delivery/enqueue failures propagate unchanged.
+        def call
+          diagnostic = self.class.build(to: @to)
+
+          # Dry-run: preview only. Nothing is dispatched, so nothing reaches
+          # the OPERATOR trail — but the operator did name a recipient address
+          # and resolve the live mail configuration against it, so it is
+          # recorded as an OBSERVATION (#4337).
+          if @dry_run
+            record_preview_event(diagnostic)
+            return Result.new(status: :dry_run, diagnostic: diagnostic)
+          end
+
+          status = @enqueue ? enqueue!(diagnostic) : deliver!(diagnostic)
+
+          # One audit event per successful real send. The recipient is the (public)
+          # target; the body/subject are non-secret diagnostics but we record only
+          # the provider + mode, never the message content.
+          Onetime::ColonelAuditEvent.record(
+            actor: @actor,
+            verb: AUDIT_VERB,
+            target: @to,
+            result: :success,
+            detail: { provider: diagnostic.provider, mode: status.to_s, enqueue: @enqueue },
+          )
+
+          Result.new(status: status, diagnostic: diagnostic)
+        end
+
+        private
+
+        # The #4337 envelope's target hook: the recipient address, the same
+        # target the sent event carries. `audit_verb` defaults to AUDIT_VERB and
+        # `audit_actor` to @actor.
+        def audit_target = @to
+
+        # One OBSERVATION per dry run (#4337), on the budgeted access trail.
+        # Same verb and target as the sent event; `result: 'preview'` and
+        # `dry_run: true` distinguish them. Provider and mode only — never the
+        # message content, exactly as on the applied path.
+        def record_preview_event(diagnostic)
+          record_preview_observation({ provider: diagnostic.provider, enqueue: @enqueue })
+        end
+
+        # Direct delivery via the configured backend. Raises on failure (caller's
+        # rescue owns the FAILED output). Mirrors the pre-extraction CLI call.
+        # @return [Symbol] :sent
+        def deliver!(diagnostic)
+          Onetime::Mail::Mailer.delivery_backend.deliver(email_hash(diagnostic))
+          :sent
+        end
+
+        # Enqueue via the background worker. When jobs are disabled the publisher's
+        # :raise fallback sends synchronously and returns falsey, which the CLI
+        # renders as "SENT SYNC". Mirrors the pre-extraction CLI call.
+        # @return [Symbol] :enqueued (handed to the queue) or :sent (fallback sync)
+        def enqueue!(diagnostic)
+          require 'onetime/jobs/publisher'
+
+          raw_email = {
+            to: diagnostic.to,
+            from: diagnostic.from,
+            subject: diagnostic.subject,
+            body: diagnostic.text_body,
+          }
+          queued    = Onetime::Jobs::Publisher.enqueue_email_raw(raw_email, fallback: :raise)
+          queued ? :enqueued : :sent
+        end
+
+        def email_hash(diagnostic)
+          {
+            to: diagnostic.to,
+            from: diagnostic.from,
+            subject: diagnostic.subject,
+            text_body: diagnostic.text_body,
+          }
+        end
+      end
+    end
+  end
+end

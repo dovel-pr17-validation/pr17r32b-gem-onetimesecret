@@ -1,0 +1,1414 @@
+{
+  "web.organizations.title": {
+    "text": "Organisaties",
+    "source_hash": "2730183d"
+  },
+  "web.organizations.organization": {
+    "text": "Werkruimte",
+    "source_hash": "87bb59ba"
+  },
+  "web.organizations.organization_plural": {
+    "text": "Organisaties",
+    "source_hash": "2730183d"
+  },
+  "web.organizations.organizations_description": {
+    "text": "Beheer je organisaties",
+    "source_hash": "dbaa4f92"
+  },
+  "web.organizations.my_organizations": {
+    "text": "Werkruimtes",
+    "source_hash": "1377264b"
+  },
+  "web.organizations.manage_organizations": {
+    "text": "Werkruimtes beheren",
+    "source_hash": "cc2d65f8"
+  },
+  "web.organizations.new_organization": {
+    "text": "Nieuwe organisatie",
+    "source_hash": "4876e647"
+  },
+  "web.organizations.no_organizations": {
+    "text": "Nog geen werkruimtes",
+    "source_hash": "97d0b117"
+  },
+  "web.organizations.no_organizations_description": {
+    "text": "Werkruimtes bieden gecentraliseerde facturering en administratie. Begin met het aanmaken van je eerste werkruimte.",
+    "source_hash": "f09d4987"
+  },
+  "web.organizations.no_description": {
+    "text": "Geen beschrijving opgegeven",
+    "source_hash": "41183d01"
+  },
+  "web.organizations.default": {
+    "text": "Standaard",
+    "source_hash": "21b111cb"
+  },
+  "web.organizations.create_organization": {
+    "text": "Organisatie aanmaken",
+    "source_hash": "e27f4540"
+  },
+  "web.organizations.create_first_organization": {
+    "text": "Eerste werkruimte aanmaken",
+    "source_hash": "98a583b4"
+  },
+  "web.organizations.create_organization_description": {
+    "text": "Maak een nieuwe werkruimte aan",
+    "source_hash": "6ac2b5fc"
+  },
+  "web.organizations.create": {
+    "text": "Aanmaken",
+    "source_hash": "4759498a"
+  },
+  "web.organizations.create_error": {
+    "text": "Werkruimte aanmaken mislukt",
+    "source_hash": "0a8d4fd6"
+  },
+  "web.organizations.organization_name": {
+    "text": "Werkruimtenaam",
+    "source_hash": "6fa5a5b1"
+  },
+  "web.organizations.organization_name_placeholder": {
+    "text": "bijv. Acme Corporation",
+    "source_hash": "ac1c804b"
+  },
+  "web.organizations.display_name": {
+    "text": "Organisatienaam",
+    "source_hash": "4cbd9073"
+  },
+  "web.organizations.description": {
+    "text": "Beschrijving",
+    "source_hash": "526e0087"
+  },
+  "web.organizations.description_placeholder": {
+    "text": "Waarvoor is deze organisatie?",
+    "source_hash": "27d7edae"
+  },
+  "web.organizations.contact_email": {
+    "text": "Facturerings-e-mail",
+    "source_hash": "513332d3"
+  },
+  "web.organizations.contact_email_help": {
+    "text": "Primair contact voor facturerings- en administratieve meldingen",
+    "source_hash": "ee81c03d"
+  },
+  "web.organizations.select_organization": {
+    "text": "Selecteer een werkruimte",
+    "source_hash": "70a8ce66"
+  },
+  "web.organizations.switcher_locked": {
+    "text": "Werkruimte wisselen niet beschikbaar op deze pagina",
+    "source_hash": "c34114ac"
+  },
+  "web.organizations.not_found": {
+    "text": "Organisatie niet gevonden",
+    "source_hash": "00c50f7a"
+  },
+  "web.organizations.load_error": {
+    "text": "Organisatie laden mislukt",
+    "source_hash": "6b5fa342"
+  },
+  "web.organizations.fetch_organization_error": {
+    "text": "Organisatie laden mislukt",
+    "source_hash": "6b5fa342"
+  },
+  "web.organizations.fetch_organizations_error": {
+    "text": "Organisaties laden mislukt",
+    "source_hash": "03b30208"
+  },
+  "web.organizations.organization_information": {
+    "text": "Organisatie-informatie",
+    "source_hash": "85274cee"
+  },
+  "web.organizations.created": {
+    "text": "Aangemaakt",
+    "source_hash": "d70b9e24"
+  },
+  "web.organizations.last_updated": {
+    "text": "Laatst bijgewerkt",
+    "source_hash": "048c7f2e"
+  },
+  "web.organizations.organization_settings": {
+    "text": "Organisatie-instellingen",
+    "source_hash": "cc1d9e61"
+  },
+  "web.organizations.organization_settings_description": {
+    "text": "Werk je organisatienaam en beschrijving bij",
+    "source_hash": "2d8b5b2b"
+  },
+  "web.organizations.general_settings": {
+    "text": "Algemene instellingen",
+    "source_hash": "de322f87"
+  },
+  "web.organizations.billing_settings": {
+    "text": "Facturering & abonnement",
+    "source_hash": "896913f0"
+  },
+  "web.organizations.save_changes": {
+    "text": "Wijzigingen opslaan",
+    "source_hash": "35322b5b"
+  },
+  "web.organizations.update_success": {
+    "text": "Organisatie succesvol bijgewerkt",
+    "source_hash": "af39d0f3"
+  },
+  "web.organizations.update_error": {
+    "text": "Organisatie bijwerken mislukt",
+    "source_hash": "bc2b59b8"
+  },
+  "web.organizations.billing_email_updated": {
+    "text": "Facturerings-e-mail succesvol bijgewerkt",
+    "source_hash": "080a7f11"
+  },
+  "web.organizations.billing_email_managed_on_billing": {
+    "text": "Facturerings-e-mail kan worden gewijzigd op de factureringsoverzichtspagina",
+    "source_hash": "8a131415"
+  },
+  "web.organizations.billing_coming_soon": {
+    "text": "Factureringsintegratie binnenkort beschikbaar",
+    "source_hash": "d3e0ec75"
+  },
+  "web.organizations.billing_coming_soon_description": {
+    "text": "Gecentraliseerde facturering en abonnementsbeheer komt beschikbaar in een toekomstige release.",
+    "source_hash": "8836108f"
+  },
+  "web.organizations.about_title": {
+    "text": "Over organisaties",
+    "source_hash": "2f3e2ad8"
+  },
+  "web.organizations.about_description": {
+    "text": "Organisaties bieden gecentraliseerde facturering en administratie voor gecentraliseerd beheer.",
+    "source_hash": "910f97a8"
+  },
+  "web.organizations.single_user_info_title": {
+    "text": "Beheer je organisatie",
+    "source_hash": "810a6c86"
+  },
+  "web.organizations.single_user_info_description": {
+    "text": "Werk hier je bedrijfsnaam en organisatiegegevens bij. Deze informatie helpt je account te personaliseren en kan in de toekomst worden gebruikt voor brandingfuncties.",
+    "source_hash": "96b2e4b5"
+  },
+  "web.organizations.getting_started_title": {
+    "text": "Aan de slag met organisaties",
+    "source_hash": "2871e738"
+  },
+  "web.organizations.getting_started_description": {
+    "text": "Maak je eerste organisatie aan om je bedrijfsinformatie te beheren en je voor te bereiden op toekomstige brandingfuncties.",
+    "source_hash": "0487f33a"
+  },
+  "web.organizations.page_description": {
+    "text": "Beheer je organisaties en teamleden",
+    "source_hash": "2d026be4"
+  },
+  "web.organizations.tabs.general": {
+    "text": "Instellingen",
+    "source_hash": "74a883a0"
+  },
+  "web.organizations.tabs.company_branding": {
+    "text": "Bedrijfsbranding",
+    "source_hash": "7ecc5d35"
+  },
+  "web.organizations.tabs.members": {
+    "text": "Leden",
+    "source_hash": "1044a4c0"
+  },
+  "web.organizations.tabs.billing": {
+    "text": "Facturering",
+    "source_hash": "3ac8bbca"
+  },
+  "web.organizations.tabs.subscription": {
+    "text": "Abonnement",
+    "source_hash": "4999c6c6"
+  },
+  "web.organizations.delete_organization": {
+    "text": "Organisatie verwijderen",
+    "source_hash": "54b2edc7"
+  },
+  "web.organizations.delete_organization_warning": {
+    "text": "Dit verwijdert de organisatie permanent. Deze actie kan niet ongedaan worden gemaakt.",
+    "source_hash": "ab2d2c05"
+  },
+  "web.organizations.delete": {
+    "text": "Verwijderen",
+    "source_hash": "e2d0a549"
+  },
+  "web.organizations.delete_organization_confirm_title": {
+    "text": "Organisatie verwijderen",
+    "source_hash": "54b2edc7"
+  },
+  "web.organizations.delete_organization_confirm_message": {
+    "text": "Weet je zeker dat je {name} wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+    "source_hash": "db7e1f9d"
+  },
+  "web.organizations.delete_error": {
+    "text": "Organisatie verwijderen mislukt",
+    "source_hash": "a8e5bb28"
+  },
+  "web.organizations.members.title": {
+    "text": "Leden",
+    "source_hash": "1044a4c0"
+  },
+  "web.organizations.members.description": {
+    "text": "Beheer organisatieleden en hun rollen",
+    "source_hash": "1353774c"
+  },
+  "web.organizations.members.current_members": {
+    "text": "Huidige leden",
+    "source_hash": "cfc156ae"
+  },
+  "web.organizations.members.member": {
+    "text": "Lid",
+    "source_hash": "7c968fb7"
+  },
+  "web.organizations.members.member_singular": {
+    "text": "lid",
+    "source_hash": "e31ab643"
+  },
+  "web.organizations.members.member_plural": {
+    "text": "leden",
+    "source_hash": "17373ca1"
+  },
+  "web.organizations.members.name": {
+    "text": "Naam",
+    "source_hash": "dcd1d522"
+  },
+  "web.organizations.members.email": {
+    "text": "E-mail",
+    "source_hash": "969ccbd3"
+  },
+  "web.organizations.members.role": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.organizations.members.joined": {
+    "text": "Lid geworden",
+    "source_hash": "69318b0c"
+  },
+  "web.organizations.members.actions": {
+    "text": "Acties",
+    "source_hash": "ff8059dc"
+  },
+  "web.organizations.members.no_members": {
+    "text": "Nog geen leden. Nodig teamleden uit om te beginnen.",
+    "source_hash": "6cbc5271"
+  },
+  "web.organizations.members.no_members_description": {
+    "text": "Deze organisatie heeft nog geen leden.",
+    "source_hash": "61dd2085"
+  },
+  "web.organizations.members.role_updated": {
+    "text": "Rol van lid succesvol bijgewerkt",
+    "source_hash": "d0d332c6"
+  },
+  "web.organizations.members.role_update_error": {
+    "text": "Rol van lid bijwerken mislukt",
+    "source_hash": "17d5ca66"
+  },
+  "web.organizations.members.member_removed": {
+    "text": "Lid verwijderd uit organisatie",
+    "source_hash": "210a187b"
+  },
+  "web.organizations.members.member_remove_error": {
+    "text": "Lid verwijderen mislukt",
+    "source_hash": "1cff79b7"
+  },
+  "web.organizations.members.remove_member_title": {
+    "text": "Lid verwijderen",
+    "source_hash": "2b98b194"
+  },
+  "web.organizations.members.remove_member_confirm": {
+    "text": "Weet je zeker dat je {name} uit deze organisatie wilt verwijderen?",
+    "source_hash": "36695d98"
+  },
+  "web.organizations.members.cannot_change_own_role": {
+    "text": "Je kunt je eigen rol niet wijzigen",
+    "source_hash": "0d874f75"
+  },
+  "web.organizations.members.cannot_remove_self": {
+    "text": "Je kunt jezelf niet uit de organisatie verwijderen",
+    "source_hash": "ab358307"
+  },
+  "web.organizations.members.cannot_remove_owner": {
+    "text": "Je kunt de organisatie-eigenaar niet verwijderen",
+    "source_hash": "c92ed0f4"
+  },
+  "web.organizations.members.insufficient_permissions": {
+    "text": "Je hebt geen toestemming om leden te beheren",
+    "source_hash": "d6239f33"
+  },
+  "web.organizations.members.roles.owner": {
+    "text": "Eigenaar",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.organizations.members.roles.admin": {
+    "text": "Beheerder",
+    "source_hash": "c1c224b0"
+  },
+  "web.organizations.members.roles.member": {
+    "text": "Lid",
+    "source_hash": "7c968fb7"
+  },
+  "web.organizations.members.role_descriptions.owner": {
+    "text": "Volledige toegang tot alle organisatie-instellingen en leden",
+    "source_hash": "d49381bf"
+  },
+  "web.organizations.members.role_descriptions.admin": {
+    "text": "Kan leden en de meeste organisatie-instellingen beheren",
+    "source_hash": "3d7ade92"
+  },
+  "web.organizations.members.role_descriptions.member": {
+    "text": "Basistoegang tot organisatiebronnen",
+    "source_hash": "0ddca91a"
+  },
+  "web.organizations.invitations.title": {
+    "text": "Organisatie-uitnodigingen",
+    "source_hash": "0289d92d"
+  },
+  "web.organizations.invitations.invite_member": {
+    "text": "Lid uitnodigen",
+    "source_hash": "8e8a0b88"
+  },
+  "web.organizations.invitations.invite_new_member": {
+    "text": "Nieuw lid uitnodigen",
+    "source_hash": "0bfb50ed"
+  },
+  "web.organizations.invitations.pending_invitations": {
+    "text": "Uitnodigingen in behandeling",
+    "source_hash": "b327e8a8"
+  },
+  "web.organizations.invitations.no_pending_invitations": {
+    "text": "Geen uitnodigingen in behandeling",
+    "source_hash": "275814da"
+  },
+  "web.organizations.invitations.email_address": {
+    "text": "E-mailadres",
+    "source_hash": "09bf25ef"
+  },
+  "web.organizations.invitations.email_placeholder": {
+    "text": "lid{'@'}voorbeeld.com",
+    "source_hash": "7fd425f7"
+  },
+  "web.organizations.invitations.role": {
+    "text": "Rol",
+    "source_hash": "14736a2e"
+  },
+  "web.organizations.invitations.send_invite": {
+    "text": "Uitnodiging versturen",
+    "source_hash": "d076aa0f"
+  },
+  "web.organizations.invitations.invite_sent": {
+    "text": "Uitnodiging succesvol verstuurd",
+    "source_hash": "81facbe6"
+  },
+  "web.organizations.invitations.invite_error": {
+    "text": "Uitnodiging versturen mislukt",
+    "source_hash": "cedbf507"
+  },
+  "web.organizations.invitations.resend": {
+    "text": "Opnieuw versturen",
+    "source_hash": "1f948437"
+  },
+  "web.organizations.invitations.revoke": {
+    "text": "Intrekken",
+    "source_hash": "87e6d00b"
+  },
+  "web.organizations.invitations.resend_success": {
+    "text": "Uitnodiging succesvol opnieuw verstuurd",
+    "source_hash": "099eb255"
+  },
+  "web.organizations.invitations.resend_error": {
+    "text": "Uitnodiging opnieuw versturen mislukt",
+    "source_hash": "82750487"
+  },
+  "web.organizations.invitations.revoke_success": {
+    "text": "Uitnodiging succesvol ingetrokken",
+    "source_hash": "4ce1262c"
+  },
+  "web.organizations.invitations.revoke_error": {
+    "text": "Uitnodiging intrekken mislukt",
+    "source_hash": "9dbd2a60"
+  },
+  "web.organizations.invitations.invited_by": {
+    "text": "Uitgenodigd door",
+    "source_hash": "c7a6f156"
+  },
+  "web.organizations.invitations.invited_at": {
+    "text": "Uitgenodigd",
+    "source_hash": "63b17bec"
+  },
+  "web.organizations.invitations.expires_at": {
+    "text": "Verloopt",
+    "source_hash": "f6725f3a"
+  },
+  "web.organizations.invitations.resent_count": {
+    "text": "{count} keer opnieuw verstuurd",
+    "source_hash": "e71d1c6d"
+  },
+  "web.organizations.invitations.resent_count_plural": {
+    "text": "{count} keer opnieuw verstuurd",
+    "source_hash": "e58d803d"
+  },
+  "web.organizations.invitations.status.pending": {
+    "text": "In behandeling",
+    "source_hash": "331551b0"
+  },
+  "web.organizations.invitations.status.accepted": {
+    "text": "Geaccepteerd",
+    "source_hash": "a00fb0c5"
+  },
+  "web.organizations.invitations.status.declined": {
+    "text": "Afgewezen",
+    "source_hash": "dce083a2"
+  },
+  "web.organizations.invitations.status.expired": {
+    "text": "Verlopen",
+    "source_hash": "424a2551"
+  },
+  "web.organizations.invitations.status.revoked": {
+    "text": "Ingetrokken",
+    "source_hash": "f6f738d0"
+  },
+  "web.organizations.invitations.roles.member": {
+    "text": "Teamlid",
+    "source_hash": "d4e55dfa"
+  },
+  "web.organizations.invitations.roles.admin": {
+    "text": "Beheerder",
+    "source_hash": "c1c224b0"
+  },
+  "web.organizations.invitations.accept_invitation": {
+    "text": "Uitnodiging accepteren",
+    "source_hash": "ce7cfeaf"
+  },
+  "web.organizations.invitations.decline_invitation": {
+    "text": "Uitnodiging afwijzen",
+    "source_hash": "f6e06ada"
+  },
+  "web.organizations.invitations.invitation_details": {
+    "text": "Uitnodigingsdetails",
+    "source_hash": "59936259"
+  },
+  "web.organizations.invitations.you_are_invited": {
+    "text": "Je bent uitgenodigd om lid te worden van",
+    "source_hash": "60e635c6"
+  },
+  "web.organizations.invitations.invited_as": {
+    "text": "Je bent uitgenodigd als",
+    "source_hash": "f9809eae"
+  },
+  "web.organizations.invitations.accept_success": {
+    "text": "Uitnodiging succesvol geaccepteerd",
+    "source_hash": "7eb6b234"
+  },
+  "web.organizations.invitations.accept_error": {
+    "text": "Uitnodiging accepteren mislukt",
+    "source_hash": "3ecc8b0f"
+  },
+  "web.organizations.invitations.decline_success": {
+    "text": "Uitnodiging afgewezen",
+    "source_hash": "31bffdcb"
+  },
+  "web.organizations.invitations.decline_error": {
+    "text": "Uitnodiging afwijzen mislukt",
+    "source_hash": "2bccbd56"
+  },
+  "web.organizations.invitations.expired_message": {
+    "text": "Deze uitnodiging is verlopen",
+    "source_hash": "b72770d7"
+  },
+  "web.organizations.invitations.invalid_token": {
+    "text": "Ongeldige of verlopen uitnodiging",
+    "source_hash": "6c0fc3de"
+  },
+  "web.organizations.invitations.must_sign_in": {
+    "text": "Log in om deze uitnodiging te accepteren",
+    "source_hash": "469fc705"
+  },
+  "web.organizations.invitations.loading_invitation": {
+    "text": "Uitnodigingsdetails laden",
+    "source_hash": "58884885"
+  },
+  "web.organizations.invitations.upgrade_to_invite": {
+    "text": "Upgrade je plan om teamleden uit te nodigen",
+    "source_hash": "5e3f8df8"
+  },
+  "web.organizations.invitations.upgrade_prompt": {
+    "text": "Ledenuitnodigingen vereisen een betaald plan. Upgrade om medewerkers aan je organisatie toe te voegen.",
+    "source_hash": "47d0eeab"
+  },
+  "web.organizations.paid_badge": {
+    "text": "Pro",
+    "source_hash": "957b0b87"
+  },
+  "web.organizations.early_supporter_badge": {
+    "text": "Vroege supporter",
+    "source_hash": "e67d2ef8"
+  },
+  "web.organizations.member_count": {
+    "text": "{count} lid | {count} leden",
+    "source_hash": "f652af0c"
+  },
+  "web.organizations.domain_count": {
+    "text": "{count} domein | {count} domeinen",
+    "source_hash": "09f52efa"
+  },
+  "web.organizations.tabs.domains": {
+    "text": "Domeinen",
+    "source_hash": "ced67718"
+  },
+  "web.organizations.invitations.email_mismatch_title": {
+    "text": "Ander account ingelogd",
+    "source_hash": "6516362a"
+  },
+  "web.organizations.invitations.email_mismatch_body": {
+    "text": "Deze uitnodiging is voor {invitedEmail}. Je bent momenteel ingelogd als {currentEmail}.",
+    "source_hash": "78a6f301"
+  },
+  "web.organizations.invitations.continue_as_invited_email": {
+    "text": "Doorgaan als {email}",
+    "source_hash": "ccf9745d"
+  },
+  "web.organizations.invitations.expires_in_days": {
+    "text": "nog {days}d",
+    "source_hash": "50ff6f2b"
+  },
+  "web.organizations.invitations.expires_in_hours": {
+    "text": "nog {hours}u",
+    "source_hash": "ff56d105"
+  },
+  "web.organizations.invitations.expires_soon": {
+    "text": "Verloopt binnenkort",
+    "source_hash": "a5dcfef9"
+  },
+  "web.organizations.sso.title": {
+    "text": "Single Sign-On (SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.organizations.sso.description": {
+    "text": "Configureer SSO om leden toe te staan in te loggen met de identiteitsprovider van je organisatie",
+    "source_hash": "464f0a8b"
+  },
+  "web.organizations.sso.provider_type": {
+    "text": "Providertype",
+    "source_hash": "bdfbb1ec"
+  },
+  "web.organizations.sso.provider_type_description": {
+    "text": "Selecteer de identiteitsprovider van je organisatie",
+    "source_hash": "e81325a6"
+  },
+  "web.organizations.sso.display_name": {
+    "text": "Weergavenaam",
+    "source_hash": "18d67c99"
+  },
+  "web.organizations.sso.display_name_hint": {
+    "text": "Een vriendelijke naam getoond aan gebruikers bij het inloggen",
+    "source_hash": "a83f1fba"
+  },
+  "web.organizations.sso.display_name_placeholder": {
+    "text": "bijv. Acme Corp SSO",
+    "source_hash": "43c655c5"
+  },
+  "web.organizations.sso.client_id": {
+    "text": "Client ID",
+    "source_hash": "8726db01"
+  },
+  "web.organizations.sso.client_id_placeholder": {
+    "text": "Je OAuth client ID",
+    "source_hash": "830723da"
+  },
+  "web.organizations.sso.client_secret": {
+    "text": "Client Secret",
+    "source_hash": "ae21cf6d"
+  },
+  "web.organizations.sso.client_secret_placeholder": {
+    "text": "Je OAuth client secret",
+    "source_hash": "14e4a8c8"
+  },
+  "web.organizations.sso.client_secret_update_hint": {
+    "text": "Laat leeg om het bestaande secret te behouden",
+    "source_hash": "98bc3b40"
+  },
+  "web.organizations.sso.tenant_id": {
+    "text": "Tenant ID",
+    "source_hash": "de1f5fff"
+  },
+  "web.organizations.sso.tenant_id_hint": {
+    "text": "Je Azure AD / Entra ID tenant-identificatie",
+    "source_hash": "3c5b707a"
+  },
+  "web.organizations.sso.tenant_id_placeholder": {
+    "text": "bijv. 12345678-1234-1234-1234-123456789abc",
+    "source_hash": "1a166316"
+  },
+  "web.organizations.sso.issuer": {
+    "text": "Issuer URL",
+    "source_hash": "4d03ba8a"
+  },
+  "web.organizations.sso.issuer_hint": {
+    "text": "De OIDC discovery URL voor je identiteitsprovider",
+    "source_hash": "6102d81b"
+  },
+  "web.organizations.sso.issuer_placeholder": {
+    "text": "bijv. https://login.example.com",
+    "source_hash": "9a638e9c"
+  },
+  "web.organizations.sso.allowed_domains": {
+    "text": "Toegestane e-maildomeinen",
+    "source_hash": "0295ad71"
+  },
+  "web.organizations.sso.allowed_domains_hint": {
+    "text": "Alleen gebruikers met e-mailadressen van deze domeinen kunnen inloggen. Laat leeg om alle domeinen toe te staan.",
+    "source_hash": "1775e874"
+  },
+  "web.organizations.sso.domain_placeholder": {
+    "text": "bijv. acme.com",
+    "source_hash": "e4420764"
+  },
+  "web.organizations.sso.invalid_domain": {
+    "text": "Voer een geldig domein in (bijv. example.com)",
+    "source_hash": "16807983"
+  },
+  "web.organizations.sso.domain_exists": {
+    "text": "Dit domein staat al in de lijst",
+    "source_hash": "3fccb721"
+  },
+  "web.organizations.sso.remove_domain": {
+    "text": "{domain} verwijderen",
+    "source_hash": "ae708a1d"
+  },
+  "web.organizations.sso.delete_config": {
+    "text": "Configuratie verwijderen",
+    "source_hash": "9ac1ac7b"
+  },
+  "web.organizations.sso.delete_confirm": {
+    "text": "Weet je het zeker? Dit schakelt SSO uit voor je organisatie.",
+    "source_hash": "5b3f5b9d"
+  },
+  "web.organizations.sso.load_error": {
+    "text": "SSO-configuratie laden mislukt",
+    "source_hash": "75cb73f6"
+  },
+  "web.organizations.sso.save_error": {
+    "text": "SSO-configuratie opslaan mislukt",
+    "source_hash": "99ef145b"
+  },
+  "web.organizations.sso.create_success": {
+    "text": "SSO-configuratie succesvol aangemaakt",
+    "source_hash": "531c7d92"
+  },
+  "web.organizations.sso.update_success": {
+    "text": "SSO-configuratie succesvol bijgewerkt",
+    "source_hash": "d98d8e83"
+  },
+  "web.organizations.sso.delete_success": {
+    "text": "SSO-configuratie succesvol verwijderd",
+    "source_hash": "55f5d4f5"
+  },
+  "web.organizations.sso.delete_error": {
+    "text": "SSO-configuratie verwijderen mislukt",
+    "source_hash": "4a960fe4"
+  },
+  "web.organizations.sso.test_connection": {
+    "text": "Verbinding testen",
+    "source_hash": "c02977b0"
+  },
+  "web.organizations.sso.test_connection_hint": {
+    "text": "Verifieer dat de identiteitsprovider bereikbaar is (valideert geen inloggegevens)",
+    "source_hash": "22a23b68"
+  },
+  "web.organizations.sso.test_button": {
+    "text": "Verbinding testen",
+    "source_hash": "c02977b0"
+  },
+  "web.organizations.sso.testing": {
+    "text": "Testen...",
+    "source_hash": "6c02a284"
+  },
+  "web.organizations.sso.test_error": {
+    "text": "Verbinding testen mislukt",
+    "source_hash": "c1d1f310"
+  },
+  "web.organizations.sso.auth_endpoint": {
+    "text": "Autorisatie-endpoint",
+    "source_hash": "b42b956f"
+  },
+  "web.organizations.sso.missing_fields": {
+    "text": "Ontbrekende velden",
+    "source_hash": "757df777"
+  },
+  "web.organizations.sso.status_enabled": {
+    "text": "Ingeschakeld",
+    "source_hash": "92c1cdfd"
+  },
+  "web.organizations.sso.status_configured": {
+    "text": "Geconfigureerd",
+    "source_hash": "84aebc69"
+  },
+  "web.organizations.sso.domain_sso_title": {
+    "text": "Domein-SSO",
+    "source_hash": "13161464"
+  },
+  "web.organizations.sso.domain_sso_description": {
+    "text": "Configureer SSO voor elk geverifieerd domein",
+    "source_hash": "af5b799e"
+  },
+  "web.organizations.sso.provider_type_locked_hint": {
+    "text": "Om van provider te wisselen, verwijder eerst deze configuratie",
+    "source_hash": "0a1027ff"
+  },
+  "web.organizations.sso.status_not_configured": {
+    "text": "Niet geconfigureerd",
+    "source_hash": "bbea960e"
+  },
+  "api.organizations.errors.not_found": {
+    "text": "Organisatie niet gevonden: %{extid}",
+    "source_hash": "c8d058eb"
+  },
+  "api.organizations.errors.owner_required": {
+    "text": "Alleen de organisatie-eigenaar kan deze actie uitvoeren",
+    "source_hash": "5a729e94"
+  },
+  "api.organizations.errors.admin_required": {
+    "text": "Alleen organisatie-eigenaren en beheerders kunnen deze actie uitvoeren",
+    "source_hash": "cd9e8c0e"
+  },
+  "api.organizations.errors.member_required": {
+    "text": "Je moet een organisatielid zijn om deze actie uit te voeren",
+    "source_hash": "f66f4a60"
+  },
+  "api.organizations.invitations.errors.create_admin_required": {
+    "text": "Alleen organisatie-eigenaren en beheerders kunnen uitnodigingen aanmaken",
+    "source_hash": "777d150d"
+  },
+  "api.organizations.invitations.errors.resend_admin_required": {
+    "text": "Alleen organisatie-eigenaren en beheerders kunnen uitnodigingen opnieuw versturen",
+    "source_hash": "6a857d59"
+  },
+  "api.organizations.invitations.errors.view_admin_required": {
+    "text": "Alleen organisatie-eigenaren en beheerders kunnen uitnodigingen bekijken",
+    "source_hash": "42f5878b"
+  },
+  "api.organizations.invitations.errors.revoke_admin_required": {
+    "text": "Alleen organisatie-eigenaren en beheerders kunnen uitnodigingen intrekken",
+    "source_hash": "52f73c8a"
+  },
+  "api.organizations.invitations.errors.email_required": {
+    "text": "E-mail is vereist",
+    "source_hash": "aae92911"
+  },
+  "api.organizations.invitations.errors.email_invalid": {
+    "text": "Ongeldig e-mailformaat",
+    "source_hash": "0bcecf66"
+  },
+  "api.organizations.invitations.errors.role_invalid": {
+    "text": "Rol moet lid of beheerder zijn",
+    "source_hash": "650ea5f6"
+  },
+  "api.organizations.invitations.errors.cannot_invite_owner": {
+    "text": "Kan niet uitnodigen als eigenaar",
+    "source_hash": "e6581025"
+  },
+  "api.organizations.invitations.errors.already_member": {
+    "text": "Gebruiker is al lid van deze organisatie",
+    "source_hash": "8eb45780"
+  },
+  "api.organizations.invitations.errors.already_pending": {
+    "text": "Uitnodiging al in behandeling voor dit e-mailadres",
+    "source_hash": "7f5e3093"
+  },
+  "api.organizations.invitations.errors.not_found": {
+    "text": "Uitnodiging niet gevonden",
+    "source_hash": "775ba9eb"
+  },
+  "api.organizations.invitations.errors.cannot_resend_non_pending": {
+    "text": "Kan alleen uitnodigingen in behandeling opnieuw versturen",
+    "source_hash": "b7578b3e"
+  },
+  "api.organizations.invitations.errors.cannot_revoke_non_pending": {
+    "text": "Kan alleen uitnodigingen in behandeling intrekken",
+    "source_hash": "732b78a6"
+  },
+  "api.organizations.invitations.errors.resend_limit_reached": {
+    "text": "Maximale herzendingslimiet (%{max}) bereikt",
+    "source_hash": "8dc96729"
+  },
+  "api.organizations.invitations.errors.accept_token_required": {
+    "text": "Token is vereist",
+    "source_hash": "6c718161"
+  },
+  "api.organizations.invitations.errors.accept_organization_gone": {
+    "text": "Organisatie bestaat niet meer",
+    "source_hash": "a5df7d22"
+  },
+  "api.organizations.invitations.errors.accept_expired": {
+    "text": "Uitnodiging is verlopen",
+    "source_hash": "7186297b"
+  },
+  "api.organizations.invitations.errors.accept_email_mismatch": {
+    "text": "Je e-mailadres komt niet overeen met de uitnodiging",
+    "source_hash": "11026f46"
+  },
+  "api.organizations.invitations.errors.accept_already_member": {
+    "text": "Je bent al lid van deze organisatie",
+    "source_hash": "f56ad547"
+  },
+  "web.organizations.entitlements_title": {
+    "text": "Organisatierechten",
+    "source_hash": "36054d4f"
+  },
+  "web.organizations.page_description_short": {
+    "text": "Bekijk en configureer je werkruimtes",
+    "source_hash": "524fcb9a"
+  },
+  "web.organizations.delete_organization_remove_domains_first": {
+    "text": "Verwijder eerst alle aangepaste domeinen voordat je deze organisatie verwijdert.",
+    "source_hash": "44678715"
+  },
+  "web.organizations.default_org_delete_notice_title": {
+    "text": "Deze organisatie verwijderen",
+    "source_hash": "9191d915"
+  },
+  "web.organizations.default_org_delete_notice_before": {
+    "text": "Dit is je standaardorganisatie en kan niet worden verwijderd vanuit het dashboard. Om deze te verwijderen, neem contact op via het",
+    "source_hash": "e203607d"
+  },
+  "web.organizations.default_org_delete_notice_link": {
+    "text": "feedbackformulier",
+    "source_hash": "94645a9e"
+  },
+  "web.organizations.default_org_delete_notice_after": {
+    "text": ".",
+    "source_hash": "cdb4ee2a"
+  },
+  "web.organizations.leave_organization": {
+    "text": "Deze organisatie verlaten",
+    "source_hash": "d534cff9"
+  },
+  "web.organizations.leave_organization_warning": {
+    "text": "Je verliest toegang tot deze organisatie en de bronnen ervan.",
+    "source_hash": "e9daab07"
+  },
+  "web.organizations.leave_organization_confirm_title": {
+    "text": "Organisatie verlaten",
+    "source_hash": "ec8314da"
+  },
+  "web.organizations.leave_organization_confirm_message": {
+    "text": "Weet je zeker dat je {name} wilt verlaten? Je hebt een nieuwe uitnodiging nodig om opnieuw lid te worden.",
+    "source_hash": "e21c5fec"
+  },
+  "web.organizations.leave_organization_success": {
+    "text": "Je hebt de organisatie verlaten.",
+    "source_hash": "fc803eb3"
+  },
+  "web.organizations.leave_error": {
+    "text": "Organisatie verlaten mislukt",
+    "source_hash": "6cb6af43"
+  },
+  "web.organizations.organizations": {
+    "text": "Organisaties",
+    "source_hash": "2730183d"
+  },
+  "web.organizations.invitations.invited_by_inline": {
+    "text": "door {email}",
+    "source_hash": "969a7050"
+  },
+  "web.organizations.invitations.invited_as_inline": {
+    "text": "als {role}",
+    "source_hash": "ff9e9b18"
+  },
+  "web.organizations.invitations.back_to_home": {
+    "text": "Terug naar home",
+    "source_hash": "76c5505f"
+  },
+  "web.organizations.invitations.email_locked_hint": {
+    "text": "Deze uitnodiging is verstuurd naar dit e-mailadres",
+    "source_hash": "2cff7075"
+  },
+  "web.organizations.invitations.signup_continue": {
+    "text": "Doorgaan",
+    "source_hash": "31fbef16"
+  },
+  "web.organizations.invitations.signin_continue": {
+    "text": "Inloggen",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.organizations.invitations.confirm_join_below": {
+    "text": "Bijna klaar — bevestig hieronder om lid te worden van de organisatie.",
+    "source_hash": "2d14f9b0"
+  },
+  "web.organizations.invitations.go_to_organizations": {
+    "text": "Ga naar organisaties",
+    "source_hash": "2afa38a3"
+  },
+  "web.organizations.invitations.already_member": {
+    "text": "Je bent al lid van deze organisatie",
+    "source_hash": "f56ad547"
+  },
+  "web.organizations.invitations.join_organization": {
+    "text": "Word lid van {orgName}",
+    "source_hash": "1aea9194"
+  },
+  "web.organizations.invitations.sign_in_to_join": {
+    "text": "Log in om lid te worden van {orgName}",
+    "source_hash": "f94ed8b4"
+  },
+  "web.organizations.invitations.decline": {
+    "text": "Afwijzen",
+    "source_hash": "a2d285b3"
+  },
+  "web.organizations.members.pending_suffix": {
+    "text": "({count} in behandeling)",
+    "source_hash": "c13f787f"
+  },
+  "web.organizations.sso.view_discovery_document": {
+    "text": "Bekijk discovery document",
+    "source_hash": "513bda60"
+  },
+  "web.organizations.sso.callback_url": {
+    "text": "Callback URL",
+    "source_hash": "dc297ae9"
+  },
+  "web.organizations.sso.callback_url_hint": {
+    "text": "Voeg deze URL toe aan de toegestane redirect URI's van je identiteitsprovider",
+    "source_hash": "65d55683"
+  },
+  "web.organizations.sso.enforce_sso_only": {
+    "text": "Alleen SSO afdwingen",
+    "source_hash": "b3a3f694"
+  },
+  "web.organizations.sso.enforce_sso_only_hint": {
+    "text": "Vereist SSO voor alle inlogpogingen op dit domein. Indien ingeschakeld, wordt wachtwoordauthenticatie uitgeschakeld.",
+    "source_hash": "19432210"
+  },
+  "web.organizations.sso.grant_org_scope": {
+    "text": "Organisatiebrede toegang verlenen",
+    "source_hash": "2070cef2"
+  },
+  "web.organizations.sso.grant_org_scope_hint": {
+    "text": "Nieuwe leden die via de SSO van dit domein lid worden, krijgen toegang tot alle organisatiedomeinen. Bestaande leden worden niet beïnvloed. Indien uitgeschakeld (standaard), hebben nieuwe leden alleen toegang tot dit domein.",
+    "source_hash": "2ac9f345"
+  },
+  "web.organizations.sso.no_domains": {
+    "text": "Geen geverifieerde domeinen",
+    "source_hash": "8a7fbb76"
+  },
+  "web.organizations.sso.no_domains_description": {
+    "text": "Voeg een domein toe en verifieer het voordat je SSO ervoor configureert.",
+    "source_hash": "e825d13a"
+  },
+  "web.organizations.tabs.team": {
+    "text": "Team",
+    "source_hash": "5985039f"
+  },
+  "web.organizations.tabs.sso": {
+    "text": "SSO",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.organizations.create_workspace": {
+    "text": "Werkruimte aanmaken",
+    "source_hash": "c63c14cf"
+  },
+  "web.organizations.organization_id": {
+    "text": "Organisatie-ID",
+    "source_hash": "1f466322"
+  },
+  "web.organizations.organization_id_hint": {
+    "text": "Gebruik dit ID bij contact met support of voor het specificeren van API-verzoeken voor deze organisatie. Het is geen inloggegevens.",
+    "source_hash": "29549b3a"
+  },
+  "web.organizations.audit.title": {
+    "text": "Berichtactiviteit",
+    "source_hash": "6d6d41f3"
+  },
+  "web.organizations.audit.description": {
+    "text": "Audittrail van het aanmaken en openen van berichten geregistreerd voor deze organisatie.",
+    "source_hash": "553c564b"
+  },
+  "web.organizations.audit.country_unknown": {
+    "text": "Onbekend",
+    "source_hash": "b764cdc0"
+  },
+  "web.organizations.audit.empty_title": {
+    "text": "Nog geen activiteit",
+    "source_hash": "0a12b92c"
+  },
+  "web.organizations.audit.empty_description": {
+    "text": "Het aanmaken en openen van berichten verschijnt hier wanneer je team berichten deelt.",
+    "source_hash": "62fb14c2"
+  },
+  "web.organizations.audit.capped_notice": {
+    "text": "Alleen de nieuwste {max} gebeurtenissen worden bewaard; oudere activiteit is verwijderd.",
+    "source_hash": "da7901e2"
+  },
+  "web.organizations.audit.collection_paused_notice": {
+    "text": "Gebeurtenisverzameling is gepauzeerd; nieuwe berichtactiviteit wordt niet geregistreerd.",
+    "source_hash": "cb09d147"
+  },
+  "web.organizations.audit.load_error": {
+    "text": "Kan berichtactiviteit niet laden.",
+    "source_hash": "52fde814"
+  },
+  "web.organizations.audit.contract_mismatch": {
+    "text": "De activiteitsgegevens van de server konden niet worden gelezen. De trail is niet leeg — het kan alleen nu niet worden weergegeven.",
+    "source_hash": "db0d007a"
+  },
+  "web.organizations.audit.retry": {
+    "text": "Probeer opnieuw",
+    "source_hash": "d8b8392e"
+  },
+  "web.organizations.audit.showing_range": {
+    "text": "{from}–{to} van {total} weergeven",
+    "source_hash": "c329279d"
+  },
+  "web.organizations.audit.upgrade_prompt": {
+    "text": "Berichtactiviteit vereist een plan met auditlogs. Upgrade om te zien wie berichten heeft aangemaakt, bekeken en onthuld in deze organisatie.",
+    "source_hash": "453649ce"
+  },
+  "web.organizations.audit.role_required": {
+    "text": "Berichtactiviteit is beschikbaar voor organisatie-eigenaren en beheerders.",
+    "source_hash": "e066ec63"
+  },
+  "web.organizations.audit.actors.creator": {
+    "text": "Maker",
+    "source_hash": "88447b83"
+  },
+  "web.organizations.audit.actors.authenticated_other": {
+    "text": "Een andere ingelogde gebruiker",
+    "source_hash": "ee45aa5a"
+  },
+  "web.organizations.audit.actors.anonymous": {
+    "text": "Anoniem",
+    "source_hash": "e7a8aa2d"
+  },
+  "web.organizations.audit.actors.system": {
+    "text": "Systeem",
+    "source_hash": "6725e7bb"
+  },
+  "web.organizations.audit.actors.unknown": {
+    "text": "Onbekend",
+    "source_hash": "b764cdc0"
+  },
+  "web.organizations.audit.columns.event": {
+    "text": "Gebeurtenis",
+    "source_hash": "4e1f49a9"
+  },
+  "web.organizations.audit.columns.secret": {
+    "text": "Bericht",
+    "source_hash": "7e32a729"
+  },
+  "web.organizations.audit.columns.actor": {
+    "text": "Actor",
+    "source_hash": "449995c4"
+  },
+  "web.organizations.audit.columns.country": {
+    "text": "Land",
+    "source_hash": "701d021d"
+  },
+  "web.organizations.audit.columns.when": {
+    "text": "Wanneer",
+    "source_hash": "cf9c7aa2"
+  },
+  "web.organizations.audit.kinds.created": {
+    "text": "Bericht aangemaakt",
+    "source_hash": "e4a1e1fd"
+  },
+  "web.organizations.audit.kinds.status_get": {
+    "text": "Linkstatus gecontroleerd",
+    "source_hash": "0753f60e"
+  },
+  "web.organizations.audit.kinds.secret_get": {
+    "text": "Berichtlink geopend",
+    "source_hash": "e271e060"
+  },
+  "web.organizations.audit.kinds.previewed": {
+    "text": "Voorbeeld bekeken door maker",
+    "source_hash": "639fc1e2"
+  },
+  "web.organizations.audit.kinds.creator_status_get": {
+    "text": "Status gecontroleerd door maker",
+    "source_hash": "7e4b5de5"
+  },
+  "web.organizations.audit.kinds.receipt_viewed": {
+    "text": "Ontvangstbewijs bekeken",
+    "source_hash": "a417ead4"
+  },
+  "web.organizations.audit.kinds.revealed": {
+    "text": "Bericht onthuld",
+    "source_hash": "aff2c84d"
+  },
+  "web.organizations.audit.kinds.burned": {
+    "text": "Bericht verbrand",
+    "source_hash": "5ac68dc6"
+  },
+  "web.organizations.audit.kinds.expired": {
+    "text": "Bericht verlopen",
+    "source_hash": "c127dab6"
+  },
+  "web.organizations.audit.kinds.orphaned": {
+    "text": "Bericht verweest",
+    "source_hash": "23fe1a47"
+  },
+  "web.organizations.audit.kinds.reveal_failed_undecryptable": {
+    "text": "Onthullen mislukt (niet te ontcijferen)",
+    "source_hash": "d5616abf"
+  },
+  "web.organizations.tabs.activity": {
+    "text": "Activiteit",
+    "source_hash": "38da1505"
+  },
+  "web.organizations.invitations.restricted_host_title": {
+    "text": "Hier is een andere inlogmethode vereist",
+    "source_hash": "d761ad30"
+  },
+  "web.organizations.invitations.restricted_host_body": {
+    "text": "Op deze site kun je alleen inloggen met {method}, dus er kan hier geen account met een wachtwoord worden aangemaakt. {method} kun je niet op deze pagina voltooien.",
+    "source_hash": "6ac146d4"
+  },
+  "web.organizations.invitations.restricted_host_unknown_body": {
+    "text": "Op deze site is maar één specifieke inlogmethode toegestaan, en die kan deze pagina niet aanbieden. Er kan hier geen account met een wachtwoord worden aangemaakt.",
+    "source_hash": "e24d59a9"
+  },
+  "web.organizations.invitations.restricted_sso_body": {
+    "text": "Deze site gebruikt single sign-on. Log in met de provider van je organisatie om verder te gaan — daarmee wordt je account aangemaakt en word je ingelogd.",
+    "source_hash": "e942d04b"
+  },
+  "web.organizations.invitations.restricted_sso_cta": {
+    "text": "Doorgaan naar inloggen",
+    "source_hash": "d398cd0a"
+  },
+  "web.organizations.invitations.restricted_use_email_link": {
+    "text": "Open in plaats daarvan de link in je uitnodigingsmail om de uitnodiging op de hoofdsite te accepteren.",
+    "source_hash": "73bf298f"
+  },
+  "web.organizations.invitations.invitation_stays_pending": {
+    "text": "Je uitnodiging is nog steeds geldig — er is niets verbruikt en je kunt de uitnodiging accepteren zodra je bent ingelogd.",
+    "source_hash": "f4d00be1"
+  },
+  "web.organizations.invitations.signin_unavailable_title": {
+    "text": "Inloggen is niet beschikbaar op deze site",
+    "source_hash": "c56bce2b"
+  },
+  "web.organizations.invitations.signin_unavailable_body": {
+    "text": "Deze site is beperkt tot {method}, die hier niet werkt, dus er is op dit moment geen manier om in te loggen.",
+    "source_hash": "62c01601"
+  },
+  "web.organizations.invitations.signin_unavailable_unknown_body": {
+    "text": "Deze site is beperkt tot een inlogmethode die hier niet werkt, dus er is op dit moment geen manier om in te loggen.",
+    "source_hash": "1f61e456"
+  },
+  "web.organizations.invitations.signin_unavailable_conflict_body": {
+    "text": "De inloginstellingen van deze site zijn in conflict met de sitebrede beperking ({method}), waardoor geen van beide geldt en er op dit moment geen manier is om in te loggen.",
+    "source_hash": "54cdfd61"
+  },
+  "web.organizations.delete_organization_cancel_subscription_first": {
+    "text": "Annuleer het abonnement van deze organisatie voordat je haar verwijdert.",
+    "source_hash": "f0c54eca"
+  },
+  "web.organizations.sso.idp_sso_service_url": {
+    "text": "IdP-SSO-service-URL",
+    "source_hash": "0b33b1ac"
+  },
+  "web.organizations.sso.idp_sso_service_url_hint": {
+    "text": "Het HTTPS-endpoint dat je identiteitsprovider publiceert voor SAML single sign-on",
+    "source_hash": "bc6fdfd9"
+  },
+  "web.organizations.sso.idp_sso_service_url_placeholder": {
+    "text": "https://idp.example.com/sso/saml",
+    "source_hash": "513d0586"
+  },
+  "web.organizations.sso.idp_entity_id": {
+    "text": "IdP Entity ID",
+    "source_hash": "14a4ab8b"
+  },
+  "web.organizations.sso.idp_entity_id_hint": {
+    "text": "De issuer-identificatie uit de metadata van je identiteitsprovider, exact zoals gepubliceerd",
+    "source_hash": "c3d8320b"
+  },
+  "web.organizations.sso.idp_entity_id_placeholder": {
+    "text": "https://idp.example.com/metadata",
+    "source_hash": "0c46d14d"
+  },
+  "web.organizations.sso.idp_cert": {
+    "text": "IdP-ondertekeningscertificaat",
+    "source_hash": "c84000cd"
+  },
+  "web.organizations.sso.idp_cert_hint": {
+    "text": "Het X.509-certificaat (PEM) waarmee je identiteitsprovider assertions ondertekent. Slechts één certificaat; vingerafdrukken worden niet geaccepteerd.",
+    "source_hash": "b5e157f5"
+  },
+  "web.organizations.sso.idp_cert_placeholder": {
+    "text": "-----BEGIN CERTIFICATE-----",
+    "source_hash": "ddddb6cb"
+  },
+  "web.organizations.sso.sp_details": {
+    "text": "Gegevens van de serviceprovider",
+    "source_hash": "4b6617d2"
+  },
+  "web.organizations.sso.sp_details_hint": {
+    "text": "Registreer deze waarden bij je identiteitsprovider",
+    "source_hash": "784e9410"
+  },
+  "web.organizations.sso.sp_details_preview_hint": {
+    "text": "Voorbeeld op basis van de standaard inlogroute. Sla deze configuratie op en bevestig deze waarden hier voordat je ze registreert bij je identiteitsprovider.",
+    "source_hash": "fd9d3001"
+  },
+  "web.organizations.sso.domain_unverified_notice": {
+    "text": "Single sign-on is uitgeschakeld op dit domein totdat het domein is geverifieerd. Verificatie verandert de onderstaande waarden niet.",
+    "source_hash": "4b56ea4b"
+  },
+  "web.organizations.sso.sp_entity_id": {
+    "text": "SP Entity ID (metadata-URL)",
+    "source_hash": "59bc544c"
+  },
+  "web.organizations.sso.acs_url": {
+    "text": "Assertion Consumer Service URL",
+    "source_hash": "5dacfb65"
+  },
+  "web.organizations.sso.unreadable_field": {
+    "text": "De opgeslagen waarde kon niet worden gelezen. Voer deze opnieuw in om door te gaan.",
+    "source_hash": "ca3b5fcc"
+  },
+  "web.organizations.sso.unreadable_fields_alert": {
+    "text": "Sommige opgeslagen waarden konden niet worden gelezen en moeten opnieuw worden ingevoerd: {fields}",
+    "source_hash": "e9fa9d16"
+  },
+  "web.organizations.sso.idp_cert_expired_alert": {
+    "text": "Het certificaat van de identiteitsprovider is verlopen op {date}. Inloggen via deze verbinding mislukt totdat een geldig certificaat is opgeslagen.",
+    "source_hash": "527fb721"
+  },
+  "web.organizations.sso.idp_cert_expiring_notice": {
+    "text": "Het certificaat van de identiteitsprovider verloopt op {date}. Vervang het vóór die datum, zodat inloggen blijft werken.",
+    "source_hash": "ccaf6ca7"
+  },
+  "web.organizations.sso.test_connection_hint_saml": {
+    "text": "Controleert de SSO-URL, de Entity ID en het certificaat lokaal; er wordt geen contact opgenomen met de identiteitsprovider",
+    "source_hash": "1dad3945"
+  },
+  "web.organizations.sso.configured_issuer": {
+    "text": "Geconfigureerde issuer",
+    "source_hash": "6b307b7f"
+  },
+  "web.organizations.sso.discovery_issuer": {
+    "text": "Ontdekte issuer",
+    "source_hash": "9d74f978"
+  },
+  "web.organizations.sso.issuer_mismatch_hint": {
+    "text": "OIDC-issuer-identificaties moeten exact overeenkomen, inclusief een eventuele afsluitende slash. Stel de Issuer URL in op de hierboven getoonde ontdekte waarde.",
+    "source_hash": "ec144c88"
+  },
+  "web.organizations.sso.certificate_subject": {
+    "text": "Certificaatonderwerp",
+    "source_hash": "d7816b16"
+  },
+  "web.organizations.sso.certificate_expires": {
+    "text": "Certificaat verloopt",
+    "source_hash": "1e73119d"
+  },
+  "web.organizations.sso.certificate_expires_in_days": {
+    "text": "over {n} dag | over {n} dagen",
+    "source_hash": "df98ca65"
+  },
+  "web.organizations.sso.certificate_valid_from": {
+    "text": "Certificaat geldig vanaf",
+    "source_hash": "b13d3f30"
+  },
+  "web.organizations.sso.client_secret_looks_like_secret_id": {
+    "text": "Dit lijkt op de ‘Secret ID’. Entra heeft de waarde van het secret (‘Value’) nodig, die maar één keer wordt getoond bij het aanmaken van het secret.",
+    "source_hash": "168681cf"
+  },
+  "web.organizations.sso.diagnostics_title": {
+    "text": "Opgeslagen configuratie controleren",
+    "source_hash": "5c68357a"
+  },
+  "web.organizations.sso.diagnostics_hint": {
+    "text": "Controleert wat er voor dit domein is opgeslagen — bij Microsoft Entra ID inclusief het opgeslagen client secret — en rapporteert elke laag afzonderlijk. Een volledige login wordt niet getest.",
+    "source_hash": "42505faa"
+  },
+  "web.organizations.sso.last_sign_in_none": {
+    "text": "Er is via dit domein nog geen login geregistreerd.",
+    "source_hash": "7f9d0f23"
+  },
+  "web.organizations.sso.last_sign_in_succeeded": {
+    "text": "De laatste login via dit domein is voltooid op {when}.",
+    "source_hash": "9a125080"
+  },
+  "web.organizations.sso.last_sign_in_failed": {
+    "text": "De laatste login via dit domein is mislukt op {when}, {stage} ({code}).",
+    "source_hash": "be81f392"
+  },
+  "web.organizations.sso.last_sign_in_last_success": {
+    "text": "De laatste voltooide login was op {when}.",
+    "source_hash": "34e63e57"
+  },
+  "web.organizations.sso.last_sign_in_stage_setup": {
+    "text": "voordat de identiteitsprovider werd benaderd",
+    "source_hash": "5a1b6839"
+  },
+  "web.organizations.sso.last_sign_in_stage_provider": {
+    "text": "bij de identiteitsprovider",
+    "source_hash": "40394567"
+  },
+  "web.organizations.sso.last_sign_in_stage_callback": {
+    "text": "toen de identiteitsprovider de gebruiker terugstuurde",
+    "source_hash": "2ab78fc4"
+  },
+  "web.organizations.sso.last_sign_in_stage_account": {
+    "text": "bij het koppelen van de gebruiker aan een account",
+    "source_hash": "1ebbb776"
+  },
+  "web.organizations.sso.diagnostics_button": {
+    "text": "Opgeslagen configuratie controleren",
+    "source_hash": "5c68357a"
+  },
+  "web.organizations.sso.diagnostics_running": {
+    "text": "Controleren...",
+    "source_hash": "2e5f79bb"
+  },
+  "web.organizations.sso.diagnostics_checked_at": {
+    "text": "Gecontroleerd",
+    "source_hash": "0efd92a3"
+  },
+  "web.organizations.sso.diagnostics_check_stored_configuration": {
+    "text": "Opgeslagen configuratie",
+    "source_hash": "a988b06a"
+  },
+  "web.organizations.sso.diagnostics_check_discovery": {
+    "text": "Discovery van de identiteitsprovider",
+    "source_hash": "b5f90082"
+  },
+  "web.organizations.sso.diagnostics_check_certificate": {
+    "text": "Ondertekeningscertificaat",
+    "source_hash": "cc00e050"
+  },
+  "web.organizations.sso.diagnostics_check_credential": {
+    "text": "Client Secret",
+    "source_hash": "4aded5fa"
+  },
+  "web.organizations.sso.diagnostics_status_passed": {
+    "text": "Geslaagd",
+    "source_hash": "436fe71b"
+  },
+  "web.organizations.sso.diagnostics_status_failed": {
+    "text": "Mislukt",
+    "source_hash": "031a8f0f"
+  },
+  "web.organizations.sso.diagnostics_status_inconclusive": {
+    "text": "Geen uitsluitsel",
+    "source_hash": "9141583b"
+  },
+  "web.organizations.sso.diagnostics_status_unsupported": {
+    "text": "Niet beschikbaar",
+    "source_hash": "67a926f7"
+  },
+  "web.organizations.sso.diagnostics_status_skipped": {
+    "text": "Overgeslagen",
+    "source_hash": "12698ce1"
+  },
+  "web.organizations.sso.diagnostics_aadsts_code": {
+    "text": "Microsoft-foutcode",
+    "source_hash": "dc8f7060"
+  },
+  "web.organizations.sso.diagnostics_errors": {
+    "text": "Problemen",
+    "source_hash": "a7b182f8"
+  }
+}

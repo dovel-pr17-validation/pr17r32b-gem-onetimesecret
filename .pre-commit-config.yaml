@@ -1,0 +1,199 @@
+##
+# Pre-Commit Hooks Configuration
+#
+# Fast, lightweight code quality checks that run before each commit
+#
+# Setup:
+#   1. Install pre-commit:
+#       $ pip install pre-commit
+#
+#   2. Install all git hooks:
+#       $ pre-commit install && pre-commit install --hook-type pre-push -c .pre-push-config.yaml
+#
+# Usage:
+#   Hooks run automatically on 'git commit'
+#
+#   Manual commands:
+#   - Check all files:
+#     $ pre-commit run --all-files
+#
+#   - Update hooks:
+#     $ pre-commit autoupdate
+#
+#   - Reinstall after config changes:
+#     $ pre-commit install
+#
+# Best Practices:
+#   - Reinstall hooks after modifying this config
+#   - Commit config changes in isolation
+#   - Keep checks fast to maintain workflow
+#
+# Resources:
+#   - Docs: https://pre-commit.com
+#   - Available hooks: https://pre-commit.com/hooks.html
+#
+# Note: These lightweight checks maintain code quality without
+# slowing down the local development process.
+
+# Hook installation configuration
+default_install_hook_types:
+  - pre-commit
+  - prepare-commit-msg
+  - post-commit
+  - post-checkout
+  - post-merge
+
+# Default execution stage
+default_stages: [pre-commit]
+
+# Use 'system' to leverage existing rbenv/nvm installations from PATH,
+# while pre-commit still manages isolated gem/package environments.
+default_language_version:
+  ruby: system
+  node: system
+
+# Stop on first failure for fast feedback during commits
+fail_fast: true
+
+# Ignore generated and dependency directories
+exclude: '^$'
+
+repos:
+  # NOTE: pre-commit's meta hooks (check-hooks-apply / check-useless-excludes /
+  # identity) were removed from the per-commit path. They only matter when this
+  # config itself changes, yet paid a framework spawn on every commit. Run them
+  # on demand while editing this file:
+  #   pre-commit run check-hooks-apply check-useless-excludes --hook-stage manual
+  # (or via a CI hygiene job running `pre-commit run --all-files`; see
+  # docs/specs/dx.md Part 3.3).
+
+  # Standard pre-commit hooks: lightweight, universal checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ['--maxkb=2500']
+      - id: no-commit-to-branch
+        args: ['--branch', 'develop', '--branch', 'rel/.*']
+
+  # Commit message issue tracking integration
+  - repo: https://github.com/delano/add-msg-issue-prefix-hook
+    rev: v0.1.1-fork
+    hooks:
+      - id: add-msg-issue-prefix
+        stages: [prepare-commit-msg]
+        description: Automatically prefix commits with issue numbers
+        args:
+          - '--default='
+          - '--exclude-pattern=^(dependabot|renovate)/'
+          # Extract the issue ID from the branch name, anchored at the start or a
+          # `/` boundary, so version/encoding tokens like v4, utf8, sha256 and
+          # 0.26.2 never match. Two shapes yield an ID: a bare number
+          # (feature/3840-x) or an explicit word prefix (claude/fix-3499-x,
+          # fix/issue-1234), where `(?P<id>...)` emits the bare number.
+          # `i18n(?=/)` emits the whole match as [#I18N].
+          #
+          # NOT JIRA-compatible: there is deliberately no generic `WORD-NNN` arm,
+          # so `feature/ENG-123` yields no prefix. GitHub issue numbers are the
+          # only ticket scheme here, and a generic arm matched dependency and
+          # date tokens instead (deps/postgres-17, security/audit-2026-07-06).
+          # Re-add that arm if this repo ever adopts JIRA-style keys. (#3891)
+          - '--pattern=(?:^|(?<=/))(?:i18n(?=/)|(?:issue|fix|bug|feat|feature)-(?P<id>[0-9]{1,5})|[0-9]{2,5})(?![0-9])'
+          # Separate pattern for has_tag(): detects an already-present [#TAG] in
+          # the subject on reword so the hook does not double-prefix. Matches the
+          # upcased emitted form, incl. [#I18N] which the branch pattern cannot.
+          - '--tag-pattern=[A-Za-z0-9][A-Za-z0-9._-]*'
+          - '--template=[#{}]'
+
+  # Ruby Linting: bundled RuboCop in server mode
+  #
+  # Uses `bundle exec` so versions come from Gemfile.lock — the old managed env
+  # pinned v1.81.7 + 4 plugins OUTSIDE the lockfile, letting the hook drift from
+  # `pnpm run rubocop` / CI. Flags mirror the `rubocop` package.json script and
+  # CI's Ruby Lint job exactly (`--config .rubocop.yml --fail-level warning`), so
+  # the hook is never STRICTER than CI (RuboCop's default fail-level is lower and
+  # would block commits on convention offenses CI passes green). `--server` keeps
+  # a daemon warm: first commit pays boot, later commits are sub-second.
+  # `--autocorrect` applies safe fixes to staged Ruby (like ESLint --fix); when it
+  # changes a file pre-commit blocks the commit so you review + re-stage.
+  # `--force-exclusion` honours the AllCops Exclude list even when files are
+  # passed explicitly.
+  - repo: local
+    hooks:
+      - id: rubocop
+        name: RuboCop (server, staged files)
+        description: Ruby static code analyzer and formatter
+        entry: bundle exec rubocop --server --config .rubocop.yml --fail-level warning --force-exclusion --autocorrect
+        language: system
+        types: [ruby]
+
+  # Ensure ESLint can run by creating stub if auto-import config is missing
+  # (Generated by unplugin-auto-import during pnpm dev/build, but gitignored)
+  - repo: local
+    hooks:
+      - id: ensure-eslint-auto-imports
+        stages: [pre-commit]
+        name: Ensure ESLint auto-imports config
+        entry: bash -c '[ -f src/.eslintrc-auto-import.json ] || echo "{\"globals\":{}}" > src/.eslintrc-auto-import.json'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  # JavaScript/TypeScript Linting: one ESLint pass over staged files
+  #
+  # Single pass via `pnpm exec` (project node_modules). Previously TWO hooks
+  # linted the same files: an isolated node env (17 hand-pinned deps, no cache,
+  # cold every commit) and a pnpm pass — both paying a full TS program build.
+  # The isolated env is gone: CI already provides clean-environment consistency,
+  # and eslint.config.ts is now non-type-aware so there is no program build to
+  # pay. A dedicated cache (separate from `pnpm lint`) keeps per-file results
+  # warm. Type errors are caught by vue-tsc in pre-push + CI, not here.
+  - repo: local
+    hooks:
+      - id: eslint-staged
+        name: ESLint (staged files)
+        description: Syntax + style + vue + import-order lint on staged files
+        entry: pnpm exec eslint --quiet --fix --cache --cache-location ./node_modules/.cache/eslint-hooks
+        language: system
+        files: \.(ts|vue|mjs)$
+        exclude: ^src/tests/
+
+  # ADR reference integrity: verify every ADR-NNN#slug reference resolves.
+  # Only runs when docs/adr/*.md files are staged.
+  - repo: local
+    hooks:
+      - id: adr-lint
+        name: ADR reference lint
+        description: Verify ADR-NNN#slug references resolve (see ADR-036#ci-enforces-references)
+        entry: scripts/adr-lint.rb
+        language: system
+        files: ^docs/adr/.*\.md$
+        pass_filenames: false
+
+  # Commit metadata tracking
+  - repo: local
+    hooks:
+      - id: register-build
+        stages: [post-commit, post-checkout, post-merge]
+        name: Record commit hash
+        description: Log current commit hash for build reference
+        entry: "sh -c 'git rev-parse --short=7 HEAD > .commit_hash.txt; echo Commit hash recorded; head -4 .commit_hash.txt package.json'"
+        language: system
+        always_run: true
+        pass_filenames: false
+
+  # New-worktree setup, opt-in: git config ots.worktreeSetup true
+  - repo: local
+    hooks:
+      - id: new-worktree-setup
+        stages: [post-checkout]
+        name: New worktree setup (opt-in)
+        description: Run bin/setup in a worktree git just created (docs/development/README.md)
+        entry: tools/setup/new-worktree.sh
+        language: system
+        always_run: true
+        pass_filenames: false

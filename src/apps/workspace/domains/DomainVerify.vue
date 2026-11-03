@@ -1,0 +1,309 @@
+<!-- src/apps/workspace/domains/DomainVerify.vue -->
+
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+  import DnsWidget from '@/apps/workspace/components/domains/DnsWidget.vue';
+  import DomainHeader from '@/apps/workspace/components/dashboard/DomainHeader.vue';
+  import DomainVerificationInfo from '@/apps/workspace/components/domains/DomainVerificationInfo.vue';
+  import MoreInfoText from '@/shared/components/ui/MoreInfoText.vue';
+  import { loggingService } from '@/services/logging.service';
+  import VerifyDomainDetails from '@/apps/workspace/components/domains/VerifyDomainDetails.vue';
+  import { useDomainsManager } from '@/shared/composables/useDomainsManager';
+  import { useDomain } from '@/shared/composables/useDomain';
+  import { useDomainDnsRecord } from '@/shared/composables/useDomainDnsRecord';
+  import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+  import { isDomainOwnershipChecked, isDomainOwnershipCheckedOf } from '@/utils/features';
+  import { CustomDomainProxy, type CustomDomainResponse } from '@/schemas/api/v3/responses/domains';
+  import { storeToRefs } from 'pinia';
+  import { computed, onMounted, ref } from 'vue';
+  import { useRouter } from 'vue-router';
+
+  const { t } = useI18n(); // auto-import
+  const router = useRouter();
+
+  // Issue 2 fix: Use defineProps like other domain pages
+  const props = defineProps<{
+    extid: string;
+    orgid: string;
+  }>();
+
+  // Issue 1 fix: Use useDomain composable like other pages
+  const {
+    domain,
+    details,
+    initialize: initializeDomain,
+  } = useDomain(props.extid);
+
+  // Keep useDomainsManager for verifyDomain (used by triggerVerification)
+  const { verifyDomain } = useDomainsManager();
+
+  const handleBack = () => {
+    router.push(`/org/${props.orgid}/domains/${props.extid}`);
+  };
+  const bootstrapStore = useBootstrapStore();
+  const { cust } = storeToRefs(bootstrapStore);
+
+  // Feature flag: DNS widget UI (disabled by default for launch)
+  const isDnsWidgetEnabled = computed(() => cust.value?.feature_flags?.dns_widget ?? false);
+
+  // Cluster data comes from details (useDomain returns it)
+  const cluster = computed<CustomDomainProxy | null>(() => details.value?.cluster ?? null);
+  const allowVerifyCTA = ref(true);
+  const verificationInProgress = ref(false);
+  const lastVerificationTime = ref<number>(0);
+
+  // Rate limit: minimum 10 seconds between verification attempts
+  const VERIFICATION_COOLDOWN_MS = 10000;
+
+  const fetchDomain = async (): Promise<void> => {
+    await initializeDomain();
+    // allowVerifyCTA is computed from canVerify in useDomain, but we keep a local ref
+    // for compatibility with existing template bindings
+  };
+
+  const handleDomainVerify = async (data: CustomDomainResponse) => {
+    loggingService.debug('Domain verified: refreshing domain info', { data });
+    await fetchDomain();
+  };
+
+  // Where the address record points, and whether that is Approximated's proxy.
+  // This screen serves every strategy that checks ownership (approximated and
+  // caddy_on_demand; see isDomainOwnershipChecked and the route guard). The TXT
+  // record and the verify action are common to them. The proxy targets and the
+  // DNS widget are Approximated-only.
+  const {
+    kind: addressRecordKind,
+    recordTarget: dnsTargetAddress,
+    usesApproximatedProxy,
+  } = useDomainDnsRecord(domain, cluster);
+
+  // DNS Widget configuration
+  // Show widget only when:
+  // 1. Feature flag is enabled (dns_widget)
+  // 2. Domain exists and has not been checked yet
+  // 3. The install uses the Approximated proxy (the widget is Approximated's)
+  const showDnsWidget = computed(
+    () =>
+      isDnsWidgetEnabled.value &&
+      domain.value &&
+      !domain.value.vhost?.last_monitored_unix &&
+      usesApproximatedProxy.value
+  );
+
+  // Show the written DNS instructions when the domain points at this install
+  // rather than at the Approximated proxy
+  const showManualInstructions = computed(
+    () => domain.value && !domain.value.vhost?.last_monitored_unix && !usesApproximatedProxy.value
+  );
+
+  // Whether the install checks ownership (the TXT record), taken from the
+  // cluster of the response being rendered, otherwise from the bootstrap
+  // snapshot. Same rule as useDomainDnsRecord.
+  const checksOwnership = computed(() => {
+    const c = cluster.value;
+    return c ? isDomainOwnershipCheckedOf({ domains: c }) : isDomainOwnershipChecked();
+  });
+
+  // Run the first check from this page. A domain that has never been checked
+  // (no last_monitored_unix) gets one on mount under every strategy that
+  // checks ownership, so a customer who has just added a domain sees a
+  // status without clicking Verify. Scheduling that check from the add page
+  // did not work: the composable there is disposed when the add page
+  // unmounts on navigation, which cleared its timer.
+  const runsFirstCheckOnMount = computed(
+    () => !!domain.value && !domain.value.vhost?.last_monitored_unix && checksOwnership.value
+  );
+
+  // Check if enough time has passed since last verification
+  const canVerify = (): boolean => {
+    const now = Date.now();
+    return now - lastVerificationTime.value >= VERIFICATION_COOLDOWN_MS;
+  };
+
+  // Trigger backend verification (called on mount and widget success)
+  // Errors are handled via global notifications by useDomainsManager.wrap().
+  // The toast for a completed call is chosen there too, from the TXT outcome
+  // in the response (see domainVerifyNotice): "could not tell" and "record not
+  // found" do not read as a success.
+  const triggerVerification = async () => {
+    // Guard: no domain, already in progress, or rate limited
+    if (!domain.value || verificationInProgress.value || !canVerify()) {
+      return;
+    }
+
+    verificationInProgress.value = true;
+    lastVerificationTime.value = Date.now();
+
+    const result = await verifyDomain(domain.value.extid);
+    if (result) {
+      await fetchDomain();
+    }
+
+    verificationInProgress.value = false;
+  };
+
+  const handleDnsRecordsVerified = async () => {
+    loggingService.debug('DNS records verified via widget, triggering backend verification');
+    await triggerVerification();
+  };
+
+  // On mount: fetch the domain, then run the first check if it has not had one
+  // (see runsFirstCheckOnMount). The DNS widget path is a subset of that.
+  onMounted(async () => {
+    try {
+      await fetchDomain();
+      if (runsFirstCheckOnMount.value) {
+        await triggerVerification();
+      }
+    } catch (err: unknown) {
+      // Errors from fetchDomain are handled by useDomainsManager
+      // This catch is a safety net for any unexpected errors
+      console.error('Failed to initialize domain verification:', err);
+    }
+  });
+</script>
+
+<template>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Header Section. Back folded into the header row (opt-in affordance),
+         so there's no separate Back row above it. -->
+    <div class="sticky top-0 z-30">
+      <DomainHeader
+        :domain="domain"
+        :has-unsaved-changes="false"
+        :orgid="props.orgid"
+        external-path="/"
+        back-visible
+        @back="handleBack" />
+    </div>
+
+    <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-white">
+      {{ t('web.domains.verify_your_domain') }}
+    </h2>
+
+    <DomainVerificationInfo
+      v-if="domain && domain.vhost?.last_monitored_unix"
+      :domain="domain"
+      mode="table" />
+    <p
+      v-else-if="domain"
+      class="mb-6 text-lg text-gray-600 dark:text-gray-300">
+      {{ t('web.domains.before_we_can_activate_links_for') }}
+      <span class="bg-white text-brand-600 dark:bg-gray-800 dark:text-brand-400">{{
+        domain.display_domain
+      }}</span>
+      {{ t('web.domains.youll_need_to_complete_these_steps') }}
+    </p>
+
+    <MoreInfoText
+      v-if="showManualInstructions"
+      text-color="text-brandcomp-800 dark:text-gray-100"
+      bg-color="bg-white dark:bg-gray-800">
+      <div class="prose max-w-none">
+        <div class="text-base text-gray-600 dark:text-gray-300">
+          <p>
+            {{ t('web.domains.in_order_to_connect_your_domain_youll_need_to_ha') }}
+            <span
+              class="bg-white px-2 font-bold text-brand-600 dark:bg-gray-800 dark:text-brand-400">{{ domain?.display_domain }}</span>
+            at
+            <span
+              data-testid="manual-dns-target"
+              class="bg-white px-2 dark:bg-gray-800">{{ dnsTargetAddress }}</span>{{ t('web.domains.if_you_already_have_a_cname_record_for_that_addr') }}
+            <span
+              class="bg-white px-2 dark:bg-gray-800">{{ dnsTargetAddress }}</span>
+            {{ t('web.domains.and_remove_any_other_a_aaaa_or_cname_records_for') }}
+          </p>
+          <!-- Disclaimer for apex domains. Pointing at this install by name
+               needs ALIAS/ANAME; pointing at the Approximated proxy uses an A
+               record to its IP. -->
+          <p
+            v-if="addressRecordKind === 'alias'"
+            class="border-l-4 border-yellow-500 bg-yellow-100 p-4 text-yellow-700">
+            <strong>{{ t('web.COMMON.important') }}:</strong> {{ t('web.domains.dns.apex_notice') }}
+          </p>
+          <p
+            v-else-if="addressRecordKind === 'a'"
+            class="border-l-4 border-yellow-500 bg-yellow-100 p-4 text-yellow-700">
+            <strong>{{ t('web.COMMON.important') }}:</strong> {{ t('web.domains.please_note_that_for_apex_domains') }}
+            <span
+              class="bg-white px-2 font-bold text-brand-600 dark:bg-gray-800 dark:text-brand-400">{{ domain?.display_domain }}</span>{{ t('web.domains.a_cname_record_is_not_allowed_instead_youll_need') }}
+          </p>
+        </div>
+        <div class="mt-4 text-sm">
+          <a
+            href="#"
+            class="font-medium text-brandcomp-600 hover:text-brandcomp-500 dark:text-brandcomp-400 dark:hover:text-brandcomp-300">
+            <!-- {{ t('web.domains.learn_more_dns') }} <span aria-hidden="true">&rarr;</span> -->
+          </a>
+        </div>
+      </div>
+    </MoreInfoText>
+
+    <!-- DNS Widget for automated DNS configuration -->
+    <div
+      v-if="showDnsWidget"
+      class="my-8 rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
+      <h2 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
+        {{ t('web.domains.configure_dns_records') }}
+      </h2>
+      <p class="mb-4 text-gray-600 dark:text-gray-400">
+        {{ t('web.domains.dns_widget_description') }}
+      </p>
+      <DnsWidget
+        :domain="domain!.display_domain"
+        :target-address="dnsTargetAddress"
+        :is-apex="domain?.is_apex"
+        :txt-validation-host="domain?.txt_validation_host"
+        :txt-validation-value="domain?.txt_validation_value"
+        @records-verified="handleDnsRecordsVerified" />
+
+      <!-- Manual verification button and error display -->
+      <div class="mt-6 flex items-center gap-4">
+        <button
+          type="button"
+          data-testid="verify-domain-button"
+          :disabled="verificationInProgress"
+          :aria-busy="verificationInProgress"
+          class="inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-brand-500 dark:hover:bg-brand-600"
+          @click="triggerVerification">
+          <svg
+            v-if="verificationInProgress"
+            class="-ml-1 mr-2 h-4 w-4 animate-spin motion-reduce:animate-none"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24">
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4" />
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          {{ verificationInProgress ? t('web.COMMON.processing') : t('web.domains.verify_domain') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Written verification steps: the TXT record, the address record and the
+         verify action. Shown whenever the Approximated DNS widget is not. -->
+    <VerifyDomainDetails
+      v-if="domain && !showDnsWidget"
+      :domain="domain"
+      :cluster="cluster"
+      :with-verify-c-t-a="allowVerifyCTA"
+      @domain-verify="handleDomainVerify" />
+    <p
+      v-if="!domain"
+      class="text-gray-600 dark:text-gray-400">
+      {{ t('web.domains.loading_domain_information') }}
+    </p>
+    </div>
+  </div>
+</template>

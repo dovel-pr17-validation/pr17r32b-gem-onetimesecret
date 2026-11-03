@@ -1,0 +1,38 @@
+{
+  "web.dashboard.title_received": {
+    "text": "Отримано",
+    "source_hash": "49f19bee"
+  },
+  "web.dashboard.title_not_received": {
+    "text": "Не отримано",
+    "source_hash": "a4cf12ca"
+  },
+  "web.dashboard.title_no_recent_secrets": {
+    "text": "Немає нещодавніх таємниць",
+    "source_hash": "02b7b86b"
+  },
+  "web.dashboard.get_started_by_creating_your_first_secret": {
+    "text": "Почніть зі створення Вашої першої таємниці.",
+    "source_hash": "e96db24d"
+  },
+  "web.dashboard.fetch_error_title": {
+    "text": "Не вдалося завантажити дані",
+    "source_hash": "ba7df1be"
+  },
+  "web.dashboard.fetch_error_description": {
+    "text": "Виникла проблема із завантаженням Ваших даних. Будь ласка, спробуйте ще раз.",
+    "source_hash": "ff0d904e"
+  },
+  "web.teams.create_first_team_title": {
+    "text": "Створіть Вашу першу команду",
+    "source_hash": "54693f14"
+  },
+  "web.teams.create_first_team_description": {
+    "text": "Команди дозволяють Вам співпрацювати з іншими у спільній робочій області.",
+    "source_hash": "d61b86b5"
+  },
+  "web.teams.create_team": {
+    "text": "Створити команду",
+    "source_hash": "284ff194"
+  }
+}

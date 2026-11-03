@@ -1,0 +1,411 @@
+// e2e/playwright.config.ts
+
+import { defineConfig, devices } from '@playwright/test';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Default local server URL (Ruby backend with built assets)
+const DEFAULT_LOCAL_URL = 'http://localhost:7143';
+
+// Hosts that resolve to this machine: loopback, *.localhost, and the local
+// Caddy dev host. A server there was started from a developer's shell, so it
+// may carry DIAGNOSTICS_ENABLED=true and a real SENTRY_DSN.
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', 'dev.onetime.dev']);
+function isLocalUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return LOCAL_HOSTNAMES.has(hostname) || hostname.endsWith('.localhost');
+  } catch {
+    return false;
+  }
+}
+
+// The diagnostics guard runs for every local target: the server Playwright
+// spawns or reuses (no PLAYWRIGHT_BASE_URL) and a local server named by
+// PLAYWRIGHT_BASE_URL. Remote targets (staging, smoke) may run with
+// diagnostics on legitimately, so they are not checked.
+const guardDiagnostics =
+  !process.env.PLAYWRIGHT_BASE_URL || isLocalUrl(process.env.PLAYWRIGHT_BASE_URL);
+
+// Directory containing this config file. package.json is `"type": "module"`,
+// so the config loads as ESM and `__dirname` is unavailable.
+const CONFIG_DIR = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Remote/sandboxed dev environments (e.g. Claude Code on the web) preinstall
+ * Chromium at a fixed path baked into the container image, which can lag
+ * behind the revision this @playwright/test version expects — the default
+ * resolution then tries to download, which these environments block. Point
+ * at the preinstalled binary directly when present; everywhere else (real
+ * CI, local dev) this path doesn't exist and Playwright's normal
+ * resolution applies unchanged.
+ */
+const SANDBOX_CHROMIUM = '/opt/pw-browsers/chromium';
+const sandboxLaunchOptions = existsSync(SANDBOX_CHROMIUM)
+  ? { executablePath: SANDBOX_CHROMIUM }
+  : {};
+
+/**
+ * Sandbox/local escape hatch for the a11y suite: when A11Y_CHROME_PATH is
+ * set (e.g. to a pre-installed Chromium in an egress-blocked sandbox),
+ * launch that binary instead of Playwright's managed download. Unset in
+ * real CI, where `playwright install chromium` provisions the pinned
+ * build — CI then falls through to the sandbox detection above (a no-op
+ * there) and uses the default browser.
+ *
+ * Merged into ONE object because an object literal may define
+ * `launchOptions` only once — a second key silently wins and turns the
+ * first into dead code (which is exactly what happened to the sandbox
+ * path before this merge). Explicit A11Y_CHROME_PATH wins over the
+ * baked-in sandbox path.
+ */
+const chromiumLaunchOptions = {
+  ...sandboxLaunchOptions,
+  ...(process.env.A11Y_CHROME_PATH ? { executablePath: process.env.A11Y_CHROME_PATH } : {}),
+};
+
+/**
+ * Visual regression lane (e2e/visual/): branded fixtures live on
+ * *.example.com and the canonical host on *.example.org — distinct
+ * registrable domains on purpose, so the branded hosts classify :custom
+ * rather than same-domain :canonical peers. Chromium resolves both
+ * wildcards to VISUAL_RESOLVER_TARGET (127.0.0.1 locally; bin/visual
+ * points it at the container host for podman) so no /etc/hosts edits are
+ * needed. Spread chromiumLaunchOptions first: a project-level
+ * `use.launchOptions` replaces the shared one wholesale (per-property
+ * shallow override), it does not merge.
+ */
+const visualResolverTarget = process.env.VISUAL_RESOLVER_TARGET || '127.0.0.1';
+const visualLaunchOptions = {
+  ...chromiumLaunchOptions,
+  args: [
+    `--host-resolver-rules=MAP *.example.com ${visualResolverTarget}, MAP *.example.org ${visualResolverTarget}`,
+  ],
+};
+
+// The tenant-connect system project uses the same synthetic host families as
+// the visual lane, but runs against an explicitly armed full-auth test process.
+const tenantConnectLaunchOptions = visualLaunchOptions;
+const tenantConnectArmed = process.env.E2E_TENANT_CONNECT_ARMED === '1';
+
+/**
+ * Snapshot redirection for the archive/compare modes (bin/visual --archive /
+ * --compare). When VISUAL_SNAPSHOT_DIR is set, the visual projects read and
+ * write snapshots under that directory instead of the committed
+ * e2e/visual/*.spec.ts-snapshots/ baselines. The template preserves the
+ * per-spec-file layout and the default {arg}{-projectName}{-platform} naming,
+ * so an archived set is directory-diffable 1:1 against the committed
+ * baselines. bin/visual always passes an absolute (in-container) path; a
+ * relative value would resolve against this config's directory.
+ */
+const visualSnapshotOverride = process.env.VISUAL_SNAPSHOT_DIR
+  ? {
+      snapshotPathTemplate: `${process.env.VISUAL_SNAPSHOT_DIR}/{testFileName}-snapshots/{arg}{-projectName}{-platform}{ext}`,
+    }
+  : {};
+
+/**
+ * Authenticated session produced by global.setup.ts and consumed by the
+ * `full` / `full-billing` projects via `storageState`. Absolute on purpose
+ * so writer (setup script) and readers (project `use` blocks) agree on one
+ * location regardless of cwd — Playwright path resolution is inconsistent
+ * (e.g. the blob reporter below resolves against cwd, not the config dir).
+ * The .auth/ directory is gitignored.
+ */
+export const STORAGE_STATE = path.join(CONFIG_DIR, '.auth', 'user.json');
+
+/**
+ * Playwright configuration for E2E integration testing
+ *
+ * Usage:
+ *   # Auto-start local server (requires `pnpm run build` first)
+ *   pnpm playwright test --config=e2e/playwright.config.ts
+ *
+ *   # Test against external URL (skips local server)
+ *   PLAYWRIGHT_BASE_URL=http://localhost:7143 pnpm test:playwright
+ */
+export default defineConfig({
+  // Test directory relative to this config file
+  testDir: './',
+
+  // Look for test files in current directory and subdirectories
+  testMatch: ['**/*.spec.ts'],
+
+  /* Run tests in files in parallel */
+  fullyParallel: false, // Disabled for integration testing to avoid resource conflicts
+
+  /* Fail the build on CI if you accidentally left test.only in the source code. */
+  forbidOnly: !!process.env.CI,
+
+  /* Retry on CI only */
+  retries: process.env.CI ? 2 : 0,
+
+  /* Opt out of parallel tests on CI. */
+  workers: process.env.CI ? 1 : undefined,
+
+  /* Reporter to use.
+   *
+   * Environment-aware so nothing needs a `--reporter` CLI override (a CLI
+   * override *replaces* this whole array — that's how CI lost its HTML
+   * report; see e2e/docs/e2e-remediation-plan.md, Phase 1).
+   *
+   * CI additionally emits:
+   *  - json → test-results/results.json, parsed by the workflow's flaky
+   *    gate (a "passed only on retry" outcome fails the job)
+   *  - blob → blob-report/, mergeable across future CI shards
+   */
+  reporter: process.env.CI
+    ? [
+        ['list'], // Terminal output (CI logs)
+        ['github'], // GitHub Actions annotations
+        ['html', { outputFolder: 'playwright-report', open: 'never' }],
+        ['json', { outputFile: 'test-results/results.json' }],
+        // Unlike the other reporters, blob's default outputDir resolves
+        // against process.cwd(), not this config's directory - pin it.
+        ['blob', { outputDir: 'blob-report' }],
+      ]
+    : [
+        ['html', { outputFolder: 'playwright-report', open: 'never' }],
+        ['line'], // Terminal output
+      ],
+
+  /* Shared settings for all the projects below. */
+  use: {
+    /* Base URL - uses PLAYWRIGHT_BASE_URL if set, otherwise defaults to local server */
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || DEFAULT_LOCAL_URL,
+
+    /* Sandbox executablePath + A11Y_CHROME_PATH override, merged in ONE
+     * expression — see chromiumLaunchOptions above. No-op outside
+     * preinstalled-browser sandboxes. */
+    launchOptions: chromiumLaunchOptions,
+
+    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    trace: 'on-first-retry',
+
+    /* Screenshot on failure */
+    screenshot: 'only-on-failure',
+
+    /* Video recording */
+    video: 'retain-on-failure',
+
+    /* Ignore HTTPS errors */
+    ignoreHTTPSErrors: false,
+
+    /* Global timeout for each action (e.g., click, fill) */
+    actionTimeout: 5000,
+
+    /* Global timeout for navigation actions */
+    navigationTimeout: 15000,
+  },
+
+  /* Configure projects.
+   *
+   * Auth model (e2e/docs/e2e-remediation-plan.md, Phase 2.1):
+   *  - `setup` registers/signs in the TEST_USER_* account once via the real
+   *    signup + signin UI and saves the session to STORAGE_STATE.
+   *  - `full` and `full-billing` depend on `setup` and start every test
+   *    already authenticated via storageState.
+   *  - `chromium` (all/ + auth/ suites) stays credential-free: no
+   *    dependency on `setup`, no storageState.
+   *
+   * CLI path filters (e.g. `pnpm test:playwright e2e/all e2e/full`) select
+   * which suites run; Playwright always runs dependency projects in full, so
+   * `setup` only executes when a dependent project has matching tests.
+   */
+  projects: [
+    {
+      name: 'setup',
+      // Overrides the top-level testMatch (which only matches *.spec.ts)
+      testMatch: 'global.setup.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Extra time for container responses
+        actionTimeout: 30000,
+      },
+    },
+
+    {
+      // Credential-free suites: all/ (runs in CI) and auth/ (unauthenticated
+      // signup/SSO-CSRF flows). Keep the historical project name so existing
+      // `--project=chromium` invocations keep working. i18n/ has its own
+      // project below.
+      name: 'chromium',
+      testIgnore: ['full/**', 'full-billing/**', 'i18n/**', 'system/**', 'visual/**'],
+      use: {
+        ...devices['Desktop Chrome'],
+        // Extra time for container responses
+        actionTimeout: 30000,
+      },
+    },
+
+    {
+      // Locale loading (i18n/). Credential-free like `chromium`, so no
+      // `setup` dependency and no storageState, but the target must run with
+      // I18N_ENABLED=true, which is off by default: each test asserts that
+      // first. CI runs it in the `i18n` lane of .github/workflows/e2e.yml.
+      name: 'i18n',
+      testMatch: 'i18n/**/*.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Extra time for container responses
+        actionTimeout: 30000,
+      },
+    },
+
+    {
+      // Authenticated suite; requires TEST_USER_EMAIL / TEST_USER_PASSWORD.
+      name: 'full',
+      testMatch: 'full/**/*.spec.ts',
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+        actionTimeout: 30000,
+        storageState: STORAGE_STATE,
+      },
+    },
+
+    {
+      // Authenticated suite + billing enabled on the target server.
+      name: 'full-billing',
+      testMatch: 'full-billing/**/*.spec.ts',
+      dependencies: ['setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+        actionTimeout: 30000,
+        storageState: STORAGE_STATE,
+      },
+    },
+
+    ...(tenantConnectArmed
+      ? [
+          {
+            // Security acceptance journey for tenant Connect. This project has
+            // no setup dependency or shared storageState: both users establish
+            // host-only sessions on the custom host under test.
+            name: 'tenant-connect',
+            testMatch: 'system/**/*.spec.ts',
+            use: {
+              ...devices['Desktop Chrome'],
+              actionTimeout: 30000,
+              baseURL: process.env.E2E_TENANT_CONNECT_ORIGIN || DEFAULT_LOCAL_URL,
+              launchOptions: tenantConnectLaunchOptions,
+            },
+          },
+        ]
+      : []),
+
+    /* Visual regression lane (e2e/visual/). Noauth pages only: no `setup`
+     * dependency, no storageState. Explicit viewports with
+     * deviceScaleFactor 1 — device presets ship DSF 3, which would triple
+     * baseline PNG pixel dimensions. The project name lands in the default
+     * snapshot filename, keeping desktop and mobile baselines distinct
+     * without a snapshotPathTemplate. */
+    {
+      name: 'visual-desktop',
+      testMatch: 'visual/**/*.spec.ts',
+      ...visualSnapshotOverride,
+      expect: {
+        toHaveScreenshot: { maxDiffPixels: 100 },
+      },
+      use: {
+        viewport: { width: 1280, height: 800 },
+        deviceScaleFactor: 1,
+        reducedMotion: 'reduce',
+        // Extra time for container responses
+        actionTimeout: 30000,
+        launchOptions: visualLaunchOptions,
+      },
+    },
+
+    {
+      name: 'visual-mobile',
+      testMatch: 'visual/**/*.spec.ts',
+      ...visualSnapshotOverride,
+      // Cells baselined at desktop only (secret--passphrase,
+      // receipt--viewed, receipt--burned) are tagged @desktop-only;
+      // excluding them here keeps `--list` exact instead of runtime-skipping.
+      grepInvert: /@desktop-only/,
+      expect: {
+        toHaveScreenshot: { maxDiffPixels: 100 },
+      },
+      use: {
+        viewport: { width: 375, height: 812 },
+        deviceScaleFactor: 1,
+        reducedMotion: 'reduce',
+        // Extra time for container responses
+        actionTimeout: 30000,
+        launchOptions: visualLaunchOptions,
+      },
+    },
+
+    // Optionally add more browsers for comprehensive testing
+    // Uncomment if needed for broader browser coverage
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
+  ],
+
+  /* Timeout for entire test suite */
+  timeout: 60000,
+
+  /* Global timeout for one Playwright invocation.
+   *
+   * Container E2E (.github/workflows/e2e.yml) runs each suite as its own
+   * matrix lane, one invocation on a single serial worker per lane:
+   * e2e/all/ (~70 tests, simple auth mode), e2e/i18n/ (a handful, simple
+   * auth mode with i18n on) and e2e/full/ (~300 tests incl.
+   * setup, full auth mode; about 160 run, the rest are quarantined or
+   * env-gated, ~3 min locally). The full lane sizes this budget: the old
+   * 10-minute budget aborted runs at exactly 10.0m with hundreds of tests
+   * reported "did not run" (observed on #3414/#3416 CI). Keep this under
+   * each lane job's timeout-minutes (30) minus ~4-5 min of image
+   * build/setup overhead. Shrinking this again is a Phase 3 goal
+   * (fullyParallel + more workers), not a budget to win back by hiding
+   * tests. */
+  globalTimeout: 20 * 60 * 1000, // 20 minutes
+
+  /* Expect timeout for assertions */
+  expect: {
+    timeout: 5000,
+  },
+
+  /* Output directory for test artifacts */
+  outputDir: 'test-results/',
+
+  /* Local targets only: fail fast when the local server (spawned, reused,
+   * or named by PLAYWRIGHT_BASE_URL) has diagnostics on. See
+   * support/diagnostics-guard.ts. */
+  globalSetup: guardDiagnostics ? './support/diagnostics-guard.ts' : undefined,
+
+  /* Auto-start Ruby server when no external URL is provided.
+   * Requires `pnpm run build` first to generate frontend assets.
+   * Set PLAYWRIGHT_BASE_URL to skip auto-start and test against external server. */
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined // External URL provided - don't start local server
+    : {
+        command: 'RACK_ENV=production bin/ots server',
+        cwd: '../', // Project root relative to this config
+        /* The server inherits this shell's environment, and a developer's
+         * shell exports DIAGNOSTICS_ENABLED=true with a real SENTRY_DSN for
+         * their dev server. The e2e run provokes errors on purpose; without
+         * this they were reported to the production Sentry project. Playwright
+         * merges `env` over process.env, so this wins over the shell.
+         * E2E_DIAGNOSTICS_ENABLED=true opts back in (e.g. to test the Sentry
+         * wiring itself against a scratch project). A REUSED server never sees
+         * this block; globalSetup (support/diagnostics-guard.ts) covers it. */
+        env: {
+          DIAGNOSTICS_ENABLED: process.env.E2E_DIAGNOSTICS_ENABLED === 'true' ? 'true' : 'false',
+        },
+        url: DEFAULT_LOCAL_URL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 30000,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      },
+});

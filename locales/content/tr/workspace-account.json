@@ -1,0 +1,726 @@
+{
+  "web.account.settings": {
+    "text": "Ayarlar",
+    "source_hash": "74a883a0"
+  },
+  "web.account.change_password": {
+    "text": "Parola Değiştir",
+    "source_hash": "a949f462"
+  },
+  "web.account.close_account": {
+    "text": "Hesabı Kapat",
+    "source_hash": "e1513814"
+  },
+  "web.account.verify_account": {
+    "text": "Hesabı Doğrula",
+    "source_hash": "2f3ea760"
+  },
+  "web.account.subscription_title": {
+    "text": "Abonelik",
+    "source_hash": "4999c6c6"
+  },
+  "web.account.manage_subscription": {
+    "text": "Aboneliği Yönet",
+    "source_hash": "cbc4ef92"
+  },
+  "web.account.customer_information": {
+    "text": "Müşteri Bilgileri",
+    "source_hash": "8258db6d"
+  },
+  "web.account.customer_since": {
+    "text": "Müşteri olma tarihi:",
+    "source_hash": "0b37cff3"
+  },
+  "web.account.email": {
+    "text": "E-posta:",
+    "source_hash": "17507dcf"
+  },
+  "web.account.region": {
+    "text": "Bölge",
+    "source_hash": "d3a008ef"
+  },
+  "web.account.account_balance": {
+    "text": "Bakiye:",
+    "source_hash": "e0351221"
+  },
+  "web.account.default_payment_method": {
+    "text": "Varsayılan Ödeme Yöntemi",
+    "source_hash": "c60f014b"
+  },
+  "web.account.card_ending": {
+    "text": "ile biten",
+    "source_hash": "0195bccf"
+  },
+  "web.account.subscriptions_title": {
+    "text": "Abonelikler",
+    "source_hash": "a151f2e9"
+  },
+  "web.account.quantity": {
+    "text": "Miktar:",
+    "source_hash": "d4b2cb96"
+  },
+  "web.account.next_billing_date": {
+    "text": "Sonraki fatura tarihi:",
+    "source_hash": "8e6f9cfe"
+  },
+  "web.account.changePassword.username": {
+    "text": "Kullanıcı Adı",
+    "source_hash": "e3b89e9d"
+  },
+  "web.account.changePassword.currentPassword": {
+    "text": "Mevcut Parola",
+    "source_hash": "8ac76099"
+  },
+  "web.account.changePassword.newPassword": {
+    "text": "Yeni Parola",
+    "source_hash": "7c451e0f"
+  },
+  "web.account.changePassword.confirmPassword": {
+    "text": "Onayla",
+    "source_hash": "eebdd24a"
+  },
+  "web.account.changePassword.updatePassword": {
+    "text": "Parolayı Güncelle",
+    "source_hash": "557be0da"
+  },
+  "web.account.changePassword.updating": {
+    "text": "Güncelleniyor...",
+    "source_hash": "0a4e0b71"
+  },
+  "web.account.timezone": {
+    "text": "Saat Dilimi",
+    "source_hash": "4ceca1d5"
+  },
+  "web.account.customer_id": {
+    "text": "Müşteri Kimliği",
+    "source_hash": "62566c64"
+  },
+  "web.account.account_id_customerid": {
+    "text": "Hesap Kimliği",
+    "source_hash": "919bb4cb"
+  },
+  "web.account.created_windowprops_cust_secrets_created_secrets": {
+    "text": "{1} tarihinden beri {0} mesaj oluşturuldu.",
+    "source_hash": "8cb99810"
+  },
+  "web.account.delete_account": {
+    "text": "Hesabı Sil",
+    "source_hash": "c031bf99"
+  },
+  "web.account.api_key": {
+    "text": "API Anahtarı",
+    "source_hash": "23189d55"
+  },
+  "web.account.account_type_windowprops_plan_options_name": {
+    "text": "Hesap türü: {0}",
+    "source_hash": "617bfe67"
+  },
+  "web.account.your_account": {
+    "text": "Hesabınız",
+    "source_hash": "89e60bfb"
+  },
+  "web.account.support_details": {
+    "text": "Destek Ayrıntıları",
+    "source_hash": "cbad8751"
+  },
+  "web.account.back_to_details": {
+    "text": "Ayrıntılara Geri Dön",
+    "source_hash": "f6f841b9"
+  },
+  "web.account.customer_id_cust_custid": {
+    "text": "Müşteri Kimliği: {0}",
+    "source_hash": "7e2d4201"
+  },
+  "web.account.token_generated": {
+    "text": "Token oluşturuldu.",
+    "source_hash": "05986d95"
+  },
+  "web.account.keep_this_token_secure_it_provides_full_access_t": {
+    "text": "Bu belirteci güvende tutun. API aracılığıyla gizli mesaj oluşturmak ve yönetmek için kullanılabilir.",
+    "source_hash": "a63cc8ec"
+  },
+  "web.account.confirm_with_your_password": {
+    "text": "Parolanızla onaylayın",
+    "source_hash": "ff2147fd"
+  },
+  "web.account.are_you_sure_you_want_to_permanently_delete_your": {
+    "text": "Hesabınızı kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+    "source_hash": "4fa3e4b8"
+  },
+  "web.account.confirm_account_deletion": {
+    "text": "Hesap Silme Onayı",
+    "source_hash": "bb3fc7e5"
+  },
+  "web.account.deleting_cust_custid": {
+    "text": "{0} siliniyor",
+    "source_hash": "81d21828"
+  },
+  "web.account.deleting_ellipsis": {
+    "text": "Siliniyor...",
+    "source_hash": "685ecb98"
+  },
+  "web.account.permanently_delete_account": {
+    "text": "Hesabı Kalıcı Olarak Sil",
+    "source_hash": "f894e42c"
+  },
+  "web.account.permanent_and_non_reversible": {
+    "text": "kalıcı ve geri alınamaz.",
+    "source_hash": "6121225e"
+  },
+  "web.account.deleting_your_account_is": {
+    "text": "Hesabınızı silmek",
+    "source_hash": "ec31577b"
+  },
+  "web.account.burn_them_before_continuing": {
+    "text": "devam etmeden önce onları yakın",
+    "source_hash": "f89a5794"
+  },
+  "web.account.any_secrets_you_wish_to_remove": {
+    "text": "Kaldırmak istediğiniz gizli mesajlar varsa,",
+    "source_hash": "b45e2dd5"
+  },
+  "web.account.secrets_will_remain_active_until_they_expire": {
+    "text": "Mesajlar süresi dolana kadar aktif kalacaktır.",
+    "source_hash": "ddb4e2b5"
+  },
+  "web.account.please_be_advised": {
+    "text": "Lütfen dikkat edin:",
+    "source_hash": "086020fd"
+  },
+  "web.account.account_deleted_successfully": {
+    "text": "Hesap başarıyla silindi.",
+    "source_hash": "afcfdd58"
+  },
+  "web.account.deactivate": {
+    "text": "Devre Dışı Bırak",
+    "source_hash": "fb1e6fa5"
+  },
+  "web.account.are_you_sure_you_want_to_deactivate_your_account": {
+    "text": "Hesabınızı devre dışı bırakmak istediğinizden emin misiniz? Tüm verileriniz sunucularımızdan sonsuza kadar kalıcı olarak kaldırılacaktır. Bu işlem geri alınamaz.",
+    "source_hash": "4940e20a"
+  },
+  "web.account.deactivate_account": {
+    "text": "Hesabı devre dışı bırak",
+    "source_hash": "5e31b73d"
+  },
+  "web.settings.title": {
+    "text": "Ayarlar",
+    "source_hash": "74a883a0"
+  },
+  "web.settings.description": {
+    "text": "Hesap ayarlarınızı ve tercihlerinizi yönetin",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.manage_your_account_settings_and_preferences": {
+    "text": "Hesap ayarlarınızı ve tercihlerinizi yönetin",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.back_to_dashboard": {
+    "text": "Kontrol Paneline Dön",
+    "source_hash": "97ba1d39"
+  },
+  "web.settings.sections.account": {
+    "text": "Hesap",
+    "source_hash": "7e1b0d56"
+  },
+  "web.settings.sections.billing": {
+    "text": "Faturalandırma",
+    "source_hash": "3ac8bbca"
+  },
+  "web.settings.sections.advanced": {
+    "text": "Gelişmiş",
+    "source_hash": "9f088dbe"
+  },
+  "web.settings.general": {
+    "text": "Genel",
+    "source_hash": "c910d474"
+  },
+  "web.settings.preferences": {
+    "text": "Tercihler",
+    "source_hash": "66962f72"
+  },
+  "web.settings.appearance": {
+    "text": "Görünüm",
+    "source_hash": "3907fa7f"
+  },
+  "web.settings.theme.title": {
+    "text": "Tema",
+    "source_hash": "efb52e71"
+  },
+  "web.settings.theme.description": {
+    "text": "Açık veya koyu tema seçin",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.theme.choose_light_or_dark_theme": {
+    "text": "Açık veya koyu tema seçin",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.language.title": {
+    "text": "Dil",
+    "source_hash": "a4fe6526"
+  },
+  "web.settings.language.description": {
+    "text": "Tercih ettiğiniz dili seçin",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.language.select_your_preferred_language": {
+    "text": "Tercih ettiğiniz dili seçin",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.security_settings_description": {
+    "text": "Kimlik doğrulama ve hesap güvenliğini yönetin",
+    "source_hash": "945109d1"
+  },
+  "web.settings.profile_settings_description": {
+    "text": "Hesap bilgilerinizi yönetin",
+    "source_hash": "4a23a29f"
+  },
+  "web.settings.profile.title": {
+    "text": "Profil",
+    "source_hash": "d696a35b"
+  },
+  "web.settings.profile.change_email": {
+    "text": "E-posta Değiştir",
+    "source_hash": "18c3f2d5"
+  },
+  "web.settings.profile.current_email": {
+    "text": "Mevcut E-posta",
+    "source_hash": "5f1cab64"
+  },
+  "web.settings.profile.current_password": {
+    "text": "Mevcut Parola",
+    "source_hash": "8ac76099"
+  },
+  "web.settings.profile.new_email": {
+    "text": "Yeni E-posta",
+    "source_hash": "5bafb4be"
+  },
+  "web.settings.profile.enter_password_to_confirm": {
+    "text": "Mevcut parolanızı girin",
+    "source_hash": "27814c03"
+  },
+  "web.settings.profile.password_required_for_security": {
+    "text": "Güvenlik amacıyla parolanız gereklidir",
+    "source_hash": "d18f62f2"
+  },
+  "web.settings.profile.verification_email_notice": {
+    "text": "Yeni adrese bir doğrulama e-postası gönderilecektir",
+    "source_hash": "575082a1"
+  },
+  "web.settings.profile.update_email": {
+    "text": "E-postayı Güncelle",
+    "source_hash": "6ec61b2e"
+  },
+  "web.settings.profile.change_email_description": {
+    "text": "Hesabınızla ilişkili e-posta adresini güncelleyin",
+    "source_hash": "636abb16"
+  },
+  "web.settings.profile.all_fields_required": {
+    "text": "Tüm alanlar zorunludur",
+    "source_hash": "04814271"
+  },
+  "web.settings.profile.invalid_email": {
+    "text": "Lütfen geçerli bir e-posta adresi girin",
+    "source_hash": "b00f7e3a"
+  },
+  "web.settings.profile.email_same_as_current": {
+    "text": "Yeni e-posta mevcut e-postadan farklı olmalıdır",
+    "source_hash": "f7cfed6e"
+  },
+  "web.settings.profile.email_change_success": {
+    "text": "Doğrulama e-postası gönderildi. Değişikliği tamamlamak için lütfen yeni gelen kutunuzu kontrol edin ve onay bağlantısına tıklayın.",
+    "source_hash": "45f0a4b5"
+  },
+  "web.settings.profile.email_change_error": {
+    "text": "E-posta güncellenemedi. Lütfen tekrar deneyin.",
+    "source_hash": "aeba6591"
+  },
+  "web.settings.sessions.title": {
+    "text": "Aktif Oturumlar",
+    "source_hash": "b58fa4e0"
+  },
+  "web.settings.sessions.description": {
+    "text": "Aktif oturumlarınızı yönetin",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.sessions.manage_active_sessions": {
+    "text": "Aktif oturumlarınızı yönetin",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.password.title": {
+    "text": "Parola",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.settings.password.description": {
+    "text": "Hesap parolanızı güncelleyin",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.password.update_account_password": {
+    "text": "Hesap parolanızı güncelleyin",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.delete_account.title": {
+    "text": "Hesabı Sil",
+    "source_hash": "c031bf99"
+  },
+  "web.settings.delete_account.description": {
+    "text": "Hesabınızı ve tüm verileri kalıcı olarak silin",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.delete_account.permanently_delete_your_account": {
+    "text": "Hesabınızı ve tüm verileri kalıcı olarak silin",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.security.security_score": {
+    "text": "Güvenlik Puanı",
+    "source_hash": "02d2f374"
+  },
+  "web.settings.security.score_description": {
+    "text": "Genel hesap güvenlik durumunuz",
+    "source_hash": "cf20935e"
+  },
+  "web.settings.security.excellent": {
+    "text": "Mükemmel",
+    "source_hash": "0dc8ee55"
+  },
+  "web.settings.security.good": {
+    "text": "İyi",
+    "source_hash": "c939327c"
+  },
+  "web.settings.security.fair": {
+    "text": "Orta",
+    "source_hash": "f7b19afc"
+  },
+  "web.settings.security.weak": {
+    "text": "Zayıf",
+    "source_hash": "8d6cea25"
+  },
+  "web.settings.security.improve_security": {
+    "text": "Güvenliğinizi iyileştirin",
+    "source_hash": "c38bcbf5"
+  },
+  "web.settings.security.enable_mfa_recommendation": {
+    "text": "Daha güçlü koruma için iki faktörlü kimlik doğrulamayı etkinleştirin",
+    "source_hash": "6beda528"
+  },
+  "web.settings.security.generate_recovery_codes_recommendation": {
+    "text": "Yedek olarak kurtarma kodları oluşturun",
+    "source_hash": "eb5f3ebd"
+  },
+  "web.settings.security.configured": {
+    "text": "Yapılandırıldı",
+    "source_hash": "84aebc69"
+  },
+  "web.settings.security.change": {
+    "text": "Değiştir",
+    "source_hash": "c0bf75bd"
+  },
+  "web.settings.security.manage": {
+    "text": "Yönet",
+    "source_hash": "5a234448"
+  },
+  "web.settings.security.enable": {
+    "text": "Etkinleştir",
+    "source_hash": "5342e09f"
+  },
+  "web.settings.security.codes_available": {
+    "text": "{0} kod mevcut",
+    "source_hash": "76d6236d"
+  },
+  "web.settings.security.no_codes": {
+    "text": "Kod oluşturulmadı",
+    "source_hash": "3b2eae20"
+  },
+  "web.settings.security.active_sessions": {
+    "text": "{0} aktif oturum | {0} aktif oturum",
+    "source_hash": "30737484"
+  },
+  "web.settings.security.best_practices": {
+    "text": "Güvenlik En İyi Uygulamaları",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.security.use_strong_unique_password": {
+    "text": "Hesabınız için güçlü, benzersiz bir parola kullanın",
+    "source_hash": "5fc8cbf4"
+  },
+  "web.settings.security.enable_mfa_for_protection": {
+    "text": "Ek koruma için iki faktörlü kimlik doğrulamayı etkinleştirin",
+    "source_hash": "107e4898"
+  },
+  "web.settings.security.save_recovery_codes_safely": {
+    "text": "Kurtarma kodlarınızı güvenli bir yerde saklayın",
+    "source_hash": "605513fc"
+  },
+  "web.settings.security.review_sessions_regularly": {
+    "text": "Kullanılmayan oturumları düzenli olarak inceleyin ve iptal edin",
+    "source_hash": "efe59445"
+  },
+  "web.settings.security.view_details": {
+    "text": "Ayrıntıları görüntüle",
+    "source_hash": "d1bf045b"
+  },
+  "web.settings.api.title": {
+    "text": "API ve Entegrasyonlar",
+    "source_hash": "21fc84f3"
+  },
+  "web.settings.api.description": {
+    "text": "API anahtarlarını ve entegrasyonları yönetin",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.manage_api_keys": {
+    "text": "API anahtarlarını ve entegrasyonları yönetin",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.documentation": {
+    "text": "API Belgeleri",
+    "source_hash": "1cc77e60"
+  },
+  "web.settings.api.documentation_description": {
+    "text": "{product_name} hizmetini uygulamalarınıza nasıl entegre edeceğinizi öğrenin",
+    "source_hash": "9bba1ae8"
+  },
+  "web.settings.api.rest_api_reference": {
+    "text": "REST API Referansı",
+    "source_hash": "26a5af61"
+  },
+  "web.settings.api.complete_api_documentation": {
+    "text": "Tam API belgeleri ve uç noktalar",
+    "source_hash": "c1c87ad8"
+  },
+  "web.settings.api.code_examples": {
+    "text": "Kod Örnekleri",
+    "source_hash": "216d28e4"
+  },
+  "web.settings.api.example_code_and_libraries": {
+    "text": "Örnek kod ve istemci kütüphaneleri",
+    "source_hash": "61c5956f"
+  },
+  "web.settings.api.security_best_practices": {
+    "text": "Güvenlik En İyi Uygulamaları",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.api.never_commit_api_keys": {
+    "text": "API anahtarlarını asla sürüm kontrolüne işlemeyin",
+    "source_hash": "cc8c327e"
+  },
+  "web.settings.api.use_environment_variables": {
+    "text": "API anahtarlarını saklamak için ortam değişkenleri kullanın",
+    "source_hash": "c05e8802"
+  },
+  "web.settings.api.rotate_keys_regularly": {
+    "text": "Güvenlik için API anahtarlarını düzenli olarak yenileyin",
+    "source_hash": "eda6a5db"
+  },
+  "web.settings.api.use_https_only": {
+    "text": "API istekleri yaparken her zaman HTTPS kullanın",
+    "source_hash": "b3f405ef"
+  },
+  "web.settings.api.monitor_api_usage": {
+    "text": "API kullanımınızı izleyin ve uyarılar ayarlayın",
+    "source_hash": "abb08beb"
+  },
+  "web.settings.api.important_notice": {
+    "text": "Önemli Uyarı",
+    "source_hash": "03d3ba93"
+  },
+  "web.settings.api.regenerating_key_warning": {
+    "text": "API anahtarınızı yeniden oluşturmak mevcut anahtarı geçersiz kılacaktır. Eski anahtarı kullanan tüm uygulamaları güncelleyin.",
+    "source_hash": "ab168f83"
+  },
+  "web.settings.privacy.title": {
+    "text": "Gizlilik Ayarları",
+    "source_hash": "eefad6ba"
+  },
+  "web.settings.privacy.manage_privacy_settings": {
+    "text": "Gizlilik tercihlerinizi yönetin",
+    "source_hash": "add087da"
+  },
+  "web.settings.privacy.your_privacy": {
+    "text": "Gizliliğiniz",
+    "source_hash": "cad972db"
+  },
+  "web.settings.privacy.non_negotiable": {
+    "text": "Pazarlık Edilemez",
+    "source_hash": "ad090a29"
+  },
+  "web.settings.privacy.not_a_setting": {
+    "text": "Bir ayar değil",
+    "source_hash": "41278ece"
+  },
+  "web.settings.privacy.no_analytics_statement": {
+    "text": "Analitik yok. İzleme yok. Nokta.",
+    "source_hash": "3e154b1c"
+  },
+  "web.settings.privacy.explanation": {
+    "text": "Bu bir ayar değil çünkü açılıp kapanacak bir şey yok. Gizliliğiniz çalışma şeklimizin bir parçası.",
+    "source_hash": "ed943792"
+  },
+  "web.settings.notifications.title": {
+    "text": "Bildirim Ayarları",
+    "source_hash": "07a063ca"
+  },
+  "web.settings.notifications.description": {
+    "text": "Bildirimleri nasıl alacağınızı yönetin",
+    "source_hash": "148c5ff6"
+  },
+  "web.settings.notifications.error_updating": {
+    "text": "Bildirim tercihi güncellenemedi. Lütfen tekrar deneyin.",
+    "source_hash": "c08abc04"
+  },
+  "web.settings.notifications.reveal_notifications.title": {
+    "text": "Gizli Mesaj Görüntüleme Bildirimleri",
+    "source_hash": "c0fb2e25"
+  },
+  "web.settings.notifications.reveal_notifications.description": {
+    "text": "Birisi gizli mesajınızı görüntülediğinde e-posta alın",
+    "source_hash": "a3a67095"
+  },
+  "web.settings.notifications.reveal_notifications.help": {
+    "text": "Bir alıcı gizli mesajlarınızdan birini görüntülediğinde her seferinde bilgilendirileceksiniz",
+    "source_hash": "ba93106d"
+  },
+  "web.settings.notifications.privacy_note": {
+    "text": "Bildirim e-postaları yalnızca zaman damgası ve gizli mesaj kimliğini içerir. Görüntüleyen bilgileri asla dahil edilmez.",
+    "source_hash": "7aac282f"
+  },
+  "web.settings.caution.title": {
+    "text": "Dikkatli Değerlendirme Alanı",
+    "source_hash": "fe27a3a8"
+  },
+  "web.settings.caution.description": {
+    "text": "Gelişmiş ayarlar ve veri yönetimi",
+    "source_hash": "223ee55d"
+  },
+  "web.settings.caution.data_export": {
+    "text": "Veri Dışa Aktarımı",
+    "source_hash": "bdcea052"
+  },
+  "web.settings.caution.export_your_data": {
+    "text": "Hesap verilerinizi dışa aktarın",
+    "source_hash": "dc5ffcb0"
+  },
+  "web.settings.caution.export_description": {
+    "text": "Hesap verilerinizin makine tarafından okunabilir formatta tam bir kopyasını talep edin",
+    "source_hash": "369c3391"
+  },
+  "web.settings.caution.request_data_export": {
+    "text": "Veri Dışa Aktarımı Talep Et",
+    "source_hash": "902394be"
+  },
+  "web.settings.caution.export_info": {
+    "text": "Dışa Aktarma İşlem Süresi",
+    "source_hash": "2ebb2d44"
+  },
+  "web.settings.caution.export_info_description": {
+    "text": "Dışa aktarımlar 24 saat içinde işlenir ve e-posta adresinize gönderilir",
+    "source_hash": "a2f81e3b"
+  },
+  "web.settings.caution.deletion_warning_title": {
+    "text": "Hesabınızı silmek şunlara neden olacaktır:",
+    "source_hash": "17a8a676"
+  },
+  "web.settings.caution.deletion_warning_secrets": {
+    "text": "Tüm gizli mesajlarınızı kalıcı olarak sil",
+    "source_hash": "974ccdb9"
+  },
+  "web.settings.caution.deletion_warning_metadata": {
+    "text": "Tüm gizli mesaj meta verilerini ve geçmişini kaldır",
+    "source_hash": "ec4ee372"
+  },
+  "web.settings.caution.deletion_warning_api_keys": {
+    "text": "Tüm API anahtarlarını geçersiz kıl",
+    "source_hash": "7581333b"
+  },
+  "web.settings.caution.deletion_warning_irreversible": {
+    "text": "Bu işlem geri alınamaz",
+    "source_hash": "02ccc074"
+  },
+  "web.settings.profile.confirm_email_change_title": {
+    "text": "E-posta Adresi Güncellendi",
+    "source_hash": "cf02eb0c"
+  },
+  "web.settings.profile.email_confirmed_success": {
+    "text": "E-postanız başarıyla güncellendi. Lütfen yeni e-posta adresinizle giriş yapın.",
+    "source_hash": "a84efcea"
+  },
+  "web.settings.profile.email_confirm_verifying": {
+    "text": "Yeni e-posta adresiniz doğrulanıyor...",
+    "source_hash": "a6a4745f"
+  },
+  "web.settings.profile.email_confirm_error_title": {
+    "text": "E-posta Değişikliği Başarısız",
+    "source_hash": "953f3936"
+  },
+  "web.settings.profile.email_confirm_invalid": {
+    "text": "Bu doğrulama bağlantısı geçersiz veya süresi dolmuş.",
+    "source_hash": "f54594c2"
+  },
+  "web.settings.profile.email_confirm_back_to_settings": {
+    "text": "Hesap Ayarlarına Dön",
+    "source_hash": "fd49b66b"
+  },
+  "web.settings.profile.redirecting_to_signin": {
+    "text": "Giriş sayfasına yönlendiriliyor...",
+    "source_hash": "c65f7dcc"
+  },
+  "web.settings.profile.resend_confirmation": {
+    "text": "Onay e-postasını yeniden gönder",
+    "source_hash": "c617fff7"
+  },
+  "web.settings.profile.resend_confirmation_success": {
+    "text": "Onay e-postası başarıyla yeniden gönderildi.",
+    "source_hash": "2287783b"
+  },
+  "web.settings.profile.resend_confirmation_sending": {
+    "text": "Gönderiliyor...",
+    "source_hash": "286a3af7"
+  },
+  "web.settings.profile.email_change_pending": {
+    "text": "Bir doğrulama e-postası gönderildi. Gelen kutunuzu kontrol edin ve onay bağlantısına tıklayın.",
+    "source_hash": "5806c93f"
+  },
+  "web.settings.profile.didnt_receive_email": {
+    "text": "E-postayı almadınız mı?",
+    "source_hash": "fe3ac3ad"
+  },
+  "web.settings.api.api_disabled_notice": {
+    "text": "Bu örnek için API devre dışı bırakılmıştır.",
+    "source_hash": "66d12d6b"
+  },
+  "web.settings.security.sso_managed_title": {
+    "text": "Güvenlik SSO tarafından yönetiliyor",
+    "source_hash": "1f6c9472"
+  },
+  "web.settings.security.sso_managed_description": {
+    "text": "Hesabınız, kuruluşunuzun tek oturum açma (SSO) sağlayıcısı aracılığıyla doğrulanır. Parola, çok faktörlü kimlik doğrulama ve kurtarma kodları kimlik sağlayıcınız tarafından yönetilir.",
+    "source_hash": "cd0cf39f"
+  },
+  "web.settings.api.api_username": {
+    "text": "API Kullanıcı Adı",
+    "source_hash": "0b3e483e"
+  },
+  "web.settings.api.api_username_description": {
+    "text": "HTTP Temel kimlik doğrulaması için kullanıcı adınız",
+    "source_hash": "f3e65de3"
+  },
+  "web.settings.api.basic_auth_hint": {
+    "text": "HTTP Temel kimlik doğrulaması için, kullanıcı adı olarak hesap e-postanızı veya bu kimliği, parola olarak API anahtarınızı kullanın.",
+    "source_hash": "cfa3806d"
+  },
+  "web.settings.security.set": {
+    "text": "Ayarlandı",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.settings.security.not_set": {
+    "text": "Ayarlanmadı",
+    "source_hash": "4895f731"
+  },
+  "web.settings.security.set_password_title": {
+    "text": "Parola belirle",
+    "source_hash": "4e411687"
+  },
+  "web.settings.security.set_password_description": {
+    "text": "Kimlik sağlayıcınız olmadan da oturum açabilmeniz için hesabınıza bir parola ekleyin",
+    "source_hash": "a6970402"
+  }
+}

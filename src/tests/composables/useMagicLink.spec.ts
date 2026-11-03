@@ -1,0 +1,195 @@
+// src/tests/composables/useMagicLink.spec.ts
+
+import { useMagicLink } from '@/shared/composables/useMagicLink';
+import { useCsrfStore } from '@/shared/stores/csrfStore';
+import { authenticatedBootstrap } from '@/tests/fixtures/bootstrap.fixture';
+import { toWire } from '@/tests/fixtures/bootstrap-wire';
+import { setupTestPinia, type TestPiniaSetup } from '@/tests/setup';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+// usePostAuthRedirect (reached via verifyMagicLink) reads route.query, so the
+// mock has to supply useRoute as well as useRouter.
+const mockRoute = { query: {} as Record<string, string> };
+const mockRouterPush = vi.fn();
+vi.mock('vue-router', () => ({
+  useRouter: () => ({
+    push: mockRouterPush,
+    // Every redirect in this file is a customer-app path: the router owns it.
+    resolve: () => ({ name: 'Matched' }),
+  }),
+  useRoute: () => mockRoute,
+}));
+
+describe('useMagicLink', () => {
+  let setup: TestPiniaSetup;
+  let csrfStore: ReturnType<typeof useCsrfStore>;
+
+  beforeEach(async () => {
+    setup = await setupTestPinia({ stubActions: false });
+    csrfStore = useCsrfStore();
+    csrfStore.shrimp = 'test-shrimp';
+  });
+
+  afterEach(() => {
+    setup.axiosMock?.reset();
+    vi.restoreAllMocks();
+  });
+
+  describe('requestMagicLink', () => {
+    it('returns true and sets sent on success', async () => {
+      setup.axiosMock?.onPost('/auth/email-login-request').reply(200, {
+        success: 'Link sent',
+      });
+
+      const { requestMagicLink, sent, error } = useMagicLink();
+      const result = await requestMagicLink('user@example.com');
+
+      expect(result).toBe(true);
+      expect(sent.value).toBe(true);
+      expect(error.value).toBeNull();
+    });
+
+    it('returns false and sets error on server error response', async () => {
+      setup.axiosMock?.onPost('/auth/email-login-request').reply(200, {
+        error: 'Account not found',
+        'field-error': ['login', 'Not found'],
+      });
+
+      const { requestMagicLink, sent, error, fieldError } = useMagicLink();
+      const result = await requestMagicLink('bad@example.com');
+
+      expect(result).toBe(false);
+      expect(sent.value).toBe(false);
+      expect(error.value).toBe('Account not found');
+      expect(fieldError.value).toEqual(['login', 'Not found']);
+    });
+
+    // A CSRF rejection is rack-protection's text/plain "Forbidden", not JSON
+    // (Rack::Protection::Base#deny); the token refresh happens in the Axios
+    // error interceptor, so the composable only has to post again.
+    it('retries transparently on a CSRF 403 and succeeds', async () => {
+      let callCount = 0;
+      setup.axiosMock?.onPost('/auth/email-login-request').reply(() => {
+        callCount++;
+        if (callCount === 1) {
+          return [403, 'Forbidden'];
+        }
+        return [200, { success: 'Link sent' }];
+      });
+
+      const { requestMagicLink, sent, error } = useMagicLink();
+      const result = await requestMagicLink('user@example.com');
+
+      expect(callCount).toBe(2);
+      expect(result).toBe(true);
+      expect(sent.value).toBe(true);
+      expect(error.value).toBeNull();
+    });
+
+    it('shows sessionExpired when the CSRF 403 retry also fails', async () => {
+      setup.axiosMock?.onPost('/auth/email-login-request').reply(403, 'Forbidden');
+
+      const { requestMagicLink, sent, error } = useMagicLink();
+      const result = await requestMagicLink('user@example.com');
+
+      expect(result).toBe(false);
+      expect(sent.value).toBe(false);
+      expect(error.value).toBe('web.auth.magicLink.sessionExpired');
+    });
+
+    // Rodauth's already_logged_in (apps/web/auth/config/base.rb) answers 403
+    // with a JSON error when the session signed in elsewhere while this page
+    // stayed open. That is the server's answer, not a stale token: show it,
+    // and do not post the request a second time.
+    it('shows the server message on a 403 that carries one, without retrying', async () => {
+      let callCount = 0;
+      setup.axiosMock?.onPost('/auth/email-login-request').reply(() => {
+        callCount++;
+        return [403, { error: 'Already logged in' }];
+      });
+
+      const { requestMagicLink, sent, error, fieldError } = useMagicLink();
+      const result = await requestMagicLink('user@example.com');
+
+      expect(callCount).toBe(1);
+      expect(result).toBe(false);
+      expect(sent.value).toBe(false);
+      expect(error.value).toBe('Already logged in');
+      expect(fieldError.value).toBeNull();
+    });
+
+    it('returns false with networkError on network failure', async () => {
+      setup.axiosMock?.onPost('/auth/email-login-request').networkError();
+
+      const { requestMagicLink, error } = useMagicLink();
+      const result = await requestMagicLink('user@example.com');
+
+      expect(result).toBe(false);
+      expect(error.value).toBe('web.auth.magicLink.networkError');
+    });
+
+    it('does not retry on non-403 HTTP errors', async () => {
+      let callCount = 0;
+      setup.axiosMock?.onPost('/auth/email-login-request').reply(() => {
+        callCount++;
+        return [500, { error: 'Internal Server Error' }];
+      });
+
+      const { requestMagicLink, error } = useMagicLink();
+      const result = await requestMagicLink('user@example.com');
+
+      expect(callCount).toBe(1);
+      expect(result).toBe(false);
+      expect(error.value).toBe('Internal Server Error');
+    });
+  });
+
+  /**
+   * A magic link is a PRIMARY factor: once it verifies, the session is live and
+   * the user should land where they were headed. This used to hard-push '/'.
+   */
+  describe('verifyMagicLink post-auth destination', () => {
+    beforeEach(() => {
+      mockRoute.query = {};
+      mockRouterPush.mockClear();
+      // ADR-046#auth-completion-caller-contract: post-#4464 the coordinator refuses a snapshot
+      // without cust (effectiveAuthStatus → 'unavailable'). ensureAuthenticated then returns
+      // 'status-mismatch' and verifyMagicLink refuses to navigate. Supply the
+      // canonical authenticated fixture (wire encoding) so the classifier
+      // sees a real identity.
+      setup.axiosMock?.onGet('/bootstrap/me').reply(200, toWire(authenticatedBootstrap));
+      setup.axiosMock?.onPost('/auth/email-login').reply(200, { success: 'Signed in' });
+    });
+
+    it('honours a validated ?redirect', async () => {
+      mockRoute.query = { redirect: '/secret/abc?view=raw#content' };
+
+      const { verifyMagicLink } = useMagicLink();
+      expect(await verifyMagicLink('key-123')).toBe(true);
+
+      expect(mockRouterPush).toHaveBeenCalledWith('/secret/abc?view=raw#content');
+    });
+
+    it('falls back to / when no redirect param is present', async () => {
+      const { verifyMagicLink } = useMagicLink();
+      expect(await verifyMagicLink('key-123')).toBe(true);
+
+      expect(mockRouterPush).toHaveBeenCalledWith('/');
+    });
+
+    it('drops an external redirect param and falls back to /', async () => {
+      mockRoute.query = { redirect: '//evil.example/phish' };
+
+      const { verifyMagicLink } = useMagicLink();
+      expect(await verifyMagicLink('key-123')).toBe(true);
+
+      expect(mockRouterPush).toHaveBeenCalledWith('/');
+    });
+  });
+});

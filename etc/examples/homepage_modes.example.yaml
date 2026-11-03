@@ -1,0 +1,138 @@
+# Homepage Mode Configuration Examples
+#
+# This file demonstrates different configuration patterns for the Homepage Mode feature.
+# The feature allows you to show different homepage experiences based on IP address
+# (CIDR ranges) or request headers.
+#
+# Copy and adapt these examples to your etc/config.yaml file.
+#
+# You can also configure via environment variables:
+#
+#   UI_HOMEPAGE_MODE=internal
+#   UI_HOMEPAGE_MATCHING_CIDRS="10.0.0.0/8,192.168.0.0/16"
+#   UI_HOMEPAGE_MODE_HEADER="O-Homepage-Mode"
+#
+# Client IP resolution for CIDR matching is handled globally by
+# site.network.trusted_proxy. Configure proxy depth and forwarding headers
+# there. Homepage mode no longer has its own trusted_proxy_depth /
+# trusted_ip_header settings.
+
+# =============================================================================
+# Example 1: Internal Mode for Office Networks
+# =============================================================================
+# Show full homepage with secret creation for users on trusted networks
+#
+# Use case: Employees and partners on known networks get full access
+#
+site:
+  interface:
+    ui:
+      homepage:
+        mode: internal
+        matching_cidrs:
+          - "10.0.0.0/8"         # Private network (Class A)
+          - "192.168.0.0/16"     # Local network (Class C)
+          - "203.0.113.0/24"     # Office public IP range (example)
+          - "198.51.100.0/24"    # Partner network (example)
+        mode_header: "O-Homepage-Mode"
+
+---
+# =============================================================================
+# Example 2: External Mode for Public Access
+# =============================================================================
+# Show restricted homepage without secret creation for external visitors
+#
+# Use case: Public internet users see information-only homepage
+#
+site:
+  interface:
+    ui:
+      homepage:
+        mode: external
+        matching_cidrs:
+          - "203.0.113.0/24"     # Specific external network to restrict
+        mode_header: "O-Homepage-Mode"
+
+---
+# =============================================================================
+# Example 3: IPv6 Networks
+# =============================================================================
+# Support IPv6 CIDR ranges alongside IPv4
+#
+site:
+  interface:
+    ui:
+      homepage:
+        mode: internal
+        matching_cidrs:
+          - "2001:db8::/48"      # IPv6 network
+          - "10.0.0.0/8"         # IPv4 network
+        mode_header: "O-Homepage-Mode"
+
+# =============================================================================
+# Mode Behavior Summary
+# =============================================================================
+#
+# internal mode:
+#   - Full homepage with secret creation form
+#   - All features enabled
+#   - Intended for trusted users/networks
+#
+# external mode:
+#   - Restricted homepage without secret creation
+#   - Information/marketing content only
+#   - Sign-in/sign-up options visible
+#   - Intended for public visitors
+#
+# no mode (nil):
+#   - Default homepage behavior
+#   - Based on authentication settings
+#
+#
+# =============================================================================
+# Detection Priority
+# =============================================================================
+#
+# 1. CIDR Matching (Primary)
+#    - Cannot be spoofed
+#    - Most secure method
+#    - Checked first
+#
+# 2. Request Header (Fallback)
+#    - Header: O-Homepage-Mode
+#    - Value must match configured mode
+#    - Only checked if CIDR doesn't match
+#
+#
+# =============================================================================
+# CIDR Precision
+# =============================================================================
+#
+# CIDR blocks are matched at full precision:
+#   - Any prefix length works, down to /32 (IPv4) and /128 (IPv6)
+#   - Matching uses Otto's verdict-only otto.ip_match check, which
+#     answers yes or no without handing the app the unmasked IP
+#   - Without the IP privacy middleware (embedded or bare-Rack use), only
+#     entries at /24 (IPv4) or /48 (IPv6) or broader are matched
+#   - Invalid CIDRs are logged and rejected
+#
+#
+# =============================================================================
+# Client IP Resolution (Reverse Proxies and CDNs)
+# =============================================================================
+#
+# Homepage CIDR matching compares against the client IP returned by
+# Rack::Request#ip. Behind a reverse proxy or CDN, configure how that IP
+# is resolved under site.network.trusted_proxy:
+#
+#   site:
+#     network:
+#       trusted_proxy:
+#         enabled: true
+#         mode: filter            # or 'depth' for position-based hops
+#         header: X-Forwarded-For  # or Forwarded, or Both
+#
+# See etc/defaults/config.defaults.yaml for the full trusted_proxy
+# reference. This single setting governs client IP resolution for every
+# IP-based feature, so homepage CIDR matching always agrees with ban
+# checks, session tracking, and audit logs.

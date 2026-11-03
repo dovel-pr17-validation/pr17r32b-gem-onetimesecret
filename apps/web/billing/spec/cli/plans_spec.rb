@@ -1,0 +1,294 @@
+# apps/web/billing/spec/cli/plans_spec.rb
+#
+# frozen_string_literal: true
+
+require_relative '../support/billing_spec_helper'
+require 'onetime/cli'
+require_relative '../../cli/plans_command'
+require_relative '../../operations/catalog/pull'
+
+RSpec.describe 'Billing Plans CLI Commands', :billing_cli, :integration, :vcr do
+  let(:stripe_client) { Billing::StripeClient.new }
+
+  # Data class for mocking plans (immutable, Ruby 3.2+)
+  #
+  # Provides the family-keyed Plan interface used by `format_plan_row`:
+  # `available_intervals`, `price_for(interval)`, and `all_stripe_price_ids`
+  # are derived from the single `interval`/`amount`/`stripe_price_id` triple
+  # so existing test data stays terse.
+  MockPlan = Data.define(
+    :plan_id, :tier, :interval, :amount, :currency, :region, :entitlements,
+    :stripe_product_id, :stripe_price_id,
+    :name, :tenancy, :display_order, :active
+  ) do
+    def initialize(name: 'Test Plan', tenancy: 'multi', display_order: '0', active: 'true', **)
+      super
+    end
+
+    def available_intervals
+      [interval.to_sym]
+    end
+
+    def price_for(requested_interval)
+      return nil unless requested_interval.to_sym == interval.to_sym
+
+      # String keys, like Billing::Plan#price_for (JSON-parsed prices_hash).
+      {
+        'stripe_price_id' => stripe_price_id,
+        'amount' => amount,
+        'currency' => currency,
+      }
+    end
+
+    def all_stripe_price_ids
+      [stripe_price_id].compact
+    end
+  end
+
+  describe Onetime::CLI::BillingPlansCommand do
+    subject(:command) { described_class.new }
+
+    # Sample plan data structure for mocking
+    let(:sample_plan) do
+      MockPlan.new(
+        plan_id: 'single_team_us',
+        tier: 'single_team',
+        interval: 'month',
+        amount: '2900',
+        currency: 'cad',
+        region: 'US',
+        entitlements: %w[api_access manage_teams],
+        stripe_product_id: 'prod_test123',
+        stripe_price_id: 'price_test123',
+      )
+    end
+
+    let(:sample_plan_eu) do
+      MockPlan.new(
+        plan_id: 'multi_team_eu',
+        tier: 'multi_team',
+        interval: 'year',
+        amount: '99900',
+        currency: 'eur',
+        region: 'EU',
+        entitlements: %w[api_access manage_teams custom_domains],
+        stripe_product_id: 'prod_eu456',
+        stripe_price_id: 'price_eu456',
+      )
+    end
+
+    describe '#call (list plans)' do
+      before do
+        allow(Billing::Plan).to receive(:list_plans).and_return([sample_plan])
+      end
+
+      it 'displays column headers' do
+        output = capture_stdout { command.call }
+        expect(output).to match(/PLAN ID.*TIER.*INTERVAL.*AMOUNT.*REGION.*CAPS/)
+      end
+
+      it 'displays separator line after headers' do
+        output = capture_stdout { command.call }
+        # Separator line is at least 100 dashes
+        expect(output).to match(/^-{100,}$/)
+      end
+
+      it 'formats plan rows with proper alignment' do
+        output = capture_stdout { command.call }
+        # Plan ID should be displayed
+        expect(output).to include('single_team_us')
+        # Tier should be displayed
+        expect(output).to include('single_team')
+        # Interval should be displayed
+        expect(output).to include('month')
+        # Amount should be formatted
+        expect(output).to match(/CAD 29\.00/)
+      end
+
+      it 'displays plan count' do
+        output = capture_stdout { command.call }
+        expect(output).to match(/Total: 1 plan entr/)
+      end
+
+      it 'displays multiple plans when available' do
+        allow(Billing::Plan).to receive(:list_plans).and_return([sample_plan, sample_plan_eu])
+        output = capture_stdout { command.call }
+
+        expect(output).to include('single_team_us')
+        expect(output).to include('multi_team_eu')
+        expect(output).to match(/Total: 2 plan entr/)
+      end
+
+      it 'displays entitlement count' do
+        output = capture_stdout { command.call }
+        # CAPS column shows capabilities count
+        expect(output).to match(/CAPS/)
+        # sample_plan has two entitlements; the count sits between REGION and
+        # the product ID. With a JSON string fixture it used to print the
+        # string's length (29) and this example still passed.
+        expect(output).to match(/^single_team_us .* US\s+2\s+prod_test123/)
+      end
+
+      context 'when cache is empty' do
+        before do
+          allow(Billing::Plan).to receive(:list_plans).and_return([])
+        end
+
+        it 'displays empty state message' do
+          output = capture_stdout { command.call }
+          expect(output).to include('No plan entries found')
+        end
+
+        it 'suggests refresh when no plans found' do
+          output = capture_stdout { command.call }
+          expect(output).to include('Run with --refresh to sync from Stripe')
+        end
+
+        it 'does not display headers when empty' do
+          output = capture_stdout { command.call }
+          expect(output).not_to include('PLAN ID')
+          expect(output).not_to include('TIER')
+        end
+      end
+
+      context 'with --refresh option' do
+        let(:pull_result) do
+          Billing::Operations::Catalog::Pull::Result.new(
+            success: true,
+            plans_synced: 2,
+            config_plans_loaded: 0,
+            cache_cleared: false,
+          )
+        end
+
+        before do
+          allow(Billing::Operations::Catalog::Pull).to receive(:call).and_return(pull_result)
+          allow(Billing::Plan).to receive(:list_plans).and_return([sample_plan, sample_plan_eu])
+        end
+
+        it 'displays refresh progress message' do
+          output = capture_stdout { command.call(refresh: true) }
+          expect(output).to include('Refreshing plans from Stripe')
+        end
+
+        it 'displays refresh count' do
+          output = capture_stdout { command.call(refresh: true) }
+          expect(output).to match(/Refreshed 2 plan entr/)
+        end
+
+        it 'then displays refreshed plans' do
+          output = capture_stdout { command.call(refresh: true) }
+          expect(output).to include('Refreshing plans from Stripe')
+          expect(output).to include('single_team_us')
+          expect(output).to include('multi_team_eu')
+        end
+
+        it 'adds blank line after refresh messages' do
+          output           = capture_stdout { command.call(refresh: true) }
+          lines            = output.split("\n")
+          refresh_line_idx = lines.index { |l| l.include?('Refreshed') }
+          expect(lines[refresh_line_idx + 1]).to eq('')
+        end
+      end
+
+      context 'error handling' do
+        it 'handles Stripe API errors during refresh' do
+          allow(Billing::Operations::Catalog::Pull).to receive(:call)
+            .and_raise(Stripe::InvalidRequestError.new('Invalid API key', 'api_key'))
+
+          expect do
+            capture_stdout { command.call(refresh: true) }
+          end.to raise_error(Stripe::InvalidRequestError, /Invalid API key/)
+        end
+
+        it 'handles missing Stripe configuration gracefully' do
+          empty_result = Billing::Operations::Catalog::Pull::Result.new(
+            success: true,
+            plans_synced: 0,
+            config_plans_loaded: 0,
+            cache_cleared: false,
+          )
+          allow(Billing::Operations::Catalog::Pull).to receive(:call).and_return(empty_result)
+          allow(Billing::Plan).to receive(:list_plans).and_return([])
+
+          output = capture_stdout { command.call(refresh: true) }
+          expect(output).to include('Refreshed 0 plan entries')
+          expect(output).to include('No plan entries found')
+        end
+
+        it 'exits early when Stripe not configured' do
+          allow(OT.billing_config).to receive(:stripe_key).and_return('nostripekey')
+          expect(Billing::Operations::Catalog::Pull).not_to receive(:call)
+          expect(Billing::Plan).not_to receive(:list_plans)
+
+          output = capture_stdout { command.call(refresh: true) }
+          expect(output).to include('STRIPE_API_KEY environment variable not set')
+          expect(output).not_to include('Refreshing plans from Stripe')
+        end
+      end
+
+      context 'format validation' do
+        it 'truncates long plan IDs to 20 characters' do
+          long_plan = MockPlan.new(
+            plan_id: 'a' * 30,
+            tier: 'test',
+            interval: 'month',
+            amount: '1000',
+            currency: 'cad',
+            region: 'US',
+            entitlements: [],
+            stripe_product_id: 'prod_long',
+            stripe_price_id: 'price_long',
+          )
+          allow(Billing::Plan).to receive(:list_plans).and_return([long_plan])
+
+          output = capture_stdout { command.call }
+          # Should only show 20 characters
+          expect(output).to match(/^#{'a' * 20}\s/)
+          expect(output).not_to match(/#{long_plan.plan_id}/)
+        end
+
+        it 'formats CAD amounts correctly' do
+          output = capture_stdout { command.call }
+          expect(output).to match(/CAD 29\.00/)
+        end
+
+        it 'formats EUR amounts correctly' do
+          allow(Billing::Plan).to receive(:list_plans).and_return([sample_plan_eu])
+          output = capture_stdout { command.call }
+          expect(output).to match(/EUR 999\.00/)
+        end
+
+        it 'handles zero-entitlement plans' do
+          zero_cap_plan = MockPlan.new(
+            plan_id: 'basic_us',
+            tier: 'basic',
+            interval: 'month',
+            amount: '0',
+            currency: 'cad',
+            region: 'US',
+            entitlements: [],
+            stripe_product_id: 'prod_basic',
+            stripe_price_id: 'price_basic',
+          )
+          allow(Billing::Plan).to receive(:list_plans).and_return([zero_cap_plan])
+
+          output = capture_stdout { command.call }
+          # Amount column shows 0.00, CAPS column shows entitlement count
+          expect(output).to match(/CAD 0\.00/)
+          expect(output).to include('basic_us')
+        end
+      end
+    end
+  end
+
+  # Helper to capture stdout
+  def capture_stdout
+    old_stdout = $stdout
+    $stdout    = StringIO.new
+    yield
+    $stdout.string
+  ensure
+    $stdout = old_stdout
+  end
+end

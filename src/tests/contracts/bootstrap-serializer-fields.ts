@@ -1,0 +1,207 @@
+// src/tests/contracts/bootstrap-serializer-fields.ts
+//
+// Canonical field lists from Ruby backend serializers.
+// Source: apps/web/core/views/serializers/*.rb
+//
+// Update this list when Ruby serializers change.
+// The contract tests will fail if the TypeScript interface diverges from
+// this list, preventing silent field stripping or mismatches.
+
+// ============================================================================
+// AUTHENTICATION SERIALIZER FIELDS
+// Source: apps/web/core/views/serializers/authentication_serializer.rb
+// ============================================================================
+export const AUTHENTICATION_SERIALIZER_FIELDS = [
+  // Server statement about the customer session (#4462). `authenticated` and
+  // `awaiting_mfa` are projections of it.
+  'auth_status',
+  'authenticated',
+  'awaiting_mfa',
+  'has_password',
+  'password_auth_permitted',
+  'custid',
+  'cust',
+  'email',
+  'customer_since',
+  'entitlement_preview_planid',
+  'entitlement_preview_plan_name',
+  // Active impersonation overlay (colonel support session), null when
+  // inactive. Emitted unconditionally by authentication_serializer.rb from the
+  // per-request Fiber-local context, so the banner can never disagree with the
+  // session actually being served.
+  'impersonation',
+] as const;
+
+// ============================================================================
+// CONFIG SERIALIZER FIELDS
+// Source: apps/web/core/views/serializers/config_serializer.rb
+// ============================================================================
+export const CONFIG_SERIALIZER_FIELDS = [
+  'api',
+  'authentication',
+  'brand_primary_color',
+  'brand_product_name',
+  'brand_product_domain',
+  'brand_support_email',
+  'brand_corner_style',
+  'brand_font_family',
+  'brand_button_text_light',
+  'brand_logo_url',
+  'brand_logo_dark_url',
+  'brand_logo_alt',
+  'brand_favicon_url',
+  'd9s_enabled',
+  'development',
+  'diagnostics',
+  'docs_host',
+  'domains',
+  'domains_enabled',
+  'features',
+  'frontend_development',
+  'frontend_host',
+  'homepage_mode',
+  // First-class legal/policy URLs from site.legal (#4278)
+  'legal',
+  'billing_enabled',
+  'regions',
+  'regions_enabled',
+  'secret_options',
+  'site_host',
+  'support_email',
+  'support_host',
+  'checkout_host',
+  'ui',
+] as const;
+
+// ============================================================================
+// DOMAIN SERIALIZER FIELDS
+// Source: apps/web/core/views/serializers/domain_serializer.rb
+// ============================================================================
+export const DOMAIN_SERIALIZER_FIELDS = [
+  'canonical_domain',
+  'custom_domains',
+  'display_domain',
+  'domain_branding',
+  'domain_id',
+  'domain_logo',
+  'domain_context',
+  'domain_strategy',
+  'homepage_config',
+  // Resolved operator link pool for the domain-context picker (#4063).
+  // TOP-LEVEL in the payload, sibling of `canonical_domain` — deliberately NOT
+  // under the `domains` config section, because ConfigSerializer omits that
+  // whole subtree when features.domains.enabled is false and the picker still
+  // needs a pool in that mode. Emitted unconditionally by
+  // domain_serializer.rb; Array<String>, never null.
+  'link_domains',
+] as const;
+
+// ============================================================================
+// I18N SERIALIZER FIELDS
+// Source: apps/web/core/views/serializers/i18n_serializer.rb
+// ============================================================================
+export const I18N_SERIALIZER_FIELDS = [
+  'locale',
+  'default_locale',
+  'fallback_locale',
+  'supported_locales',
+  'i18n_enabled',
+  'date_format',
+  'datetime_format',
+] as const;
+
+// ============================================================================
+// MESSAGES SERIALIZER FIELDS
+// Source: apps/web/core/views/serializers/messages_serializer.rb
+// ============================================================================
+export const MESSAGES_SERIALIZER_FIELDS = [
+  'messages',
+  'global_banner',
+  // Audience scope for the global broadcast banner (sidecar key
+  // `global_banner:scope`). Emitted alongside `global_banner` by
+  // messages_serializer.rb; mirrors Onetime::Operations::BannerState::VALID_SCOPES.
+  'global_banner_scope',
+] as const;
+
+// ============================================================================
+// ORGANIZATION SERIALIZER FIELDS
+// Source: apps/web/core/views/serializers/organization_serializer.rb
+// ============================================================================
+export const ORGANIZATION_SERIALIZER_FIELDS = ['organization'] as const;
+
+// ============================================================================
+// SYSTEM SERIALIZER FIELDS
+// Source: apps/web/core/views/serializers/system_serializer.rb
+// ============================================================================
+export const SYSTEM_SERIALIZER_FIELDS = [
+  'ot_version',
+  'ot_version_long',
+  'ruby_version',
+  'shrimp',
+  // Snapshot ordering (ADR-046). Declared in the output_template but emitted
+  // only for an ordered session (authenticated or MFA-pending); the keys are
+  // OMITTED otherwise, never null.
+  'snapshot_epoch',
+  'snapshot_version',
+  'snapshot_generated_at',
+] as const;
+
+// ============================================================================
+// FIELDS ADDED BY initialize_view_vars (NOT via serializers)
+// Source: apps/web/core/views/helpers/initialize_view_vars.rb
+// These fields are part of view_vars but consumed directly by templates
+// rather than being passed through serializers.
+// ============================================================================
+export const TEMPLATE_ONLY_FIELDS = [
+  'baseuri', // Used in templates for og:url, sitemap, etc.
+] as const;
+
+// ============================================================================
+// FIELDS ADDED ELSEWHERE (Frontend or template bootstrap)
+// These are either frontend-only or injected via JavaScript in templates
+// ============================================================================
+export const NON_SERIALIZER_FIELDS = [
+  'apitoken', // Optional field, only set in specific contexts
+  'available_jurisdictions', // Derived from regions config
+  'enjoyTheVue', // Set in JavaScript in template (index.rue)
+  'stripe_customer', // Billing-specific, loaded separately
+  'stripe_subscriptions', // Billing-specific, loaded separately
+] as const;
+
+// ============================================================================
+// AGGREGATE COLLECTIONS
+// ============================================================================
+
+/**
+ * All fields produced by Ruby serializers.
+ * These fields should all have corresponding declarations in BootstrapPayload.
+ */
+export const ALL_SERIALIZER_FIELDS = [
+  ...AUTHENTICATION_SERIALIZER_FIELDS,
+  ...CONFIG_SERIALIZER_FIELDS,
+  ...DOMAIN_SERIALIZER_FIELDS,
+  ...I18N_SERIALIZER_FIELDS,
+  ...MESSAGES_SERIALIZER_FIELDS,
+  ...ORGANIZATION_SERIALIZER_FIELDS,
+  ...SYSTEM_SERIALIZER_FIELDS,
+] as const;
+
+/**
+ * All backend fields that appear in the bootstrap payload.
+ * Includes serializer fields, template fields, and fields from other sources.
+ */
+export const ALL_BOOTSTRAP_FIELDS = [
+  ...ALL_SERIALIZER_FIELDS,
+  ...TEMPLATE_ONLY_FIELDS,
+  ...NON_SERIALIZER_FIELDS,
+] as const;
+
+// Type exports for type-safe field access
+export type AuthenticationSerializerField = (typeof AUTHENTICATION_SERIALIZER_FIELDS)[number];
+export type ConfigSerializerField = (typeof CONFIG_SERIALIZER_FIELDS)[number];
+export type DomainSerializerField = (typeof DOMAIN_SERIALIZER_FIELDS)[number];
+export type I18nSerializerField = (typeof I18N_SERIALIZER_FIELDS)[number];
+export type MessagesSerializerField = (typeof MESSAGES_SERIALIZER_FIELDS)[number];
+export type OrganizationSerializerField = (typeof ORGANIZATION_SERIALIZER_FIELDS)[number];
+export type SystemSerializerField = (typeof SYSTEM_SERIALIZER_FIELDS)[number];
+export type BootstrapField = (typeof ALL_BOOTSTRAP_FIELDS)[number];

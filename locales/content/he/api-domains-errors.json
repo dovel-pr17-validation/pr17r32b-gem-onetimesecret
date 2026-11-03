@@ -1,0 +1,62 @@
+{
+  "api.domains.errors.domain_id_required": {
+    "text": "נדרש מזהה דומיין",
+    "source_hash": "6837426b"
+  },
+  "api.domains.errors.domain_not_found": {
+    "text": "הדומיין לא נמצא: %{extid}",
+    "source_hash": "a0fd1025"
+  },
+  "api.domains.errors.organization_not_found": {
+    "text": "הארגון לא נמצא עבור הדומיין: %{domain}",
+    "source_hash": "632afc93"
+  },
+  "api.domains.errors.incoming_secrets_disabled": {
+    "text": "סודות נכנסים אינם מופעלים במופע זה",
+    "source_hash": "45c0b5c4"
+  },
+  "api.domains.errors.incoming_secrets_entitlement_required": {
+    "text": "ניהול סודות נכנסים מחייב את הזכאות incoming_secrets. אנא שדרג את התוכנית שלך.",
+    "source_hash": "1af54ec2"
+  },
+  "api.domains.errors.incoming_config_not_found": {
+    "text": "תצורת סודות נכנסים לא נמצאה עבור הדומיין: %{extid}",
+    "source_hash": "491644a8"
+  },
+  "api.domains.errors.recipients_max_exceeded": {
+    "text": "מותרים %{max} נמענים לכל היותר",
+    "source_hash": "159842ad"
+  },
+  "api.domains.errors.recipients_invalid_email": {
+    "text": "כתובת דוא״ל לא תקינה: %{email}",
+    "source_hash": "e9c729c7"
+  },
+  "api.domains.errors.recipients_duplicate": {
+    "text": "לא ניתן להזין כתובות דוא״ל כפולות של נמענים",
+    "source_hash": "6de22182"
+  },
+  "api.domains.errors.homepage_secrets_mode_invalid": {
+    "text": "secrets_mode לא תקין: %{secrets_mode}",
+    "source_hash": "cf093a04"
+  },
+  "api.domains.errors.homepage_incoming_entitlement_required": {
+    "text": "מצב סודות נכנסים מחייב את הזכאות incoming_secrets. אנא שדרג את התוכנית שלך.",
+    "source_hash": "d68b13d8"
+  },
+  "api.domains.errors.homepage_incoming_not_ready": {
+    "text": "יש להפעיל סודות נכנסים עם נמען אחד לפחות לפני שניתן להשתמש בהם כדף הבית.",
+    "source_hash": "556da6e2"
+  },
+  "api.domains.errors.related_origins_invalid": {
+    "text": "מקור לא תקין: %{origins}. הזן את הסכמה ואת המארח, לדוגמה https://vault.example.com",
+    "source_hash": "5acb92ca"
+  },
+  "api.domains.errors.related_origins_foreign_organization": {
+    "text": "מקורות אלה שייכים לארגון אחר ולא ניתן להוסיף אותם: %{origins}",
+    "source_hash": "ac21c1e7"
+  },
+  "api.domains.errors.allowed_signup_domains_invalid": {
+    "text": "דומיין לא תקין: %{domains}. הזן שם דומיין שניתן לרשום, לדוגמה example.com",
+    "source_hash": "2d93472c"
+  }
+}

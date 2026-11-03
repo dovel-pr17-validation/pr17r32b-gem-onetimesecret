@@ -1,0 +1,802 @@
+// src/tests/apps/workspace/account/settings/SecurityOverview.spec.ts
+
+import { mount, VueWrapper } from '@vue/test-utils';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createTestingPinia } from '@pinia/testing';
+import { ref } from 'vue';
+import SecurityOverview from '@/apps/workspace/account/settings/SecurityOverview.vue';
+import { createTestI18n } from '@tests/setup';
+
+// Mock vue-router
+vi.mock('vue-router', () => ({
+  useRoute: vi.fn(() => ({ path: '/account/settings/security' })),
+  useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
+  RouterLink: {
+    name: 'RouterLink',
+    template: '<a :href="to" class="router-link"><slot /></a>',
+    props: ['to'],
+  },
+}));
+
+// Mock OIcon component
+vi.mock('@/shared/components/icons/OIcon.vue', () => ({
+  default: {
+    name: 'OIcon',
+    template: '<span class="o-icon" :data-icon="name" :data-collection="collection" />',
+    props: ['collection', 'name', 'class'],
+  },
+}));
+
+// Mock SettingsLayout
+vi.mock('@/apps/workspace/layouts/SettingsLayout.vue', () => ({
+  default: {
+    name: 'SettingsLayout',
+    template: '<div class="mock-settings-layout"><slot /></div>',
+  },
+}));
+
+// Mock feature flags
+const mockMfaEnabled = ref(true);
+const mockWebAuthnEnabled = ref(true);
+const mockActiveSessionsEnabled = ref(false);
+const mockHasPassword = ref(true);
+const mockSsoEnabled = ref(false);
+const mockPasswordAuthPermitted = ref(true);
+vi.mock('@/utils/features', () => ({
+  isMfaEnabled: () => mockMfaEnabled.value,
+  isWebAuthnEnabled: () => mockWebAuthnEnabled.value,
+  // SecurityOverview reads through the `*Of` predicate variants so it can
+  // recompute reactively from the bootstrap store. The test stubs ignore the
+  // store argument and read the flag refs directly so existing assertions keep
+  // exercising the same MFA/WebAuthn on/off matrix.
+  isMfaEnabledOf: () => mockMfaEnabled.value,
+  isWebAuthnEnabledOf: () => mockWebAuthnEnabled.value,
+  // Sessions card is gated on AUTH_ACTIVE_SESSIONS_ENABLED. Default OFF so
+  // the pre-existing card matrix is unchanged; the dedicated block flips it on.
+  isActiveSessionsEnabledOf: () => mockActiveSessionsEnabled.value,
+  hasPasswordOf: () => mockHasPassword.value,
+  // Connected identities (#3840) card is gated on SSO enablement. Default OFF
+  // so the pre-existing card matrix is unchanged; the dedicated block below
+  // flips it on.
+  isSsoEnabledOf: () => mockSsoEnabled.value,
+  // Policy axis (#3886): whether the account may hold a local password.
+  // Default ON (the backend default for consumer accounts); the SSO-enforced
+  // block below flips it off.
+  isPasswordAuthPermittedOf: () => mockPasswordAuthPermitted.value,
+}));
+
+// Mock useAccount composable
+const mockAccountInfo = ref<{
+  email_verified: boolean;
+  mfa_enabled: boolean;
+  recovery_codes_count: number;
+  passkeys_count: number;
+  active_sessions_count: number;
+} | null>(null);
+
+vi.mock('@/shared/composables/useAccount', () => ({
+  useAccount: () => ({
+    accountInfo: mockAccountInfo,
+    fetchAccountInfo: vi.fn().mockResolvedValue(mockAccountInfo.value),
+  }),
+}));
+
+const i18n = createTestI18n();
+
+/**
+ * SecurityOverview Component Tests
+ *
+ * Tests the security overview page that:
+ * - Displays security setting cards (password, MFA, recovery codes)
+ * - Conditionally shows passkey card when WebAuthn is enabled
+ * - Shows correct status for each security feature
+ * - Links to individual security setting pages
+ */
+describe('SecurityOverview', () => {
+  let wrapper: VueWrapper;
+
+  // Helper to find a security card by its icon name
+  const findCardByIcon = (iconName: string) => {
+    const cards = wrapper.findAll('.grid > div');
+    return cards.find((card) => card.find(`[data-icon="${iconName}"]`).exists());
+  };
+
+  // Helper to find card by title text
+  const _findCardByTitle = (title: string) => {
+    const cards = wrapper.findAll('.grid > div');
+    return cards.find((card) => card.text().includes(title));
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset mocks
+    mockMfaEnabled.value = true;
+    mockWebAuthnEnabled.value = true;
+    mockActiveSessionsEnabled.value = false;
+    mockHasPassword.value = true;
+    mockSsoEnabled.value = false;
+    mockPasswordAuthPermitted.value = true;
+    mockAccountInfo.value = {
+      email_verified: true,
+      mfa_enabled: false,
+      recovery_codes_count: 0,
+      passkeys_count: 0,
+      active_sessions_count: 1,
+    };
+  });
+
+  afterEach(() => {
+    if (wrapper) {
+      wrapper.unmount();
+    }
+  });
+
+  const mountComponent = () =>
+    mount(SecurityOverview, {
+      global: {
+        plugins: [
+          i18n,
+          createTestingPinia({
+            createSpy: vi.fn,
+          }),
+        ],
+        stubs: {
+          RouterLink: {
+            template: '<a :href="to" class="router-link"><slot /></a>',
+            props: ['to'],
+          },
+        },
+      },
+    });
+
+  describe('Basic Rendering', () => {
+    it('renders within SettingsLayout', () => {
+      wrapper = mountComponent();
+
+      expect(wrapper.find('.mock-settings-layout').exists()).toBe(true);
+    });
+
+    it('renders security cards grid', () => {
+      wrapper = mountComponent();
+
+      expect(wrapper.find('.grid').exists()).toBe(true);
+    });
+
+    it('renders core security cards', () => {
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('lock-closed-solid')).toBeDefined();
+      expect(findCardByIcon('key-solid')).toBeDefined();
+      expect(findCardByIcon('document-text-solid')).toBeDefined();
+    });
+  });
+
+  describe('Passkey Card (WebAuthn Feature Flag)', () => {
+    it('shows passkey card when WebAuthn is enabled', () => {
+      mockWebAuthnEnabled.value = true;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('finger-print-solid')).toBeDefined();
+    });
+
+    it('hides passkey card when WebAuthn is disabled', () => {
+      mockWebAuthnEnabled.value = false;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('finger-print-solid')).toBeUndefined();
+    });
+
+    it('displays passkey card title', () => {
+      mockWebAuthnEnabled.value = true;
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      expect(passkeyCard?.text()).toContain('web.auth.passkeys.title');
+    });
+
+    it('displays passkey card description', () => {
+      mockWebAuthnEnabled.value = true;
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      expect(passkeyCard?.text()).toContain('web.auth.passkeys.description');
+    });
+
+    it('shows fingerprint icon on passkey card', () => {
+      mockWebAuthnEnabled.value = true;
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      expect(passkeyCard?.find('[data-icon="finger-print-solid"]').exists()).toBe(true);
+    });
+  });
+
+  describe('Connected Identities Card (SSO Feature Flag)', () => {
+    it('shows connections card when SSO is enabled', () => {
+      mockSsoEnabled.value = true;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('globe-alt-solid')).toBeDefined();
+    });
+
+    it('hides connections card when SSO is disabled', () => {
+      mockSsoEnabled.value = false;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('globe-alt-solid')).toBeUndefined();
+    });
+
+    it('displays connections card title and description', () => {
+      mockSsoEnabled.value = true;
+      wrapper = mountComponent();
+
+      const card = findCardByIcon('globe-alt-solid');
+      expect(card?.text()).toContain('web.auth.connections.title');
+      expect(card?.text()).toContain('web.auth.connections.description');
+    });
+
+    it('is not password-dependent: shows for SSO-only accounts (no password)', () => {
+      mockSsoEnabled.value = true;
+      mockHasPassword.value = false;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('globe-alt-solid')).toBeDefined();
+    });
+  });
+
+  describe('Passkey Count Display', () => {
+    it('shows "Not configured" when no passkeys exist', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        passkeys_count: 0,
+      };
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      expect(passkeyCard?.text()).toContain('web.auth.passkeys.not_configured');
+    });
+
+    it('shows passkey count when passkeys exist (singular)', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        passkeys_count: 1,
+      };
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      expect(passkeyCard?.text()).toContain('web.auth.passkeys.count');
+    });
+
+    it('shows passkey count when multiple passkeys exist (plural)', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        passkeys_count: 3,
+      };
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      expect(passkeyCard?.text()).toContain('web.auth.passkeys.count');
+    });
+
+    it('shows inactive status when no passkeys configured', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        passkeys_count: 0,
+      };
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      expect(passkeyCard?.text()).toContain('web.auth.passkeys.not_configured');
+      expect(passkeyCard?.html()).toContain('bg-gray-50');
+    });
+
+    it('shows active status when passkeys configured', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        passkeys_count: 2,
+      };
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      expect(passkeyCard?.html()).toContain('bg-green-50');
+    });
+  });
+
+  describe('Passkey Card Action', () => {
+    it('shows "Enable" action when no passkeys exist', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        passkeys_count: 0,
+      };
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      const actionLink = passkeyCard?.find('.router-link');
+      expect(actionLink?.text()).toContain('web.settings.security.enable');
+    });
+
+    it('shows "Manage" action when passkeys exist', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        passkeys_count: 1,
+      };
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      const actionLink = passkeyCard?.find('.router-link');
+      expect(actionLink?.text()).toContain('web.settings.security.manage');
+    });
+
+    it('links to passkey settings page', () => {
+      mockWebAuthnEnabled.value = true;
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      const actionLink = passkeyCard?.find('.router-link');
+      expect(actionLink?.attributes('href')).toBe('/account/settings/security/passkeys');
+    });
+  });
+
+  describe('Other Security Cards', () => {
+    it('password card links to password settings', () => {
+      wrapper = mountComponent();
+
+      const card = findCardByIcon('lock-closed-solid');
+      const link = card?.find('.router-link');
+      expect(link?.attributes('href')).toBe('/account/settings/security/password');
+    });
+
+    it('MFA card shows correct status when disabled', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        mfa_enabled: false,
+      };
+      wrapper = mountComponent();
+
+      const card = findCardByIcon('key-solid');
+      expect(card?.html()).toContain('bg-yellow-50');
+      expect(card?.text()).toContain('web.auth.account.mfa_disabled');
+    });
+
+    it('MFA card shows correct status when enabled', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        mfa_enabled: true,
+      };
+      wrapper = mountComponent();
+
+      const card = findCardByIcon('key-solid');
+      expect(card?.html()).toContain('bg-green-50');
+      expect(card?.text()).toContain('web.auth.account.mfa_enabled');
+    });
+
+    it('recovery codes card shows count when available', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        recovery_codes_count: 5,
+      };
+      wrapper = mountComponent();
+
+      const card = findCardByIcon('document-text-solid');
+      expect(card?.text()).toContain('web.settings.security.codes_available');
+    });
+
+    it('recovery codes card shows inactive when no codes', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        recovery_codes_count: 0,
+      };
+      wrapper = mountComponent();
+
+      const card = findCardByIcon('document-text-solid');
+      expect(card?.html()).toContain('bg-gray-50');
+      expect(card?.text()).toContain('web.settings.security.no_codes');
+    });
+  });
+
+  describe('Card Layout', () => {
+    it('renders cards in a 2-column grid on larger screens', () => {
+      wrapper = mountComponent();
+
+      const grid = wrapper.find('.grid');
+      expect(grid.classes()).toContain('sm:grid-cols-2');
+    });
+
+    it('each card has consistent styling with transparency', () => {
+      wrapper = mountComponent();
+
+      const cards = wrapper.findAll('.grid > div');
+      cards.forEach((card) => {
+        expect(card.classes()).toContain('rounded-lg');
+        expect(card.classes()).toContain('border');
+        // Design system uses transparency for glassmorphism
+        expect(card.classes()).toContain('bg-white/60');
+      });
+    });
+
+    it('each card has an icon container', () => {
+      wrapper = mountComponent();
+
+      const cards = wrapper.findAll('.grid > div');
+      cards.forEach((card) => {
+        const iconContainer = card.find('.size-12');
+        expect(iconContainer.exists()).toBe(true);
+      });
+    });
+  });
+
+  describe('Status Badge Styling', () => {
+    it('active status has green styling', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        passkeys_count: 1,
+      };
+      wrapper = mountComponent();
+
+      const passkeyCard = findCardByIcon('finger-print-solid');
+      expect(passkeyCard?.html()).toContain('bg-green-50');
+      expect(passkeyCard?.html()).toContain('text-green-700');
+    });
+
+    it('warning status has yellow styling', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        mfa_enabled: false,
+      };
+      wrapper = mountComponent();
+
+      const mfaCard = findCardByIcon('key-solid');
+      expect(mfaCard?.html()).toContain('bg-yellow-50');
+      expect(mfaCard?.html()).toContain('text-yellow-800');
+    });
+
+    it('inactive status has gray styling', () => {
+      mockAccountInfo.value = {
+        ...mockAccountInfo.value!,
+        recovery_codes_count: 0,
+      };
+      wrapper = mountComponent();
+
+      const recoveryCard = findCardByIcon('document-text-solid');
+      expect(recoveryCard?.html()).toContain('bg-gray-50');
+      expect(recoveryCard?.html()).toContain('text-gray-600');
+    });
+  });
+
+  describe('No Account Info State', () => {
+    it('renders no cards when accountInfo is null', () => {
+      mockAccountInfo.value = null;
+      wrapper = mountComponent();
+
+      expect(wrapper.findAll('.grid > div').length).toBe(0);
+    });
+  });
+
+  describe('MFA Feature Flag', () => {
+    it('hides MFA and recovery codes cards when MFA feature is disabled', () => {
+      mockMfaEnabled.value = false;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('key-solid')).toBeUndefined();
+      expect(findCardByIcon('document-text-solid')).toBeUndefined();
+    });
+
+    it('shows MFA and recovery codes cards when MFA feature is enabled', () => {
+      mockMfaEnabled.value = true;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('key-solid')).toBeDefined();
+      expect(findCardByIcon('document-text-solid')).toBeDefined();
+    });
+  });
+
+  describe('Sessions Card (Active Sessions Feature Flag)', () => {
+    it('shows sessions card when active sessions is enabled', () => {
+      mockActiveSessionsEnabled.value = true;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('computer-desktop-solid')).toBeDefined();
+    });
+
+    it('hides sessions card when active sessions is disabled', () => {
+      mockActiveSessionsEnabled.value = false;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('computer-desktop-solid')).toBeUndefined();
+    });
+
+    it('links sessions card to the active sessions route', () => {
+      mockActiveSessionsEnabled.value = true;
+      wrapper = mountComponent();
+
+      const link = wrapper
+        .findAll('a')
+        .find((a) => a.attributes('href') === '/account/settings/security/sessions');
+      expect(link).toBeDefined();
+    });
+  });
+
+  describe('Total Card Count', () => {
+    it('renders 3 cards when WebAuthn is disabled', () => {
+      mockWebAuthnEnabled.value = false;
+      wrapper = mountComponent();
+
+      expect(wrapper.findAll('.grid > div').length).toBe(3);
+    });
+
+    it('renders 4 cards when WebAuthn is enabled', () => {
+      mockWebAuthnEnabled.value = true;
+      wrapper = mountComponent();
+
+      expect(wrapper.findAll('.grid > div').length).toBe(4);
+    });
+
+    it('renders 1 card when both MFA and WebAuthn are disabled', () => {
+      mockMfaEnabled.value = false;
+      mockWebAuthnEnabled.value = false;
+      wrapper = mountComponent();
+
+      expect(wrapper.findAll('.grid > div').length).toBe(1);
+    });
+
+    it('renders 2 cards when MFA is disabled but WebAuthn is enabled', () => {
+      mockMfaEnabled.value = false;
+      mockWebAuthnEnabled.value = true;
+      wrapper = mountComponent();
+
+      expect(wrapper.findAll('.grid > div').length).toBe(2);
+    });
+  });
+
+  describe('Design System Compliance - Card Surfaces', () => {
+    it('security cards use transparency classes (bg-white/60)', () => {
+      wrapper = mountComponent();
+
+      const cards = wrapper.findAll('.grid > div');
+      cards.forEach((card) => {
+        // After frontend-dev fixes, this should pass
+        // Current: bg-white (violation)
+        // Expected: bg-white/60
+        expect(card.classes()).toContain('bg-white/60');
+      });
+    });
+
+    it('security cards have border transparency (border-gray-200/60)', () => {
+      wrapper = mountComponent();
+
+      const cards = wrapper.findAll('.grid > div');
+      cards.forEach((card) => {
+        // After frontend-dev fixes, this should pass
+        // Current: border-gray-200 (violation)
+        // Expected: border-gray-200/60
+        expect(card.classes()).toContain('border-gray-200/60');
+      });
+    });
+
+    it('security cards have shadow-sm for subtle elevation', () => {
+      wrapper = mountComponent();
+
+      const cards = wrapper.findAll('.grid > div');
+      cards.forEach((card) => {
+        expect(card.classes()).toContain('shadow-sm');
+      });
+    });
+
+    it('security cards have backdrop-blur-sm for glassmorphism', () => {
+      wrapper = mountComponent();
+
+      const cards = wrapper.findAll('.grid > div');
+      cards.forEach((card) => {
+        expect(card.classes()).toContain('backdrop-blur-sm');
+      });
+    });
+
+    it('security cards have dark mode transparency (dark:bg-gray-800/60)', () => {
+      wrapper = mountComponent();
+
+      const cards = wrapper.findAll('.grid > div');
+      cards.forEach((card) => {
+        expect(card.classes()).toContain('dark:bg-gray-800/60');
+      });
+    });
+
+    it('security cards have dark mode border transparency (dark:border-gray-700/60)', () => {
+      wrapper = mountComponent();
+
+      const cards = wrapper.findAll('.grid > div');
+      cards.forEach((card) => {
+        expect(card.classes()).toContain('dark:border-gray-700/60');
+      });
+    });
+  });
+
+  describe('Design System Compliance - Typography', () => {
+    // Every card renders a title heading and a description, so these assert
+    // presence rather than guarding on it (a missing heading must fail).
+    const cardHeadings = () => {
+      const cards = wrapper.findAll('.grid > div');
+      expect(cards.length).toBeGreaterThan(0);
+      return cards.map((card) => {
+        const heading = card.find('h2');
+        expect(heading.exists()).toBe(true);
+        return heading;
+      });
+    };
+
+    it('card titles are h2, one level below the SettingsLayout h1 (axe heading-order)', () => {
+      wrapper = mountComponent();
+
+      cardHeadings();
+      expect(wrapper.find('.grid h3').exists()).toBe(false);
+    });
+
+    it('card titles use font-medium (not font-semibold)', () => {
+      wrapper = mountComponent();
+
+      cardHeadings().forEach((heading) => {
+        // Design system requires font-medium for card headings
+        expect(heading.classes()).toContain('font-medium');
+        expect(heading.classes()).not.toContain('font-semibold');
+      });
+    });
+
+    it('card titles have correct text color (text-gray-900)', () => {
+      wrapper = mountComponent();
+
+      cardHeadings().forEach((heading) => {
+        // Card headings use primary text color (text-gray-900), not section heading color
+        expect(heading.classes()).toContain('text-gray-900');
+      });
+    });
+
+    it('card titles have dark mode text color (dark:text-white)', () => {
+      wrapper = mountComponent();
+
+      cardHeadings().forEach((heading) => {
+        // Card headings use primary text color in dark mode (text-white)
+        expect(heading.classes()).toContain('dark:text-white');
+      });
+    });
+
+    it('card descriptions have correct text styling', () => {
+      wrapper = mountComponent();
+
+      const cards = wrapper.findAll('.grid > div');
+      expect(cards.length).toBeGreaterThan(0);
+      cards.forEach((card) => {
+        const description = card.find('p.text-sm.text-gray-600');
+        expect(description.exists()).toBe(true);
+        expect(description.classes()).toContain('dark:text-gray-400');
+      });
+    });
+  });
+
+  // Passwordless account where policy PERMITS password auth (#3886): the
+  // password card is replaced by a Set-password affordance routing to the
+  // mailbox-proof reset-password request page. MFA and recovery codes stay
+  // hidden (still password-dependent).
+  describe('Passwordless Account with password auth permitted (#3886)', () => {
+    beforeEach(() => {
+      mockHasPassword.value = false;
+      mockPasswordAuthPermitted.value = true;
+    });
+
+    it('shows the Set-password card instead of hiding the password card', () => {
+      wrapper = mountComponent();
+
+      const card = findCardByIcon('lock-closed-solid');
+      expect(card).toBeDefined();
+      expect(card?.text()).toContain('web.settings.security.set_password_title');
+      expect(card?.text()).toContain('web.settings.security.not_set');
+    });
+
+    it('links the Set-password card to the reset-password request page', () => {
+      wrapper = mountComponent();
+
+      const card = findCardByIcon('lock-closed-solid');
+      const link = card?.find('.router-link');
+      expect(link?.text()).toContain('web.settings.security.set');
+      expect(link?.attributes('href')).toBe('/account/settings/security/reset-password');
+    });
+
+    it('keeps MFA and recovery codes cards hidden (password-dependent)', () => {
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('key-solid')).toBeUndefined();
+      expect(findCardByIcon('document-text-solid')).toBeUndefined();
+    });
+
+    it('does not render the SSO-managed empty state', () => {
+      mockWebAuthnEnabled.value = false;
+      wrapper = mountComponent();
+
+      expect(wrapper.find('[data-icon="shield-check-solid"]').exists()).toBe(false);
+      expect(wrapper.find('.grid').exists()).toBe(true);
+    });
+
+    it('does not show the SSO-managed empty state while accountInfo is unavailable (pending or failed fetch)', () => {
+      mockAccountInfo.value = null;
+      wrapper = mountComponent();
+
+      expect(wrapper.find('[data-icon="shield-check-solid"]').exists()).toBe(false);
+      expect(wrapper.text()).not.toContain('web.settings.security.sso_managed_title');
+    });
+
+    it('shows a Change-password card (not Set) for a hybrid account with a password, even ignoring policy', () => {
+      mockHasPassword.value = true;
+      mockPasswordAuthPermitted.value = false;
+      wrapper = mountComponent();
+
+      const card = findCardByIcon('lock-closed-solid');
+      expect(card?.text()).toContain('web.auth.change_password.title');
+      expect(card?.text()).not.toContain('web.settings.security.set_password_title');
+    });
+  });
+
+  // Coverage for the SSO-ENFORCED (no password, password auth NOT permitted)
+  // path: SecurityOverview filters password-dependent cards via hasPasswordOf
+  // and renders an SSO-managed empty state when every card is filtered out.
+  // Since #3886 the pure-filter path requires isPasswordAuthPermittedOf to be
+  // false — otherwise a Set-password card takes the password card's place.
+  describe('SSO-Enforced Account (no password, password auth not permitted)', () => {
+    beforeEach(() => {
+      // hasPasswordOf is mocked to return mockHasPassword, so setting it false
+      // drives both the card filter and the empty-state v-if (`!hasPw`). No
+      // store seeding is needed — the component reads the predicate, not the
+      // store ref.
+      mockHasPassword.value = false;
+      mockPasswordAuthPermitted.value = false;
+    });
+
+    it('hides password, MFA, and recovery codes cards', () => {
+      mockWebAuthnEnabled.value = true;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('lock-closed-solid')).toBeUndefined();
+      expect(findCardByIcon('key-solid')).toBeUndefined();
+      expect(findCardByIcon('document-text-solid')).toBeUndefined();
+    });
+
+    it('still shows the passkey card when WebAuthn is enabled', () => {
+      mockWebAuthnEnabled.value = true;
+      wrapper = mountComponent();
+
+      expect(findCardByIcon('finger-print-solid')).toBeDefined();
+      expect(wrapper.findAll('.grid > div').length).toBe(1);
+    });
+
+    it('renders the SSO-managed empty state when all cards are filtered out', () => {
+      mockWebAuthnEnabled.value = false;
+      wrapper = mountComponent();
+
+      expect(wrapper.find('[data-icon="shield-check-solid"]').exists()).toBe(true);
+      expect(wrapper.text()).toContain('web.settings.security.sso_managed_title');
+    });
+
+    it('renders the SSO-managed title as h2 under the SettingsLayout h1', () => {
+      mockWebAuthnEnabled.value = false;
+      wrapper = mountComponent();
+
+      const heading = wrapper.find('h2');
+      expect(heading.exists()).toBe(true);
+      expect(heading.text()).toContain('web.settings.security.sso_managed_title');
+      expect(wrapper.find('h3').exists()).toBe(false);
+    });
+
+    it('does not render the cards grid when all cards are filtered out', () => {
+      mockWebAuthnEnabled.value = false;
+      wrapper = mountComponent();
+
+      expect(wrapper.find('.grid').exists()).toBe(false);
+    });
+
+    it('does not render the SSO empty state for a password account', () => {
+      mockHasPassword.value = true;
+      mockWebAuthnEnabled.value = false;
+      wrapper = mountComponent();
+
+      expect(wrapper.find('[data-icon="shield-check-solid"]').exists()).toBe(false);
+      expect(wrapper.find('.grid').exists()).toBe(true);
+    });
+  });
+});

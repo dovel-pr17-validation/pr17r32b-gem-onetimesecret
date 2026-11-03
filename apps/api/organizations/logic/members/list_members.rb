@@ -1,0 +1,83 @@
+# apps/api/organizations/logic/members/list_members.rb
+#
+# frozen_string_literal: true
+
+module OrganizationAPI::Logic
+  module Members
+    # List Members
+    #
+    # @api Returns all active members of an organization with their roles,
+    #   join dates, and ownership status. Any organization member can view
+    #   the list. Includes a flag indicating which entry is the current user.
+    #
+    # GET /api/organizations/:extid/members
+    #
+    # Requires: Organization membership (any role)
+    #
+    # Response includes:
+    #   - Member details (id, email, display_name)
+    #   - Role for each member
+    #   - Joined date
+    #
+    class ListMembers < OrganizationAPI::Logic::Base
+      SCHEMAS = { response: 'memberList' }.freeze
+
+      attr_reader :organization, :memberships
+
+      def process_params
+        @extid = sanitize_identifier(params['extid'])
+      end
+
+      def raise_concerns
+        verify_authenticated!
+
+        @organization = load_organization(@extid)
+        require_entitlement_in!(@organization, 'api_access')
+      end
+
+      def process
+        OT.ld "[ListMembers] Listing members for org #{@organization.extid}"
+
+        # Fetch all active memberships with role data
+        @memberships = Onetime::OrganizationMembership.active_for_org(@organization)
+
+        OT.info "[ListMembers] Found #{@memberships.size} active members"
+
+        success_data
+      end
+
+      def success_data
+        records = @memberships.map { |m| serialize_membership(m) }.compact
+
+        {
+          user_id: cust.extid,
+          organization_id: @organization.extid,
+          records: records,
+          count: records.size,
+        }
+      end
+
+      protected
+
+      # Serialize membership with member details for API response
+      #
+      # @param membership [Onetime::OrganizationMembership]
+      # @return [Hash] Serialized member data
+      def serialize_membership(membership)
+        member = membership.customer
+        return nil unless member
+
+        {
+          extid: member.extid,
+          email: member.email,
+          role: membership.role,
+          joined_at: membership.joined_at,
+          is_owner: membership.owner?,
+          is_current_user: member.objid == cust.objid,
+          provisioning_source: membership.provisioning_source.to_s.empty? ? nil : membership.provisioning_source,
+          domain_scope_id: membership.domain_scoped? ? membership.domain_scope_id : nil,
+        }
+      end
+    end
+  end
+end

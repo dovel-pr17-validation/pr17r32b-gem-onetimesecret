@@ -1,0 +1,785 @@
+// src/router/guards.routes.ts
+
+import { globalComposer } from '@/i18n';
+import { loggingService } from '@/services/logging.service';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import { useNotificationsStore } from '@/shared/stores/notificationsStore';
+import { useOrganizationStore } from '@/shared/stores/organizationStore';
+import { usePageTitle } from '@/shared/composables/usePageTitle';
+import type { ClientAuthStatus } from '@/schemas/contracts/bootstrap';
+import {
+  useAuthStore,
+  type RefreshOutcome,
+  type RefreshRequest,
+} from '@/shared/stores/authStore';
+import { useLanguageStore } from '@/shared/stores/languageStore';
+import { isSsoOnlyMode } from '@/utils/features';
+import { hardNavigate, routerOwnsPath } from '@/utils/navigation';
+import { isValidInternalPath } from '@/utils/redirect';
+import {
+  START_LOCATION,
+  type NavigationGuardReturn,
+  type NavigationGuardWithThis,
+  RouteLocationNormalized,
+  RouteLocationRaw,
+  Router,
+} from 'vue-router';
+
+import { processQueryParams } from './queryParams.handler';
+
+export async function setupRouterGuards(router: Router): Promise<void> {
+  const { setTitle } = usePageTitle();
+  let currentTitle: string | null = null;
+
+  // FIRST guard (#4456): resolve `checking` before any guard reads auth state.
+  // See verifyIfChecking. A valid hydrated page never awaits here.
+  router.beforeEach(() => verifyIfChecking(useAuthStore()).then(() => true));
+
+  // Apply custom domain layout defaults for guest/public routes only.
+  // Prevents the canonical OTS logo/branding from leaking on custom domain
+  // pages that lack explicit beforeEnter guards (e.g. secret reveal pages).
+  //
+  // Authenticated workspace routes (requiresAuth) skip this guard so they
+  // get the canonical logo, full navigation, and user menu. Context switchers
+  // (org/domain) independently hide themselves on custom domains via
+  // useScopeSwitcherVisibility (isCustom check).
+  router.beforeEach((to: RouteLocationNormalized) => {
+    const bootstrapStore = useBootstrapStore();
+    if (bootstrapStore.domain_strategy !== 'custom') return true;
+
+    // Authenticated routes use default layout — canonical logo, full nav.
+    if (to.meta.requiresAuth) return true;
+
+    // Auth routes (signin, signup, etc.) handle their own branding via
+    // titleLogo in AuthView — don't override their layout props.
+    if (to.meta.isAuthRoute) return true;
+
+    const existing = (to.meta.layoutProps ?? {}) as Record<string, unknown>;
+
+    // Guard overrides win over route-defined static defaults.
+    // Per-route beforeEnter guards run AFTER beforeEach and can
+    // still override these values for route-specific needs.
+    //
+    // Masthead is always OFF on custom domains: the top masthead renders a
+    // duplicate logo/title/subtitle band, and each branded page body already
+    // owns its own centred logo + copy (BrandedHomepage, IncomingForm) or is
+    // intentionally distraction-free (secret reveal). This mirrors the
+    // custom-domain layout in public.routes.ts ("logo goes in page content").
+    // Gating it on logo presence previously produced a duplicate header on
+    // /incoming and leaked the masthead onto the reveal page whenever a brand
+    // logo was configured.
+    to.meta.layoutProps = {
+      ...existing,
+      displayMasthead: false,
+      displayNavigation: false,
+      displayFooterLinks: false,
+      displayFeedback: false,
+    };
+
+    return true;
+  });
+
+  // Block access to routes for disabled auth features (e.g. signup, signin).
+  // Runs as a separate guard to keep complexity per-function within limits.
+  router.beforeEach((to: RouteLocationNormalized) => {
+    const redirect = handleDisabledAuthFeature(to);
+    return redirect ?? true;
+  });
+
+  // Block access to routes marked excludeSsoOnly when SSO-only mode is active.
+  router.beforeEach((to: RouteLocationNormalized) => {
+    const redirect = handleSsoOnlyRoute(to);
+    return redirect ?? true;
+  });
+
+  // Auth and locale: the redirects for MFA, auth routes and protected
+  // routes, and the one locale activation each navigation gets.
+  router.beforeEach(createAuthGuard(router));
+
+  // Org-role gate (meta.requiresOrgRole); after the auth guard so it only runs
+  // for signed-in users.
+  router.beforeEach(async (to) => (await handleOrgRoleRequirement(to)) ?? true);
+
+  // Colonel gate (meta.requiresColonel); admin bundle only. After the auth guard
+  // so a logged-out user is sent to /signin first and this only fires for an
+  // authenticated-but-non-colonel. No-op on the customer router (no route sets
+  // requiresColonel). Returns false to abort the SPA nav when it hard-navigates
+  // out of the admin bundle; null (allow) becomes true via the `?? true`.
+  router.beforeEach((to) => handleColonelRequirement(to) ?? true);
+
+  // Update page title after navigation completes
+  router.afterEach((to: RouteLocationNormalized) => {
+    // Find the title from the matched routes, starting from the most specific
+    // This handles nested routes properly by inheriting from parent routes
+    const nearestWithTitle = to.matched
+      .slice()
+      .reverse()
+      .find((r) => r.meta && r.meta.title);
+
+    let newTitle: string | null = null;
+
+    if (nearestWithTitle) {
+      newTitle = nearestWithTitle.meta.title as string;
+    } else if (to.name && typeof to.name === 'string') {
+      // Fallback to route name if no title is specified in the route hierarchy
+      newTitle = to.name;
+    }
+
+    // Only update title if it has changed
+    if (newTitle !== currentTitle) {
+      currentTitle = newTitle;
+      setTitle(newTitle);
+    }
+  });
+}
+
+type AuthStore = ReturnType<typeof useAuthStore>;
+
+/**
+ * Navigations whose locale is decided: the URL named one, or the guard
+ * activated one. Keyed by the location the navigation started from, which
+ * vue-router passes to every later pass of a redirected navigation as
+ * `to.redirectedFrom`, so a redirect does not activate a second locale.
+ */
+const localeDecided = new WeakSet<object>();
+
+/**
+ * The main guard: the MFA, auth-route and protected-route redirects, and the
+ * navigation's locale.
+ *
+ * Each navigation activates at most one locale and awaits it before the guard
+ * returns, so no view renders before its locale's messages are active:
+ *  1. a valid, supported `?locale=` on this pass, on every route including
+ *     protected ones (the server ranks the URL first too);
+ *  2. on initial navigation, resume a pending explicit preference update
+ *     before the old account locale can override it (a conflicting URL
+ *     locale cancels recovery); its save does not hold the navigation;
+ *  3. otherwise, on a protected route the user may enter, the account locale,
+ *     which a preference save still pending stands in for (see
+ *     fetchCustomerPreferences);
+ *  4. otherwise, while no locale is active yet, the language store's
+ *     preferred locale;
+ *  5. otherwise the active locale stays.
+ * The URL locale is applied before the auth checks because a redirect drops
+ * the query: unauthenticated /dashboard?locale=bg must render /signin in
+ * Bulgarian. Steps 2–4 also run before a redirect is returned, and the
+ * redirected pass then skips them. An aborted navigation (`false`, e.g. a hard
+ * navigation out of the bundle) renders nothing and activates nothing.
+ *
+ * A locale that fails to load, from any of these sources, never blocks the
+ * visitor. The failure is logged and the language store records it for
+ * LocaleLoadNotice, which names the language that failed and the one shown.
+ * On a later navigation the previous locale stays. On the initial navigation
+ * no locale is active yet, so the store activates a fallback (the
+ * installation's default_locale, else 'en') and the navigation continues.
+ * Only a fallback that cannot be activated either fails the initial
+ * navigation (router.isReady() rejects and the entry flags the shell).
+ */
+function createAuthGuard(router: Router): NavigationGuardWithThis<undefined> {
+  let recoveryChecked = false;
+  return async (to, from) => {
+    const authStore = useAuthStore();
+    logNavigation(to, authStore);
+
+    const navigation = to.redirectedFrom ?? to;
+    // `from` stays START_LOCATION for every pass of the navigation that
+    // router.isReady() waits for, redirects included.
+    const initial = from === START_LOCATION;
+
+    await applyQueryParams(to, navigation, initial);
+
+    const { result, accountLocale } = await decideRoute(to, router, authStore);
+
+    if (initial && !recoveryChecked && result !== false) {
+      recoveryChecked = true;
+      const languageStore = useLanguageStore();
+      const queryLocale =
+        localeDecided.has(navigation) && typeof to.query.locale === 'string'
+          ? (languageStore.resolveSupportedLocale(to.query.locale) ?? undefined)
+          : undefined;
+      if (await languageStore.resumeLanguageUpdate(queryLocale)) {
+        localeDecided.add(navigation);
+      }
+    }
+
+    if (result !== false && !localeDecided.has(navigation)) {
+      const choice = navigationLocale(accountLocale);
+      if (choice) {
+        localeDecided.add(navigation);
+        await activateLocale(choice, initial);
+      }
+    }
+
+    return result;
+  };
+}
+
+/**
+ * Step 1 of createAuthGuard, and the other query parameters. A URL that names
+ * a valid, supported locale decides the navigation's locale, whether or not
+ * its messages load. Any other parameter that fails (?theme= when storage is
+ * blocked) is logged and never blocks the navigation.
+ */
+async function applyQueryParams(
+  to: RouteLocationNormalized,
+  navigation: object,
+  initial: boolean
+): Promise<void> {
+  for (const param of await processQueryParams(to.query)) {
+    if (param.key === 'locale') localeDecided.add(navigation);
+    if (param.ok) continue;
+    if (param.key === 'locale') {
+      // processQueryParams runs the locale handler only for a string value.
+      await recoverLocale(String(to.query.locale), param.error, initial);
+    } else {
+      logError(param.error);
+    }
+  }
+}
+
+/** What the auth checks decided for one pass of the main guard. */
+interface RouteDecision {
+  result: NavigationGuardReturn;
+  /** The account's locale, when the user may enter the protected route. */
+  accountLocale?: string;
+}
+
+async function decideRoute(
+  to: RouteLocationNormalized,
+  router: Router,
+  authStore: AuthStore
+): Promise<RouteDecision> {
+  if (to.name === 'NotFound') return { result: true };
+
+  // Handle MFA requirement checks
+  const mfaRedirect = handleMfaAccess(to, authStore);
+  if (mfaRedirect) return { result: mfaRedirect };
+
+  // Handle root path redirect
+  if (to.path === '/') {
+    return { result: authStore.isFullyAuthenticated ? { name: 'Dashboard' } : true };
+  }
+
+  // Redirect fully authenticated users away from auth routes (respect redirect param)
+  // MFA pending users should still access auth routes like /mfa-verify
+  if (isAuthRoute(to) && authStore.isFullyAuthenticated) {
+    const redirect = handleAuthRouteRedirect(to, router);
+    if (redirect !== null) return { result: redirect };
+  }
+
+  // Validate authentication for protected routes
+  if (requiresAuthentication(to)) {
+    const isAuthenticated = await validateAuthentication(authStore, to);
+    if (!isAuthenticated) return { result: redirectToSignIn(to) };
+
+    const userPreferences = await fetchCustomerPreferences();
+    return { result: true, accountLocale: userPreferences.locale };
+  }
+
+  return { result: true }; // Always return true for non-auth routes
+}
+
+/** A locale for the navigation to activate, and whether the session keeps it. */
+interface LocaleChoice {
+  locale: string;
+  /** See SetCurrentLocaleOptions.remember. */
+  remember: boolean;
+}
+
+/**
+ * The locale a pass without a URL locale activates (steps 3 and 4 of
+ * createAuthGuard), or null when the active locale stays. An account locale
+ * that is no longer supported is passed over, as the store's preference
+ * hierarchy passes over it. The account locale is an explicit choice and is
+ * remembered for the session; the preferred locale is not.
+ */
+function navigationLocale(accountLocale: string | undefined): LocaleChoice | null {
+  const languageStore = useLanguageStore();
+  const account = accountLocale ? languageStore.resolveSupportedLocale(accountLocale) : null;
+  if (account) {
+    return account === languageStore.currentLocale ? null : { locale: account, remember: true };
+  }
+  if (languageStore.currentLocale !== null) return null;
+  return { locale: languageStore.preferredLocale(), remember: false };
+}
+
+async function activateLocale({ locale, remember }: LocaleChoice, initial: boolean) {
+  try {
+    await useLanguageStore().setCurrentLocale(locale, { remember });
+  } catch (error) {
+    await recoverLocale(locale, error, initial);
+  }
+}
+
+/**
+ * Handles a locale whose messages did not load, whichever source chose it
+ * (see createAuthGuard): logs the load error, then has the language store
+ * keep or choose the locale shown and record the failure.
+ */
+async function recoverLocale(locale: string, error: unknown, initial: boolean): Promise<void> {
+  logError(error);
+  try {
+    await useLanguageStore().recoverFromLocaleLoadFailure(locale);
+  } catch (fallbackError) {
+    failOrLog(fallbackError, initial);
+  }
+}
+
+/**
+ * A locale failure with no fallback left to show. The initial navigation
+ * fails with it
+ * (router.isReady() rejects and the entry flags the shell); a later
+ * navigation logs it and continues in the previous state.
+ */
+function failOrLog(error: unknown, initial: boolean): void {
+  if (initial) throw error;
+  logError(error);
+}
+
+function logError(error: unknown): void {
+  loggingService.error(
+    error instanceof Error ? error : new Error(`[RouterGuard] ${String(error)}`)
+  );
+}
+
+function requiresAuthentication(route: RouteLocationNormalized): boolean {
+  return !!route.meta?.requiresAuth;
+}
+
+function isAuthRoute(route: RouteLocationNormalized): boolean {
+  return !!route.meta?.isAuthRoute;
+}
+
+/**
+ * Handle MFA verification access control
+ * @param to - Target route
+ * @param authStore - Auth store with awaitingMfa and isFullyAuthenticated getters
+ * @returns Redirect object or null if no redirect needed
+ */
+function handleMfaAccess(
+  to: RouteLocationNormalized,
+  authStore: {
+    awaitingMfa: boolean;
+    isFullyAuthenticated: boolean;
+  }
+) {
+  const { awaitingMfa, isFullyAuthenticated } = authStore;
+
+  // Redirect to MFA verification if awaiting second factor
+  if (awaitingMfa && to.path !== '/mfa-verify') {
+    loggingService.debug('[MFA Guard] Redirecting to /mfa-verify (awaiting MFA)');
+    return { path: '/mfa-verify' };
+  }
+
+  // Prevent access to MFA verify page when not awaiting MFA
+  if (to.path === '/mfa-verify' && !awaitingMfa) {
+    // Use isFullyAuthenticated to determine redirect target
+    const redirect = isFullyAuthenticated ? { name: 'Dashboard' } : { path: '/signin' };
+    loggingService.debug('[MFA Guard] Redirecting from /mfa-verify:', {
+      redirect,
+      reason: 'not awaiting MFA',
+    });
+    return redirect;
+  }
+
+  return null;
+}
+
+/**
+ * Block access to routes that require a disabled auth feature.
+ *
+ * Routes can declare `meta.requiresFeature: 'signup' | 'signin'` to
+ * indicate they need a specific authentication feature to be enabled.
+ * When the feature is disabled (via AUTH_SIGNUP, AUTH_SIGNIN, or the
+ * master AUTH_ENABLED toggle), the user is redirected to '/'.
+ */
+function handleDisabledAuthFeature(to: RouteLocationNormalized) {
+  const feature = to.meta.requiresFeature;
+  if (!feature) return null;
+
+  const bootstrapStore = useBootstrapStore();
+  const { authentication } = bootstrapStore;
+
+  if (!authentication?.enabled || !authentication[feature]) {
+    loggingService.debug(
+      '[RouterGuard] Redirecting - auth feature disabled:',
+      { feature, path: to.path }
+    );
+    return { path: '/' };
+  }
+
+  return null;
+}
+
+/**
+ * Block access to routes marked with `meta.excludeSsoOnly: true`
+ * when SSO-only mode is active.
+ *
+ * Authenticated routes redirect to '/account' (profile page).
+ * Unauthenticated routes redirect to '/signin' (SSO sign-in page).
+ * Note: /signin stays reachable because it carries `requiredInSsoOnly` and
+ * early-returns below; the explicit path check further down is only a
+ * backstop against a self-redirect loop should that flag ever be stripped
+ * from /signin.
+ *
+ * Routes marked `meta.requiredInSsoOnly: true` (the SSO flow itself and its
+ * MFA continuation) are always allowed through, with precedence over
+ * `excludeSsoOnly` — see the RouteMeta docs in src/types/router.ts. The full
+ * route/flag matrix is pinned by src/tests/router/sso-only-reachability.spec.ts.
+ */
+export function handleSsoOnlyRoute(to: RouteLocationNormalized) {
+  // Precedence over excludeSsoOnly — see requiredInSsoOnly in src/types/router.ts.
+  if (to.meta.requiredInSsoOnly) {
+    if (import.meta.env.DEV && to.meta.excludeSsoOnly) {
+      loggingService.warn(
+        '[RouterGuard] Route sets both requiredInSsoOnly and excludeSsoOnly ' +
+          '— configuration error; requiredInSsoOnly wins. Remove ' +
+          'excludeSsoOnly (see RouteMeta in src/types/router.ts).',
+        { path: to.path }
+      );
+    }
+    return null;
+  }
+  if (!to.meta.excludeSsoOnly) return null;
+  if (!isSsoOnlyMode()) return null;
+  // Backstop only: /signin normally early-returns via requiredInSsoOnly above;
+  // this keeps a self-redirect loop impossible if that flag is ever stripped.
+  if (to.path === '/signin') return null;
+
+  loggingService.debug(
+    '[RouterGuard] Redirecting - SSO-only mode blocks route:',
+    { path: to.path }
+  );
+
+  // Authenticated users land on profile; unauthenticated on sign-in
+  const authStore = useAuthStore();
+  if (authStore.isFullyAuthenticated) {
+    return { path: '/account' };
+  }
+  return { path: '/signin' };
+}
+
+/** True when `role` meets the `required` minimum (owner ⊃ admin). */
+function roleMeetsRequirement(
+  role: string | null | undefined,
+  required: 'owner' | 'admin'
+): boolean {
+  if (required === 'owner') return role === 'owner';
+  return role === 'owner' || role === 'admin';
+}
+
+/**
+ * Enforce per-route org-role requirements declared via `meta.requiresOrgRole`.
+ *
+ * Single-org routes carry the org in the path (:extid or :orgid); the role is
+ * resolved from that org — cached list, bootstrap-seeded current org, or a
+ * fetch when the role isn't yet known (deep link). The organizations list page
+ * (`/orgs`) has no single-org context, so it is satisfied when ANY org the user
+ * belongs to meets the required role; the list is fetched first so a fresh deep
+ * link doesn't bounce a real owner.
+ *
+ * Returns a redirect to '/dashboard' (outside every org route, so no redirect
+ * loop) when the requirement isn't met, or null to allow navigation. Fails
+ * closed: an unknown role and a rejected fetch both redirect, because the
+ * list endpoint enforces no role and provides no backend backstop.
+ *
+ * A refusal also raises a notice (#4566): the role the page needs when the
+ * guard learned the user's role, or that access could not be confirmed when
+ * the lookup failed. The redirect alone read as a silent bounce: nothing on
+ * /dashboard said why the user was there, and the empty/not-found states of
+ * the org pages, which the guard pre-empts, never got a chance to say it
+ * either.
+ */
+export async function handleOrgRoleRequirement(
+  to: RouteLocationNormalized
+): Promise<RouteLocationRaw | null> {
+  const required = to.meta.requiresOrgRole;
+  if (!required) return null;
+
+  const store = useOrganizationStore();
+  // Resolve the ORG id from the path. Domain routes are
+  // /org/:orgid/domains/:extid — there :extid is the DOMAIN id, so :orgid must
+  // win; settings routes carry the org as :extid only.
+  const orgExtid = (to.params.orgid ?? to.params.extid) as string | undefined;
+
+  // Single-org routes test the org named in the path; the list page (no org in
+  // the path) is met when any membership qualifies.
+  const meets = orgExtid
+    ? await singleOrgMeetsRole(store, orgExtid, required)
+    : await anyOrgMeetsRole(store, required);
+  if (meets) return null;
+
+  loggingService.debug('[RouterGuard] Org role requirement not met:', {
+    path: to.path,
+    required,
+    roleKnown: meets !== null,
+  });
+  notifyOrgRoleRefused(required, meets === null ? 'unconfirmed' : 'refused');
+  return { path: '/dashboard' };
+}
+
+/**
+ * Tell the user why they landed on /dashboard. A role the guard learned is
+ * reported as the page's requirement. A lookup that failed (403, 404, or a
+ * network error) is reported as unconfirmed access instead: the user may hold
+ * the role and the check simply did not complete, so naming the requirement
+ * would read as a refusal. Held for 10 s like the session notices in
+ * App.vue: the user has just been moved and needs time to read it.
+ *
+ * The notifications store shows one message at a time. A notice already on
+ * screen (App.vue's session-transition notice after a forced reload, an error
+ * toast) is neither replaced nor allowed to swallow this one: the explanation
+ * queues behind it and shows when it clears. The redirect happens either way.
+ */
+function notifyOrgRoleRefused(
+  required: 'owner' | 'admin',
+  outcome: 'refused' | 'unconfirmed'
+): void {
+  const notifications = useNotificationsStore();
+
+  let key = 'web.organizations.access_unconfirmed_notice';
+  if (outcome === 'refused') {
+    key =
+      required === 'owner'
+        ? 'web.organizations.owner_required_notice'
+        : 'web.organizations.admin_required_notice';
+  }
+  notifications.enqueue(globalComposer.t(key), 'info', 'top', 10000);
+}
+
+type OrganizationStore = ReturnType<typeof useOrganizationStore>;
+
+/**
+ * List-page scope (`/orgs`): met when any NON-DEFAULT org the user belongs to
+ * satisfies `required`. The list is fetched first so a fresh deep link doesn't
+ * bounce a real owner. A rejected fetch returns null: the guard fails closed
+ * and reports the check as unconfirmed.
+ *
+ * Default workspaces are excluded for non-owners because every user gets one —
+ * checking them would let regular members access the orgs list page (see #3326).
+ * Owners of default workspaces (self-signup users) are allowed through.
+ */
+async function anyOrgMeetsRole(
+  store: OrganizationStore,
+  required: 'owner' | 'admin'
+): Promise<boolean | null> {
+  if (!store.isListFetched) {
+    try {
+      await store.fetchOrganizations();
+    } catch {
+      return null;
+    }
+  }
+  return store.organizations.some(
+    (o) => (!o.is_default || o.current_user_role === 'owner') && roleMeetsRequirement(o.current_user_role, required)
+  );
+}
+
+/**
+ * Single-org scope: resolve the org named by `extid` (cached list, bootstrap
+ * current org, or a fetch when the role is unknown) and test its role. A
+ * rejected fetch (e.g. a non-member's backend 403) returns null: the guard
+ * fails closed and reports the check as unconfirmed.
+ */
+async function singleOrgMeetsRole(
+  store: OrganizationStore,
+  extid: string,
+  required: 'owner' | 'admin'
+): Promise<boolean | null> {
+  let org =
+    store.getOrganizationByExtid(extid) ??
+    (store.currentOrganization?.extid === extid ? store.currentOrganization : null);
+
+  if (!org?.current_user_role) {
+    try {
+      org = await store.fetchOrganization(extid);
+    } catch {
+      return null;
+    }
+  }
+
+  return roleMeetsRequirement(org?.current_user_role, required);
+}
+
+/**
+ * Enforce the colonel-only requirement declared via `meta.requiresColonel`
+ * (set on every admin-console route via adminDefaultMeta).
+ *
+ * Client-side defence-in-depth: the backend already gates /colonel on
+ * role=colonel and 403s the admin APIs, but without this guard an
+ * authenticated non-colonel loads the full admin shell client-side before the
+ * API calls fail. The role is read synchronously from the server-injected
+ * bootstrap customer (no fetch).
+ *
+ * Redirect subtlety: the admin router has NO /dashboard and NO /signin route,
+ * so a SPA redirect (e.g. `{ path: '/dashboard' }`) would resolve to the admin
+ * NotFound view still inside the /colonel shell. A non-colonel must be
+ * hard-navigated OUT of the admin bundle into the customer app via
+ * window.location.assign('/'); the guard returns `false` to abort the in-SPA
+ * navigation while the full page load takes over.
+ *
+ * Returns null to allow navigation (colonel, or a route without the flag), or
+ * false to abort after triggering the hard navigation.
+ */
+export function handleColonelRequirement(to: RouteLocationNormalized): false | null {
+  if (!to.meta.requiresColonel) return null;
+
+  const role = useBootstrapStore().cust?.role;
+  if (role === 'colonel') return null;
+
+  loggingService.debug('[RouterGuard] Non-colonel blocked from admin route:', {
+    path: to.path,
+    role,
+  });
+
+  window.location.assign('/');
+  return false;
+}
+
+/**
+ * Handle redirects for authenticated users accessing auth routes.
+ * Returns a redirect target, false when it hard-navigated out of the bundle
+ * (aborting the SPA nav), or null if no redirect needed.
+ */
+function handleAuthRouteRedirect(
+  to: RouteLocationNormalized,
+  router: Router
+): RouteLocationRaw | false | null {
+  // Allow reset-password with token regardless of auth state - the token is the authorization
+  if (to.path === '/reset-password' && to.query.key) {
+    return null;
+  }
+  // Redirect /forgot to the authenticated reset password page
+  if (to.path === '/forgot') {
+    return { path: '/account/settings/security/reset-password' };
+  }
+  // Respect redirect param if valid. isValidInternalPath caps length at 2048,
+  // rejects embedded '://', backslashes, control characters and encoded
+  // traversal, and lets ?query / #hash through as part of the string.
+  //
+  // Return the RAW STRING, not { path }: vue-router runs a `path` through
+  // parseURL, which treats it as a path ONLY — '/secret/abc?view=raw#content'
+  // becomes the literal path '/secret/abc?view=raw#content' with the query and
+  // hash silently discarded from where they belong. The string form is parsed
+  // as a full location, so both survive.
+  const redirectParam = to.query.redirect;
+  const redirectPath = typeof redirectParam === 'string' ? redirectParam : undefined;
+  if (!isValidInternalPath(redirectPath)) return { name: 'Dashboard' };
+  // A path this router has no route for (e.g. /colonel from the customer
+  // bundle) needs a document load; returning it would render NotFound under
+  // the new URL. Same posture as handleColonelRequirement.
+  if (!routerOwnsPath(router, redirectPath)) {
+    hardNavigate(redirectPath, '/');
+    return false;
+  }
+  return redirectPath;
+}
+
+function redirectToSignIn(from: RouteLocationNormalized) {
+  return {
+    path: '/signin',
+    query: { redirect: from.fullPath },
+  };
+}
+
+/** Debug logging helper for navigation guard */
+function logNavigation(to: RouteLocationNormalized, authStore: AuthValidator) {
+  loggingService.debug('[RouterGuard] Navigation to:', {
+    path: to.path,
+    name: to.name,
+    requiresAuth: to.meta?.requiresAuth,
+    isAuthRoute: to.meta?.isAuthRoute,
+    authStatus: authStore.authStatus,
+  });
+}
+
+/**
+ * The slice of authStore that route protection needs: THE client status and
+ * the coordinator's entry point. Kept minimal so tests can supply a plain
+ * object; the store satisfies it structurally.
+ */
+interface AuthValidator {
+  authStatus: ClientAuthStatus;
+  refresh: (request: RefreshRequest) => Promise<RefreshOutcome>;
+}
+
+/**
+ * Decides whether a protected route may be entered (#4456).
+ *
+ * Hydration is the canonical initial snapshot, so this decides SYNCHRONOUSLY
+ * from the status in every case but one. Navigation is not a refresh trigger
+ * and the age of the last check is irrelevant here.
+ *
+ * - `authenticated`  allow.
+ * - `anonymous`, `mfa_pending`  refuse; the caller redirects to /signin (the
+ *    MFA guard has already sent `mfa_pending` to /mfa-verify).
+ * - `checking`  hydration was missing or invalid. Refusing would turn "we do
+ *    not know" into "anonymous", so ask the coordinator exactly once and
+ *    decide from the answer.
+ * - `unavailable`  allow the navigation. It is NOT a sign-out, so it must not
+ *    bounce to /signin; the layout withholds protected content (#4460).
+ */
+/**
+ * Asks the coordinator once when nothing has been verified yet (#4456).
+ *
+ * A valid hydrated snapshot returns on the first line, so initial navigation
+ * makes no request. `checking` means hydration was missing or invalid, and
+ * deciding anything from it would turn "we do not know" into "anonymous". The
+ * coordinator lands on a server statement or on `unavailable`; either way the
+ * status is no longer `checking`, so later navigations do not ask again
+ * (retries are the coordinator's, on backoff).
+ *
+ * Registered as the first guard and run for EVERY route, not only protected
+ * ones: a public page with broken hydration must not show a signed-in user as
+ * signed out indefinitely, and the guards after it must not decide from an
+ * unverified status.
+ */
+async function verifyIfChecking(store: AuthValidator): Promise<void> {
+  if (store.authStatus !== 'checking') return;
+  loggingService.debug('[RouterGuard] Status is checking, verifying once');
+  await store.refresh({ kind: 'ordinary', reason: 'initial-verification' });
+}
+
+async function validateAuthentication(
+  store: AuthValidator,
+  route: RouteLocationNormalized
+): Promise<boolean> {
+  if (!requiresAuthentication(route)) return true;
+
+  // Normally already resolved by the first guard; kept so this function is
+  // correct on its own. It joins the request in flight rather than adding one.
+  await verifyIfChecking(store);
+
+  const status = store.authStatus;
+  loggingService.debug('[validateAuthentication] Deciding protected route:', {
+    path: route.path,
+    status,
+  });
+  return status === 'authenticated' || status === 'unavailable' || status === 'checking';
+}
+
+/**
+ * Returns a dictionary of the customer's preferences.
+ *
+ * Currently the customer object is passed from backend on the initial
+ * page load so there is no fetch happening. This implementation should
+ * allow us to drop-in a request to the server when we need to.
+ */
+async function fetchCustomerPreferences(): Promise<{ locale?: string }> {
+  const bootstrapStore = useBootstrapStore();
+  // The snapshot changes only once a preference save succeeds. While one is
+  // pending, its locale is the account's: the snapshot's would revert it.
+  const locale = useLanguageStore().savingLocale ?? bootstrapStore.cust?.locale ?? undefined;
+  return { locale };
+}
+
+export type { AuthValidator };
+
+export {
+  fetchCustomerPreferences,
+  isAuthRoute,
+  redirectToSignIn,
+  requiresAuthentication,
+  validateAuthentication,
+  verifyIfChecking,
+};

@@ -1,0 +1,523 @@
+# apps/web/auth/spec/integration/omniauth_account_creation_spec.rb
+#
+# frozen_string_literal: true
+
+# =============================================================================
+# TEST TYPE: Integration
+# =============================================================================
+#
+# Tests the after_omniauth_create_account hook operations that create Customer
+# and Organization records for new SSO users.
+#
+# Operations tested:
+#   - Auth::Operations::EnsureCustomerForAccount
+#   - Auth::Operations::EnsureDefaultWorkspace
+#
+# REQUIREMENTS:
+# - Valkey running on port 2163: pnpm run test:database:start
+# - AUTH_DATABASE_URL set (SQLite or PostgreSQL)
+# - AUTHENTICATION_MODE=full
+#
+# RUN:
+#   source .env.test && pnpm run test:rspec apps/web/auth/spec/integration/omniauth_account_creation_spec.rb
+#
+# =============================================================================
+
+require_relative '../../spec_helper'
+
+RSpec.describe 'after_omniauth_create_account operations', type: :integration do
+  before(:all) do
+    require 'onetime' unless defined?(Onetime)
+    Onetime.boot! :test unless Onetime.ready?
+    require_relative '../../../operations/ensure_customer_for_account'
+    require_relative '../../../operations/ensure_default_workspace'
+  end
+
+  # Track created resources for cleanup
+  let(:created_customers) { [] }
+  let(:created_organizations) { [] }
+  let(:created_account_ids) { [] }
+
+  after do
+    # Clean up test data
+    created_organizations.each do |org|
+      org.delete! if org&.exists?
+    rescue StandardError => e
+      # Non-fatal cleanup error
+    end
+
+    created_customers.each do |customer|
+      customer.delete! if customer&.exists?
+    rescue StandardError => e
+      # Non-fatal cleanup error
+    end
+
+    created_account_ids.each do |account_id|
+      Auth::Database.connection[:accounts].where(id: account_id).delete
+    rescue StandardError => e
+      # Non-fatal cleanup error
+    end
+  end
+
+  # Helper to create a test account in the database.
+  #
+  # Status is UNVERIFIED, and that is correct for these examples: EnsureCustomerForAccount
+  # never reads the account's status — it takes the caller's `verified:`
+  # argument, which defaults to false (the password-signup shape, where
+  # after_verify_account flips the Customer later). An account fresh out of
+  # signup is the honest subject. The SSO caller that passes `verified: true` is
+  # the omniauth hook, driven end-to-end in omniauth_jit_verified_spec.rb.
+  def create_test_account(email:, status_id: AuthTestConstants::STATUS_UNVERIFIED)
+    db = Auth::Database.connection
+    account_id = db[:accounts].insert(
+      email: email,
+      status_id: status_id,
+      created_at: Time.now,
+      updated_at: Time.now
+    )
+    created_account_ids << account_id
+    { id: account_id, email: email }
+  end
+
+  describe 'EnsureCustomerForAccount operation' do
+    it 'creates a Customer in Redis with correct attributes' do
+      email = unique_test_email('create-customer')
+      account = create_test_account(email: email)
+
+      # Verify no Customer exists yet
+      expect(Onetime::Customer.exists?(email)).to be false
+
+      # Call the operation
+      operation = Auth::Operations::EnsureCustomerForAccount.new(
+        account_id: account[:id],
+        account: account
+      )
+      customer = operation.call
+      created_customers << customer
+
+      # Verify Customer was created
+      expect(customer).to be_a(Onetime::Customer)
+      expect(customer.email).to eq(email)
+      expect(customer.role.to_s).to eq('customer')
+      expect(customer.verified.to_s).to eq('false')
+      expect(customer.custid).not_to be_nil
+      expect(customer.extid).not_to be_nil
+    end
+
+    it 'links customer extid to rodauth account via external_id' do
+      email = unique_test_email('link-extid')
+      account = create_test_account(email: email)
+
+      operation = Auth::Operations::EnsureCustomerForAccount.new(
+        account_id: account[:id],
+        account: account
+      )
+      customer = operation.call
+      created_customers << customer
+
+      # Verify external_id was set in the accounts table
+      db = Auth::Database.connection
+      stored_extid = db[:accounts].where(id: account[:id]).get(:external_id)
+
+      expect(stored_extid).to eq(customer.extid)
+      expect(stored_extid).not_to be_nil
+    end
+
+    it 'finds existing Customer via find_by_email when email matches' do
+      email = unique_test_email('existing-customer')
+      account = create_test_account(email: email)
+
+      # First call creates the customer
+      operation1 = Auth::Operations::EnsureCustomerForAccount.new(
+        account_id: account[:id],
+        account: account
+      )
+      customer1 = operation1.call
+      created_customers << customer1
+
+      # Verify Customer.find_by_email works (used by operation's exists? check)
+      found = Onetime::Customer.find_by_email(email)
+      expect(found).not_to be_nil
+      expect(found.custid).to eq(customer1.custid)
+    end
+
+    # Regression guard for the immutability rule documented on EnsureCustomerForAccount:
+    # signup_domain_id and provisioning_origin are set only when the customer
+    # is first created and must not be rewritten on subsequent SSO logins.
+    # Before PR #3237 the omniauth callback overwrote signup_domain_id after
+    # every SSO login via a custom domain; the fix moved the assignment into
+    # the initial create! and relies on the existing-customer branch being a
+    # no-op for these fields. If that guard is reverted, this spec fails.
+    it 'preserves signup_domain_id on subsequent calls for an existing customer' do
+      email = unique_test_email('signup-domain-immutable')
+      account = create_test_account(email: email)
+      original_domain_id = "domain-original-#{SecureRandom.hex(4)}"
+      different_domain_id = "domain-different-#{SecureRandom.hex(4)}"
+
+      # First call: customer is created with the original signup_domain_id
+      customer1 = Auth::Operations::EnsureCustomerForAccount.new(
+        account_id: account[:id],
+        account: account,
+        signup_domain_id: original_domain_id,
+      ).call
+      created_customers << customer1
+      expect(customer1.signup_domain_id).to eq(original_domain_id)
+
+      # Second call: same email, different signup_domain_id (simulates a
+      # subsequent SSO login arriving via a different custom domain).
+      customer2 = Auth::Operations::EnsureCustomerForAccount.new(
+        account_id: account[:id],
+        account: account,
+        signup_domain_id: different_domain_id,
+      ).call
+
+      # Same customer record, original signup_domain_id intact.
+      expect(customer2.custid).to eq(customer1.custid)
+      expect(customer2.signup_domain_id).to eq(original_domain_id)
+
+      # Reload from Redis to confirm nothing was persisted under the new value.
+      reloaded = Onetime::Customer.load(customer1.custid)
+      expect(reloaded.signup_domain_id).to eq(original_domain_id)
+    end
+
+    it 'preserves provisioning_origin on subsequent calls for an existing customer' do
+      email = unique_test_email('provisioning-origin-immutable')
+      account = create_test_account(email: email)
+
+      # First call seeds the customer as an SSO JIT signup.
+      customer1 = Auth::Operations::EnsureCustomerForAccount.new(
+        account_id: account[:id],
+        account: account,
+        provisioning_origin: 'sso_jit',
+      ).call
+      created_customers << customer1
+      expect(customer1.provisioning_origin).to eq('sso_jit')
+
+      # A later call must not relabel the provisioning origin.
+      customer2 = Auth::Operations::EnsureCustomerForAccount.new(
+        account_id: account[:id],
+        account: account,
+        provisioning_origin: 'canonical_signup',
+      ).call
+
+      expect(customer2.custid).to eq(customer1.custid)
+      expect(customer2.provisioning_origin).to eq('sso_jit')
+
+      reloaded = Onetime::Customer.load(customer1.custid)
+      expect(reloaded.provisioning_origin).to eq('sso_jit')
+    end
+
+    it 'sets default role to customer (not admin or colonel)' do
+      email = unique_test_email('default-role')
+      account = create_test_account(email: email)
+
+      operation = Auth::Operations::EnsureCustomerForAccount.new(
+        account_id: account[:id],
+        account: account
+      )
+      customer = operation.call
+      created_customers << customer
+
+      expect(customer.role.to_s).to eq('customer')
+      expect(customer.role.to_s).not_to eq('admin')
+      expect(customer.role.to_s).not_to eq('colonel')
+    end
+
+    it 'sets verified to false (requires separate verification flow)' do
+      email = unique_test_email('verified-false')
+      account = create_test_account(email: email)
+
+      operation = Auth::Operations::EnsureCustomerForAccount.new(
+        account_id: account[:id],
+        account: account
+      )
+      customer = operation.call
+      created_customers << customer
+
+      expect(customer.verified.to_s).to eq('false')
+    end
+
+    # ======================================================================
+    # verified: / verified_by: parameters (#3973)
+    # ======================================================================
+    #
+    # The operation used to hard-code `verified: false` with no way to say
+    # otherwise, which is why the SSO JIT path could never mark its customers
+    # verified. These examples pin the parameter contract the omniauth hook
+    # depends on; the hook's own decision (when it passes true at all) is
+    # driven end-to-end in omniauth_jit_verified_spec.rb.
+    describe 'verified/verified_by parameters' do
+      it 'threads verified: true and verified_by: through to the new Customer' do
+        email = unique_test_email('verified-threaded')
+        account = create_test_account(email: email, status_id: AuthTestConstants::STATUS_VERIFIED)
+
+        customer = Auth::Operations::EnsureCustomerForAccount.new(
+          account_id: account[:id],
+          account: account,
+          provisioning_origin: 'sso_jit',
+          verified: true,
+          verified_by: 'sso',
+        ).call
+        created_customers << customer
+
+        expect(customer.verified?).to be true
+        expect(customer.verified_by.to_s).to eq('sso')
+
+        # Persisted, not just set on the in-memory instance.
+        reloaded = Onetime::Customer.load(customer.custid)
+        expect(reloaded.verified?).to be true
+        expect(reloaded.verified_by.to_s).to eq('sso')
+      end
+
+      # The NEGATIVE case, and the reason the default matters: a customer that
+      # is not being provisioned by SSO gets the unchanged behaviour. If the
+      # default ever flips, every password signup silently becomes verified.
+      it 'leaves a customer unverified when no verification is asserted' do
+        email = unique_test_email('verified-default')
+        account = create_test_account(email: email)
+
+        customer = Auth::Operations::EnsureCustomerForAccount.new(
+          account_id: account[:id],
+          account: account,
+          provisioning_origin: 'canonical_signup',
+        ).call
+        created_customers << customer
+
+        expect(customer.verified?).to be false
+        expect(customer.verified_by.to_s).to eq('')
+
+        reloaded = Onetime::Customer.load(customer.custid)
+        expect(reloaded.verified?).to be false
+        expect(reloaded.verified_by.to_s).to eq('')
+      end
+
+      # verified_by is provenance. Recording one without the verified flag it
+      # describes would produce a record no check in the doctor can reason
+      # about, so the operation drops it.
+      it 'ignores verified_by when verified is false' do
+        email = unique_test_email('verified-by-orphan')
+        account = create_test_account(email: email)
+
+        customer = Auth::Operations::EnsureCustomerForAccount.new(
+          account_id: account[:id],
+          account: account,
+          verified: false,
+          verified_by: 'sso',
+        ).call
+        created_customers << customer
+
+        expect(customer.verified?).to be false
+        expect(customer.verified_by.to_s).to eq('')
+      end
+
+      # verification_hold records WHY the SSO/JIT caller withheld the verified
+      # stamp, so the customers doctor can refuse to auto-repair it later. It is
+      # a persisted field, not an in-memory flag.
+      it 'threads verification_hold: through to the new Customer' do
+        email = unique_test_email('verification-hold')
+        account = create_test_account(email: email, status_id: AuthTestConstants::STATUS_VERIFIED)
+
+        customer = Auth::Operations::EnsureCustomerForAccount.new(
+          account_id: account[:id],
+          account: account,
+          provisioning_origin: 'sso_jit',
+          verified: false,
+          verification_hold: 'idp_unverified',
+        ).call
+        created_customers << customer
+
+        expect(customer.verified?).to be false
+        expect(customer.verification_hold).to eq('idp_unverified')
+        expect(customer.verification_held?).to be true
+
+        reloaded = Onetime::Customer.load(customer.custid)
+        expect(reloaded.verification_hold).to eq('idp_unverified')
+        expect(reloaded.verification_held?).to be true
+      end
+
+      it 'records no verification_hold by default' do
+        email = unique_test_email('verification-hold-default')
+        account = create_test_account(email: email)
+
+        customer = Auth::Operations::EnsureCustomerForAccount.new(
+          account_id: account[:id],
+          account: account,
+        ).call
+        created_customers << customer
+
+        expect(customer.verification_hold.to_s).to eq('')
+        expect(customer.verification_held?).to be false
+      end
+
+      # The hold vocabulary is enforced (Onetime::Customer::VERIFICATION_HOLDS),
+      # and a hold on a verified record is a contradiction. Both are refused in
+      # the initializer, before the email index is consulted or anything is
+      # written, so no such record can be created through this operation.
+      it 'refuses an unknown or contradictory verification_hold before creating anything' do
+        email = unique_test_email('verification-hold-bad')
+        account = create_test_account(email: email, status_id: AuthTestConstants::STATUS_VERIFIED)
+
+        expect do
+          Auth::Operations::EnsureCustomerForAccount.new(
+            account_id: account[:id],
+            account: account,
+            verification_hold: 'made_up',
+          )
+        end.to raise_error(ArgumentError, /made_up/)
+
+        expect do
+          Auth::Operations::EnsureCustomerForAccount.new(
+            account_id: account[:id],
+            account: account,
+            verified: true,
+            verified_by: 'sso',
+            verification_hold: 'idp_unverified',
+          )
+        end.to raise_error(ArgumentError, /contradicts verified: true/)
+
+        expect(Onetime::Customer.email_exists?(email)).to be false
+        expect(Auth::Database.connection[:accounts].where(id: account[:id]).get(:external_id)).to be_nil
+      end
+
+      # Same "don't rewrite history" rule as provisioning_origin and
+      # signup_domain_id: the existing-customer branch is a no-op, so this
+      # operation can never upgrade an already-unverified record.
+      it 'does not verify an existing customer' do
+        email = unique_test_email('verified-existing')
+        account = create_test_account(email: email)
+
+        customer1 = Auth::Operations::EnsureCustomerForAccount.new(
+          account_id: account[:id],
+          account: account,
+        ).call
+        created_customers << customer1
+        expect(customer1.verified?).to be false
+
+        customer2 = Auth::Operations::EnsureCustomerForAccount.new(
+          account_id: account[:id],
+          account: account,
+          verified: true,
+          verified_by: 'sso',
+        ).call
+
+        expect(customer2.custid).to eq(customer1.custid)
+        expect(customer2.verified?).to be false
+
+        reloaded = Onetime::Customer.load(customer1.custid)
+        expect(reloaded.verified?).to be false
+        expect(reloaded.verified_by.to_s).to eq('')
+      end
+    end
+  end
+
+  describe 'EnsureDefaultWorkspace operation' do
+    it 'creates Organization with is_default true' do
+      email = unique_test_email('workspace-default')
+      customer = Onetime::Customer.create!(
+        email: email,
+        role: 'customer',
+        verified: true
+      )
+      created_customers << customer
+
+      # Verify no organizations exist
+      expect(customer.organization_instances.count).to eq(0)
+
+      # Call the operation
+      operation = Auth::Operations::EnsureDefaultWorkspace.new(customer: customer)
+      result = operation.call
+      org = result[:organization]
+      created_organizations << org
+
+      expect(org).to be_a(Onetime::Organization)
+      expect(org.is_default).to be true
+    end
+
+    it 'is idempotent - does not create duplicate organizations' do
+      email = unique_test_email('workspace-idempotent')
+      customer = Onetime::Customer.create!(
+        email: email,
+        role: 'customer',
+        verified: true
+      )
+      created_customers << customer
+
+      # First call - creates organization
+      operation1 = Auth::Operations::EnsureDefaultWorkspace.new(customer: customer)
+      result1 = operation1.call
+      created_organizations << result1[:organization]
+
+      expect(customer.organization_instances.count).to eq(1)
+
+      # Second call - should be no-op
+      operation2 = Auth::Operations::EnsureDefaultWorkspace.new(customer: customer)
+      result2 = operation2.call
+
+      expect(result2).to be_nil # Returns nil when workspace exists
+      expect(customer.organization_instances.count).to eq(1)
+    end
+
+    it 'returns nil when customer is nil' do
+      operation = Auth::Operations::EnsureDefaultWorkspace.new(customer: nil)
+      result = operation.call
+
+      expect(result).to be_nil
+    end
+
+    it 'customer has organization after workspace creation' do
+      email = unique_test_email('workspace-customer-link')
+      customer = Onetime::Customer.create!(
+        email: email,
+        role: 'customer',
+        verified: true
+      )
+      created_customers << customer
+
+      expect(customer.organization_instances).to be_empty
+
+      operation = Auth::Operations::EnsureDefaultWorkspace.new(customer: customer)
+      result = operation.call
+      org = result[:organization]
+      created_organizations << org
+
+      # Customer should now have the organization
+      expect(customer.organization_instances).not_to be_empty
+      expect(customer.organization_instances.first.objid).to eq(org.objid)
+    end
+  end
+
+  describe 'full account creation flow' do
+    it 'EnsureCustomerForAccount followed by EnsureDefaultWorkspace creates linked records' do
+      email = unique_test_email('full-flow')
+      account = create_test_account(email: email)
+
+      # Step 1: Create Customer
+      customer_op = Auth::Operations::EnsureCustomerForAccount.new(
+        account_id: account[:id],
+        account: account
+      )
+      customer = customer_op.call
+      created_customers << customer
+
+      # Step 2: Create Workspace
+      workspace_op = Auth::Operations::EnsureDefaultWorkspace.new(customer: customer)
+      result = workspace_op.call
+      org = result[:organization]
+      created_organizations << org
+
+      # Verify the full chain
+      db = Auth::Database.connection
+      stored_extid = db[:accounts].where(id: account[:id]).get(:external_id)
+
+      # Account -> Customer link via external_id
+      expect(stored_extid).to eq(customer.extid)
+
+      # Customer -> Organization link
+      expect(customer.organization_instances.count).to eq(1)
+      expect(customer.organization_instances.first.is_default).to be true
+
+      # All records have correct email
+      expect(customer.email).to eq(email)
+    end
+  end
+end

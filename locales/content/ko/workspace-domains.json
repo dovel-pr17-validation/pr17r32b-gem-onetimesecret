@@ -1,0 +1,1694 @@
+{
+  "web.domains.learn_more_dns": {
+    "text": "DNS 설정에 대해 자세히 알아보기",
+    "source_hash": "c592a5c6"
+  },
+  "web.domains.view_domain_verification_status": {
+    "text": "도메인 인증 상태 보기",
+    "source_hash": "23635e2d"
+  },
+  "web.domains.domain_already_in_organization": {
+    "text": "이 도메인은 이미 조직에 등록되어 있습니다",
+    "source_hash": "6e0d628f"
+  },
+  "web.domains.domain_in_other_organization": {
+    "text": "이 도메인은 이미 다른 조직에 등록되어 있습니다. 오류라고 생각되시면 고객 지원에 문의해 주세요.",
+    "source_hash": "7fae16a9"
+  },
+  "web.domains.domain_claimed_successfully": {
+    "text": "도메인이 성공적으로 청구되어 조직에 추가되었습니다",
+    "source_hash": "d53e1ac1"
+  },
+  "web.domains.privacy_defaults_title": {
+    "text": "개인정보 보호 기본값",
+    "source_hash": "5bce069d"
+  },
+  "web.domains.privacy_defaults_description": {
+    "text": "이 도메인에서 생성된 비밀 메시지의 기본 개인정보 보호 옵션을 설정합니다. 이 설정은 새 비밀 메시지를 생성할 때 미리 채워집니다.",
+    "source_hash": "1d98959c"
+  },
+  "web.domains.privacy_defaults": {
+    "text": "개인정보 보호 기본값",
+    "source_hash": "5bce069d"
+  },
+  "web.domains.privacy_defaults_icon": {
+    "text": "개인정보 보호 기본값 아이콘",
+    "source_hash": "c6bef509"
+  },
+  "web.domains.default_ttl_label": {
+    "text": "기본 유효기간",
+    "source_hash": "ce3c65fe"
+  },
+  "web.domains.default_ttl_hint": {
+    "text": "비밀 메시지가 기본적으로 접근 가능한 기간",
+    "source_hash": "777b978d"
+  },
+  "web.domains.passphrase_required_label": {
+    "text": "접근 문구 필수",
+    "source_hash": "3a448e69"
+  },
+  "web.domains.passphrase_required_hint": {
+    "text": "이 도메인의 모든 비밀 메시지에 접근 문구를 필수로 설정",
+    "source_hash": "6ac05bce"
+  },
+  "web.domains.notify_enabled_label": {
+    "text": "알림 활성화",
+    "source_hash": "682be64a"
+  },
+  "web.domains.notify_enabled_hint": {
+    "text": "비밀 메시지가 조회될 때 기본적으로 이메일 알림 활성화",
+    "source_hash": "3e16dd5f"
+  },
+  "web.domains.use_global_default": {
+    "text": "전역 기본값 사용",
+    "source_hash": "a83c91e4"
+  },
+  "web.domains.global_default": {
+    "text": "전역",
+    "source_hash": "a258b30f"
+  },
+  "web.domains.required": {
+    "text": "필수",
+    "source_hash": "4850b174"
+  },
+  "web.domains.optional": {
+    "text": "선택",
+    "source_hash": "59be7133"
+  },
+  "web.domains.enabled": {
+    "text": "활성화",
+    "source_hash": "5342e09f"
+  },
+  "web.domains.disabled": {
+    "text": "비활성화됨",
+    "source_hash": "75081b59"
+  },
+  "web.domains.custom": {
+    "text": "사용자 지정",
+    "source_hash": "494ca78f"
+  },
+  "web.domains.edit_defaults": {
+    "text": "기본값 편집",
+    "source_hash": "50f49b87"
+  },
+  "web.domains.ttl_short": {
+    "text": "TTL",
+    "source_hash": "76f6014f"
+  },
+  "web.domains.passphrase_short": {
+    "text": "접근 문구",
+    "source_hash": "e7611f05"
+  },
+  "web.domains.notify_short": {
+    "text": "알림",
+    "source_hash": "78801183"
+  },
+  "web.domains.scope_switch_label": {
+    "text": "도메인 범위 전환",
+    "source_hash": "c776f846"
+  },
+  "web.domains.switcher_locked": {
+    "text": "이 페이지에서는 도메인 전환을 사용할 수 없습니다",
+    "source_hash": "ccd202fe"
+  },
+  "web.domains.scope_list_label": {
+    "text": "사용 가능한 도메인",
+    "source_hash": "026552b3"
+  },
+  "web.domains.scope_header": {
+    "text": "도메인",
+    "source_hash": "ced67718"
+  },
+  "web.domains.add_domain": {
+    "text": "도메인 추가",
+    "source_hash": "d86476ae"
+  },
+  "web.domains.domain_settings": {
+    "text": "도메인 설정",
+    "source_hash": "3dedc533"
+  },
+  "web.domains.canonical_no_settings": {
+    "text": "기본 도메인에는 설정 페이지가 없습니다",
+    "source_hash": "59b8806e"
+  },
+  "web.domains.please_enter_a_domain_name": {
+    "text": "{0} 도메인 이름을 입력해 주세요",
+    "source_hash": "167f2d19"
+  },
+  "web.domains.domain_name": {
+    "text": "도메인 이름",
+    "source_hash": "421b1e61"
+  },
+  "web.domains.control_whether_users_can_create_secret_links": {
+    "text": "사용자가 귀하의 도메인 홈페이지에서 비밀 링크를 생성할 수 있는지 제어합니다",
+    "source_hash": "a25d6fca"
+  },
+  "web.domains.homepage_access": {
+    "text": "홈페이지 접근",
+    "source_hash": "00c89609"
+  },
+  "web.domains.and_status": {
+    "text": "및 상태",
+    "source_hash": "fe871d2c"
+  },
+  "web.domains.domain": {
+    "text": "도메인",
+    "source_hash": "79fa3361"
+  },
+  "web.domains.manage_and_configure_your_verified_custom_domains": {
+    "text": "인증된 사용자 지정 도메인을 관리하고 구성합니다",
+    "source_hash": "4e7f8311"
+  },
+  "web.domains.domains": {
+    "text": "도메인",
+    "source_hash": "ced67718"
+  },
+  "web.domains.last_monitored": {
+    "text": "마지막 모니터링",
+    "source_hash": "8d39d1d0"
+  },
+  "web.domains.ssl_status": {
+    "text": "SSL 상태",
+    "source_hash": "bec72630"
+  },
+  "web.domains.ssl_renews": {
+    "text": "SSL 갱신",
+    "source_hash": "c49a8cff"
+  },
+  "web.domains.dns_record": {
+    "text": "DNS 레코드",
+    "source_hash": "33cbb244"
+  },
+  "web.domains.target_address": {
+    "text": "대상 주소",
+    "source_hash": "5e812179"
+  },
+  "web.domains.domain_status": {
+    "text": "도메인 상태",
+    "source_hash": "cd6b089b"
+  },
+  "web.domains.custom_domains_count": {
+    "text": "사용자 지정 도메인 수",
+    "source_hash": "a9929be0"
+  },
+  "web.domains.custom_domain": {
+    "text": "사용자 지정 도메인",
+    "source_hash": "c1683eeb"
+  },
+  "web.domains.open_domain_in_new_tab": {
+    "text": "새 탭에서 도메인 열기",
+    "source_hash": "01571f31"
+  },
+  "web.domains.back_to_domains": {
+    "text": "도메인으로 돌아가기",
+    "source_hash": "d1dc32ad"
+  },
+  "web.domains.return_to_domains_list": {
+    "text": "도메인 목록으로 돌아가기",
+    "source_hash": "c7632413"
+  },
+  "web.domains.verify_domain": {
+    "text": "도메인 인증",
+    "source_hash": "b416f537"
+  },
+  "web.domains.manage_brand": {
+    "text": "브랜드 관리",
+    "source_hash": "b6ec5cd4"
+  },
+  "web.domains.added_formatdistancetonow_domain_created_addsuffix_true": {
+    "text": "{0}에 추가됨",
+    "source_hash": "dc9ff9ec"
+  },
+  "web.domains.add_your_domain": {
+    "text": "도메인 추가",
+    "source_hash": "6b95c91c"
+  },
+  "web.domains.get_started_by_adding_a_custom_domain": {
+    "text": "사용자 지정 도메인을 추가하여 시작하세요.",
+    "source_hash": "abdbe9ab"
+  },
+  "web.domains.no_domains_found": {
+    "text": "도메인을 찾을 수 없습니다.",
+    "source_hash": "574264df"
+  },
+  "web.domains.loading_domain_information": {
+    "text": "도메인 정보 로딩 중...",
+    "source_hash": "b5549ff7"
+  },
+  "web.domains.in_order_to_connect_your_domain_youll_need_to_ha": {
+    "text": "도메인을 연결하려면 DNS에 다음을 가리키는 CNAME 레코드가 있어야 합니다",
+    "source_hash": "c560710e"
+  },
+  "web.domains.if_you_already_have_a_cname_record_for_that_addr": {
+    "text": "해당 주소에 대한 CNAME 레코드가 이미 있는 경우, 다음을 가리키도록 변경하세요",
+    "source_hash": "6f23e6db"
+  },
+  "web.domains.a_cname_record_is_not_allowed_instead_youll_need": {
+    "text": "), CNAME 레코드는 허용되지 않습니다. 대신 A 레코드를 생성해야 합니다. 이 작업 방법에 대한 자세한 내용은 페이지 아래쪽에 제공됩니다.",
+    "source_hash": "76d5ab5f"
+  },
+  "web.domains.and_remove_any_other_a_aaaa_or_cname_records_for": {
+    "text": "그리고 해당 정확한 주소에 대한 다른 A, AAAA 또는 CNAME 레코드를 제거하세요.",
+    "source_hash": "8978f5e7"
+  },
+  "web.domains.youll_need_to_complete_these_steps": {
+    "text": ", 다음 단계를 완료해야 합니다.",
+    "source_hash": "1d81c53e"
+  },
+  "web.domains.before_we_can_activate_links_for": {
+    "text": "링크를 활성화하기 전에",
+    "source_hash": "aae43a00"
+  },
+  "web.domains.please_note_that_for_apex_domains": {
+    "text": "apex 도메인의 경우(예:",
+    "source_hash": "09a4b0ca"
+  },
+  "web.domains.verify_your_domain": {
+    "text": "도메인 인증",
+    "source_hash": "afa10517"
+  },
+  "web.domains.secrets_example_dot_com": {
+    "text": "secrets.example.com",
+    "source_hash": "9ea4d0d6"
+  },
+  "web.domains.customize_your_domain_branding": {
+    "text": "도메인 브랜딩 사용자 지정",
+    "source_hash": "e3f97ac1"
+  },
+  "web.domains.it_may_take_a_few_minutes_for_your_ssl_certifica": {
+    "text": "SSL 인증서가 적용되기까지 몇 분이 걸릴 수 있습니다.",
+    "source_hash": "2e4f3179"
+  },
+  "web.domains.dns_changes_can_take_as_little_as_60_seconds_or_": {
+    "text": "DNS 변경은 빠르면 60초, 길면 24시간까지 적용되는 데 시간이 걸릴 수 있습니다.",
+    "source_hash": "38774290"
+  },
+  "web.domains.3_wait_for_propagation": {
+    "text": "3. 전파 대기",
+    "source_hash": "3e6cf4e1"
+  },
+  "web.domains.value_2": {
+    "text": "값",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.value_1": {
+    "text": "값",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.host_1": {
+    "text": "호스트",
+    "source_hash": "4a823118"
+  },
+  "web.domains.type_2": {
+    "text": "유형",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.type_1": {
+    "text": "유형",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.2_create_the_cname_record": {
+    "text": "2. CNAME 레코드 생성",
+    "source_hash": "781e438b"
+  },
+  "web.domains.value_0": {
+    "text": "값",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.host_0": {
+    "text": "호스트",
+    "source_hash": "4a823118"
+  },
+  "web.domains.type_0": {
+    "text": "유형",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.2_create_the_a_record": {
+    "text": "2. A 레코드 생성",
+    "source_hash": "7b5aa1fc"
+  },
+  "web.domains.add_this_hostname_to_your_dns_configuration": {
+    "text": "이 호스트 이름을 DNS 구성에 추가하세요:",
+    "source_hash": "4bf09ead"
+  },
+  "web.domains.1_create_a_txt_record": {
+    "text": "1. TXT 레코드 생성",
+    "source_hash": "62766ffd"
+  },
+  "web.domains.follow_these_steps_to_verify_domain_ownership_an": {
+    "text": "다음 단계에 따라 도메인 소유권을 확인하고 온라인 존재감을 향상시키세요:",
+    "source_hash": "a33f94d3"
+  },
+  "web.domains.domain_verification_steps": {
+    "text": "도메인 인증 단계",
+    "source_hash": "16dca977"
+  },
+  "web.domains.domain_verification_initiated_successfully": {
+    "text": "도메인 인증이 성공적으로 시작되었습니다.",
+    "source_hash": "5969b924"
+  },
+  "web.domains.are_you_sure_you_want_to_remove_this_domain": {
+    "text": "이 도메인을 제거하시겠습니까? 이 작업은 취소할 수 없습니다.",
+    "source_hash": "403c6d3b"
+  },
+  "web.domains.remove_domain": {
+    "text": "도메인 제거",
+    "source_hash": "07a1675d"
+  },
+  "web.domains.domain_removed_successfully": {
+    "text": "도메인이 성공적으로 제거되었습니다",
+    "source_hash": "2984d483"
+  },
+  "web.domains.failed_to_add_domain": {
+    "text": "도메인 추가 실패",
+    "source_hash": "5fc4c4b3"
+  },
+  "web.domains.domain_added_successfully": {
+    "text": "도메인이 성공적으로 추가되었습니다",
+    "source_hash": "dd8180cf"
+  },
+  "web.domains.passphrase_set": {
+    "text": "보호됨",
+    "source_hash": "b0ed2633"
+  },
+  "web.domains.manage_domains": {
+    "text": "도메인 관리",
+    "source_hash": "36dd9781"
+  },
+  "web.domains.global_defaults": {
+    "text": "전역 기본값",
+    "source_hash": "4526107f"
+  },
+  "web.domains.edit_ttl": {
+    "text": "유효기간 설정 편집",
+    "source_hash": "ea8afd62"
+  },
+  "web.domains.edit_passphrase": {
+    "text": "접근 문구 요구 사항 편집",
+    "source_hash": "0b5555b5"
+  },
+  "web.domains.edit_notify": {
+    "text": "알림 설정 편집",
+    "source_hash": "2e9e1ea0"
+  },
+  "web.domains.configure_dns_records": {
+    "text": "DNS 레코드 설정",
+    "source_hash": "5932f0cb"
+  },
+  "web.domains.dns_widget_description": {
+    "text": "아래 도구를 사용하여 DNS 제공업체를 자동으로 감지하고 도메인 설정을 위한 단계별 지침을 받으세요.",
+    "source_hash": "91c1af2e"
+  },
+  "web.domains.email.title": {
+    "text": "이메일 발송",
+    "source_hash": "6c428e5f"
+  },
+  "web.domains.email.config_title": {
+    "text": "이메일 설정",
+    "source_hash": "6f38aa51"
+  },
+  "web.domains.email.config_description": {
+    "text": "이 도메인의 이메일 발송을 설정합니다",
+    "source_hash": "1c275ff0"
+  },
+  "web.domains.email.provider_label": {
+    "text": "이메일 공급자",
+    "source_hash": "a7ed3f4e"
+  },
+  "web.domains.email.provider_placeholder": {
+    "text": "이메일 공급자를 선택하세요",
+    "source_hash": "63c8080c"
+  },
+  "web.domains.email.from_name_label": {
+    "text": "보내는 사람 이름",
+    "source_hash": "2f13b589"
+  },
+  "web.domains.email.from_name_placeholder": {
+    "text": "예: Acme Security",
+    "source_hash": "03c0f138"
+  },
+  "web.domains.email.from_address_label": {
+    "text": "보내는 사람 주소",
+    "source_hash": "60643eae"
+  },
+  "web.domains.email.from_address_placeholder": {
+    "text": "예: secrets{'@'}example.com",
+    "source_hash": "a09b3928"
+  },
+  "web.domains.email.reply_to_label": {
+    "text": "답장 주소",
+    "source_hash": "4538ea9c"
+  },
+  "web.domains.email.reply_to_placeholder": {
+    "text": "예: support{'@'}example.com",
+    "source_hash": "fa3e5f0b"
+  },
+  "web.domains.email.save_changes": {
+    "text": "변경 사항 저장",
+    "source_hash": "35322b5b"
+  },
+  "web.domains.email.discard_changes": {
+    "text": "변경 사항 취소",
+    "source_hash": "e07e053c"
+  },
+  "web.domains.email.provider_ses": {
+    "text": "Amazon SES",
+    "source_hash": "15de4969"
+  },
+  "web.domains.email.provider_sendgrid": {
+    "text": "SendGrid",
+    "source_hash": "b889d002"
+  },
+  "web.domains.email.provider_lettermint": {
+    "text": "Lettermint",
+    "source_hash": "ec994dad"
+  },
+  "web.domains.email.provider_inherit": {
+    "text": "계정 기본값 사용",
+    "source_hash": "f6fa84e7"
+  },
+  "web.domains.email.provider_ses_description": {
+    "text": "DKIM 및 SPF 레코드를 통한 도메인 확인이 필요합니다",
+    "source_hash": "4df5aa60"
+  },
+  "web.domains.email.provider_sendgrid_description": {
+    "text": "도메인 인증 설정이 필요합니다",
+    "source_hash": "71b53242"
+  },
+  "web.domains.email.provider_lettermint_description": {
+    "text": "도메인 확인이 필요합니다",
+    "source_hash": "87073c93"
+  },
+  "web.domains.email.provider_inherit_description": {
+    "text": "계정의 기본 이메일 발송 설정을 사용합니다",
+    "source_hash": "3f798263"
+  },
+  "web.domains.email.dns_records_title": {
+    "text": "DNS 레코드",
+    "source_hash": "34d2c307"
+  },
+  "web.domains.email.dns_records_description": {
+    "text": "이메일 발송을 위해 도메인을 확인하려면 다음 DNS 레코드를 추가하세요.",
+    "source_hash": "9fa85863"
+  },
+  "web.domains.email.dns_column_type": {
+    "text": "유형",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.email.dns_column_name": {
+    "text": "이름",
+    "source_hash": "dcd1d522"
+  },
+  "web.domains.email.dns_column_value": {
+    "text": "값",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.email.dns_optional_label": {
+    "text": "Recommended",
+    "source_hash": "d70604e8"
+  },
+  "web.domains.email.dns_optional_hint": {
+    "text": "This record is recommended but not required for verification. A DMARC policy at your organizational domain may already cover this subdomain.",
+    "source_hash": "58e1a12b"
+  },
+  "web.domains.email.copy": {
+    "text": "복사",
+    "source_hash": "e21f935f"
+  },
+  "web.domains.email.copied": {
+    "text": "복사됨",
+    "source_hash": "8d525e5f"
+  },
+  "web.domains.email.status_verified": {
+    "text": "확인됨",
+    "source_hash": "4f783840"
+  },
+  "web.domains.email.status_pending": {
+    "text": "대기 중",
+    "source_hash": "331551b0"
+  },
+  "web.domains.email.status_failed": {
+    "text": "실패",
+    "source_hash": "031a8f0f"
+  },
+  "web.domains.email.revalidate": {
+    "text": "재검증",
+    "source_hash": "4918da12"
+  },
+  "web.domains.email.validating": {
+    "text": "검증 중...",
+    "source_hash": "b28b48d5"
+  },
+  "web.domains.email.domain_verified": {
+    "text": "도메인 확인됨",
+    "source_hash": "08e0df67"
+  },
+  "web.domains.email.validation_failed": {
+    "text": "검증 실패",
+    "source_hash": "23a86f5a"
+  },
+  "web.domains.email.last_validated": {
+    "text": "마지막 검증",
+    "source_hash": "887dd486"
+  },
+  "web.domains.email.upgrade_to_configure": {
+    "text": "이 도메인의 이메일 발송을 설정하려면 플랜을 업그레이드하세요.",
+    "source_hash": "16a876f7"
+  },
+  "web.domains.email.configure_email": {
+    "text": "이메일 설정",
+    "source_hash": "a48c0d40"
+  },
+  "web.domains.email.access_denied": {
+    "text": "접근 거부됨",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.email.access_denied_description": {
+    "text": "이 도메인의 이메일 설정을 관리할 권한이 없습니다. 조직 관리자에게 문의하세요.",
+    "source_hash": "32049ff0"
+  },
+  "web.domains.email.update_success": {
+    "text": "이메일 설정이 성공적으로 저장되었습니다",
+    "source_hash": "dd3607fc"
+  },
+  "web.domains.email.delete_success": {
+    "text": "이메일 설정이 성공적으로 제거되었습니다",
+    "source_hash": "2ba99a91"
+  },
+  "web.domains.email.default_sender_notice": {
+    "text": "이 도메인의 이메일은 현재 전역 발신자로 발송됩니다. 자체 발신자 ID를 사용하려면 이메일 설정을 완료하세요.",
+    "source_hash": "ffcf39fb"
+  },
+  "web.domains.email.disabled_notice": {
+    "text": "사용자 정의 이메일 발송이 현재 비활성화되어 있습니다. 이메일은 전역 발신자로 발송됩니다. 사용자 정의 발신자 ID를 사용하려면 아래에서 기능을 활성화하세요.",
+    "source_hash": "60a26f5b"
+  },
+  "web.domains.email.badge_not_configured": {
+    "text": "설정되지 않음",
+    "source_hash": "dd1841d2"
+  },
+  "web.domains.email.badge_default_sender": {
+    "text": "기본 발신자 사용 중",
+    "source_hash": "e1afb18f"
+  },
+  "web.domains.email.badge_verified": {
+    "text": "확인됨",
+    "source_hash": "4f783840"
+  },
+  "web.domains.email.badge_pending": {
+    "text": "확인 대기 중",
+    "source_hash": "417a6b7e"
+  },
+  "web.domains.email.badge_disabled": {
+    "text": "비활성화됨",
+    "source_hash": "75081b59"
+  },
+  "web.domains.email.tooltip_not_configured": {
+    "text": "이메일 발신자가 설정되지 않음 — 플랫폼 기본 발신자를 사용합니다",
+    "source_hash": "360083bb"
+  },
+  "web.domains.email.tooltip_pending": {
+    "text": "이메일 발신자 설정이 확인 대기 중 — 플랫폼 기본 발신자를 사용합니다",
+    "source_hash": "c8c2449c"
+  },
+  "web.domains.email.tooltip_disabled": {
+    "text": "이메일 발신자가 비활성화됨 — 플랫폼 기본 발신자를 사용합니다",
+    "source_hash": "64e84955"
+  },
+  "web.domains.email.tooltip_verified": {
+    "text": "이메일 발신자 확인됨 — 이 도메인에서 이메일이 발송됩니다",
+    "source_hash": "0e9a005c"
+  },
+  "web.domains.incoming.title": {
+    "text": "수신 비밀 메시지",
+    "source_hash": "883dbca9"
+  },
+  "web.domains.incoming.config_title": {
+    "text": "수신 비밀 메시지 설정",
+    "source_hash": "b3fef15b"
+  },
+  "web.domains.incoming.config_description": {
+    "text": "외부 사용자가 이 도메인의 지정된 수신자에게 직접 비밀 메시지를 보낼 수 있도록 허용",
+    "source_hash": "452ab4fe"
+  },
+  "web.domains.incoming.access_denied": {
+    "text": "접근 거부됨",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.incoming.access_denied_description": {
+    "text": "이 도메인의 수신 비밀 메시지 설정을 관리할 권한이 없습니다. 조직 관리자에게 문의하세요.",
+    "source_hash": "3e9d8adc"
+  },
+  "web.domains.incoming.upgrade_to_configure": {
+    "text": "이 도메인의 수신 비밀 메시지를 설정하려면 플랜을 업그레이드하세요.",
+    "source_hash": "9dfdfeb5"
+  },
+  "web.domains.incoming.configure_incoming": {
+    "text": "수신 비밀 메시지 설정",
+    "source_hash": "eab52939"
+  },
+  "web.domains.incoming.not_configured_notice": {
+    "text": "이 도메인의 수신 비밀 메시지가 설정되지 않았습니다. 외부 사용자가 팀에 비밀 메시지를 보낼 수 있도록 수신자를 추가하세요.",
+    "source_hash": "dbc443a6"
+  },
+  "web.domains.incoming.disabled_notice": {
+    "text": "수신 비밀 메시지가 현재 비활성화되어 있습니다. 외부 사용자가 이 도메인의 수신자에게 비밀 메시지를 보낼 수 없습니다. 수신 비밀 메시지를 허용하려면 아래에서 기능을 활성화하세요.",
+    "source_hash": "d1f8dafb"
+  },
+  "web.domains.incoming.recipients_title": {
+    "text": "수신자",
+    "source_hash": "1e8568a8"
+  },
+  "web.domains.incoming.recipients_description": {
+    "text": "이 도메인에서 수신 비밀 메시지를 받을 수 있는 사람을 정의합니다. 수신자는 비밀 메시지가 전송되면 이메일 알림을 받습니다.",
+    "source_hash": "026f9d9d"
+  },
+  "web.domains.incoming.add_recipient": {
+    "text": "수신자 추가",
+    "source_hash": "25f93c13"
+  },
+  "web.domains.incoming.remove_recipient": {
+    "text": "제거",
+    "source_hash": "c3812fc4"
+  },
+  "web.domains.incoming.email_label": {
+    "text": "이메일 주소",
+    "source_hash": "09bf25ef"
+  },
+  "web.domains.incoming.email_placeholder": {
+    "text": "recipient{'@'}example.com",
+    "source_hash": "55d1508e"
+  },
+  "web.domains.incoming.name_label": {
+    "text": "표시 이름",
+    "source_hash": "18d67c99"
+  },
+  "web.domains.incoming.name_placeholder": {
+    "text": "예: 보안팀",
+    "source_hash": "0c52400c"
+  },
+  "web.domains.incoming.empty_state": {
+    "text": "설정된 수신자가 없습니다",
+    "source_hash": "bc8c2058"
+  },
+  "web.domains.incoming.empty_state_description": {
+    "text": "외부 사용자가 팀에 비밀 메시지를 보낼 수 있도록 수신자를 추가하세요.",
+    "source_hash": "2a647a40"
+  },
+  "web.domains.incoming.validation_invalid_email": {
+    "text": "유효하지 않은 이메일 주소",
+    "source_hash": "4eaf1d80"
+  },
+  "web.domains.incoming.validation_duplicate_email": {
+    "text": "이 이메일 주소는 이미 추가되었습니다",
+    "source_hash": "f89de141"
+  },
+  "web.domains.incoming.validation_max_recipients": {
+    "text": "최대 {max}명의 수신자만 허용됩니다",
+    "source_hash": "e2585847"
+  },
+  "web.domains.incoming.validation_name_required": {
+    "text": "표시 이름이 필요합니다",
+    "source_hash": "c6892c89"
+  },
+  "web.domains.incoming.validation_email_required": {
+    "text": "이메일 주소가 필요합니다",
+    "source_hash": "41381ba2"
+  },
+  "web.domains.incoming.save_changes": {
+    "text": "변경 사항 저장",
+    "source_hash": "35322b5b"
+  },
+  "web.domains.incoming.discard_changes": {
+    "text": "변경 사항 취소",
+    "source_hash": "e07e053c"
+  },
+  "web.domains.incoming.update_success": {
+    "text": "수신 비밀 메시지 설정이 성공적으로 저장되었습니다",
+    "source_hash": "9317e02d"
+  },
+  "web.domains.incoming.delete_success": {
+    "text": "수신 비밀 메시지 설정이 성공적으로 제거되었습니다",
+    "source_hash": "4c4a33ae"
+  },
+  "web.domains.incoming.recipient_count": {
+    "text": "수신자 {count}명 | 수신자 {count}명",
+    "source_hash": "0e4f5985"
+  },
+  "web.domains.incoming.badge_not_configured": {
+    "text": "설정되지 않음",
+    "source_hash": "dd1841d2"
+  },
+  "web.domains.incoming.badge_configured": {
+    "text": "설정됨",
+    "source_hash": "84aebc69"
+  },
+  "web.domains.incoming.badge_disabled": {
+    "text": "비활성화됨",
+    "source_hash": "75081b59"
+  },
+  "web.domains.incoming.tooltip_not_configured": {
+    "text": "수신 비밀 메시지가 설정되지 않음 - 외부 사용자가 이 도메인에 비밀 메시지를 보낼 수 없습니다",
+    "source_hash": "79786d5c"
+  },
+  "web.domains.incoming.tooltip_configured": {
+    "text": "수신 비밀 메시지 활성화됨, 수신자 {count}명",
+    "source_hash": "c205cc54"
+  },
+  "web.domains.incoming.tooltip_disabled": {
+    "text": "이 도메인의 수신 비밀 메시지 기능이 비활성화되어 있습니다",
+    "source_hash": "0413f96b"
+  },
+  "web.domains.incoming.enabled_label": {
+    "text": "수신 비밀 메시지 활성화",
+    "source_hash": "c0b25980"
+  },
+  "web.domains.incoming.enabled_hint": {
+    "text": "외부 사용자가 이 도메인의 수신자에게 비밀 메시지를 보낼 수 있도록 허용",
+    "source_hash": "24aadd31"
+  },
+  "web.domains.incoming.public_url_label": {
+    "text": "공개 URL",
+    "source_hash": "f7b60b04"
+  },
+  "web.domains.incoming.public_url_description": {
+    "text": "외부 사용자가 비밀 메시지를 보낼 수 있도록 이 URL을 공유하세요",
+    "source_hash": "df47a894"
+  },
+  "web.domains.incoming.copy_url": {
+    "text": "URL 복사",
+    "source_hash": "b26d1037"
+  },
+  "web.domains.incoming.url_copied": {
+    "text": "URL이 클립보드에 복사되었습니다",
+    "source_hash": "2f396c3e"
+  },
+  "web.domains.incoming.remove_all_confirmation": {
+    "text": "모든 수신자를 제거하시겠습니까? 외부 사용자가 더 이상 이 도메인에 비밀 메시지를 보낼 수 없게 됩니다.",
+    "source_hash": "06f9e551"
+  },
+  "web.domains.incoming.max_recipients_reached": {
+    "text": "최대 수신자 수에 도달했습니다",
+    "source_hash": "ba659e54"
+  },
+  "web.domains.incoming.duplicate_recipient": {
+    "text": "이 이메일 주소는 이미 추가되었습니다",
+    "source_hash": "ca598f6d"
+  },
+  "web.domains.incoming.save_will_replace_confirmation": {
+    "text": "저장하면 기존 모든 수신자가 대기 중인 변경 사항으로 대체됩니다. 계속하시겠습니까?",
+    "source_hash": "f497862e"
+  },
+  "web.domains.incoming.delete_all_recipients": {
+    "text": "모든 수신자 삭제",
+    "source_hash": "207d0dbe"
+  },
+  "web.domains.sso.title": {
+    "text": "Single Sign-On",
+    "source_hash": "cf7cd744"
+  },
+  "web.domains.sso.config_title": {
+    "text": "SSO 설정",
+    "source_hash": "afd5751e"
+  },
+  "web.domains.sso.config_description": {
+    "text": "이 도메인의 Single Sign-On 인증을 설정합니다",
+    "source_hash": "f37a0b47"
+  },
+  "web.domains.sso.access_denied": {
+    "text": "접근 거부됨",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.sso.access_denied_description": {
+    "text": "이 도메인의 SSO 설정을 관리할 권한이 없습니다. 조직 관리자에게 문의하세요.",
+    "source_hash": "db7fcfeb"
+  },
+  "web.domains.sso.upgrade_to_configure": {
+    "text": "이 도메인의 Single Sign-On을 설정하려면 플랜을 업그레이드하세요.",
+    "source_hash": "71fc0069"
+  },
+  "web.domains.sso.create_success": {
+    "text": "SSO 설정이 성공적으로 생성되었습니다",
+    "source_hash": "531c7d92"
+  },
+  "web.domains.sso.update_success": {
+    "text": "SSO 설정이 성공적으로 업데이트되었습니다",
+    "source_hash": "d98d8e83"
+  },
+  "web.domains.sso.delete_success": {
+    "text": "SSO 설정이 성공적으로 제거되었습니다",
+    "source_hash": "2e924798"
+  },
+  "web.domains.sso.configure_sso": {
+    "text": "SSO 설정",
+    "source_hash": "80d3a144"
+  },
+  "web.domains.sso.not_configured_notice": {
+    "text": "이 도메인에 SSO가 아직 설정되지 않았습니다. 팀원들이 조직의 ID 공급자를 사용하여 인증할 수 있도록 Single Sign-On을 활성화하세요.",
+    "source_hash": "c439214b"
+  },
+  "api.domains.errors.add_admin_required": {
+    "text": "조직 소유자와 관리자만 사용자 정의 도메인을 추가할 수 있습니다",
+    "source_hash": "3324aabe"
+  },
+  "web.domains.public_homepage": {
+    "text": "공개 홈페이지",
+    "source_hash": "2ae3ccba"
+  },
+  "web.domains.status_tooltip_active": {
+    "text": "도메인 확인 완료 및 활성 상태",
+    "source_hash": "e4b6a6e1"
+  },
+  "web.domains.status_tooltip_dns_incorrect": {
+    "text": "DNS가 구성되지 않음 — 클릭하여 수정",
+    "source_hash": "892cb2cb"
+  },
+  "web.domains.status_tooltip_not_verified": {
+    "text": "도메인이 확인되지 않음 — 클릭하여 확인",
+    "source_hash": "a9806710"
+  },
+  "web.domains.status_tooltip_unverified": {
+    "text": "도메인 상태 미확인 — 클릭하여 새로고침",
+    "source_hash": "a45aa76d"
+  },
+  "web.domains.last_check_failed": {
+    "text": "마지막 확인 검사 실패",
+    "source_hash": "88b594b8"
+  },
+  "web.domains.last_check_failed_ago": {
+    "text": "마지막 검사 실패 {0}",
+    "source_hash": "ddfb6412"
+  },
+  "web.domains.verify_now": {
+    "text": "지금 확인",
+    "source_hash": "db383efb"
+  },
+  "web.domains.click_to_verify": {
+    "text": "클릭하여 확인",
+    "source_hash": "6eae7d9c"
+  },
+  "web.domains.remove_domain_description": {
+    "text": "이 도메인과 모든 구성을 영구적으로 제거합니다.",
+    "source_hash": "73946b9e"
+  },
+  "web.domains.add_access_denied": {
+    "text": "접근 거부됨",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.add_access_denied_description": {
+    "text": "이 조직에 도메인을 추가할 권한이 없습니다. 조직 관리자에게 문의하세요.",
+    "source_hash": "25e035c6"
+  },
+  "web.domains.dns_widget_load_failed": {
+    "text": "DNS 위젯을 불러오지 못했습니다",
+    "source_hash": "5a1d8ab5"
+  },
+  "web.domains.dns_widget_not_available": {
+    "text": "DNS 위젯을 사용할 수 없습니다",
+    "source_hash": "4eed448b"
+  },
+  "web.domains.dns_widget_init_failed": {
+    "text": "DNS 위젯을 초기화하지 못했습니다",
+    "source_hash": "de477585"
+  },
+  "web.domains.verified": {
+    "text": "확인됨",
+    "source_hash": "4f783840"
+  },
+  "web.domains.pending_verification": {
+    "text": "확인 대기 중",
+    "source_hash": "77e07795"
+  },
+  "web.domains.unsaved_changes_confirmation": {
+    "text": "저장되지 않은 변경 사항이 있습니다. 정말 나가시겠습니까?",
+    "source_hash": "322380c1"
+  },
+  "web.domains.entitlement_required_owner": {
+    "text": "이 기능에는 요금제 업그레이드가 필요합니다.",
+    "source_hash": "6de1f752"
+  },
+  "web.domains.entitlement_required_member": {
+    "text": "이 기능은 현재 요금제에서 사용할 수 없습니다. 조직 소유자에게 문의하세요.",
+    "source_hash": "8f1688b2"
+  },
+  "web.domains.detail.manage": {
+    "text": "관리",
+    "source_hash": "5a234448"
+  },
+  "web.domains.detail.features": {
+    "text": "기능",
+    "source_hash": "5697d03d"
+  },
+  "web.domains.detail.homepage_title": {
+    "text": "홈페이지 비밀 메시지",
+    "source_hash": "6360f7ec"
+  },
+  "web.domains.detail.homepage_description": {
+    "text": "도메인 홈페이지에서 비밀 메시지를 생성하도록 공개 접근을 허용합니다",
+    "source_hash": "209b3ded"
+  },
+  "web.domains.detail.brand_description": {
+    "text": "로고, 색상 및 맞춤형 브랜딩",
+    "source_hash": "69f7a9e8"
+  },
+  "web.domains.detail.sso_description": {
+    "text": "SSO 공급자 설정",
+    "source_hash": "234e6150"
+  },
+  "web.domains.detail.email_description": {
+    "text": "맞춤형 이메일 발신자 구성",
+    "source_hash": "7fcde01b"
+  },
+  "web.domains.detail.incoming_description": {
+    "text": "수신 비밀 메시지 수신자 설정",
+    "source_hash": "37c1fd6d"
+  },
+  "web.domains.detail.signup_description": {
+    "text": "도메인별 가입 검증 전략",
+    "source_hash": "3c5a511f"
+  },
+  "web.domains.detail.signin_description": {
+    "text": "도메인별 로그인 방법 구성",
+    "source_hash": "73e01e36"
+  },
+  "web.domains.email.dns_check_label": {
+    "text": "DNS",
+    "source_hash": "020965a2"
+  },
+  "web.domains.email.provider_check_label": {
+    "text": "공급자",
+    "source_hash": "472590ae"
+  },
+  "web.domains.email.test_email_title": {
+    "text": "이메일 전송 테스트",
+    "source_hash": "c1b3dee2"
+  },
+  "web.domains.email.test_email_hint": {
+    "text": "저장된 구성을 사용하여 자신에게 테스트 이메일을 보냅니다. 이 기능이 아직 활성화되지 않은 경우에도 작동합니다.",
+    "source_hash": "33e876ad"
+  },
+  "web.domains.email.send_test": {
+    "text": "테스트 전송",
+    "source_hash": "22d7b11d"
+  },
+  "web.domains.email.test_email_sent": {
+    "text": "테스트 이메일이 성공적으로 전송되었습니다",
+    "source_hash": "561617fd"
+  },
+  "web.domains.email.test_email_failed": {
+    "text": "테스트 이메일 전송에 실패했습니다",
+    "source_hash": "95ce63bc"
+  },
+  "web.domains.email.test_email_rate_limited": {
+    "text": "최근에 테스트 이메일이 너무 많이 전송되었습니다. 나중에 다시 시도하세요.",
+    "source_hash": "90b8ca17"
+  },
+  "web.domains.email.test_email_rate_limited_retry": {
+    "text": "최근에 테스트 이메일이 너무 많이 전송되었습니다. 약 {minutes}분 후에 다시 시도하세요.",
+    "source_hash": "218146cc"
+  },
+  "web.domains.email.test_email_sent_to": {
+    "text": "{email}(으)로 전송됨",
+    "source_hash": "8ceb9588"
+  },
+  "web.domains.email.delivered_via": {
+    "text": "{provider}을(를) 통해 전송됨",
+    "source_hash": "f741959b"
+  },
+  "web.domains.incoming.feature_disabled": {
+    "text": "수신 비밀 메시지를 사용할 수 없음",
+    "source_hash": "0f96c5ec"
+  },
+  "web.domains.incoming.feature_disabled_description": {
+    "text": "이 인스턴스에서는 수신 비밀 메시지가 활성화되어 있지 않습니다. 관리자에게 문의하세요.",
+    "source_hash": "dce981e0"
+  },
+  "web.domains.signin.title": {
+    "text": "로그인 구성",
+    "source_hash": "2da38c03"
+  },
+  "web.domains.signin.configure_signin": {
+    "text": "로그인 구성",
+    "source_hash": "f72b58b5"
+  },
+  "web.domains.signin.config_description": {
+    "text": "이 도메인의 로그인 인증 방법을 구성합니다",
+    "source_hash": "8efce428"
+  },
+  "web.domains.signin.access_denied": {
+    "text": "접근 거부됨",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.signin.upgrade_to_configure": {
+    "text": "이 도메인의 로그인 방법을 구성하려면 요금제를 업그레이드하세요.",
+    "source_hash": "e242bb74"
+  },
+  "web.domains.signin.not_configured_notice": {
+    "text": "이 도메인에 대한 로그인 구성이 아직 설정되지 않았습니다. 재정의를 구성하여 이 도메인의 로그인 페이지에서 사용할 수 있는 인증 방법을 제어하세요.",
+    "source_hash": "cb788a2d"
+  },
+  "web.domains.signin.signin_enabled_label": {
+    "text": "로그인 활성화됨",
+    "source_hash": "cabe4898"
+  },
+  "web.domains.signin.header_toggle_label": {
+    "text": "로그인",
+    "source_hash": "5bbbe531"
+  },
+  "web.domains.signin.signin_enabled_hint": {
+    "text": "사용자가 이 도메인에서 로그인할 수 있는지 여부",
+    "source_hash": "57a92aee"
+  },
+  "web.domains.signin.restrict_to_label": {
+    "text": "로그인 방법 제한",
+    "source_hash": "edbec83f"
+  },
+  "web.domains.signin.restrict_to_hint": {
+    "text": "이 도메인을 단일 인증 방법으로 제한합니다. 설정하면 선택한 방법만 로그인 페이지에 표시됩니다.",
+    "source_hash": "682bc4c5"
+  },
+  "web.domains.signin.all_methods": {
+    "text": "모든 방법",
+    "source_hash": "e601c19e"
+  },
+  "web.domains.signin.all_methods_description": {
+    "text": "활성화된 모든 인증 방법을 로그인 페이지에 표시합니다",
+    "source_hash": "62723340"
+  },
+  "web.domains.signin.method_password": {
+    "text": "비밀번호",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.domains.signin.method_email_auth": {
+    "text": "이메일 인증",
+    "source_hash": "68c38f94"
+  },
+  "web.domains.signin.method_webauthn": {
+    "text": "WebAuthn / 패스키",
+    "source_hash": "c40224ce"
+  },
+  "web.domains.signin.method_sso": {
+    "text": "Single Sign-On",
+    "source_hash": "cf7cd744"
+  },
+  "web.domains.signin.method_overrides_label": {
+    "text": "방법 재정의",
+    "source_hash": "5496cba6"
+  },
+  "web.domains.signin.method_overrides_hint": {
+    "text": "이 도메인에 대해 개별 인증 방법을 활성화하거나 비활성화합니다",
+    "source_hash": "394e3878"
+  },
+  "web.domains.signin.mode_question": {
+    "text": "사용자가 어떻게 로그인할 수 있나요?",
+    "source_hash": "3694eb23"
+  },
+  "web.domains.signin.mode_any": {
+    "text": "사용 가능한 모든 방법",
+    "source_hash": "23665425"
+  },
+  "web.domains.signin.mode_any_hint": {
+    "text": "이 도메인에서 사용할 수 있는 모든 방법을 표시합니다. 아래에서 개별 방법을 좁힐 수 있습니다.",
+    "source_hash": "2f3dcba6"
+  },
+  "web.domains.signin.mode_one": {
+    "text": "특정 방법 하나",
+    "source_hash": "601f5768"
+  },
+  "web.domains.signin.mode_one_hint": {
+    "text": "로그인 페이지를 단일 방법으로 제한합니다. 이 도메인에서 사용할 수 있는 방법만 나열됩니다.",
+    "source_hash": "58bde6d5"
+  },
+  "web.domains.signin.mode_disabled": {
+    "text": "로그인 비활성화됨",
+    "source_hash": "bb807607"
+  },
+  "web.domains.signin.mode_disabled_hint": {
+    "text": "사용자가 이 도메인에서 로그인할 수 없습니다.",
+    "source_hash": "8938f098"
+  },
+  "web.domains.signin.mode_disabled_notice": {
+    "text": "이 도메인의 로그인 페이지를 방문하는 사용자는 로그인을 사용할 수 없다는 안내와 함께 홈페이지로 돌아가는 링크를 보게 됩니다. 이전 방법 설정은 유지되며 로그인을 다시 활성화하면 복원됩니다.",
+    "source_hash": "1a04de18"
+  },
+  "web.domains.signin.methods_list_label": {
+    "text": "로그인 페이지에 표시되는 방법",
+    "source_hash": "66fd133b"
+  },
+  "web.domains.signin.restrict_picker_hint": {
+    "text": "이 도메인에서 사용할 수 있는 방법만 나열됩니다.",
+    "source_hash": "c7a56f44"
+  },
+  "web.domains.signin.availability_always": {
+    "text": "항상 사용 가능",
+    "source_hash": "0fda3772"
+  },
+  "web.domains.signin.availability_global_on": {
+    "text": "전역 정책을 따름 · 켜짐",
+    "source_hash": "3844e6f7"
+  },
+  "web.domains.signin.availability_global_off": {
+    "text": "사용할 수 없음",
+    "source_hash": "67a926f7"
+  },
+  "web.domains.signin.availability_unavailable": {
+    "text": "사이트 전체에서 사용할 수 없음",
+    "source_hash": "da29c1be"
+  },
+  "web.domains.signin.allow_on_domain": {
+    "text": "이 도메인에서 허용",
+    "source_hash": "760b578e"
+  },
+  "web.domains.signin.method_password_blurb": {
+    "text": "비밀번호만",
+    "source_hash": "ed1a02fd"
+  },
+  "web.domains.signin.method_email_auth_blurb": {
+    "text": "비밀번호 없는 매직 링크 로그인",
+    "source_hash": "7f776a85"
+  },
+  "web.domains.signin.method_webauthn_blurb": {
+    "text": "생체 인증 및 보안 키",
+    "source_hash": "7d6a7bd5"
+  },
+  "web.domains.signin.method_sso_blurb": {
+    "text": "외부 ID 공급자",
+    "source_hash": "a3442088"
+  },
+  "web.domains.signin.email_auth_label": {
+    "text": "이메일 인증",
+    "source_hash": "68c38f94"
+  },
+  "web.domains.signin.email_auth_hint": {
+    "text": "이 도메인에서 비밀번호 없는 이메일 인증을 허용합니다",
+    "source_hash": "6ad82127"
+  },
+  "web.domains.signin.sso_enabled_label": {
+    "text": "Single Sign-On",
+    "source_hash": "cf7cd744"
+  },
+  "web.domains.signin.sso_enabled_hint": {
+    "text": "이 도메인에서 SSO 인증을 허용합니다",
+    "source_hash": "22d78ad5"
+  },
+  "web.domains.signin.enabled_label": {
+    "text": "로그인 구성 활성화",
+    "source_hash": "dbd8e11c"
+  },
+  "web.domains.signin.enabled_hint": {
+    "text": "활성화하면 이 도메인은 위에서 구성한 로그인 설정을 사용합니다",
+    "source_hash": "6259f8a2"
+  },
+  "web.domains.signin.save_config": {
+    "text": "구성 저장",
+    "source_hash": "b2b158f2"
+  },
+  "web.domains.signin.update_success": {
+    "text": "로그인 구성이 성공적으로 업데이트되었습니다",
+    "source_hash": "10ea50d8"
+  },
+  "web.domains.signin.reset_to_defaults": {
+    "text": "기본값으로 재설정",
+    "source_hash": "e240e635"
+  },
+  "web.domains.signin.reset_confirm": {
+    "text": "로그인을 전역 기본값으로 재설정하시겠습니까?",
+    "source_hash": "2c6bbc32"
+  },
+  "web.domains.signin.reset_keeps_sso": {
+    "text": "SSO 자격 증명은 유지됩니다. SSO 구성 화면에서 별도로 제거하세요.",
+    "source_hash": "edc0c756"
+  },
+  "web.domains.signin.reset_action": {
+    "text": "예, 재설정합니다",
+    "source_hash": "4bb21d8b"
+  },
+  "web.domains.signin.reset_success": {
+    "text": "로그인 설정이 전역 기본값으로 재설정되었습니다",
+    "source_hash": "0c364d89"
+  },
+  "web.domains.signup.title": {
+    "text": "가입 검증",
+    "source_hash": "2c34ac0a"
+  },
+  "web.domains.signup.config_description": {
+    "text": "이 도메인의 가입 검증을 구성합니다",
+    "source_hash": "e9c81e8a"
+  },
+  "web.domains.signup.access_denied": {
+    "text": "접근 거부됨",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.signup.upgrade_to_configure": {
+    "text": "도메인별 가입 검증을 구성하려면 요금제를 업그레이드하세요.",
+    "source_hash": "d87d6614"
+  },
+  "web.domains.signup.configure_signup": {
+    "text": "가입 구성",
+    "source_hash": "e2697662"
+  },
+  "web.domains.signup.not_configured_notice": {
+    "text": "이 도메인에 대한 가입 검증이 아직 구성되지 않았습니다. 전략을 구성하여 이 도메인을 통해 가입할 수 있는 사용자를 제어하세요.",
+    "source_hash": "fc6c6eb8"
+  },
+  "web.domains.signup.site_signups_disabled_warning": {
+    "text": "현재 사이트 수준에서 가입이 비활성화되어 있습니다. 이 도메인별 정책은 구성되어 있지만 사이트 가입이 활성화될 때까지 어떤 트래픽도 제어하지 않습니다.",
+    "source_hash": "c0e59f86"
+  },
+  "web.domains.signup.strategy_label": {
+    "text": "검증 전략",
+    "source_hash": "a2e95531"
+  },
+  "web.domains.signup.strategy_description": {
+    "text": "사용자가 이 도메인에서 가입할 때 이메일 주소를 검증하는 방식을 선택하세요.",
+    "source_hash": "8e232b03"
+  },
+  "web.domains.signup.network_validation_warning": {
+    "text": "이 전략은 가입 중에 네트워크 호출을 수행하므로 지연이 발생하거나 일부 공급자에 의해 차단될 수 있습니다.",
+    "source_hash": "53d4c266"
+  },
+  "web.domains.signup.allowed_domains_label": {
+    "text": "허용된 가입 도메인",
+    "source_hash": "9b5bb5b1"
+  },
+  "web.domains.signup.allowed_domains_hint": {
+    "text": "이 이메일 도메인만 가입이 허용됩니다. 항목당 하나의 도메인을 추가하세요.",
+    "source_hash": "c082414d"
+  },
+  "web.domains.signup.domain_placeholder": {
+    "text": "example.com",
+    "source_hash": "a379a6f6"
+  },
+  "web.domains.signup.invalid_domain": {
+    "text": "유효한 도메인을 입력하세요(예: example.com)",
+    "source_hash": "16807983"
+  },
+  "web.domains.signup.domain_exists": {
+    "text": "이 도메인은 이미 목록에 있습니다",
+    "source_hash": "3fccb721"
+  },
+  "web.domains.signup.remove_domain": {
+    "text": "{domain} 제거",
+    "source_hash": "ae708a1d"
+  },
+  "web.domains.signup.enabled_label": {
+    "text": "도메인별 검증 활성화",
+    "source_hash": "db103925"
+  },
+  "web.domains.signup.enabled_hint": {
+    "text": "활성화하면 이 도메인의 가입은 전역 정책 대신 위의 전략을 사용합니다.",
+    "source_hash": "99de2008"
+  },
+  "web.domains.signup.delete_config": {
+    "text": "구성 삭제",
+    "source_hash": "a9a30c7f"
+  },
+  "web.domains.signup.delete_confirm": {
+    "text": "가입 검증 구성을 삭제하시겠습니까? 가입은 전역 정책으로 되돌아갑니다.",
+    "source_hash": "a8c9086e"
+  },
+  "web.domains.signup.save_config": {
+    "text": "구성 저장",
+    "source_hash": "b2b158f2"
+  },
+  "web.domains.signup.update_success": {
+    "text": "가입 검증이 성공적으로 업데이트되었습니다",
+    "source_hash": "57a529ac"
+  },
+  "web.domains.signup.delete_success": {
+    "text": "가입 검증 구성이 성공적으로 제거되었습니다",
+    "source_hash": "eb6add4d"
+  },
+  "web.domains.signup.domain_overrides_label": {
+    "text": "도메인 재정의",
+    "source_hash": "d25da3cd"
+  },
+  "web.domains.signup.domain_overrides_hint": {
+    "text": "이 도메인에 대한 전역 가입 설정을 재정의합니다",
+    "source_hash": "53101057"
+  },
+  "web.domains.signup.signup_enabled_label": {
+    "text": "가입 활성화됨",
+    "source_hash": "296ac66d"
+  },
+  "web.domains.signup.signup_enabled_hint": {
+    "text": "이 도메인에 대해 가입 활성화 여부를 재정의합니다",
+    "source_hash": "2ee146b6"
+  },
+  "web.domains.signup.autoverify_label": {
+    "text": "계정 자동 확인",
+    "source_hash": "4b103cd5"
+  },
+  "web.domains.signup.autoverify_hint": {
+    "text": "이 도메인에서 신규 계정이 자동으로 확인되는지 여부를 재정의합니다",
+    "source_hash": "63866ecd"
+  },
+  "web.domains.sso.test_success": {
+    "text": "연결 테스트 성공 — 공급자가 올바르게 응답했습니다",
+    "source_hash": "1570ddb0"
+  },
+  "web.domains.sso.test_failed": {
+    "text": "연결 테스트 실패",
+    "source_hash": "a45a37dd"
+  },
+  "web.domains.sso.edit_credentials": {
+    "text": "자격 증명 편집",
+    "source_hash": "5a6622b6"
+  },
+  "web.domains.sso.configure_button": {
+    "text": "구성",
+    "source_hash": "6defafa2"
+  },
+  "web.domains.sso.upgrade_required": {
+    "text": "구성하려면 업그레이드",
+    "source_hash": "571cfa98"
+  },
+  "web.domains.add.field_label": {
+    "text": "사용자 지정 도메인",
+    "source_hash": "d7d4c1e4"
+  },
+  "web.domains.add.field_help": {
+    "text": "팀에서 사용할 정확한 호스트 이름입니다. 예: {example}.",
+    "source_hash": "3ba71f78"
+  },
+  "web.domains.add.echo_label": {
+    "text": "비밀 링크는 다음 위치에 생성됩니다",
+    "source_hash": "ad60b17d"
+  },
+  "web.domains.add.apex_question": {
+    "text": "이것은 전체 도메인입니다 — 비밀 링크를 어디에 두시겠습니까?",
+    "source_hash": "efacad1b"
+  },
+  "web.domains.add.apex_help": {
+    "text": "하위 도메인을 사용하면 {domain}의 나머지 부분은 그대로 유지됩니다.",
+    "source_hash": "0f7e6181"
+  },
+  "web.domains.add.recommended": {
+    "text": "권장",
+    "source_hash": "d70604e8"
+  },
+  "web.domains.add.no_wrong_answer": {
+    "text": "잘못된 선택은 없습니다 — 팀에서 알아볼 수 있는 것을 선택하세요.",
+    "source_hash": "a04f0086"
+  },
+  "web.domains.add.subdomains_label": {
+    "text": "인기 있는 하위 도메인",
+    "source_hash": "d6ee8eac"
+  },
+  "web.domains.add.root_group_label": {
+    "text": "또는 전체 도메인 사용",
+    "source_hash": "5c23c007"
+  },
+  "web.domains.add.root_domain_label": {
+    "text": "루트 도메인 사용",
+    "source_hash": "9fbbe253"
+  },
+  "web.domains.add.root_domain_description": {
+    "text": "이렇게 하면 {domain} 전체가 저희를 가리키게 되며 — 해당 사이트는 더 이상 확인되지 않습니다 — A / ALIAS 레코드가 필요합니다.",
+    "source_hash": "fae93847"
+  },
+  "web.domains.add.error_unrecognized_suffix": {
+    "text": "“.{0}”은(는) 인식되지 않는 도메인 끝입니다 — 오타를 확인하세요 (예: {1}).",
+    "source_hash": "4b90033d"
+  },
+  "web.domains.add.error_invalid_hostname": {
+    "text": "유효한 호스트 이름을 입력하세요 — 문자, 숫자, 단일 점 및 대시 (예: {0}).",
+    "source_hash": "c4ceabc1"
+  },
+  "web.domains.add.error_empty": {
+    "text": "도메인 이름을 입력하세요.",
+    "source_hash": "d8e2c1e4"
+  },
+  "web.domains.add.continue_with": {
+    "text": "{0}(으)로 계속",
+    "source_hash": "73f8ab40"
+  },
+  "web.domains.auth_override.workspace_default_badge": {
+    "text": "워크스페이스 기본값",
+    "source_hash": "da3706ee"
+  },
+  "web.domains.detail.dns_title": {
+    "text": "DNS 설정",
+    "source_hash": "6c63df31"
+  },
+  "web.domains.detail.dns_description": {
+    "text": "CNAME 레코드로 도메인을 이 서버로 지정하세요",
+    "source_hash": "080f84f0"
+  },
+  "web.domains.dns.title": {
+    "text": "DNS 구성",
+    "source_hash": "da78c35d"
+  },
+  "web.domains.dns.point_domain_intro": {
+    "text": "다음 DNS 레코드를 공급자에 추가하여",
+    "source_hash": "2fc0c524"
+  },
+  "web.domains.dns.point_domain_outro": {
+    "text": "을(를) 이 서버로 지정하세요.",
+    "source_hash": "8d260c05"
+  },
+  "web.domains.dns.cname_heading": {
+    "text": "CNAME 레코드 생성",
+    "source_hash": "11aeef5a"
+  },
+  "web.domains.dns.apex_heading": {
+    "text": "ALIAS 또는 ANAME 레코드 생성",
+    "source_hash": "41135375"
+  },
+  "web.domains.dns.apex_notice": {
+    "text": "최상위(루트) 도메인은 CNAME 레코드를 사용할 수 없습니다. 대신 DNS 공급자의 ALIAS 또는 ANAME 레코드를 사용하거나, A 레코드를 서버의 IP 주소로 지정하세요.",
+    "source_hash": "2d1c3298"
+  },
+  "web.domains.email.from_address_local_placeholder": {
+    "text": "no-reply",
+    "source_hash": "510d274d"
+  },
+  "web.domains.homepage.title": {
+    "text": "홈페이지",
+    "source_hash": "9e3391e9"
+  },
+  "web.domains.homepage.description": {
+    "text": "방문자가 도메인 홈페이지에서 할 수 있는 작업",
+    "source_hash": "974d159e"
+  },
+  "web.domains.homepage.option_private_title": {
+    "text": "비공개 랜딩 페이지",
+    "source_hash": "dfd5bd1c"
+  },
+  "web.domains.homepage.option_private_description": {
+    "text": "방문자에게 상호작용 양식이 없는 비공개 랜딩 페이지가 표시됩니다",
+    "source_hash": "4d9aaf6f"
+  },
+  "web.domains.homepage.option_create_title": {
+    "text": "비밀 메시지 생성 양식",
+    "source_hash": "6539dfc1"
+  },
+  "web.domains.homepage.option_create_description": {
+    "text": "방문자가 자신의 비밀 링크를 생성할 수 있습니다",
+    "source_hash": "884310f4"
+  },
+  "web.domains.homepage.option_incoming_title": {
+    "text": "수신 비밀 메시지 양식",
+    "source_hash": "882997bf"
+  },
+  "web.domains.homepage.option_incoming_description": {
+    "text": "방문자가 구성된 수신자에게 비밀 메시지를 보낼 수 있습니다",
+    "source_hash": "86bdaedb"
+  },
+  "web.domains.homepage.incoming_requires_recipients": {
+    "text": "수신 비밀 메시지가 하나 이상의 수신자와 함께 활성화되어 있어야 합니다",
+    "source_hash": "0462611d"
+  },
+  "web.domains.homepage.configure_recipients": {
+    "text": "수신자 구성",
+    "source_hash": "1c3df8b4"
+  },
+  "web.domains.homepage.status_private": {
+    "text": "비공개 랜딩 페이지",
+    "source_hash": "dfd5bd1c"
+  },
+  "web.domains.homepage.status_create": {
+    "text": "공개: 방문자가 비밀 메시지를 생성합니다",
+    "source_hash": "251cfb95"
+  },
+  "web.domains.homepage.status_incoming": {
+    "text": "공개: 방문자가 비밀 메시지를 보냅니다",
+    "source_hash": "baa926b8"
+  },
+  "web.domains.homepage.status_incoming_unready": {
+    "text": "수신 준비 안 됨 — 비공개 랜딩 페이지 표시 중",
+    "source_hash": "a5cc237c"
+  },
+  "web.domains.homepage.badge_incoming": {
+    "text": "수신",
+    "source_hash": "e301820a"
+  },
+  "web.domains.homepage.update_success": {
+    "text": "홈페이지 설정이 저장되었습니다",
+    "source_hash": "4eac9f45"
+  },
+  "web.domains.homepage.homepage_uses_incoming_warning": {
+    "text": "이 도메인의 홈페이지는 현재 수신 비밀 메시지 양식을 표시하고 있습니다. 수신 비밀 메시지를 비활성화하거나 모든 수신자를 제거하면 수신이 다시 준비될 때까지 홈페이지가 비공개 랜딩 페이지로 전환됩니다.",
+    "source_hash": "cc0d4997"
+  },
+  "web.domains.signin.effective_status_label": {
+    "text": "이 도메인의 로그인",
+    "source_hash": "d8b884c3"
+  },
+  "web.domains.signin.dormant_notice": {
+    "text": "로그인이 워크스페이스 전체에서 꺼져 있어 모든 도메인에서 사용할 수 없습니다. 여기서 설정한 내용은 유지되며 워크스페이스 로그인이 다시 활성화되면 적용됩니다.",
+    "source_hash": "723d35dc"
+  },
+  "web.domains.signup.effective_status_label": {
+    "text": "이 도메인의 가입",
+    "source_hash": "115ab21b"
+  },
+  "web.domains.signup.dormant_notice": {
+    "text": "가입이 워크스페이스 전체에서 꺼져 있어 모든 도메인에서 사용할 수 없습니다. 여기서 설정한 내용은 유지되며 워크스페이스 가입이 다시 활성화되면 적용됩니다.",
+    "source_hash": "49faefe4"
+  },
+  "web.domains.link_domain_no_settings": {
+    "text": "이 도메인에는 설정 페이지가 없습니다",
+    "source_hash": "8a8430fe"
+  },
+  "web.domains.signin.sso_restrict_warning_title": {
+    "text": "SSO로 제한하면 이 도메인에서 로그인이 완전히 차단됩니다",
+    "source_hash": "3476cb5c"
+  },
+  "web.domains.signin.sso_restrict_warning_body": {
+    "text": "이 도메인에서는 SSO를 사용할 수 없으며, 적용할 수 없는 제한은 로그인을 완전히 차단합니다. SSO가 정상 작동하기 전까지는 아무도 여기서 로그인할 수 없습니다. 먼저 SSO를 해결하거나, 그대로 제한한 뒤 설정을 마치세요.",
+    "source_hash": "086e3247"
+  },
+  "web.domains.signin.sso_restrict_warning_confirm": {
+    "text": "그대로 제한",
+    "source_hash": "4674e3cf"
+  },
+  "web.domains.signin.restriction_unavailable_notice": {
+    "text": "이 도메인에서는 로그인을 사용할 수 없습니다. 여기서 실행할 수 없는 {method}(으)로 제한되어 있습니다. 다른 방법을 선택하거나 {method}을(를) 사용할 수 있도록 설정하세요.",
+    "source_hash": "ca1b7f69"
+  },
+  "web.domains.signin.restriction_unavailable_unknown_notice": {
+    "text": "이 도메인에서는 로그인을 사용할 수 없습니다. 여기서 실행할 수 없는 방법으로 제한되어 있습니다. 다른 방법을 선택하거나 이 도메인을 기본값으로 재설정하세요.",
+    "source_hash": "8c2cce6b"
+  },
+  "web.domains.signin.restriction_conflict_notice": {
+    "text": "이 도메인은 워크스페이스 전체 제한({method})과 다른 방법으로 로그인을 제한하고 있어 어느 쪽도 적용될 수 없으며, 여기서는 로그인을 사용할 수 없습니다. 워크스페이스 전체 방법과 일치시키거나 이 도메인을 기본값으로 재설정하세요.",
+    "source_hash": "15398362"
+  },
+  "web.domains.signin.method_webauthn_unavailable": {
+    "text": "패스키는 기본 로그인 도메인에 연결되어 있어 아직 사용자 지정 도메인에서는 사용할 수 없습니다",
+    "source_hash": "88833e0f"
+  },
+  "web.domains.sso.connection_disabled_badge": {
+    "text": "연결 비활성화됨",
+    "source_hash": "99d6092c"
+  },
+  "web.domains.sso.connection_disabled_hint": {
+    "text": "SSO 자격 증명은 저장되어 있지만 연결이 꺼져 있습니다. 자격 증명 편집에서 활성화하세요.",
+    "source_hash": "90180d6c"
+  },
+  "web.domains.sso.status_active_badge": {
+    "text": "활성",
+    "source_hash": "92340695"
+  },
+  "web.domains.sso.status_active_hint": {
+    "text": "멤버는 이 도메인에서 이 SSO 연결로 로그인할 수 있습니다.",
+    "source_hash": "313ec61e"
+  },
+  "web.domains.sso.status_not_configured_badge": {
+    "text": "설정되지 않음",
+    "source_hash": "dd1841d2"
+  },
+  "web.domains.sso.status_not_configured_hint": {
+    "text": "이 도메인에 저장된 SSO 자격 증명이 아직 없습니다.",
+    "source_hash": "d817ad9c"
+  },
+  "web.domains.sso.status_not_permitted_badge": {
+    "text": "이 도메인에서 허용되지 않음",
+    "source_hash": "afbd20ba"
+  },
+  "web.domains.sso.status_not_permitted_hint": {
+    "text": "이 도메인에서 SSO가 꺼져 있어 로그인 페이지에 표시되지 않습니다.",
+    "source_hash": "ef092481"
+  },
+  "web.domains.sso.status_auth_disabled_badge": {
+    "text": "로그인 비활성화됨",
+    "source_hash": "bb807607"
+  },
+  "web.domains.sso.status_auth_disabled_hint": {
+    "text": "이 도메인에서 로그인이 꺼져 있어 SSO를 포함한 어떤 방법도 제공되지 않습니다.",
+    "source_hash": "3a98964b"
+  },
+  "web.domains.sso.status_unsupported_provider_badge": {
+    "text": "지원되지 않는 공급자",
+    "source_hash": "1609d5fb"
+  },
+  "web.domains.sso.status_unsupported_provider_hint": {
+    "text": "저장된 공급자는 도메인 SSO에 사용할 수 없습니다. 자격 증명을 편집하여 Microsoft Entra ID 또는 일반 OIDC를 선택하세요.",
+    "source_hash": "72ea0a2e"
+  },
+  "web.domains.sso.status_unavailable_badge": {
+    "text": "사용할 수 없음",
+    "source_hash": "ca184496"
+  },
+  "web.domains.sso.status_unavailable_hint": {
+    "text": "현재 이 도메인에서는 SSO를 제공할 수 없습니다. SSO 자격 증명과 이 도메인의 로그인 설정을 확인하세요.",
+    "source_hash": "b03b14f4"
+  },
+  "web.domains.status_tooltip_pending_ssl": {
+    "text": "도메인 확인 완료 — 인증서 발급 대기 중",
+    "source_hash": "541bd705"
+  },
+  "web.domains.2_create_the_alias_record": {
+    "text": "2. ALIAS 또는 ANAME 레코드 생성",
+    "source_hash": "17b04e6a"
+  },
+  "web.domains.sso.status_saml_disabled_badge": {
+    "text": "SAML 꺼짐",
+    "source_hash": "4e2eab51"
+  },
+  "web.domains.sso.status_saml_disabled_hint": {
+    "text": "사이트 운영자가 이 설치 환경에서 SAML을 껐습니다. 구성은 유지되며 SAML이 다시 켜지면 재개됩니다. 그때까지 이 도메인에서는 SAML 로그인을 제공하지 않습니다.",
+    "source_hash": "5ba9624c"
+  },
+  "web.domains.sso.status_domain_unverified_badge": {
+    "text": "도메인 확인 대기 중",
+    "source_hash": "ea7459c2"
+  },
+  "web.domains.sso.status_domain_unverified_hint": {
+    "text": "이 도메인의 확인이 완료되지 않아 로그인 페이지에서 SSO 연결이 아직 활성화되지 않았습니다. 도메인이 확인되고 여기에서 SSO가 허용되면 SSO가 켜집니다.",
+    "source_hash": "57ee0066"
+  },
+  "web.domains.verify_outcome.indeterminate": {
+    "text": "지금은 DNS 검사를 완료할 수 없습니다. 레코드가 잘못되었다는 의미는 아닙니다. 몇 분 후에 다시 시도해 주세요.",
+    "source_hash": "4e76a9ef"
+  },
+  "web.domains.verify_outcome.record_not_found": {
+    "text": "예상한 TXT 레코드를 찾을 수 없습니다. 레코드가 존재하고 값이 정확히 일치하는지 확인하세요. 새 DNS 레코드가 표시되기까지 몇 분이 걸릴 수 있습니다.",
+    "source_hash": "6c847d46"
+  },
+  "web.domains.sso.diagnostics_passed": {
+    "text": "저장된 설정 확인을 통과했습니다",
+    "source_hash": "91fc2d97"
+  },
+  "web.domains.sso.diagnostics_failed": {
+    "text": "저장된 설정 확인에서 문제가 발견되었습니다",
+    "source_hash": "18ca7a0e"
+  },
+  "web.domains.sso.diagnostics_inconclusive": {
+    "text": "저장된 설정 확인에서 결론을 내릴 수 없었습니다",
+    "source_hash": "2be86c66"
+  },
+  "web.domains.sso.diagnostics_error": {
+    "text": "저장된 설정을 확인하지 못했습니다",
+    "source_hash": "e1fe6a59"
+  },
+  "web.domains.sso.diagnostics_rate_limited": {
+    "text": "이 설정은 최근에 너무 많이 확인되었습니다. 나중에 다시 시도하세요.",
+    "source_hash": "4b8d53b8"
+  },
+  "web.domains.sso.diagnostics_rate_limited_retry": {
+    "text": "이 설정은 최근에 너무 많이 확인되었습니다. 약 {minutes}분 후에 다시 시도하세요.",
+    "source_hash": "fdbdeaf6"
+  }
+}

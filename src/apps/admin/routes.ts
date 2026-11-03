@@ -1,0 +1,269 @@
+// src/apps/admin/routes.ts
+
+import AdminLayout from '@/apps/admin/layouts/AdminLayout.vue';
+import { RouteRecordRaw } from 'vue-router';
+
+// Shared meta for every admin route (including the router's catch-all). The
+// console lives at the /colonel URL (decision D1) and, since the cutover, is the
+// sole admin frontend served there — the backend serves this isolated admin
+// bundle unconditionally (docs/specs/colonel-ui/50-cutover-hardening.md).
+// Access control is the backend's role=colonel gate on /colonel plus the API
+// 403s — requiresAuth + requiresColonel here are client-side defence-in-depth.
+// requiresColonel makes handleColonelRequirement (guards.routes.ts) hard-navigate
+// any authenticated non-colonel out of the admin bundle to '/', so the shell
+// never flashes for them.
+export const adminDefaultMeta = {
+  requiresAuth: true,
+  requiresColonel: true,
+  layout: AdminLayout,
+  layoutProps: {
+    // AdminLayout owns its own chrome (persistent sidebar); suppress the
+    // customer masthead/nav that App.vue defaults on.
+    displayMasthead: false,
+    displayNavigation: false,
+    displayHeader: false,
+  },
+};
+
+const routes: Array<RouteRecordRaw> = [
+  {
+    path: '/colonel',
+    name: 'AdminOverview',
+    component: () => import('@/apps/admin/views/AdminOverview.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      // Reuse the existing colonel title key (no new i18n needed for the
+      // Phase-0 skeleton). Real screens add web.admin.* keys in later phases.
+      title: 'web.colonel.titles.index',
+      sentryScrubParams: false,
+    },
+    props: true,
+  },
+  {
+    // Customers list (ticket #22). No params, so scrubbing is irrelevant.
+    path: '/colonel/customers',
+    name: 'AdminCustomers',
+    component: () => import('@/apps/admin/views/AdminCustomers.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.customers.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Customer detail (ticket #22). `:id` is the customer's PUBLIC id (extid).
+    // `sentryScrubParams` is OMITTED so the default (scrub all params) redacts
+    // the id from breadcrumbs.
+    path: '/colonel/customers/:id',
+    name: 'AdminCustomerDetail',
+    component: () => import('@/apps/admin/views/AdminCustomerDetail.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.customers.title',
+    },
+    props: true,
+  },
+  {
+    // Secrets: lookup-by-key inspect + guarded delete (ticket #30; browse-all
+    // table removed by design review — no browsing secrets on a zero-knowledge
+    // platform). No route params (the key is an in-page input).
+    path: '/colonel/secrets',
+    name: 'AdminSecrets',
+    component: () => import('@/apps/admin/views/AdminSecrets.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.secrets.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    path: '/colonel/schemas',
+    name: 'AdminSchemas',
+    component: () => import('@/apps/admin/views/AdminSchemas.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.schemas.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Domains list (ticket #31): card grid + per-domain verify. No params.
+    path: '/colonel/domains',
+    name: 'AdminDomains',
+    component: () => import('@/apps/admin/views/AdminDomains.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.colonel.titles.domains',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Domain detail. `:id` is the domain's PUBLIC id (extid) — the colonel
+    // domain endpoints resolve by extid ONLY (an objid or display_domain 404s).
+    // `sentryScrubParams` is OMITTED so the default (scrub all params) redacts
+    // the id from breadcrumbs, mirroring `/colonel/customers/:id`.
+    //
+    // Declared after the list route, and any future literal sibling (the
+    // backend's `/domains/orphaned` vs `/domains/:extid` split) must be declared
+    // ABOVE this record — vue-router ranks static segments over dynamic ones, so
+    // declaration order is only the tie-break, but keeping literals first keeps
+    // the file readable against the backend's routes.txt ordering.
+    path: '/colonel/domains/:id',
+    name: 'AdminDomainDetail',
+    component: () => import('@/apps/admin/views/AdminDomainDetail.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.colonel.titles.domains',
+    },
+    props: true,
+  },
+  {
+    // Organizations list + billing-investigate + entitlement overrides (ticket #32).
+    path: '/colonel/organizations',
+    name: 'AdminOrganizations',
+    component: () => import('@/apps/admin/views/AdminOrganizations.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.colonel.titles.organizations',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Organization detail (colonel org audit remediation). `:id` is the org's
+    // PUBLIC id (extid). `sentryScrubParams` is OMITTED so the default (scrub all
+    // params) redacts the id from Sentry breadcrumbs, mirroring
+    // `/colonel/customers/:id`.
+    path: '/colonel/organizations/:id',
+    name: 'AdminOrganizationDetail',
+    component: () => import('@/apps/admin/views/AdminOrganizationDetail.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.colonel.titles.organizations',
+    },
+    props: true,
+  },
+  {
+    // System monitoring read-out: db / redis / queue metrics (ticket #33).
+    path: '/colonel/system',
+    name: 'AdminSystem',
+    component: () => import('@/apps/admin/views/AdminSystem.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.system.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Jobs (#4343): scheduler read-out, per-message DLQ ops, chore triggers. No
+    // route params — the open queue, inspected message and action results are
+    // in-page state, so a query change can never remount and drop them.
+    path: '/colonel/jobs',
+    name: 'AdminJobs',
+    component: () => import('@/apps/admin/views/AdminJobs.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.jobs.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Usage export read-out (ticket #33).
+    path: '/colonel/usage',
+    name: 'AdminUsage',
+    component: () => import('@/apps/admin/views/AdminUsage.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.usage.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Sessions console: paginated list + search + inspect drawer + guarded revoke (ticket #40).
+    path: '/colonel/sessions',
+    name: 'AdminSessions',
+    component: () => import('@/apps/admin/views/AdminSessions.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.sessions.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Audit log reader (observability): newest-first playback of the
+    // ColonelAuditEvent trail every mutating admin op writes. Read-only; no
+    // route params (filters are in-page).
+    path: '/colonel/audit',
+    name: 'ColonelAuditLog',
+    component: () => import('@/apps/admin/views/ColonelAuditLog.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.audit.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Broadcast banner: settings-style get/set/clear (ticket #41).
+    path: '/colonel/banner',
+    name: 'AdminBanner',
+    component: () => import('@/apps/admin/views/AdminBanner.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.banner.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Domain toolbox: orphaned scan + probe + guarded repair/transfer (ticket #43).
+    path: '/colonel/domain-toolbox',
+    name: 'AdminDomainToolbox',
+    component: () => import('@/apps/admin/views/AdminDomainToolbox.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.domaintoolbox.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Email tools (ticket #44): template preview / test send. No route params
+    // (all inputs are in-page).
+    path: '/colonel/email-tools',
+    name: 'AdminEmailTools',
+    component: () => import('@/apps/admin/views/AdminEmailTools.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.emailtools.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Billing catalog / plan-drift read-out (ticket #45). No params.
+    path: '/colonel/billing',
+    name: 'AdminBilling',
+    component: () => import('@/apps/admin/views/AdminBilling.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.billing.title',
+      sentryScrubParams: false,
+    },
+  },
+  {
+    // Plan diff (billing): the config-vs-live comparison for ONE plan, promoted
+    // out of the billing screen's slide-over because it renders two JSON
+    // documents side by side and a drawer cannot show them without cramping.
+    // `:planid` is a catalog id (e.g. `identity_plus_v1`) — not key material and
+    // not customer-identifying — so `sentryScrubParams: false` matches the other
+    // non-sensitive routes in this file rather than the customer/org/domain
+    // detail routes, which OMIT the key to get the scrub-all default.
+    path: '/colonel/billing/plans/:planid',
+    name: 'AdminPlanDiff',
+    component: () => import('@/apps/admin/views/AdminPlanDiff.vue'),
+    meta: {
+      ...adminDefaultMeta,
+      title: 'web.admin.billing.title',
+      sentryScrubParams: false,
+    },
+    props: true,
+  },
+];
+
+export default routes;

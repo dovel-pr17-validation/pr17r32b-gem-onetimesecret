@@ -1,0 +1,782 @@
+# lib/onetime/jobs/publisher.rb
+#
+# frozen_string_literal: true
+
+require 'securerandom'
+require 'time'
+require_relative 'queues/config'
+require_relative 'trace_propagation'
+
+module Onetime
+  module Jobs
+    # Thread-safe RabbitMQ publisher with configurable fallback behavior
+    #
+    # Uses connection pool for thread safety in multi-threaded environments
+    # like Puma. When a message cannot be enqueued (jobs disabled or RabbitMQ
+    # unavailable), the fallback strategy decides what happens. Configurable
+    # per-call:
+    #
+    #   - :async_thread - Deliver in a background thread (non-blocking,
+    #                     default). Delivery failures are logged/reported,
+    #                     never raised.
+    #   - :sync         - Block and deliver synchronously. Delivery failures
+    #                     are logged/reported but NOT raised: the record the
+    #                     caller already persisted stands and a resend path
+    #                     exists, so the request should not 500. Use :raise
+    #                     when the caller must surface delivery failures.
+    #   - :raise        - Do not attempt fallback delivery; raise a
+    #                     DeliveryError so the caller can surface/propagate it.
+    #   - :none         - Do not deliver; log and return false silently.
+    #
+    # Example:
+    #   # Default: async thread fallback (best for Puma)
+    #   Onetime::Jobs::Publisher.enqueue_email(:secret_link, { secret_id: 'abc123' })
+    #
+    #   # Critical auth flow: block if needed
+    #   Onetime::Jobs::Publisher.enqueue_email(:password_reset, data, fallback: :sync)
+    #
+    #   # Non-critical: just fail
+    #   Onetime::Jobs::Publisher.enqueue_email(:feedback, data, fallback: :none)
+    #
+    class Publisher
+      # @return [SemanticLogger::Logger] Logger for job publishing operations
+      def self.logger
+        @logger ||= Onetime.get_logger('Jobs')
+      end
+
+      def logger
+        self.class.logger
+      end
+      # Valid fallback strategies
+      FALLBACK_STRATEGIES = [:async_thread, :sync, :raise, :none].freeze
+
+      # Default fallback - async thread is non-blocking for Puma
+      DEFAULT_FALLBACK = :async_thread
+
+      class << self
+        # Enqueue an email for immediate delivery
+        # @param template [Symbol] Email template name
+        # @param data [Hash] Template data
+        # @param fallback [Symbol] Fallback strategy if RabbitMQ unavailable
+        # @param domain_id [String, nil] Domain identifier for per-domain sender config
+        # @return [Boolean] true if published to queue, false if fallback used
+        def enqueue_email(template, data, fallback: DEFAULT_FALLBACK, domain_id: nil)
+          new.enqueue_email(template, data, fallback: fallback, domain_id: domain_id)
+        end
+
+        # There is no delayed-delivery method. schedule_email published to
+        # email.message.schedule with a per-message TTL, and nothing consumed
+        # that queue: every message expired into dlq.email.message, where
+        # DlqEmailConsumerJob discards non-auth templates. A caller that
+        # wants mail at a later time keeps its own schedule and calls
+        # enqueue_email when the time comes (ExpirationWarningJob scans a
+        # timeline on an interval).
+
+        # Enqueue a raw email (non-templated) for immediate delivery
+        # Used for Rodauth integration where emails are pre-formatted
+        # @param email [Hash] Raw email with :to, :from, :subject, :body keys
+        # @param fallback [Symbol] Fallback strategy if RabbitMQ unavailable
+        # @param domain_id [String, nil] Domain identifier for per-domain sender config
+        # @return [Boolean] true if published to queue, false if fallback used
+        def enqueue_email_raw(email, fallback: DEFAULT_FALLBACK, domain_id: nil)
+          new.enqueue_email_raw(email, fallback: fallback, domain_id: domain_id)
+        end
+
+        # Enqueue a Stripe webhook event for async processing
+        #
+        # Falls back to synchronous processing if jobs are disabled.
+        # This ensures billing webhooks work without RabbitMQ for dev/testing.
+        #
+        # @param event [Stripe::Event] The validated Stripe event
+        # @param payload [String] The raw JSON payload from Stripe
+        # @return [Boolean] true if published to queue or processed synchronously
+        # @raise [Onetime::Problem] If RabbitMQ unavailable when jobs ARE enabled
+        def enqueue_billing_event(event, payload)
+          new.enqueue_billing_event(event, payload)
+        end
+
+        # Enqueue a domain DNS validation check for async processing
+        #
+        # Falls back to synchronous validation if jobs are disabled, ensuring
+        # domain validation works without RabbitMQ for dev/testing.
+        #
+        # @param domain_id [String] CustomDomain identifier (MailerConfig key)
+        # @param bypass_cache [Boolean] Skip DNS cache for fresh lookup (default: false)
+        # @return [Boolean] true if published to queue or processed synchronously
+        # @raise [Onetime::Problem] If RabbitMQ unavailable when jobs ARE enabled
+        def enqueue_domain_validation(domain_id, bypass_cache: false)
+          new.enqueue_domain_validation(domain_id, bypass_cache: bypass_cache)
+        end
+
+        # Enqueue a DNS record check for async processing
+        #
+        # Falls back to synchronous check if jobs are disabled, ensuring
+        # DNS checks work without RabbitMQ for dev/testing.
+        #
+        # @param domain_id [String] CustomDomain identifier (MailerConfig key)
+        # @return [Boolean] true if published to queue or processed synchronously
+        # @raise [Onetime::Problem] If RabbitMQ unavailable when jobs ARE enabled
+        def enqueue_dns_record_check(domain_id)
+          new.enqueue_dns_record_check(domain_id)
+        end
+
+        # Enqueue a custom-domain favicon fetch for async processing
+        #
+        # Falls back to synchronous fetch if jobs are disabled, ensuring
+        # favicon fetching works without RabbitMQ for dev/testing.
+        #
+        # @param domain_id [String] CustomDomain identifier
+        # @param force [Boolean] Re-fetch even when an auto_fetch icon already
+        #   exists (manual refresh, #3780). Default false.
+        # @return [Boolean] true if published to queue or processed synchronously
+        # @raise [Onetime::Problem] If RabbitMQ unavailable when jobs ARE enabled
+        def enqueue_favicon_fetch(domain_id, force: false)
+          new.enqueue_favicon_fetch(domain_id, force: force)
+        end
+
+        # Enqueue a full session-revocation sweep for async processing (#3810)
+        #
+        # Falls back to running the sweep synchronously if jobs are disabled,
+        # so the security sweep still happens without RabbitMQ for dev/testing.
+        #
+        # @param custid [String] Customer identifier (extid/email/objid)
+        # @param except_session_id [String, nil] Bare session id to preserve
+        #   (the caller's current session)
+        # @return [Boolean] true if published to queue or processed synchronously
+        # @raise [StandardError] Only from a LIVE pool failing mid-publish (e.g.
+        #   Bunny::ConnectionClosedError); a never-initialized pool degrades to
+        #   the inline fallback instead of raising
+        def enqueue_session_revocation_sweep(custid, except_session_id: nil)
+          new.enqueue_session_revocation_sweep(custid, except_session_id: except_session_id)
+        end
+      end
+
+      def initialize
+        @pending_template  = nil
+        @pending_data      = nil
+        @pending_raw_email = nil
+        @pending_domain_id = nil
+      end
+
+      # Enqueue email for immediate delivery
+      def enqueue_email(template, data, fallback: DEFAULT_FALLBACK, domain_id: nil)
+        validate_fallback!(fallback)
+        @pending_template  = template
+        @pending_data      = data
+        @pending_domain_id = domain_id
+
+        # Gracefully fallback if jobs are disabled (no pool initialized)
+        unless jobs_enabled?
+          logger.info 'Jobs disabled, using fallback', template: template, fallback: fallback
+          return execute_fallback(fallback, :templated)
+        end
+
+        with_fallback(fallback, :templated) do
+          message_id = publish('email.message.send', { template: template, data: data, domain_id: domain_id })
+          logger.info 'Enqueued email', template: template, message_id: message_id, queue: 'email.message.send'
+          true
+        end
+      end
+
+      # Enqueue raw email (non-templated) for immediate delivery
+      # Used for Rodauth integration where emails are pre-formatted
+      def enqueue_email_raw(email, fallback: DEFAULT_FALLBACK, domain_id: nil)
+        validate_fallback!(fallback)
+        @pending_raw_email = email
+        @pending_domain_id = domain_id
+
+        # Gracefully fallback if jobs are disabled (no pool initialized)
+        unless jobs_enabled?
+          logger.info 'Jobs disabled, using fallback for raw email', fallback: fallback
+          return execute_fallback(fallback, :raw)
+        end
+
+        with_fallback(fallback, :raw) do
+          message_id = publish('email.message.send', { raw: true, email: email, domain_id: domain_id })
+          logger.info 'Enqueued raw email', to: email[:to], message_id: message_id
+          true
+        end
+      end
+
+      # Enqueue a Stripe webhook event for async processing
+      #
+      # Falls back to synchronous processing if jobs are disabled, enabling
+      # development/testing without RabbitMQ. If jobs ARE enabled but RabbitMQ
+      # is unavailable, raises so the controller returns 500 and Stripe retries.
+      #
+      # @param event [Stripe::Event] The validated Stripe event
+      # @param payload [String] The raw JSON payload from Stripe
+      # @return [Boolean] true if published to queue or processed synchronously
+      # @raise [Onetime::Problem] If RabbitMQ unavailable when jobs ARE enabled
+      def enqueue_billing_event(event, payload)
+        # Fallback to synchronous processing if jobs are disabled
+        # This ensures billing webhooks work without RabbitMQ for dev/testing
+        return process_billing_event_synchronously(event, payload) unless jobs_enabled?
+
+        message = {
+          event_id: event.id,
+          event_type: event.type,
+          payload: payload,
+          received_at: Time.now.utc.iso8601,
+        }
+
+        message_id = publish('billing.event.process', message)
+        logger.info 'Enqueued billing event',
+          event_id: event.id,
+          event_type: event.type,
+          message_id: message_id,
+          queue: 'billing.event.process'
+        true
+      end
+
+      # Enqueue a domain DNS validation check for async processing
+      #
+      # Falls back to synchronous validation if jobs are disabled, enabling
+      # development/testing without RabbitMQ. If jobs ARE enabled but RabbitMQ
+      # is unavailable, raises so the controller can return an error.
+      #
+      # @param domain_id [String] CustomDomain identifier (MailerConfig key)
+      # @param bypass_cache [Boolean] Skip DNS cache for fresh lookup (default: false)
+      # @return [Boolean] true if published to queue or processed synchronously
+      # @raise [Onetime::Problem] If RabbitMQ unavailable when jobs ARE enabled
+      def enqueue_domain_validation(domain_id, bypass_cache: false)
+        unless jobs_enabled?
+          logger.info 'Jobs disabled, validating domain synchronously',
+            domain_id: domain_id,
+            bypass_cache: bypass_cache
+
+          require 'onetime/operations/validate_sender_domain'
+          require 'onetime/operations/check_provider_verification'
+          require 'onetime/models/custom_domain/mailer_config'
+          require 'onetime/jobs/workers/job_lifecycle'
+
+          mailer_config = Onetime::CustomDomain::MailerConfig.find_by_domain_id(domain_id)
+          if mailer_config
+            # Same steps as DomainValidationWorker, inline. persist: false for
+            # the same reason the worker passes it: verification_status is
+            # derived once BOTH checks are terminal, never written from DNS
+            # alone ahead of the provider check. (This fallback used to
+            # persist 'verified' from DNS and then close the provider check
+            # with provider_verified unknown.)
+            result = Onetime::Operations::ValidateSenderDomain.new(
+              mailer_config: mailer_config,
+              persist: false,
+              bypass_cache: bypass_cache,
+            ).call
+
+            if result.error
+              # The worker retries, then fails the job to the DLQ. Inline there
+              # is nothing to retry into: close the job as failed so the status
+              # can settle instead of staying 'pending' forever.
+              Onetime::CustomDomain::MailerConfig.record_job_result!(domain_id, mailer_config.from_address) do |stored|
+                stored.provider_check_status       = Onetime::Jobs::Workers::JobLifecycle::FAILED
+                stored.provider_check_completed_at = Familia.now.to_i
+                stored.last_error                  = result.error.to_s
+                stored.updated                     = Familia.now.to_i
+              end
+            else
+              Onetime::Operations::CheckProviderVerification.new(
+                mailer_config: mailer_config,
+                dns_all_verified: result.all_verified,
+                domain_id: domain_id,
+                logger: logger,
+              ).call
+            end
+
+            settle_inline_verification_status(mailer_config, result)
+          end
+
+          return true
+        end
+
+        message = {
+          domain_id: domain_id,
+          bypass_cache: bypass_cache,
+          requested_at: Time.now.utc.iso8601,
+        }
+
+        message_id = publish('domain.validation.check', message)
+        logger.info 'Enqueued domain validation',
+          domain_id: domain_id,
+          bypass_cache: bypass_cache,
+          message_id: message_id,
+          queue: 'domain.validation.check'
+        true
+      end
+
+      # Enqueue a DNS record check for async processing
+      #
+      # Falls back to synchronous check if jobs are disabled, enabling
+      # development/testing without RabbitMQ. If jobs ARE enabled but RabbitMQ
+      # is unavailable, raises so the controller can return an error.
+      #
+      # @param domain_id [String] CustomDomain identifier (MailerConfig key)
+      # @return [Boolean] true if published to queue or processed synchronously
+      # @raise [Onetime::Problem] If RabbitMQ unavailable when jobs ARE enabled
+      def enqueue_dns_record_check(domain_id)
+        unless jobs_enabled?
+          logger.info 'Jobs disabled, checking DNS records synchronously',
+            domain_id: domain_id
+
+          require 'onetime/mail/sender_strategies'
+          require 'onetime/models/custom_domain/mailer_config'
+
+          mailer_config = Onetime::CustomDomain::MailerConfig.find_by_domain_id(domain_id)
+          if mailer_config
+            strategy = Onetime::Mail::SenderStrategies.for_provider(mailer_config.effective_provider)
+            result   = strategy.check_dns_records(mailer_config, credentials: {})
+
+            # Same rule as DnsRecordCheckWorker: verified only when at least
+            # one record was checked AND every one matched. [].all? is true,
+            # which marked an unprovisioned domain (no records yet) verified.
+            records      = result[:records] || []
+            all_matched  = records.all? { |r| r['value_matches'] == true || r[:value_matches] == true }
+            dns_verified = records.any? && all_matched
+
+            # Same write as DnsRecordCheckWorker (see record_job_result!)
+            stored, = Onetime::CustomDomain::MailerConfig.record_job_result!(domain_id, mailer_config.from_address) do |config|
+              config.dns_verified           = dns_verified
+              config.dns_check_status       = 'completed'
+              config.dns_check_completed_at = Familia.now.to_i
+              config.updated                = Familia.now.to_i
+              config.derive_verification_status
+            end
+
+            stored&.dns_check_results&.value = result[:records]
+          end
+
+          return true
+        end
+
+        message = {
+          domain_id: domain_id,
+          requested_at: Time.now.utc.iso8601,
+        }
+
+        message_id = publish('domain.dns.check', message)
+        logger.info 'Enqueued DNS record check',
+          domain_id: domain_id,
+          message_id: message_id,
+          queue: 'domain.dns.check'
+        true
+      end
+
+      # Enqueue a custom-domain favicon fetch for async processing
+      #
+      # Falls back to synchronous fetch if jobs are disabled, enabling
+      # development/testing without RabbitMQ. If jobs ARE enabled but RabbitMQ
+      # is unavailable, raises so the controller can return an error.
+      #
+      # @param domain_id [String] CustomDomain identifier
+      # @param force [Boolean] Re-fetch even when an auto_fetch icon already
+      #   exists (manual refresh, #3780). Default false.
+      # @return [Boolean] true if published to queue or processed synchronously
+      # @raise [Onetime::Problem] If RabbitMQ unavailable when jobs ARE enabled
+      def enqueue_favicon_fetch(domain_id, force: false)
+        unless jobs_enabled?
+          logger.info 'Jobs disabled, fetching favicon synchronously',
+            domain_id: domain_id,
+            force: force
+
+          require 'onetime/operations/fetch_domain_favicon'
+
+          Onetime::Operations::FetchDomainFavicon.new(domain_id: domain_id, force: force).call
+
+          return true
+        end
+
+        message = {
+          domain_id: domain_id,
+          force: force,
+          requested_at: Time.now.utc.iso8601,
+        }
+
+        message_id = publish('domain.favicon.fetch', message)
+        logger.info 'Enqueued favicon fetch',
+          domain_id: domain_id,
+          message_id: message_id,
+          queue: 'domain.favicon.fetch'
+        true
+      end
+
+      # Enqueue a full session-revocation sweep for async processing (#3810)
+      #
+      # The password-change/reset hooks revoke tracked sessions in-transaction
+      # with scan_untracked: false; this sweep is the async follow-up that mops
+      # up untracked (pre-sidecar) blobs, honoring the credential watermark so
+      # sessions authenticated AFTER the change (the rotated current session, a
+      # fresh post-reset login) survive. Falls back to running the operation
+      # synchronously whenever the channel pool is unavailable — whether jobs
+      # are configured OFF or the pool never initialized (SetupRabbitMQ rescues
+      # boot-time broker failures and leaves the pool nil, so a configured-async
+      # deployment silently degrades to inline synchronous execution on the
+      # request thread; that case logs at WARN). Publish errors only propagate
+      # from a LIVE pool failing mid-publish. There is deliberately NO
+      # per-feature config flag — this is a security sweep; jobs.enabled only
+      # selects the transport.
+      #
+      # @param custid [String] Customer identifier (extid/email/objid)
+      # @param except_session_id [String, nil] Bare session id to preserve
+      #   (the caller's current session)
+      # @return [Boolean] true if published to queue or processed synchronously
+      # @raise [StandardError] Only from a LIVE pool failing mid-publish (e.g.
+      #   Bunny::ConnectionClosedError); a never-initialized pool degrades to
+      #   the inline fallback instead of raising
+      def enqueue_session_revocation_sweep(custid, except_session_id: nil)
+        unless jobs_enabled?
+          # jobs_enabled? only checks the runtime pool. Config-enabled with a
+          # nil pool means a boot-time broker outage degraded this deployment
+          # to inline request-thread sweeps — flag that at WARN so it is
+          # distinguishable from a deliberately jobs-off configuration.
+          if OT.conf.dig('jobs', 'enabled')
+            logger.warn 'Jobs configured but RabbitMQ pool unavailable; running session revocation sweep inline (degraded)',
+              custid: custid
+          else
+            logger.info 'Jobs disabled, running session revocation sweep synchronously',
+              custid: custid
+          end
+
+          require 'onetime/operations/sessions/revoke_all_for_customer_except_current'
+
+          # `custid:` is a genuine id-only entry point here: this method is the
+          # publish API and receives the same identifier string the message
+          # payload carries, so the inline fallback resolves exactly as the
+          # worker it stands in for would.
+          result = Onetime::Operations::Sessions::RevokeAllForCustomerExceptCurrent.new(
+            custid: custid,
+            except_session_id: except_session_id,
+            scan_untracked: true,
+            honor_credential_watermark: true,
+          ).call
+
+          # Mirror the worker's outcome logging: a capped scan may have MISSED
+          # an untracked pre-change blob — a session surviving a credential
+          # change must be visible, not silent (the watermark still bounds any
+          # survivor on its next request).
+          outcome = { custid: custid, blobs_deleted: result.blobs_deleted, untracked_deleted: result.untracked_deleted }
+          if result.scan_capped
+            logger.error 'Session revocation sweep hit scan cap; an untracked blob may remain', **outcome
+          else
+            logger.info 'Session revocation sweep complete', **outcome
+          end
+
+          return true
+        end
+
+        message = {
+          custid: custid,
+          except_session_id: except_session_id,
+          requested_at: Time.now.utc.iso8601,
+        }
+
+        message_id = publish('session.revoke.sweep', message)
+        logger.info 'Enqueued session revocation sweep',
+          custid: custid,
+          message_id: message_id,
+          queue: 'session.revoke.sweep'
+        true
+      end
+
+      # Publish generic message to a queue
+      # @param queue_name [String] Queue name
+      # @param payload [Hash] Message payload
+      # @param options [Hash] Additional AMQP options
+      # @return [String] The message_id assigned to this message
+      def publish(queue_name, payload, **)
+        unless $rmq_channel_pool
+          raise Onetime::Problem, 'RabbitMQ channel pool not initialized. Check config[:jobs][:enabled]'
+        end
+
+        message_id = SecureRandom.uuid
+
+        # Capture Sentry trace context BEFORE any async operations.
+        # New threads lose Sentry context, so extract headers in the request thread.
+        trace_headers = TracePropagation.extract_trace_headers
+
+        $rmq_channel_pool.with do |channel|
+          channel.default_exchange.publish(
+            payload.to_json,
+            routing_key: queue_name,
+            persistent: true,
+            message_id: message_id,
+            headers: {
+              'x-schema-version' => QueueConfig::CURRENT_SCHEMA_VERSION,
+            }.merge(trace_headers),
+            **,
+          )
+        end
+
+        message_id
+      end
+
+      private
+
+      # Validate fallback strategy
+      def validate_fallback!(fallback)
+        return if FALLBACK_STRATEGIES.include?(fallback)
+
+        raise ArgumentError, "Invalid fallback strategy: #{fallback}. Valid options: #{FALLBACK_STRATEGIES.join(', ')}"
+      end
+
+      # Check if the job system is enabled and initialized
+      # @return [Boolean] true if RabbitMQ channel pool is available
+      def jobs_enabled?
+        !$rmq_channel_pool.nil?
+      end
+
+      # Process a billing webhook event inline when the job system is disabled.
+      # Mirrors the async worker's bookkeeping (mark_event_failed on error,
+      # mark_event_success on success). Re-raises processing errors so the
+      # controller returns 500 and Stripe retries.
+      #
+      # @param event [Stripe::Event] The validated Stripe event
+      # @param _payload [String] Raw JSON payload; unused in the sync path,
+      #   accepted for signature symmetry with enqueue_billing_event
+      # @return [Boolean] true when processing completes
+      # Closing step of the inline (jobs-disabled) domain validation.
+      #
+      # When the DNS record check also ran inline — the Verify Now path runs
+      # it just before this — both checks are terminal and the user-facing
+      # status is derived from the two outcomes exactly as the worker derives
+      # it. Otherwise nothing will ever complete that record check on a
+      # jobs-disabled install, so the status is settled from this call's own
+      # two answers, the DNS validation and the provider check, rather than
+      # left 'pending' for good. A bare synchronous call leaving 'pending' is
+      # the regression try/unit/jobs/domain_validation_*_try.rb pin.
+      #
+      # Decided on the record as stored now, through record_job_result!.
+      #
+      # @return [String, nil] the verification_status written; nil when the
+      #   record was deleted or now sends from another address
+      def settle_inline_verification_status(mailer_config, result)
+        _, status = Onetime::CustomDomain::MailerConfig.record_job_result!(
+          mailer_config.domain_id, mailer_config.from_address
+        ) do |stored|
+          now = Familia.now.to_i
+
+          if stored.jobs_completed?
+            stored.verification_status = stored.computed_verification_status
+          else
+            provider_ok = stored.parse_boolean_field(stored.provider_verified)
+            verified    = result.error.nil? && result.all_verified && provider_ok != false
+
+            stored.verification_status = verified ? 'verified' : 'failed'
+            stored.verified_at         = verified ? now.to_s : nil
+          end
+          stored.updated = now
+          stored.verification_status
+        end
+        status
+      end
+
+      def process_billing_event_synchronously(event, _payload)
+        logger.info 'Jobs disabled, processing billing event synchronously',
+          event_id: event.id,
+          event_type: event.type
+
+        require 'apps/web/billing/operations/process_webhook_event'
+        begin
+          result = Billing::Operations::ProcessWebhookEvent.new(
+            event: event,
+            context: { source: :sync_fallback },
+          ).call
+        rescue StandardError => ex
+          # Processing failed — bookkeeping matches the async worker's
+          # mark_event_failed. Re-raise so the controller returns 500 and
+          # Stripe retries; side effects haven't been applied.
+          begin
+            Billing::StripeWebhookEvent.find_by_identifier(event.id)&.mark_failed!(ex)
+          rescue StandardError => bookkeeping_ex
+            logger.error 'Sync-fallback bookkeeping failed after processing error',
+              event_id: event.id,
+              original_error: ex.message,
+              bookkeeping_error: bookkeeping_ex.message
+          end
+          raise
+        end
+
+        # Processing succeeded — transition the record to `success` (the
+        # async worker does the same via mark_event_success). The rescue is
+        # critical: a bookkeeping failure AFTER side effects have been
+        # applied must NOT cause a 500 and a Stripe redelivery of
+        # already-applied work. See billing_worker.rb:187-198 for the same
+        # pattern in the async path.
+        begin
+          Billing::StripeWebhookEvent.find_by_identifier(event.id)
+            &.mark_success!(outcome: result)
+        rescue StandardError => ex
+          logger.error 'Failed to mark sync-fallback event success',
+            event_id: event.id,
+            error: ex.message
+        end
+
+        logger.info 'Billing event processed synchronously',
+          event_id: event.id,
+          event_type: event.type,
+          result: result
+        true
+      end
+
+      # Wrap publish operation with fallback logic (no retries, no sleeps)
+      # @param fallback [Symbol] Fallback strategy
+      # @param email_type [Symbol] :templated or :raw
+      def with_fallback(fallback, email_type)
+        yield
+      rescue Bunny::ConnectionClosedError, Bunny::NetworkFailure => ex
+        logger.warn 'RabbitMQ unavailable, using fallback', fallback: fallback, error: ex.message
+        execute_fallback(fallback, email_type)
+      rescue StandardError => ex
+        logger.error 'Unexpected error publishing message', error: ex.message, backtrace: ex.backtrace.first(5)
+        execute_fallback(fallback, email_type)
+      end
+
+      # Execute the configured fallback strategy
+      # @param fallback [Symbol] Fallback strategy
+      # @param email_type [Symbol] :templated or :raw
+      # @return [Boolean] false (fallback was used, not queued)
+      def execute_fallback(fallback, email_type)
+        case fallback
+        when :async_thread
+          send_via_thread(email_type)
+          false
+        when :sync
+          send_synchronously(email_type)
+          false
+        when :raise
+          raise Onetime::Mail::DeliveryError, 'RabbitMQ unavailable and fallback disabled'
+        when :none
+          logger.info 'Fallback disabled, email not sent'
+          clear_pending_state
+          false
+        end
+      end
+
+      # Poor man's background job - spawn a thread to deliver
+      # Non-blocking for the request thread in Puma.
+      #
+      # Note: Works with Thin/EventMachine too (creates real OS thread outside
+      # the reactor), but no thread pool limits - sustained RabbitMQ outages
+      # could cause thread proliferation. For Thin, consider :sync instead.
+      #
+      # @param email_type [Symbol] :templated or :raw
+      def send_via_thread(email_type)
+        # Capture state before thread (instance vars won't be accessible)
+        template  = @pending_template
+        data      = @pending_data
+        raw_email = @pending_raw_email
+        domain_id = @pending_domain_id
+
+        clear_pending_state
+
+        # rubocop:disable ThreadSafety/NewThread
+        Thread.new do
+          deliver_email(email_type, template: template, data: data, raw_email: raw_email, domain_id: domain_id)
+        rescue StandardError => ex
+          # Fire-and-forget: catch broadly here (unlike :sync) because an
+          # uncaught error would die with the thread and lose the report —
+          # and there is no caller to surface a programming fault to anyway.
+          report_delivery_failure(ex, email_type, :async_thread)
+        end
+        # rubocop:enable ThreadSafety/NewThread
+        logger.info 'Spawned thread for email delivery', email_type: email_type
+      end
+
+      # Blocking synchronous delivery.
+      #
+      # Contract: :sync blocks and delivers, but does NOT raise on a *delivery*
+      # failure. The triggering operation (invitation, email change, password
+      # reset, etc.) has already persisted its record before the email step,
+      # and a resend path exists, so a delivery failure is logged/reported
+      # rather than propagated as an HTTP 500. Callers that need the failure to
+      # propagate should use fallback: :raise instead.
+      #
+      # Only Onetime::Mail::DeliveryError is swallowed — that is the type the
+      # mail layer raises for transport/provider failures (SMTP unreachable,
+      # etc.). Any other error is a programming/config fault rather than a
+      # delivery failure, so it propagates and surfaces in dev/test/CI instead
+      # of silently "succeeding".
+      #
+      # @param email_type [Symbol] :templated or :raw
+      # @return [Boolean] true if delivered, false if delivery failed
+      def send_synchronously(email_type)
+        template  = @pending_template
+        data      = @pending_data
+        raw_email = @pending_raw_email
+        domain_id = @pending_domain_id
+
+        clear_pending_state
+
+        deliver_email(email_type, template: template, data: data, raw_email: raw_email, domain_id: domain_id)
+        logger.info 'Sent email synchronously', email_type: email_type
+        true
+      rescue Onetime::Mail::DeliveryError => ex
+        report_delivery_failure(ex, email_type, :sync)
+        false
+      end
+
+      # Log and report a best-effort fallback delivery failure without
+      # propagating it. Shared by the :sync and :async_thread strategies, which
+      # both deliver best-effort: the triggering operation has already
+      # completed, so the failure is recorded (log + Sentry) rather than
+      # raised. Use fallback: :raise when the caller must see the error.
+      #
+      # @param ex [Exception] The delivery error
+      # @param email_type [Symbol] :templated or :raw
+      # @param mode [Symbol] The fallback strategy that was in effect
+      def report_delivery_failure(ex, email_type, mode)
+        logger.error 'Fallback email delivery failed',
+          mode: mode,
+          email_type: email_type,
+          error: ex.message,
+          backtrace: ex.backtrace&.first(5)
+
+        return unless defined?(Sentry) && Sentry.initialized?
+
+        Sentry.capture_exception(ex) do |scope|
+          scope.set_tags(component: 'jobs.publisher', fallback: mode)
+          scope.set_context('email_delivery', { email_type: email_type })
+        end
+      end
+
+      # Actually deliver the email
+      # @param email_type [Symbol] :templated or :raw
+      # @param template [Symbol, nil] Template name for templated emails
+      # @param data [Hash, nil] Template data for templated emails
+      # @param raw_email [Hash, nil] Raw email hash for raw emails
+      # @param domain_id [String, nil] Domain identifier for per-domain sender config
+      def deliver_email(email_type, template:, data:, raw_email:, domain_id: nil)
+        require_relative '../mail'
+        require_relative '../models/custom_domain/mailer_config'
+
+        sender_config = Onetime::CustomDomain::MailerConfig.load_for_domain(domain_id) if domain_id
+
+        case email_type
+        when :templated
+          return unless template && data
+
+          # Same contract as EmailWorker#deliver_templated_email: the caller's
+          # locale rides in the template data and the template reads it from
+          # `locale:`. Without this lift every fallback delivery (jobs disabled,
+          # RabbitMQ down) rendered in English regardless of the recipient's
+          # locale. Dup first so the caller's hash is left intact.
+          email_data = data.dup
+          locale     = Onetime::Mail.extract_locale!(email_data)
+
+          Onetime::Mail.deliver(template, email_data, locale: locale, sender_config: sender_config)
+        when :raw
+          return unless raw_email
+
+          Onetime::Mail.deliver_raw(raw_email, sender_config: sender_config)
+        end
+      end
+
+      # Clear pending state
+      def clear_pending_state
+        @pending_template  = nil
+        @pending_data      = nil
+        @pending_raw_email = nil
+        @pending_domain_id = nil
+      end
+    end
+  end
+end

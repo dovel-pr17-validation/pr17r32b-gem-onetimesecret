@@ -1,0 +1,133 @@
+# apps/api/v2/routes.txt
+#
+# Otto Routes - V2 API (Public secrets API)
+# Using direct Logic class routing with authentication strategies
+#
+# V2 API returns string values for all fields.
+
+# Receipts (creator-facing secret metadata)
+GET    /receipt/recent                            V2::Logic::Secrets::ListReceipts response=json auth=basicauth
+POST   /receipt/:identifier/burn                  V2::Logic::Secrets::BurnSecret response=json auth=basicauth,noauth sensitive=true
+GET    /receipt/:identifier                       V2::Logic::Secrets::ShowReceipt response=json auth=basicauth,noauth sensitive=true
+PATCH  /receipt/:identifier                       V2::Logic::Secrets::UpdateReceipt response=json auth=basicauth,noauth sensitive=true
+
+# Legacy aliases — use /receipt/ paths instead
+GET    /private/recent                            V2::Logic::Secrets::ListReceipts response=json auth=basicauth deprecated=true
+POST   /private/:identifier/burn                  V2::Logic::Secrets::BurnSecret response=json auth=basicauth,noauth deprecated=true sensitive=true
+GET    /private/:identifier                       V2::Logic::Secrets::ShowReceipt response=json auth=basicauth,noauth deprecated=true sensitive=true
+PATCH  /private/:identifier                       V2::Logic::Secrets::UpdateReceipt response=json auth=basicauth,noauth deprecated=true sensitive=true
+
+# Secrets - Public (Anonymous allowed)
+GET    /secret/:identifier                        V2::Logic::Secrets::ShowSecret response=json auth=basicauth,noauth sensitive=true
+GET    /secret/:identifier/status                 V2::Logic::Secrets::ShowSecretStatus response=json auth=basicauth,noauth sensitive=true
+POST   /secret/status                             V2::Logic::Secrets::ListSecretStatus response=json auth=basicauth,noauth
+POST   /secret/:identifier/reveal                 V2::Logic::Secrets::RevealSecret response=json auth=basicauth,noauth sensitive=true
+POST   /secret/generate                           V2::Logic::Secrets::GenerateSecret response=json auth=basicauth,noauth
+POST   /secret/conceal                            V2::Logic::Secrets::ConcealSecret response=json auth=basicauth,noauth
+
+# Guest routes (anonymous access with GuestRouteGating)
+POST   /guest/secret/conceal                      V2::Logic::Secrets::ConcealSecret response=json auth=noauth
+POST   /guest/secret/generate                     V2::Logic::Secrets::GenerateSecret response=json auth=noauth
+GET    /guest/secret/:identifier                  V2::Logic::Secrets::ShowSecret response=json auth=noauth sensitive=true
+POST   /guest/secret/:identifier/reveal           V2::Logic::Secrets::RevealSecret response=json auth=noauth sensitive=true
+GET    /guest/receipt/:identifier                 V2::Logic::Secrets::ShowReceipt response=json auth=noauth sensitive=true
+POST   /guest/receipt/:identifier/burn            V2::Logic::Secrets::BurnSecret response=json auth=noauth sensitive=true
+
+# OPTIONS preflight for CORS (public)
+OPTIONS /secret/generate                          V2::Logic::Secrets::GenerateSecret response=json
+OPTIONS /secret/conceal                           V2::Logic::Secrets::ConcealSecret response=json
+
+# Meta endpoints (static information uses class methods)
+#
+# /version is authenticated. The exact build version is the primary input to
+# fingerprinting an install and matching it against known CVEs, so it is not
+# handed to anonymous callers. /status and /supported-locales stay public:
+# neither discloses build information.
+GET    /supported-locales                         V2::Logic::Meta.get_supported_locales response=json
+GET    /status                                    V2::Logic::Meta.system_status response=json
+GET    /version                                   V2::Logic::Meta.system_version response=json auth=sessionauth,basicauth
+
+# OTTO ADVANCED ROUTES SYNTAX - QUICK REFERENCE
+# ==============================================
+#
+# Added in v1.5.0+. Basic syntax:
+#
+# VERB /path Target param1=value1 param2=value2
+#
+# RESPONSE TYPES
+# --------------
+# response=json     - JSON API response
+# response=view     - HTML view response
+# response=redirect - HTTP redirect
+# response=auto     - Content negotiation
+#
+# Examples:
+# GET  /api/users    App#list_users response=json
+# GET  /dashboard    App#dashboard response=view
+# GET  /login        App#redirect response=redirect
+# GET  /data         App#data response=auto
+#
+#
+# LOGIC CLASSES (NEW!)
+# --------------------
+# Route directly to a class (no . or # in target).
+# Class gets: initialize(session, user, params, locale)
+#
+# Examples:
+# GET  /logic/simple      SimpleLogic
+# GET  /admin/panel       Admin::Panel
+# POST /data/processor    DataProcessor response=json
+#
+# MULTIPLE PARAMETERS
+# -------------------
+# Combine any parameters with spaces:
+#
+# GET  /api/admin    App#admin auth=role:admin response=json
+# POST /api/secure   App#secure auth=basicauth,noauth response=json
+#
+# NAMESPACED CLASSES
+# ------------------
+# Class methods:  Namespace::Class.method
+# Instance methods: Namespace::Class#method
+#
+# Examples:
+# GET  /v2/admin     V2::Admin.show response=view
+# POST /modules/auth Modules::Auth#process response=json
+#
+# CUSTOM PARAMETERS
+# -----------------
+# Add your own key=value parameters:
+#
+# GET /config  App#config env=production debug=true
+# GET /api/v1  App#api version=1.0 response=json
+#
+# PARAMETER RULES
+# ---------------
+# - Space-separated after the target
+# - key=value format
+# - Values can contain = signs: config=host=localhost
+# - Bad params (no =) are ignored
+# - Order doesn't matter
+#
+# COMMON PATTERNS
+# ---------------
+# # JSON API with CSRF exemption for HTTP basic authentication
+# POST /api/data  App#data response=json auth=basicauth csrf=exempt
+#
+# # Admin view with authentication
+# GET /admin  App#admin auth=role:admin response=view
+#
+# # Logic class with JSON response
+# POST /processor  DataProcessor response=json
+#
+# # Complex route with all features
+# PUT /api/admin  App#update auth=role:admin response=json
+#
+# ROUTE TARGETS
+# -------------
+# App.method       - Class method
+# App#method       - Instance method
+# LogicClass       - Logic class (new!)
+# Namespace::Class - Namespaced targets
+#
+# That's it! Advanced routing in Otto is just adding parameters after your target.

@@ -1,0 +1,1023 @@
+# apps/web/billing/spec/operations/process_webhook_event/checkout_completed_spec.rb
+#
+# frozen_string_literal: true
+
+# Tests for checkout.session.completed webhook event handling.
+#
+# Run: pnpm run test:rspec apps/web/billing/spec/operations/process_webhook_event/checkout_completed_spec.rb
+
+require_relative '../../support/billing_spec_helper'
+require_relative 'shared_examples'
+require_relative '../../../operations/process_webhook_event'
+
+RSpec.describe 'ProcessWebhookEvent: checkout.session.completed', :integration, :process_webhook_event do
+  let(:test_email) { "checkout-#{SecureRandom.hex(4)}@example.com" }
+  let(:stripe_customer_id) { 'cus_checkout_123' }
+  let(:stripe_subscription_id) { 'sub_checkout_456' }
+
+  let(:created_customers) { [] }
+  let(:created_organizations) { [] }
+
+  # Helper to build mock Stripe::Customer for federation stubs
+  def build_stripe_customer_mock(id:, email:, metadata: {})
+    double('Stripe::Customer', id: id, email: email, metadata: metadata)
+  end
+
+  # Shared setup: stub Stripe::Customer.retrieve for all checkout tests
+  # This prevents VCR from recording 404s for mock customer IDs
+  before do
+    stripe_customer = build_stripe_customer_mock(
+      id: stripe_customer_id,
+      email: test_email,
+      metadata: {},
+    )
+    allow(Stripe::Customer).to receive(:retrieve)
+      .with(stripe_customer_id)
+      .and_return(stripe_customer)
+    allow(Stripe::Customer).to receive(:update)
+      .and_return(stripe_customer)
+  end
+
+  let(:session) do
+    build_stripe_session(
+      id: 'cs_test_123',
+      customer: stripe_customer_id,
+      subscription: stripe_subscription_id,
+    )
+  end
+
+  let(:event) { build_stripe_event(type: 'checkout.session.completed', data_object: session) }
+  let(:operation) { Billing::Operations::ProcessWebhookEvent.new(event: event) }
+
+  after do
+    created_organizations.each(&:destroy!)
+    created_customers.each(&:destroy!)
+  end
+
+  context 'with valid subscription checkout' do
+    let!(:customer) { create_test_customer(email: test_email) }
+
+    # Build subscription with actual customer custid
+    let(:subscription) do
+      build_stripe_subscription(
+        id: stripe_subscription_id,
+        customer: stripe_customer_id,
+        status: 'active',
+        metadata: { 'customer_extid' => customer.extid },
+      )
+    end
+
+    before do
+      allow(Stripe::Subscription).to receive(:retrieve)
+        .with(stripe_subscription_id)
+        .and_return(subscription)
+    end
+
+    include_examples 'handles event successfully'
+
+    it 'creates default organization for customer without one' do
+      expect { operation.call }.to change {
+        customer.organization_instances.to_a.length
+      }.from(0).to(1)
+    end
+
+    it 'updates organization with subscription details' do
+      operation.call
+      org = customer.organization_instances.to_a.first
+      expect(org.stripe_subscription_id).to eq(stripe_subscription_id)
+      expect(org.subscription_status).to eq('active')
+    end
+
+    it 'uses existing default organization if present' do
+      existing_org = create_test_organization(customer: customer, default: true)
+      expect { operation.call }.not_to(change { customer.organization_instances.to_a.length })
+      existing_org.refresh!
+      expect(existing_org.stripe_subscription_id).to eq(stripe_subscription_id)
+    end
+
+    # ========================================================================
+    # Regression: appsec H-2 residue — step 3 must not select an org the
+    # customer merely BELONGS to, and must not select an archived one.
+    #
+    # This handler's fallback was `orgs.find(&:is_default) || orgs.first` over
+    # every membership, archived included. For a customer whose own workspace
+    # is archived and whose default_org_id points at a shared tenant org they
+    # joined as a member (JoinDomainOrganization does this on custom-domain
+    # SSO sign-in), an orgid-less checkout landed on the tenant org and
+    # update_from_stripe_subscription overwrote its stripe_customer_id.
+    #
+    # Twin of the ProcessCheckoutSession coverage in
+    # spec/logic/welcome/process_checkout_session_spec.rb — both run for the
+    # same completed checkout.
+    # ========================================================================
+    context 'when the customer only belongs to (does not own) their default org' do
+      let(:tenant_owner) do
+        create_test_customer(email: "tenant-owner-#{SecureRandom.hex(4)}@example.com")
+      end
+
+      let!(:tenant_org) do
+        org                    = create_test_organization(customer: tenant_owner, name: 'Tenant Org', default: false)
+        org.stripe_customer_id = 'cus_tenant_billing_root'
+        org.save
+        org.add_members_instance(customer, through_attrs: { role: 'member', status: 'active' })
+        org
+      end
+
+      before do
+        # Archived own workspace: no owned, live org resolves — and it still
+        # holds the contact_email index reservation, which step 4's creation
+        # has to survive (EnsureDefaultWorkspace also refuses here, because
+        # the customer does have an organization).
+        own = create_test_organization(customer: customer, default: true)
+        own.archive!('spec fixture: superseded by tenant org via SSO')
+
+        customer.default_org_id = tenant_org.objid
+        customer.save
+      end
+
+      it 'does not apply the subscription to the tenant organization' do
+        expect(operation.call).to eq(:success)
+
+        tenant_org.refresh!
+        expect(tenant_org.stripe_customer_id).to eq('cus_tenant_billing_root')
+        expect(tenant_org.stripe_subscription_id).to be_nil
+      end
+
+      it 'does not resurrect the archived workspace' do
+        operation.call
+
+        archived = customer.organization_instances.to_a.find(&:archived?)
+        expect(archived).not_to be_nil
+        expect(archived.stripe_subscription_id).to be_nil
+      end
+
+      it 'creates a live organization the customer owns and applies it there' do
+        operation.call
+
+        target = customer.organization_instances.to_a
+          .reject(&:archived?)
+          .find { |o| o.owner?(customer) }
+        created_organizations << target if target
+        expect(target).not_to be_nil
+        expect(target.stripe_subscription_id).to eq(stripe_subscription_id)
+      end
+    end
+
+    # ========================================================================
+    # Regression: step 1 must reject an ARCHIVED metadata orgid.
+    #
+    # An org can be archived between checkout-session creation and payment
+    # completion — a tenant SSO sign-in archives the personal workspace. The
+    # orgid stamped in subscription metadata then names an org that is no
+    # longer a live billing target, and applying the subscription there
+    # leaves the customer with no usable workspace and a paid subscription
+    # that only an operator can move.
+    #
+    # Twin of the ProcessCheckoutSession coverage in
+    # spec/logic/welcome/process_checkout_session_spec.rb.
+    # ========================================================================
+    context 'when the metadata orgid points at an org archived after checkout started' do
+      let!(:archived_org) do
+        org = create_test_organization(customer: customer, default: true)
+        org.archive!('spec fixture: archived between checkout creation and completion')
+        org
+      end
+
+      # The customer's remaining live workspace — created without a
+      # contact_email because the archived org still holds that reservation.
+      let!(:live_org) do
+        org = Onetime::Organization.create!('Live Workspace', customer, nil)
+        created_organizations << org
+        org
+      end
+
+      let(:subscription) do
+        build_stripe_subscription(
+          id: stripe_subscription_id,
+          customer: stripe_customer_id,
+          status: 'active',
+          metadata: { 'customer_extid' => customer.extid, 'orgid' => archived_org.objid },
+        )
+      end
+
+      it 'does not apply the subscription to the archived org' do
+        expect(operation.call).to eq(:success)
+
+        archived_org.refresh!
+        expect(archived_org.stripe_subscription_id).to be_nil
+        expect(archived_org.stripe_customer_id).to be_nil
+      end
+
+      it 'applies it to the customer live owned org instead' do
+        operation.call
+
+        live_org.refresh!
+        expect(live_org.stripe_subscription_id).to eq(stripe_subscription_id)
+        expect(live_org.subscription_status).to eq('active')
+      end
+
+      it 'does not mint an extra workspace' do
+        expect { operation.call }.not_to(change { customer.organization_instances.to_a.length })
+      end
+    end
+
+    # ========================================================================
+    # Regression: the concurrent-creation race is NOT elected by the
+    # stripe_customer_id CAS alone.
+    #
+    # Organization.create! reserves contact_email with HSETNX *before* the save
+    # that takes the Stripe claim, so the surface that loses this race against
+    # ProcessCheckoutSession sees Onetime::OrganizationExists, never
+    # Familia::RecordExistsError — EnsureDefaultWorkspace re-raises it once the
+    # reserving org has members. Only RecordExistsError was rescued here, so
+    # the webhook 500'd. Stripe's retry recovered the subscription, making this
+    # noise rather than data loss, but every racing checkout raised an alert.
+    #
+    # The winner is created DURING the create attempt, not before it: created
+    # earlier, CheckoutTargetResolver.resolve would return it at step 2/3 and
+    # this handler would never reach the create path at all.
+    # ========================================================================
+    context 'when a concurrent surface wins the contact_email reservation' do
+      def lose_reservation_to(build_winner)
+        losing_call = instance_double(Auth::Operations::EnsureDefaultWorkspace)
+        allow(losing_call).to receive(:call) do
+          build_winner.call
+          raise Onetime::OrganizationExists, 'Organization exists for that email address'
+        end
+        allow(Auth::Operations::EnsureDefaultWorkspace).to receive(:new).and_return(losing_call)
+      end
+
+      context 'and the winner holds this checkout stripe_customer_id' do
+        let(:winner) do
+          org = Onetime::Organization.create!(
+            'Concurrently Created Workspace',
+            customer,
+            test_email,
+            **Onetime::Organization.stripe_claim_fields(stripe_customer_id),
+          )
+          created_organizations << org
+          org
+        end
+
+        before { lose_reservation_to(-> { winner }) }
+
+        it 'adopts it instead of raising' do
+          expect(operation.call).to eq(:success)
+        end
+
+        it 'applies the subscription to the winner' do
+          operation.call
+
+          winner.refresh!
+          expect(winner.stripe_subscription_id).to eq(stripe_subscription_id)
+          expect(winner.subscription_status).to eq('active')
+        end
+
+        it 'does not mint a second workspace' do
+          operation.call
+
+          expect(customer.organization_instances.to_a.length).to eq(1)
+        end
+      end
+
+      # A winner with no Stripe customer — a plain signup completing
+      # concurrently. Resolving by stripe_customer_id alone would refuse
+      # forever here, so the contact_email fallback is what terminates it.
+      context 'and the winner carries no Stripe customer' do
+        let(:winner) do
+          org = Onetime::Organization.create!('Signup Workspace', customer, test_email)
+          created_organizations << org
+          org
+        end
+
+        before { lose_reservation_to(-> { winner }) }
+
+        it 'adopts it through the contact_email reservation' do
+          expect(operation.call).to eq(:success)
+
+          winner.refresh!
+          expect(winner.stripe_subscription_id).to eq(stripe_subscription_id)
+        end
+
+        it 'does not mint a second workspace' do
+          operation.call
+
+          expect(customer.organization_instances.to_a.length).to eq(1)
+        end
+      end
+    end
+
+    # The reservation is global, so a hit on it is not proof of ownership:
+    # adopting on the email alone would land a paid subscription on an
+    # unrelated organization. This path runs the REAL EnsureDefaultWorkspace,
+    # which refuses the adoption itself (the holder has members) and re-raises.
+    context 'when another customer organization holds the contact_email reservation' do
+      let(:holder) do
+        create_test_customer(email: "holder-#{SecureRandom.hex(4)}@example.com")
+      end
+
+      let!(:foreign_org) do
+        org = Onetime::Organization.create!('Foreign Workspace', holder, test_email)
+        created_organizations << org
+        org
+      end
+
+      it 'fails closed rather than adopting it or creating a second workspace' do
+        expect { operation.call }
+          .to raise_error(Auth::Operations::WorkspaceCollision::ProvisioningCollision) do |error|
+            expect(error.collision.classification).to eq(:live_members)
+          end
+
+        expect(customer.organization_instances.to_a).to be_empty
+        customer.refresh!
+        expect(customer.provisioning_failed?).to be(true)
+      end
+
+      it 'leaves the reservation holder untouched' do
+        expect { operation.call }
+          .to raise_error(Auth::Operations::WorkspaceCollision::ProvisioningCollision)
+
+        foreign_org.refresh!
+        expect(foreign_org.stripe_subscription_id).to be_nil
+        expect(foreign_org.stripe_customer_id).to be_nil
+      end
+    end
+  end
+
+  # ============================================================================
+  # Catalog-First Plan Resolution Tests
+  # ============================================================================
+  #
+  # With catalog-first design, plan_id is resolved from the Stripe price catalog
+  # (via Billing::PlanValidator.resolve_plan_id). Subscription metadata is used
+  # only for debugging and drift detection.
+  #
+  # @see Billing::PlanValidator.resolve_plan_id
+  # @see WithOrganizationBilling#extract_plan_id_from_subscription
+
+  context 'with plan_id in subscription metadata (drift scenario)' do
+    let!(:customer) { create_test_customer(email: test_email) }
+
+    let(:subscription_with_planid) do
+      build_stripe_subscription(
+        id: stripe_subscription_id,
+        customer: stripe_customer_id,
+        status: 'active',
+        metadata: {
+          'customer_extid' => customer.extid,
+          Billing::Metadata::FIELD_PLAN_ID => 'identity_plus_v1',
+        },
+      )
+    end
+
+    before do
+      allow(Stripe::Subscription).to receive(:retrieve)
+        .with(stripe_subscription_id)
+        .and_return(subscription_with_planid)
+    end
+
+    it 'sets organization planid from catalog (ignoring metadata)' do
+      operation.call
+      org = customer.organization_instances.to_a.first
+      # Catalog-first: plan_id comes from catalog, not metadata
+      expect(org.planid).to eq('test_plan_v1')
+    end
+
+    it 'does not log drift warning (ApplySubscriptionToOrg resolves from catalog silently)' do
+      # ApplySubscriptionToOrg replaced extract_plan_id_from_subscription in the
+      # checkout flow. It resolves plan_id from catalog without drift detection,
+      # so OT.lw is never called with "Drift detected".
+      expect(OT).not_to receive(:lw).with(
+        a_string_including('Drift detected'),
+        anything,
+      )
+      operation.call
+    end
+  end
+
+  context 'with plan_id only in price metadata (drift scenario)' do
+    let!(:customer) { create_test_customer(email: test_email) }
+
+    let(:subscription_with_price_planid) do
+      build_stripe_subscription(
+        id: stripe_subscription_id,
+        customer: stripe_customer_id,
+        status: 'active',
+        metadata: { 'customer_extid' => customer.extid },
+        price_metadata: { Billing::Metadata::FIELD_PLAN_ID => 'multi_team_v1' },
+      )
+    end
+
+    before do
+      allow(Stripe::Subscription).to receive(:retrieve)
+        .with(stripe_subscription_id)
+        .and_return(subscription_with_price_planid)
+    end
+
+    it 'sets organization planid from catalog (ignoring price metadata)' do
+      operation.call
+      org = customer.organization_instances.to_a.first
+      # Catalog-first: plan_id comes from catalog, not price metadata
+      expect(org.planid).to eq('test_plan_v1')
+    end
+  end
+
+  context 'with price_id not in catalog (fail-closed)' do
+    let!(:customer) { create_test_customer(email: test_email) }
+
+    let(:subscription_uncataloged) do
+      build_stripe_subscription(
+        id: stripe_subscription_id,
+        customer: stripe_customer_id,
+        status: 'active',
+        metadata: { 'customer_extid' => customer.extid },
+        price_metadata: {},
+      )
+    end
+
+    before do
+      allow(Stripe::Subscription).to receive(:retrieve)
+        .with(stripe_subscription_id)
+        .and_return(subscription_uncataloged)
+      # Override catalog stub to return nil for 'price_test' (the default price_id)
+      # This simulates a price that exists in Stripe but hasn't been cataloged locally
+      allow(Billing::Plan).to receive(:find_by_stripe_price_id)
+        .with('price_test')
+        .and_return(nil)
+    end
+
+    it 'raises CatalogMissError (fail-closed design)' do
+      expect { operation.call }.to raise_error(Billing::CatalogMissError)
+    end
+  end
+
+  context 'with one-time payment (no subscription)' do
+    let(:payment_session) do
+      build_stripe_session(id: 'cs_payment', customer: stripe_customer_id, subscription: nil, mode: 'payment')
+    end
+    let(:event) { build_stripe_event(type: 'checkout.session.completed', data_object: payment_session) }
+
+    it 'returns :skipped for one-time payments' do
+      expect(operation.call).to eq(:skipped)
+    end
+
+    it 'does not call Stripe API' do
+      expect(Stripe::Subscription).not_to receive(:retrieve)
+      operation.call
+    end
+  end
+
+  context 'with missing customer_extid in metadata' do
+    let(:subscription_no_customer_extid) do
+      build_stripe_subscription(id: stripe_subscription_id, customer: stripe_customer_id, status: 'active', metadata: {})
+    end
+
+    before do
+      allow(Stripe::Subscription).to receive(:retrieve).and_return(subscription_no_customer_extid)
+    end
+
+    it 'returns :skipped when customer_extid is missing' do
+      expect(operation.call).to eq(:skipped)
+    end
+  end
+
+  context 'with invalid customer_extid format' do
+    let(:subscription_invalid_customer_extid) do
+      build_stripe_subscription(
+        id: stripe_subscription_id,
+        customer: stripe_customer_id,
+        status: 'active',
+        metadata: { 'customer_extid' => '../../../etc/passwd' }, # Malformed input
+      )
+    end
+
+    before do
+      allow(Stripe::Subscription).to receive(:retrieve).and_return(subscription_invalid_customer_extid)
+    end
+
+    it 'returns :skipped when customer_extid format is invalid' do
+      expect(operation.call).to eq(:skipped)
+    end
+
+    it 'does not attempt to load customer' do
+      expect(Onetime::Customer).not_to receive(:load)
+      operation.call
+    end
+  end
+
+  context 'with missing customer record' do
+    let(:subscription_missing_customer) do
+      build_stripe_subscription(
+        id: stripe_subscription_id,
+        customer: stripe_customer_id,
+        status: 'active',
+        metadata: { 'customer_extid' => 'urnonexistent00000000000000' },
+      )
+    end
+
+    before do
+      allow(Stripe::Subscription).to receive(:retrieve).and_return(subscription_missing_customer)
+    end
+
+    it 'returns :not_found when customer does not exist' do
+      expect(operation.call).to eq(:not_found)
+    end
+  end
+
+  # ============================================================================
+  # Replacement Detection Tests (issue #2605)
+  # ============================================================================
+  #
+  # When a completed checkout produces a subscription id that DIFFERS from the
+  # one already stored on the org, the handler must not silently overwrite it.
+  # It distinguishes a legitimate replacement (stored subscription winding down
+  # — e.g. currency-migration graceful path set cancel_at_period_end before the
+  # new checkout) from an anomalous duplicate (stored subscription still
+  # genuinely active), logging the anomaly loudly with both ids for reconciliation.
+  describe 'replacement detection (different stored subscription id)' do
+    let!(:customer) { create_test_customer(email: test_email) }
+
+    let(:new_subscription_id) { stripe_subscription_id }
+    let(:previous_subscription_id) { 'sub_previous_999' }
+
+    let(:subscription) do
+      build_stripe_subscription(
+        id: new_subscription_id,
+        customer: stripe_customer_id,
+        status: 'active',
+        metadata: { 'customer_extid' => customer.extid },
+      )
+    end
+
+    let!(:existing_org) do
+      org = create_test_organization(customer: customer, default: true)
+      org.stripe_customer_id     = stripe_customer_id
+      org.stripe_subscription_id = previous_subscription_id
+      org.subscription_status    = 'active'
+      org.save
+      org
+    end
+
+    before do
+      allow(Stripe::Subscription).to receive(:retrieve)
+        .with(new_subscription_id)
+        .and_return(subscription)
+    end
+
+    # Build a stored (previous) Stripe subscription with an explicit
+    # cancel_at_period_end flag (build_stripe_subscription omits that field).
+    def build_stored_subscription(cancel_at_period_end:, status: 'active')
+      Stripe::Subscription.construct_from(
+        id: previous_subscription_id,
+        object: 'subscription',
+        customer: stripe_customer_id,
+        status: status,
+        cancel_at_period_end: cancel_at_period_end,
+        items: { object: 'list', data: [{ price: { id: 'price_test' } }] },
+      )
+    end
+
+    context 'when the stored subscription id matches the new one (idempotent replay)' do
+      let(:previous_subscription_id) { new_subscription_id }
+
+      it 'short-circuits without re-applying the subscription' do
+        expect(Billing::Operations::ApplySubscriptionToOrg).not_to receive(:call)
+        expect(operation.call).to eq(:success)
+      end
+    end
+
+    context 'when the stored subscription is winding down (legitimate replacement)' do
+      before do
+        allow(Stripe::Subscription).to receive(:retrieve)
+          .with(previous_subscription_id)
+          .and_return(build_stored_subscription(cancel_at_period_end: true))
+      end
+
+      it 'applies the update and repoints the org at the new subscription' do
+        expect(operation.call).to eq(:success)
+        existing_org.refresh!
+        expect(existing_org.stripe_subscription_id).to eq(new_subscription_id)
+      end
+    end
+
+    context 'when the stored subscription is still genuinely active (anomalous duplicate)' do
+      let(:mock_billing_logger) do
+        instance_double(SemanticLogger::Logger, info: nil, debug: nil, error: nil, warn: nil)
+      end
+
+      before do
+        allow(Stripe::Subscription).to receive(:retrieve)
+          .with(previous_subscription_id)
+          .and_return(build_stored_subscription(cancel_at_period_end: false, status: 'active'))
+      end
+
+      it 'logs an error naming both subscription ids and the org id' do
+        allow_any_instance_of(Onetime::LoggerMethods)
+          .to receive(:billing_logger).and_return(mock_billing_logger)
+
+        expect(mock_billing_logger).to receive(:error).with(
+          a_string_including('Duplicate active subscription'),
+          hash_including(
+            orgid: existing_org.objid,
+            previous_subscription_id: previous_subscription_id,
+            new_subscription_id: new_subscription_id,
+          ),
+        )
+
+        operation.call
+      end
+
+      it 'still applies the update (does not silently discard the new paid subscription)' do
+        expect(operation.call).to eq(:success)
+        existing_org.refresh!
+        expect(existing_org.stripe_subscription_id).to eq(new_subscription_id)
+      end
+    end
+  end
+
+  # ============================================================================
+  # Email Hash Federation Tests
+  # ============================================================================
+  #
+  # Tests for setting email_hash in Stripe customer metadata at checkout completion.
+  # This enables cross-region subscription federation.
+  #
+  # @see Onetime::Utils::EmailHash
+  # @see Billing::Operations::WebhookHandlers::SubscriptionFederation
+
+  describe 'email_hash federation' do
+    let!(:customer) { create_test_customer(email: test_email) }
+    let(:stripe_customer_email) { 'subscriber@example.com' }
+
+    let(:stripe_customer) do
+      build_customer(
+        'id' => stripe_customer_id,
+        'email' => stripe_customer_email,
+        'metadata' => {},
+      )
+    end
+
+    let(:subscription) do
+      build_stripe_subscription(
+        id: stripe_subscription_id,
+        customer: stripe_customer_id,
+        status: 'active',
+        metadata: { 'customer_extid' => customer.extid },
+      )
+    end
+
+    before do
+      # Stub FEDERATION_SECRET for email hash computation
+      ENV['FEDERATION_SECRET'] ||= 'test-hmac-secret-for-federation'
+
+      allow(Stripe::Subscription).to receive(:retrieve)
+        .with(stripe_subscription_id)
+        .and_return(subscription)
+    end
+
+    context 'when Stripe customer has no email_hash in metadata' do
+      before do
+        allow(Stripe::Customer).to receive(:retrieve)
+          .with(stripe_customer_id)
+          .and_return(stripe_customer)
+        allow(Stripe::Customer).to receive(:update)
+          .and_return(stripe_customer)
+      end
+
+      it 'sets email_hash in Stripe customer metadata' do
+        expect(Stripe::Customer).to receive(:update).with(
+          stripe_customer_id,
+          hash_including(
+            metadata: hash_including(
+              'email_hash' => a_string_matching(/\A[0-9a-f]{32}\z/),
+              'email_hash_created_at' => a_string_matching(/\A\d+\z/),
+              'region' => anything,
+            ),
+          ),
+        )
+        operation.call
+      end
+
+      it 'computes email_hash from Stripe customer email' do
+        expected_hash = Onetime::Utils::EmailHash.compute(stripe_customer_email)
+        expect(Stripe::Customer).to receive(:update).with(
+          stripe_customer_id,
+          hash_including(
+            metadata: hash_including('email_hash' => expected_hash),
+          ),
+        )
+        operation.call
+      end
+    end
+
+    context 'when Stripe customer already has email_hash (immutability)' do
+      let(:existing_hash) { 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4' }
+      let(:stripe_customer_with_hash) do
+        build_customer(
+          'id' => stripe_customer_id,
+          'email' => stripe_customer_email,
+          'metadata' => { 'email_hash' => existing_hash },
+        )
+      end
+
+      before do
+        allow(Stripe::Customer).to receive(:retrieve)
+          .with(stripe_customer_id)
+          .and_return(stripe_customer_with_hash)
+      end
+
+      it 'does NOT overwrite existing email_hash' do
+        expect(Stripe::Customer).not_to receive(:update)
+        operation.call
+      end
+
+      it 'still returns :success' do
+        expect(operation.call).to eq(:success)
+      end
+    end
+
+    context 'when Stripe customer has no email' do
+      let(:stripe_customer_no_email) do
+        build_customer(
+          'id' => stripe_customer_id,
+          'email' => nil,
+          'metadata' => {},
+        )
+      end
+
+      before do
+        allow(Stripe::Customer).to receive(:retrieve)
+          .with(stripe_customer_id)
+          .and_return(stripe_customer_no_email)
+      end
+
+      it 'does NOT set email_hash (cannot compute without email)' do
+        expect(Stripe::Customer).not_to receive(:update)
+        operation.call
+      end
+
+      it 'still returns :success (federation is secondary)' do
+        expect(operation.call).to eq(:success)
+      end
+    end
+
+    context 'when Stripe API call fails' do
+      before do
+        allow(Stripe::Customer).to receive(:retrieve)
+          .with(stripe_customer_id)
+          .and_raise(Stripe::APIConnectionError.new('Connection refused'))
+      end
+
+      it 'does NOT fail the checkout (federation is secondary)' do
+        expect { operation.call }.not_to raise_error
+      end
+
+      it 'still returns :success' do
+        expect(operation.call).to eq(:success)
+      end
+    end
+
+    context 'organization email_hash computation' do
+      let!(:existing_org) do
+        org = create_test_organization(customer: customer, default: true)
+        org.billing_email = 'org-billing@example.com'
+        org.save
+        org
+      end
+
+      before do
+        allow(Stripe::Customer).to receive(:retrieve)
+          .with(stripe_customer_id)
+          .and_return(stripe_customer)
+        allow(Stripe::Customer).to receive(:update)
+          .and_return(stripe_customer)
+      end
+
+      it 'computes email_hash for organization if not present' do
+        expect(existing_org.email_hash).to be_nil
+        operation.call
+        existing_org.refresh!
+        expect(existing_org.email_hash).not_to be_nil
+        expect(existing_org.email_hash.length).to eq(32)
+        expect(existing_org.email_hash).to match(/\A[0-9a-f]{32}\z/)
+      end
+
+      it 'does NOT overwrite existing organization email_hash' do
+        existing_org.email_hash = 'existing_org_hash_value_1234567'
+        existing_org.save
+
+        operation.call
+        existing_org.refresh!
+        expect(existing_org.email_hash).to eq('existing_org_hash_value_1234567')
+      end
+    end
+
+    # ============================================================================
+    # warn_if_email_hash_divergence Tests
+    # ============================================================================
+    #
+    # Tests for the divergence check added in commit 0043c6745.
+    # warn_if_email_hash_divergence compares the org's locally computed
+    # email_hash against what's stored in Stripe customer metadata.
+    # A mismatch means cross-region federated matching will silently fail.
+
+    describe 'warn_if_email_hash_divergence' do
+      let(:org_hash) { Onetime::Utils::EmailHash.compute(stripe_customer_email) }
+      let(:diverged_hash) { 'aabbccdd11223344aabbccdd11223344' }
+
+      # Stripe customer with a hash that matches the org's computed hash
+      let(:stripe_customer_matching_hash) do
+        build_customer(
+          'id' => stripe_customer_id,
+          'email' => stripe_customer_email,
+          'metadata' => { 'email_hash' => org_hash },
+        )
+      end
+
+      # Stripe customer with a hash that differs from the org's computed hash
+      let(:stripe_customer_diverged_hash) do
+        build_customer(
+          'id' => stripe_customer_id,
+          'email' => stripe_customer_email,
+          'metadata' => { 'email_hash' => diverged_hash },
+        )
+      end
+
+      # Org pre-seeded with a known email_hash so divergence check runs
+      let!(:existing_org) do
+        org = create_test_organization(customer: customer, default: true)
+        org.billing_email = stripe_customer_email
+        org.email_hash = org_hash
+        org.save
+        org
+      end
+
+      # Mock the Billing SemanticLogger to capture warn calls
+      let(:mock_billing_logger) do
+        instance_double(SemanticLogger::Logger, info: nil, debug: nil, error: nil, warn: nil)
+      end
+
+      before do
+        allow(Stripe::Customer).to receive(:update).and_return(stripe_customer_matching_hash)
+        # billing_logger is defined on Onetime::LoggerMethods (included by BaseHandler),
+        # not directly on CheckoutCompleted — stub via the module to satisfy verify_partial_doubles.
+        allow_any_instance_of(Onetime::LoggerMethods)
+          .to receive(:billing_logger).and_return(mock_billing_logger)
+      end
+
+      context 'when org has no email_hash' do
+        # warn_if_email_hash_divergence returns early (line: return if org.email_hash.to_s.empty?)
+        before do
+          existing_org.email_hash = nil
+          existing_org.save
+          allow(Stripe::Customer).to receive(:retrieve)
+            .with(stripe_customer_id)
+            .and_return(stripe_customer_matching_hash)
+        end
+
+        it 'skips divergence check and returns :success' do
+          expect(operation.call).to eq(:success)
+        end
+
+        it 'does not log a divergence warning' do
+          expect(mock_billing_logger).not_to receive(:warn).with(
+            a_string_including('Email hash divergence'),
+            anything,
+          )
+          operation.call
+        end
+      end
+
+      context 'when Stripe customer metadata has no email_hash (hash not set due to error)' do
+        # set_stripe_customer_email_hash raises on update; no hash ends up in Stripe metadata.
+        # warn_if_email_hash_divergence returns early (line: return if stripe_hash.empty?)
+        let(:stripe_customer_no_hash) do
+          build_customer(
+            'id' => stripe_customer_id,
+            'email' => stripe_customer_email,
+            'metadata' => {},
+          )
+        end
+
+        before do
+          allow(Stripe::Customer).to receive(:retrieve)
+            .with(stripe_customer_id)
+            .and_return(stripe_customer_no_hash)
+          allow(Stripe::Customer).to receive(:update)
+            .and_raise(Stripe::APIConnectionError.new('Connection refused'))
+        end
+
+        it 'skips divergence check and returns :success' do
+          expect(operation.call).to eq(:success)
+        end
+
+        it 'does not log a divergence warning' do
+          expect(mock_billing_logger).not_to receive(:warn).with(
+            a_string_including('Email hash divergence'),
+            anything,
+          )
+          operation.call
+        end
+      end
+
+      context 'when Stripe customer metadata email_hash matches org email_hash' do
+        # warn_if_email_hash_divergence returns early (line: return if stripe_hash == org.email_hash)
+        before do
+          allow(Stripe::Customer).to receive(:retrieve)
+            .with(stripe_customer_id)
+            .and_return(stripe_customer_matching_hash)
+        end
+
+        it 'does not log a divergence warning' do
+          expect(mock_billing_logger).not_to receive(:warn).with(
+            a_string_including('Email hash divergence'),
+            anything,
+          )
+          operation.call
+        end
+
+        it 'returns :success' do
+          expect(operation.call).to eq(:success)
+        end
+      end
+
+      context 'when Stripe customer metadata email_hash differs from org email_hash' do
+        before do
+          allow(Stripe::Customer).to receive(:retrieve)
+            .with(stripe_customer_id)
+            .and_return(stripe_customer_diverged_hash)
+          allow(Stripe::Customer).to receive(:update)
+            .and_return(stripe_customer_diverged_hash)
+        end
+
+        it 'logs a divergence warning with hash prefixes and orgid' do
+          expect(mock_billing_logger).to receive(:warn).with(
+            a_string_including('Email hash divergence'),
+            hash_including(
+              orgid: existing_org.extid,
+              org_hash_prefix: org_hash[0..7],
+              stripe_hash_prefix: diverged_hash[0..7],
+            ),
+          )
+          operation.call
+        end
+
+        it 'still returns :success (divergence is advisory, not fatal)' do
+          expect(operation.call).to eq(:success)
+        end
+      end
+
+      context 'Stripe::Customer.retrieve call count' do
+        # set_stripe_customer_email_hash retrieves the customer once to check/set the hash.
+        # warn_if_email_hash_divergence currently makes a second retrieve call.
+        # When the redundancy is eliminated, this test will verify exactly one call.
+        before do
+          allow(Stripe::Customer).to receive(:retrieve)
+            .with(stripe_customer_id)
+            .and_return(stripe_customer_matching_hash)
+        end
+
+        it 'calls Stripe::Customer.retrieve exactly once per checkout' do
+          expect(Stripe::Customer).to receive(:retrieve)
+            .with(stripe_customer_id)
+            .once
+            .and_return(stripe_customer_matching_hash)
+          operation.call
+        end
+      end
+
+      context 'when a Stripe::StripeError is raised inside warn_if_email_hash_divergence' do
+        # Simulates the rescue Stripe::StripeError path introduced in task 1.
+        # Setup: org and Stripe hashes diverge (triggering billing_logger.warn), and then
+        # billing_logger.warn raises Stripe::StripeError on that first call. The rescue block
+        # catches it and logs 'Could not verify email hash consistency'.
+        before do
+          allow(Stripe::Customer).to receive(:retrieve)
+            .with(stripe_customer_id)
+            .and_return(stripe_customer_diverged_hash)
+          allow(Stripe::Customer).to receive(:update).and_return(stripe_customer_diverged_hash)
+
+          # First warn call (Email hash divergence) raises Stripe::StripeError.
+          # The rescue catches it and makes a second warn call.
+          warn_call_count = 0
+          allow(mock_billing_logger).to receive(:warn) do |msg, _ctx|
+            warn_call_count += 1
+            if warn_call_count == 1 && msg.include?('Email hash divergence')
+              raise Stripe::StripeError.new('simulated Stripe error in divergence check')
+            end
+          end
+        end
+
+        it 'logs a warning with "Could not verify email hash consistency"' do
+          expect(mock_billing_logger).to receive(:warn)
+            .with(a_string_including('Could not verify email hash consistency'), anything)
+          operation.call
+        end
+
+        it 'still returns :success (divergence check failure is non-fatal)' do
+          expect(operation.call).to eq(:success)
+        end
+      end
+    end
+  end
+end

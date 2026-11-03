@@ -1,0 +1,516 @@
+# lib/onetime/cli/domains/verify_command.rb
+#
+# frozen_string_literal: true
+
+# Verify a custom domain's DNS ownership + SSL status.
+#
+# Single domain is the CLI peer of `POST /api/colonel/domains/:extid/verify`.
+# Both adapters call the SAME admin op (Onetime::Operations::AdminVerifyDomain),
+# which delegates DNS/SSL to the shared Onetime::Operations::VerifyDomain and
+# adds exactly one `domain.verify` ColonelAuditEvent — an operator-run verify is
+# an admin action and must land in the admin audit trail, exactly as the colonel
+# endpoint records it (verify_custom_domain.rb).
+#
+#   bin/ots domains verify example.com
+#   bin/ots domains verify example.com --dry-run   # read-only, still audited as an attempt
+#   bin/ots domains verify example.com --json
+#
+# Bulk mode (--all) is a maintenance SWEEP, not a per-domain operator action, so
+# it stays on the bare VerifyDomain (no admin audit) — the same reason the
+# scheduled domain_refresh_job does not audit. Auditing a bulk sweep would flood
+# the admin trail with thousands of events mislabeled as individual operator
+# activity (see AdminVerifyDomain's rationale).
+#
+#   bin/ots domains verify --all --unverified --limit=10
+#   bin/ots domains verify --all --orphaned --dry-run
+#
+# A domain with no organization is not checked and nothing is written for
+# it; the results list it as skipped (VerifyDomain#verify_single).
+#
+# The bulk filters and --limit/--rate-limit are rejected without --all rather
+# than ignored (see reject_bulk_only_options!).
+#
+# DOMAIN accepts the display domain (preferred), the domain extid, or its objid.
+#
+# Lives under lib/onetime/cli (not apps/api/domains/cli) so the require of the
+# op is unambiguous at load time; registration is identical either way.
+
+require 'json'
+require 'onetime/operations/verify_domain'
+require 'onetime/operations/admin_verify_domain'
+require_relative '../customers/shared'
+require_relative 'shared'
+
+module Onetime
+  module CLI
+    class DomainsVerifyCommand < Command
+      include Customers::Shared
+      include Domains::Shared
+
+      # Options that only mean anything in bulk mode, in declaration order.
+      # `--all` is the mode selector rather than a bulk-only flag, and
+      # `--dry-run` / `--json` apply to both modes, so none of the three
+      # belongs here.
+      BULK_ONLY_OPTIONS = [:rate_limit, :orphaned, :verified, :unverified, :org_id, :limit].freeze
+
+      # Which bulk-only options hold a value other than the declared default.
+      #
+      # Same technique -- and the same limitation -- as
+      # ServerCommand.conflicting_with_config_file: dry-cli merges the declared
+      # defaults into the parsed options before `call` runs
+      # (dry-cli-1.4.1/lib/dry/cli/parser.rb), so true presence is not
+      # recoverable here. A flag explicitly given its own default
+      # (`--no-orphaned`) still reads as omitted and is accepted silently.
+      # That residue is confined to the boolean filters; `--rate-limit`,
+      # `--limit` and `--org-id` default to nil, so ANY value is caught,
+      # including the `--limit 0` / `--limit -1` the bulk guard rejects.
+      def self.bulk_only_supplied(supplied)
+        BULK_ONLY_OPTIONS.reject { |name| supplied[name].to_s == default_params[name].to_s }
+      end
+
+      desc 'Verify domain ownership and SSL status'
+
+      argument :domain,
+        type: :string,
+        required: false,
+        desc: 'Domain to verify (display domain, extid, or objid); omit for --all'
+
+      option :all,
+        type: :boolean,
+        default: false,
+        desc: 'Bulk mode: verify multiple domains'
+      option :dry_run,
+        type: :boolean,
+        default: false,
+        desc: 'Perform checks without persisting changes (read-only health check)'
+      option :json,
+        type: :boolean,
+        default: false,
+        desc: 'Output results as JSON'
+      option :rate_limit,
+        type: :float,
+        default: nil,
+        desc: "Delay between domains in bulk mode (seconds); default: the validation strategy's own pacing"
+      option :orphaned,
+        type: :boolean,
+        default: false,
+        desc: 'Bulk filter: orphaned domains only (listed as skipped, not checked)'
+      option :verified,
+        type: :boolean,
+        default: false,
+        desc: 'Bulk filter: already-verified domains'
+      option :unverified,
+        type: :boolean,
+        default: false,
+        desc: 'Bulk filter: unverified domains'
+      option :org_id,
+        type: :string,
+        default: nil,
+        desc: 'Bulk filter: by organization ID'
+      option :limit,
+        type: :integer,
+        default: nil,
+        desc: 'Bulk mode: maximum number of domains to process'
+
+      def call(domain: nil, all: false, dry_run: false, json: false,
+               rate_limit: nil, orphaned: false, verified: false,
+               unverified: false, org_id: nil, limit: nil, **)
+        boot_application!
+
+        # One bundle for the BULK_ONLY_OPTIONS set: what the bulk path consumes
+        # is exactly what single mode has no use for.
+        bulk_options = {
+          rate_limit: rate_limit,
+          orphaned: orphaned,
+          verified: verified,
+          unverified: unverified,
+          org_id: org_id,
+          limit: limit,
+        }
+
+        if all
+          error_exit('--limit must be a positive integer', json: json) if limit && limit.to_i < 1
+
+          verify_bulk(dry_run: dry_run, json: json, **bulk_options)
+        elsif domain
+          reject_bulk_only_options!(json: json, **bulk_options)
+
+          verify_single(domain, dry_run: dry_run, json: json)
+        else
+          error_exit(
+            'Provide a domain name or use --all for bulk mode',
+            json: json,
+          )
+        end
+      end
+
+      private
+
+      # Single mode silently ignored every bulk-only flag: `verify example.com
+      # --limit -1 --orphaned` exited 0 having done a plain verify. Accepting a
+      # flag that cannot do anything is the defect -- `--limit -1` merely made
+      # it visible, and fixing --limit alone would have left the other five
+      # inconsistent with it. Rejecting the set matches how the CLI already
+      # handles an option that does not apply to the chosen mode (ServerCommand
+      # with a config file, `customers change-email` with --apply + --dry-run):
+      # name the offending flags and exit non-zero rather than guess intent.
+      def reject_bulk_only_options!(json:, **supplied)
+        offenders = self.class.bulk_only_supplied(supplied)
+        return if offenders.empty?
+
+        flags = offenders.map { |name| "--#{Dry::CLI::Inflector.dasherize(name)}" }.join(', ')
+        error_exit("Bulk-mode options require --all: #{flags}", json: json)
+      end
+
+      def verify_single(identifier, dry_run:, json:)
+        target = resolve_domain(identifier, json: json)
+
+        # Single, operator-initiated verify -> the ADMIN op, which records one
+        # `domain.verify` audit event (attributed to the CLI_ACTOR sentinel) and
+        # returns the underlying VerifyDomain::Result unchanged.
+        result = Onetime::Operations::AdminVerifyDomain.new(
+          domain: target,
+          actor: Customers::Shared::CLI_ACTOR,
+          persist: !dry_run,
+        ).call
+
+        OT.info "[cli-domains-verify] domain=#{target.display_domain} " \
+                "state=#{result.current_state} dns=#{result.dns_validated} dry_run=#{dry_run}"
+
+        if json
+          output_json_single(result, dry_run: dry_run)
+        else
+          output_human_single(result, dry_run: dry_run)
+        end
+      end
+
+      def verify_bulk(dry_run:, json:, rate_limit:, orphaned:, verified:,
+                      unverified:, org_id:, limit:)
+        domains = load_filtered_domains(
+          orphaned: orphaned,
+          verified: verified,
+          unverified: unverified,
+          org_id: org_id,
+          limit: limit,
+        )
+
+        if domains.empty?
+          puts 'No domains match the specified filters'
+          return
+        end
+
+        puts "Processing #{domains.size} domain(s)..." unless json
+
+        # Bulk sweep -> the bare op (no admin audit; see the file header).
+        result = Onetime::Operations::VerifyDomain.new(
+          domains: domains,
+          persist: !dry_run,
+          rate_limit: rate_limit,
+        ).call
+
+        if json
+          output_json_bulk(result, dry_run: dry_run)
+        else
+          output_human_bulk(result, dry_run: dry_run)
+        end
+      end
+
+      def load_all_domains
+        all_domain_ids = Onetime::CustomDomain.instances.all
+        return [] if all_domain_ids.empty?
+
+        Onetime::CustomDomain.load_multi(all_domain_ids).compact
+      end
+
+      def load_filtered_domains(orphaned:, verified:, unverified:, org_id:, limit:)
+        filtered = apply_filters(
+          load_all_domains, orphaned: orphaned, org_id: org_id, verified: verified, unverified: unverified
+        )
+        limit ? filtered.take(limit) : filtered
+      end
+
+      # Inlined from the legacy DomainsHelpers#apply_filters — the new-style
+      # commands do not include that module (see Domains::Shared).
+      def apply_filters(domains, orphaned: false, org_id: nil, verified: false, unverified: false)
+        filtered = domains
+        filtered = filtered.select { |d| d.org_id.to_s.empty? } if orphaned
+        filtered = filtered.select { |d| d.org_id.to_s == org_id.to_s } if org_id
+        if verified
+          filtered = filtered.select { |d| d.verified.to_s == 'true' }
+        elsif unverified
+          filtered = filtered.reject { |d| d.verified.to_s == 'true' }
+        end
+        filtered
+      end
+
+      def output_human_single(result, dry_run:)
+        domain = result.domain
+
+        puts '=' * 70
+        puts "Domain Verification: #{domain.display_domain}"
+        puts '(DRY RUN - no changes persisted)' if dry_run
+        puts '=' * 70
+        puts
+
+        if result.success?
+          output_verification_results(result)
+          output_state_info(result)
+          output_organization_info(domain) if dry_run
+          output_feature_toggle_info(domain) if dry_run
+          output_diagnostic_commands(result, domain)
+        else
+          puts "ERROR: #{result.error}"
+        end
+        puts
+      end
+
+      def output_verification_results(result)
+        puts 'Verification Results:'
+        puts "  DNS Validated:    #{format_dns(result)}"
+        puts "  DNS Detail:       #{result.dns_message}" if result.dns_message
+        puts "  SSL Ready:        #{format_bool(result.ssl_ready)}"
+        puts "  Is Resolving:     #{format_bool(result.is_resolving)}"
+        puts
+      end
+
+      def output_state_info(result)
+        puts 'State:'
+        puts "  Previous:         #{result.previous_state}"
+        puts "  Current:          #{result.current_state}"
+        puts "  Changed:          #{result.changed? ? 'yes' : 'no'}"
+        puts "  Persisted:        #{result.persisted ? 'yes' : 'no'}"
+        puts
+      end
+
+      def output_organization_info(domain)
+        puts 'Organization:'
+        if domain.org_id.to_s.empty?
+          puts '  Status:           ORPHANED'
+        else
+          org = domain.primary_organization
+          if org
+            puts '  Status:           OK'
+            puts "  Org:              #{org.extid} (#{org.objid})"
+            puts "  Display Name:     #{org.display_name || org.extid}"
+          else
+            puts '  Status:           ORG_NOT_FOUND'
+            puts "  Org ID:           #{domain.org_id} (MISSING)"
+          end
+        end
+        puts
+      end
+
+      def output_feature_toggle_info(domain)
+        puts 'Feature Toggles:'
+        puts "  Public Homepage:  #{domain.allow_public_homepage?}"
+        puts "  Public API:       #{domain.allow_public_api?}"
+        puts
+      end
+
+      def output_diagnostic_commands(result, domain)
+        puts 'Manual Verification Commands:'
+        puts '-' * 70
+
+        txt_value           = domain.txt_validation_value
+        txt_name, txt_error = txt_record_name(domain)
+        if txt_error
+          puts
+          puts "1. DNS Ownership: TXT record name has no A-label form (#{txt_error})"
+          puts
+        elsif txt_name && txt_value
+          puts
+          puts '1. DNS Ownership (TXT record):'
+          puts "   Status: #{result.dns_outcome.to_s.upcase}" # VALIDATED / FAILED / INDETERMINATE / OVERRIDE_HELD / CONFIRMATION_EXPIRED
+          puts "   Expected: TXT record at #{txt_name}"
+          puts "   Value:    #{txt_value}"
+          puts
+          puts '   # Check TXT record:'
+          puts "   dig TXT #{txt_name} +short"
+          puts
+        else
+          puts
+          puts '1. DNS Ownership: No TXT validation configured for this domain'
+          puts
+        end
+
+        puts '2. DNS Resolution (CNAME/A record):'
+        puts "   Status: #{format_diagnostic_status(result.is_resolving, false_label: 'FAIL')}"
+        puts '   Domain should resolve to the proxy server'
+        puts
+        puts '   # Check CNAME record:'
+        puts "   dig CNAME #{domain.display_domain} +short"
+        puts
+        puts '   # Check A record (if no CNAME):'
+        puts "   dig A #{domain.display_domain} +short"
+        puts
+
+        puts '3. SSL Certificate:'
+        puts "   Status: #{format_diagnostic_status(result.ssl_ready, false_label: 'PENDING')}"
+        puts
+        puts '   # Check SSL certificate:'
+        puts "   echo | openssl s_client -connect #{domain.display_domain}:443 -servername #{domain.display_domain} 2>/dev/null | openssl x509 -noout -dates"
+        puts
+      end
+
+      # The TXT record name in A-label form (CustomDomain#validation_record),
+      # the name the strategies query and dig has to ask for.
+      #
+      # @return [Array(String, nil)] name (nil without a challenge), no error
+      # @return [Array(nil, String)] no name, the conversion error message
+      def txt_record_name(domain)
+        [domain.validation_record, nil]
+      rescue Onetime::DomainValidation::AsciiHostname::ConversionError => ex
+        [nil, ex.message]
+      end
+
+      def output_human_bulk(result, dry_run:)
+        puts
+        puts '=' * 70
+        puts 'Bulk Verification Summary'
+        puts '(DRY RUN - no changes persisted)' if dry_run
+        puts '=' * 70
+        puts
+        puts format('  Total Processed:  %d', result.total)
+        puts format('  Verified:         %d', result.verified_count)
+        puts format('  Failed:           %d', result.failed_count)
+        puts format('  Indeterminate:    %d', result.indeterminate_count)
+        puts format('  Demoted:          %d', result.demoted_count)
+        puts format('  Expired:          %d', result.confirmation_expired_count)
+        puts format('  Skipped:          %d (no organization)', result.skipped_count)
+        puts format('  Duration:         %.2f seconds', result.duration_seconds)
+        puts
+
+        output_state_distribution(result)
+
+        if result.results.any?
+          puts 'Results:'
+          puts format('%-40s %-12s %-12s %-10s', 'Domain', 'DNS', 'Resolving', 'State')
+          puts '-' * 80
+
+          result.results.each do |r|
+            status = r.success? ? r.current_state : 'ERROR'
+            puts format(
+              '%-40s %-12s %-12s %-10s',
+              r.domain.display_domain[0..39],
+              format_dns(r),
+              format_bool(r.is_resolving),
+              status,
+            )
+            puts "  Error: #{r.error}" unless r.success?
+          end
+        end
+        puts
+      end
+
+      # Three TXT outcomes are neither pass nor fail. Two leave `verified`
+      # alone: indeterminate (the check produced no answer) and a failed check
+      # on a domain held verified by an operator override. The third withdraws
+      # it: indeterminate for longer than the confirmation window (counted
+      # under Expired, and under Indeterminate and Demoted, in the summary).
+      # A domain with no organization is not checked (skipped).
+      def format_dns(result)
+        {
+          indeterminate: 'indeterminate',
+          override_held: 'no (override)',
+          confirmation_expired: 'expired',
+          skipped: 'skipped',
+        }.fetch(result.dns_outcome) { format_bool(result.dns_validated) }
+      end
+
+      def output_state_distribution(result)
+        state_counts                                                  = Hash.new(0)
+        result.results.each { |r| state_counts[r.current_state.to_s] += 1 }
+
+        total = result.total.to_f
+        total = 1.0 if total.zero?
+
+        puts 'State Distribution:'
+        %w[verified resolving pending unverified].each do |state|
+          count = state_counts[state] || 0
+          pct   = (count / total * 100).round(1)
+          puts format('  %-16s %3d (%5.1f%%)', state, count, pct)
+        end
+        puts
+      end
+
+      def output_json_single(result, dry_run:)
+        domain = result.domain
+        output = result.to_h.merge(
+          dry_run: dry_run,
+          timestamp: Time.now.utc.iso8601,
+        )
+
+        if dry_run
+          output[:organization]    = build_organization_json(domain)
+          homepage_cfg             = Onetime::CustomDomain::HomepageConfig.find_by_domain_id(domain.identifier)
+          output[:homepage_config] = {
+            enabled: homepage_cfg&.effectively_enabled?(custom_domain: domain) || false,
+            secrets_mode: homepage_cfg&.secrets_mode_value,
+          }
+          output[:api_config]      = { enabled: domain.allow_public_api? }
+        end
+
+        puts JSON.pretty_generate(output)
+      end
+
+      def output_json_bulk(result, dry_run:)
+        state_counts                                                  = Hash.new(0)
+        result.results.each { |r| state_counts[r.current_state.to_s] += 1 }
+
+        issues = { orphaned: [], org_not_found: [], dns_failed: [], dns_indeterminate: [], dns_expired: [], ssl_failed: [] }
+        result.results.each do |r|
+          domain = r.domain
+          issues[:orphaned] << domain.display_domain if domain.org_id.to_s.empty?
+          if !domain.org_id.to_s.empty? && domain.primary_organization.nil?
+            issues[:org_not_found] << domain.display_domain
+          end
+          issues[:dns_failed] << domain.display_domain if r.dns_outcome == :failed
+          issues[:dns_indeterminate] << domain.display_domain if r.dns_indeterminate
+          issues[:dns_expired] << domain.display_domain if r.confirmation_expired
+          issues[:ssl_failed] << domain.display_domain if r.ssl_ready == false
+        end
+
+        output = result.to_h.merge(
+          dry_run: dry_run,
+          timestamp: Time.now.utc.iso8601,
+          state_distribution: state_counts,
+          issues: issues.transform_values(&:size),
+          issue_details: issues,
+        )
+
+        puts JSON.pretty_generate(output)
+      end
+
+      def build_organization_json(domain)
+        if domain.org_id.to_s.empty?
+          { status: 'ORPHANED', org_id: nil, display_name: nil }
+        else
+          org = domain.primary_organization
+          if org
+            { status: 'OK', org_id: org.org_id, display_name: org.display_name || org.org_id }
+          else
+            { status: 'ORG_NOT_FOUND', org_id: domain.org_id, display_name: nil }
+          end
+        end
+      end
+
+      def format_bool(value)
+        case value
+        when true then 'yes'
+        when false then 'no'
+        else 'unknown'
+        end
+      end
+
+      def format_diagnostic_status(value, false_label:)
+        case value
+        when true then 'PASS'
+        when false then false_label
+        else 'UNKNOWN'
+        end
+      end
+    end
+
+    register 'domains verify', DomainsVerifyCommand
+  end
+end

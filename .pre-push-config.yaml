@@ -1,0 +1,117 @@
+##
+# Pre-Push Hooks Configuration
+#
+# Quality control checks that run before code is pushed to remote repositories
+#
+# Setup:
+#   1. Install all hooks (run from .pre-commit-config.yaml instructions):
+#       $ pre-commit install && pre-commit install --hook-type pre-push -c .pre-push-config.yaml
+#
+#   2. Install required dependencies:
+#       - Ruby + Rubocop
+#       - Node.js + ESLint
+#       - TypeScript compiler
+#
+# Usage:
+#   Hooks run automatically on 'git push'
+#
+#   Manual execution:
+#   - Run all checks:
+#     $ pre-commit run --config .pre-push-config.yaml --all-files
+#
+#   - Run single check:
+#     $ pre-commit run <hook-id> --config .pre-push-config.yaml
+#     Example: pre-commit run rubocop --config .pre-push-config.yaml
+#
+# Included Checks:
+#   - YAML/JSON/TOML validation + line-ending / case / shebang hygiene
+#   - Incremental TypeScript type checking (vue-tsc, warmed by .tsbuildinfo)
+#
+# NOT here (moved to CI, the enforced gate):
+#   - Full ESLint (`pnpm run lint`) — an exact duplicate of CI's
+#     `T1 · TypeScript Lint` job. It ran type-aware over all ~1,100 src/ files
+#     on EVERY push, minutes of work, blocking WIP pushes for no added safety.
+#
+# Skip on WIP branches:
+#   git push --no-verify                 # skip all pre-push hooks
+#   SKIP=typescript-check-full git push  # skip only the type-check
+#
+# Related Files:
+#   - .pre-commit-config.yaml: Lightweight pre-commit checks
+#   - Documentation: https://pre-commit.com
+#
+# Note: This is a skippable safety-net that surfaces type errors a few minutes
+# before CI would. CI + required status checks remain the actual gate.
+
+# Run all checks to see complete picture before pushing
+fail_fast: false
+
+# Skip generated/dependency directories
+exclude: '^(vendor|node_modules|dist|build)/'
+
+default_install_hook_types:
+  - pre-push
+
+default_stages: [pre-push]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    # Aligned with .pre-commit-config.yaml (was v4.6.0) so both configs share
+    # one cached hook environment instead of maintaining two.
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        name: Validate YAML files
+        args: ['--allow-multiple-documents']
+        files: \.(yaml|yml)$
+        # These config files are ERB templates, not plain YAML: they carry
+        # <% %> control tags that the YAML parser cannot handle. They are
+        # rendered through ERB before being parsed at runtime.
+        exclude: '^etc/defaults/.*\.yaml$|^etc/examples/billing\.example\.yaml$|^spec/.*\.test\.yaml$'
+
+      - id: check-toml
+        name: Validate TOML files
+        files: \.toml$
+
+      - id: check-json
+        name: Validate JSON files
+        files: \.json$
+        # tsconfig*.json, devcontainer.json, and editor .vscode/.zed JSON are JSONC
+        # (comments permitted); the broken.json fixture is an intentionally-malformed input.
+        exclude: '(^|/)tsconfig[^/]*\.json$|^\.devcontainer/devcontainer\.json$|^\.(vscode|zed)/[^/]*\.json$|^src/tests/i18n/fixtures/invalid/syntax/broken\.json$'
+
+      - id: mixed-line-ending
+        name: Check line endings
+        args: [--fix=lf]
+
+      - id: check-case-conflict
+        name: Check for case conflicts
+
+      - id: check-executables-have-shebangs
+        name: Check executable shebangs
+
+      - id: check-shebang-scripts-are-executable
+        name: Check shebang scripts are executable
+
+      - id: forbid-submodules
+        name: Check for submodules
+
+  # NOTE: the full `pnpm run lint` pre-push hook was removed — it duplicated
+  # CI's `T1 · TypeScript Lint` job (see header). ESLint now runs per-staged-file
+  # in pre-commit and full in CI; there is nothing left for pre-push to add.
+
+  # Incremental TypeScript type checking — the one real safety-net here.
+  # `pnpm run type-check` is vue-tsc --noEmit; tsconfig.json sets
+  # "incremental": true + .tsbuildinfo, so a warm run only re-checks what
+  # changed (typically 5-20s vs minutes cold). This is the type gate ESLint no
+  # longer provides. `files:` limits it to pushes that touch TS/Vue sources.
+  - repo: local
+    hooks:
+      - id: typescript-check-full
+        stages: [pre-push]
+        name: TypeScript Type Check (incremental)
+        entry: pnpm run type-check
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx|vue)$
+        always_run: false

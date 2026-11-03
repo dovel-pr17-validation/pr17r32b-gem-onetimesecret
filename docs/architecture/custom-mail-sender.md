@@ -1,0 +1,94 @@
+# Custom Mail Sender Architecture
+
+> Provider-specific setup guides: [AWS SES](./custom-mail-sender-ses.md).
+
+## Overview
+
+The custom mail sender system lets customers send secret-link emails from their own domain identity (from-address, reply-to) while the platform handles all provider integration transparently.
+
+## Three Layers
+
+### Delivery Layer
+
+The platform operator configures one global mailer backend (SES, SendGrid, Lettermint, SMTP2GO, SMTP) via `OT.conf['emailer']`. Every email goes through that single backend. `Mailer.resolve_backend` ignores the `sender_config` argument entirely and returns the global `delivery_backend`. The underscore-prefixed parameter makes this explicit:
+
+```ruby
+# lib/onetime/mail/mailer.rb
+def resolve_backend(_sender_config)
+  delivery_backend
+end
+```
+
+### Sender Identity Layer
+
+When a customer enables custom sender on their domain, the system uses their `from_address` and `reply_to` in the email envelope, but the email still flows through the platform's global backend. Customer-facing endpoints configure sender identity only and normally leave `MailerConfig#provider` blank. In that case, `effective_provider` uses the installation's `emailer.sender_provider`, then falls back to `EMAILER_MODE`. An operator or legacy record can set an explicit per-domain provider; this is not a customer choice.
+
+```ruby
+# lib/onetime/mail/mailer.rb
+def deliver_template(template, sender_config: nil)
+  backend    = resolve_backend(sender_config)
+  use_sender = sender_config&.enabled? && sender_config.verified?
+
+  email = template.to_email(
+    from: use_sender ? sender_config.from_address : from_address,
+    reply_to: use_sender && sender_config.reply_to ? sender_config.reply_to : reply_to_address(template),
+  )
+  backend.deliver(email)
+end
+```
+
+### Provisioning Layer
+
+`ProvisionSenderDomain` resolves `mailer_config.effective_provider` to select the sender strategy, then loads *platform* credentials via `Mailer.provider_credentials(provider)`. The customer never sees or provides API keys for the mail provider. They flip "use custom sender" on, provide a from-address, and the system provisions DNS records through the installation-selected provider unless an operator has explicitly set a per-domain provider.
+
+## Customer Decision Surface
+
+The customer's choice is: "Do I want emails from my domain to show my from-address and reply-to?"
+
+The plumbing underneath -- which provider's API to call, what DNS record shapes to expect, where the credentials come from -- is entirely determined by the platform's global config. The customer gets visibility into the DNS records they need to add (the output), but not into which provider generated them (the mechanism).
+
+## Environment Congruence
+
+Different deployments can run different delivery transports and sender-domain providers (for example, SMTP delivery with SES provisioning). The normal customer flow resolves sender provisioning and verification from platform config, not from a per-customer setting. An explicit `MailerConfig#provider` is an operator or legacy override and takes precedence.
+
+## Provider Comparison
+
+Every provisioning provider produces the same outcome — DKIM **and** SPF aligned to the customer's domain so DMARC passes via both paths — but each exposes it through different APIs and DNS record shapes. If you already know one provider, this maps it onto the other; if you're starting from scratch, it's the quickest way to see the shape of the problem.
+
+| | AWS SES | Lettermint | SMTP2GO |
+|---|---|---|---|
+| Provision API | `CreateEmailIdentity` + `PutEmailIdentityMailFromAttributes` | Team API `POST /domains` | `POST /domain/add` |
+| DKIM records | 3 CNAMEs (`<token>._domainkey.<domain>` → `<token>.dkim.amazonses.com`) | CNAME selectors (`<sel>._domainkey.<domain>` → `<sel>.dkim.lettermint.com`) | one CNAME (`<sel>._domainkey.<domain>` → `dkim.smtp2go.net`) |
+| SPF / envelope sender | custom MAIL FROM on `mail.<domain>`: an **MX + SPF TXT** the customer publishes directly | **one Return-Path CNAME** (`lm-bounces.<domain>`); Lettermint manages the SPF record on its side | **one Return-Path CNAME** (`bounce.<domain>` → `return.smtp2go.net`); SMTP2GO manages SPF on its side, plus a third CNAME (`track.<domain>`) for open/click tracking |
+| Verification status | `GetEmailIdentity` (DKIM + MAIL FROM status) | `GET /domains/:id` (+ `verify` trigger) | `POST /domain/verify` |
+| Teardown | `DeleteEmailIdentity` | `DELETE /domains/:id` | `POST /domain/remove` |
+| Strategy class | `SESSenderStrategy` | `LettermintSenderStrategy` | `Smtp2goSenderStrategy` |
+
+The one mechanism difference worth internalizing: **SES's custom MAIL FROM and Lettermint's Return-Path CNAME are equivalent** — both set the envelope sender to a subdomain of the sender domain so SPF aligns under DMARC's relaxed rules. Lettermint delegates SPF via a single CNAME (it publishes the SPF record itself); SES has no CNAME-delegated SPF, so the customer publishes an MX (to the regional `feedback-smtp.<region>.amazonses.com` endpoint) plus an SPF TXT directly. SendGrid (`automatic_security`) is CNAME-based like Lettermint. SMTP2GO uses the same delegated model — the customer publishes a `<returnpath_subdomain>.<domain>` CNAME instead of an SPF TXT — but adds a tracking CNAME the others don't require, keys its domain endpoints by domain name rather than a provider-side ID, and authenticates every call with the `X-Smtp2go-Api-Key` header. See the [SES guide](./custom-mail-sender-ses.md#dmarc-alignment-why-custom-mail-from) for the full DMARC alignment table.
+
+`ValidateSenderDomain` performs the common DNS-record checks from provisioned `dns_records` without a provider API call. The product's user-requested revalidation flow also enqueues `DomainValidationWorker`; for providers that support provisioning, it makes a provider-status API call using platform credentials. Region is purely a provisioning and SES-API concern: it selects SES's DKIM region and MAIL FROM endpoint, while DNS checks read the records already stored on `MailerConfig`.
+
+## Key Files
+
+| File | Role |
+|------|------|
+| `lib/onetime/mail/mailer.rb` | Global delivery backend, `resolve_backend`, `provider_credentials` |
+| `lib/onetime/mail/sender_strategies.rb` | Factory for provider-specific sender strategies |
+| `lib/onetime/mail/sender_strategies/base_sender_strategy.rb` | Strategy interface (provision, verify, cleanup) |
+| `lib/onetime/mail/smtp2go_client.rb` | HTTP client for the SMTP2GO v3 API (`X-Smtp2go-Api-Key` auth) |
+| `lib/onetime/mail/delivery/smtp2go.rb` | SMTP2GO delivery backend (`EMAILER_MODE=smtp2go`) |
+| `lib/onetime/mail/sender_strategies/smtp2go_sender_strategy.rb` | SMTP2GO provision/verify/cleanup strategy |
+| `lib/onetime/domain_validation/sender_strategies/smtp2go_validation.rb` | DNS validation for SMTP2GO record shapes |
+| `lib/onetime/operations/provision_sender_domain.rb` | Orchestrates provisioning with platform credentials |
+| `lib/onetime/operations/validate_sender_domain.rb` | DNS verification via provider strategy |
+| `lib/onetime/models/custom_domain/mailer_config.rb` | Per-domain sender config model (from_address, dns_records, verification state) |
+
+## DNS Record Normalization
+
+All strategies normalize their DNS records to a common `Array<Hash>` shape before storage:
+
+```ruby
+[{ type: 'CNAME', name: 'selector._domainkey.example.com', value: 'selector.dkim.provider.com' }, ...]
+```
+
+This normalization happens inside each strategy (SES: `build_dkim_records`, SendGrid: `build_dns_records`, Lettermint: `normalize_dns_records`). The model's `provisioned?` and `required_dns_records` methods depend on this consistent Array shape.

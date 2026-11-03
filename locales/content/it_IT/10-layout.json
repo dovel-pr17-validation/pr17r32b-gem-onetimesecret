@@ -1,0 +1,366 @@
+{
+  "web.footer.api_docs": {
+    "text": "Documentazione API",
+    "source_hash": "f4137804"
+  },
+  "web.footer.branding_guide": {
+    "text": "Guida al branding",
+    "source_hash": "53f994c5"
+  },
+  "web.footer.customize": {
+    "text": "Personalizza",
+    "source_hash": "c5276e27"
+  },
+  "web.footer.plans": {
+    "text": "Piani",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.footer.security": {
+    "text": "Sicurezza",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.footer.learn_about_our_security_measures": {
+    "text": "Scopri le nostre misure di sicurezza",
+    "source_hash": "16c8adae"
+  },
+  "web.footer.view_our_terms_and_conditions": {
+    "text": "Visualizza i nostri Termini e condizioni",
+    "source_hash": "0dde60b7"
+  },
+  "web.footer.terms": {
+    "text": "Termini",
+    "source_hash": "ede54899"
+  },
+  "web.footer.privacy": {
+    "text": "Privacy",
+    "source_hash": "54a57c31"
+  },
+  "web.footer.contact": {
+    "text": "Contatti",
+    "source_hash": "2b5c3d26"
+  },
+  "web.footer.support": {
+    "text": "Supporto",
+    "source_hash": "be91940b"
+  },
+  "web.footer.legals": {
+    "text": "Note legali",
+    "source_hash": "0a410c78"
+  },
+  "web.feedback.when_you_submit_feedback_well_see": {
+    "text": "Quando invii un feedback, vedremo:",
+    "source_hash": "fe77172e"
+  },
+  "web.footer.read_our_privacy_policy": {
+    "text": "Leggi la nostra Informativa sulla privacy",
+    "source_hash": "eb443229"
+  },
+  "web.footer.check_our_service_status": {
+    "text": "Controlla lo stato del servizio",
+    "source_hash": "1f04937e"
+  },
+  "web.footer.explore_our_api_documentation": {
+    "text": "Esplora la documentazione API",
+    "source_hash": "45beb8f8"
+  },
+  "web.footer.docs": {
+    "text": "Documentazione",
+    "source_hash": "7af023c4"
+  },
+  "web.footer.access_our_documentation": {
+    "text": "Accedi alla documentazione",
+    "source_hash": "37686da2"
+  },
+  "web.footer.view_our_source_code_on_github": {
+    "text": "Visualizza il codice sorgente su GitHub",
+    "source_hash": "d5def0ab"
+  },
+  "web.footer.resources": {
+    "text": "Risorse",
+    "source_hash": "e89b30aa"
+  },
+  "web.footer.blog": {
+    "text": "Blog",
+    "source_hash": "8c6bc099"
+  },
+  "web.footer.read_our_latest_blog_posts": {
+    "text": "Leggi i nostri ultimi articoli del blog",
+    "source_hash": "77468d43"
+  },
+  "web.footer.view_our_subscription_pricing": {
+    "text": "Visualizza i prezzi degli abbonamenti",
+    "source_hash": "55f1f590"
+  },
+  "web.footer.learn_about_our_company": {
+    "text": "Scopri la nostra azienda",
+    "source_hash": "780e18cd"
+  },
+  "web.footer.company": {
+    "text": "Azienda",
+    "source_hash": "de4743c8"
+  },
+  "web.footer.product": {
+    "text": "Prodotto",
+    "source_hash": "fb9ef894"
+  },
+  "web.footer.source_code_purveyor": {
+    "text": "Codice sorgente",
+    "source_hash": "bc47da66"
+  },
+  "web.navigation.billing": {
+    "text": "Fatturazione",
+    "source_hash": "3ac8bbca"
+  },
+  "web.navigation.billingOverview": {
+    "text": "Panoramica",
+    "source_hash": "d4b1ea57"
+  },
+  "web.navigation.organizations": {
+    "text": "Organizzazioni",
+    "source_hash": "2730183d"
+  },
+  "web.site.website_version": {
+    "text": "Versione sito",
+    "source_hash": "4d4a570f"
+  },
+  "web.meta.were_making_onetime_secret_available_in_multiple": {
+    "text": "Stiamo rendendo {onetime-secret} disponibile in più lingue. Poiché si tratta di una nuova funzionalità, è possibile che si verifichino errori di traduzione o frasi imbarazzanti. Il tuo feedback ci aiuta a migliorare: se noti qualche problema, ti preghiamo di {send-feedback}",
+    "source_hash": "3b482d7f"
+  },
+  "web.meta.translations_are_new_spotted_an_error": {
+    "text": "Le traduzioni sono nuove. Hai notato un errore? {send-feedback}",
+    "source_hash": "31eca08d"
+  },
+  "web.meta.we_recently_added_translations": {
+    "text": "Abbiamo recentemente aggiunto le traduzioni. Hai notato un errore? {send-feedback}",
+    "source_hash": "6e2455c1"
+  },
+  "web.meta.privacy_and_security_should_be_accessible": {
+    "text": "La privacy e la sicurezza dovrebbero essere accessibili a tutti, indipendentemente dalla lingua. Stiamo aggiungendo traduzioni per aiutare sia i nostri utenti che i destinatari dei messaggi a capire meglio come utilizzare e accedere in modo sicuro a messaggi e link sicuri. Trattandosi di una nuova funzione, è possibile che si verifichino errori di traduzione o istruzioni poco chiare. Per aiutarci a migliorare la chiarezza e l'accuratezza delle nostre traduzioni, soprattutto per i contenuti critici relativi alla sicurezza, vi preghiamo di {send-feedback} se notate qualche problema",
+    "source_hash": "1b8bb38f"
+  },
+  "web.help.learn_more": {
+    "text": "Scopri di più",
+    "source_hash": "1445799c"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.title": {
+    "text": "Cosa sto visualizzando?",
+    "source_hash": "b9766df3"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.description": {
+    "text": "Stai visualizzando un messaggio sicuro che è stato condiviso con te tramite {product_name}. Questo contenuto viene mostrato una sola volta e poi eliminato in modo permanente dai nostri server.",
+    "source_hash": "7a4e9d16"
+  },
+  "web.help.secret_view_faq.can_i_view_again.title": {
+    "text": "Posso visualizzare questo segreto di nuovo più tardi?",
+    "source_hash": "c8c2c9da"
+  },
+  "web.help.secret_view_faq.can_i_view_again.description": {
+    "text": "No. Per motivi di sicurezza, questo segreto può essere visualizzato una sola volta. Dopo aver chiuso questa pagina, il contenuto verrà eliminato permanentemente e non potrà essere recuperato da nessuno, inclusi noi.",
+    "source_hash": "4bf980a4"
+  },
+  "web.help.secret_view_faq.how_to_copy.title": {
+    "text": "Come posso salvare queste informazioni?",
+    "source_hash": "90deddbb"
+  },
+  "web.help.secret_view_faq.how_to_copy.description": {
+    "text": "Usa il pulsante 'Copia negli appunti' per copiare l'intero segreto. Per segreti più lunghi, assicurati di verificare di aver copiato il contenuto completo prima di lasciare questa pagina.",
+    "source_hash": "440aa828"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.title": {
+    "text": "La visualizzazione di questo segreto viene tracciata?",
+    "source_hash": "90145e28"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.description": {
+    "text": "Il mittente verrà notificato che il suo segreto è stato visualizzato, ma non tracciamo chi lo ha visualizzato o da quale posizione. La tua privacy è protetta.",
+    "source_hash": "70737473"
+  },
+  "web.help.secret_view_faq.one_time_warning": {
+    "text": "Una volta che lasci o aggiorni questa pagina, questo segreto verrà eliminato permanentemente e non potrà essere recuperato da nessuno.",
+    "source_hash": "47feab6e"
+  },
+  "web.layout.go_back_to_previous_page": {
+    "text": "Torna alla pagina precedente",
+    "source_hash": "1778f2e7"
+  },
+  "web.layout.site_footer": {
+    "text": "Piè di pagina del sito",
+    "source_hash": "6ca09429"
+  },
+  "web.layout.toggle_dark_mode": {
+    "text": "Attiva/disattiva modalità scura",
+    "source_hash": "ffe32a00"
+  },
+  "web.layout.provide_feedback": {
+    "text": "Invia feedback",
+    "source_hash": "a70766ae"
+  },
+  "web.layout.company_logo": {
+    "text": "Logo aziendale",
+    "source_hash": "87a86135"
+  },
+  "web.layout.brand_logo": {
+    "text": "Logo del brand",
+    "source_hash": "e458e2b5"
+  },
+  "web.layout.dashboard_navigation": {
+    "text": "Navigazione dashboard",
+    "source_hash": "da5c1c43"
+  },
+  "web.layout.mobile_navigation": {
+    "text": "Navigazione mobile",
+    "source_hash": "ccea1730"
+  },
+  "web.layout.main_navigation": {
+    "text": "Navigazione principale",
+    "source_hash": "56ea852a"
+  },
+  "web.layout.mobile_nav_item_count": {
+    "text": "{count} elementi",
+    "source_hash": "f65216b3"
+  },
+  "web.layout.release_notes": {
+    "text": "Note di rilascio",
+    "source_hash": "bd4702c1"
+  },
+  "web.layout.loading_settings_content": {
+    "text": "Caricamento contenuto impostazioni...",
+    "source_hash": "81a2a30e"
+  },
+  "web.layout.settings_sections_0": {
+    "text": "Sezioni impostazioni",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.close_settings": {
+    "text": "Chiudi impostazioni",
+    "source_hash": "0ccfef82"
+  },
+  "web.layout.settings_sections": {
+    "text": "Sezioni impostazioni",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.customize_your_app_preferences_and_settings": {
+    "text": "Personalizza le preferenze e le impostazioni dell'app",
+    "source_hash": "00d74c98"
+  },
+  "web.layout.return_home": {
+    "text": "Torna alla home",
+    "source_hash": "bbcc935e"
+  },
+  "web.layout.return_to_home_page": {
+    "text": "Torna alla home page",
+    "source_hash": "8d27b81d"
+  },
+  "web.layout.return_to_home": {
+    "text": "Torna alla home",
+    "source_hash": "299291b0"
+  },
+  "web.layout.view_privacy_policy": {
+    "text": "Visualizza Informativa sulla privacy",
+    "source_hash": "377733b6"
+  },
+  "web.layout.view_terms_of_service": {
+    "text": "Visualizza Termini di servizio",
+    "source_hash": "e2f124cd"
+  },
+  "web.layout.visit_onetime_secret_homepage": {
+    "text": "Visita la homepage di {product_name}",
+    "source_hash": "87802af5"
+  },
+  "web.layout.footer_navigation": {
+    "text": "Navigazione piè di pagina",
+    "source_hash": "76363a64"
+  },
+  "web.layout.terms_of_service": {
+    "text": "Termini di servizio",
+    "source_hash": "4afa55bf"
+  },
+  "web.layout.privacy_policy": {
+    "text": "Informativa sulla privacy",
+    "source_hash": "506ff394"
+  },
+  "web.layout.icon_library": {
+    "text": "Libreria icone",
+    "source_hash": "a73f4c07"
+  },
+  "web.layout.google_material": {
+    "text": "Google Material",
+    "source_hash": "7c7afa99"
+  },
+  "web.layout.material_design_icons": {
+    "text": "Material Design Icons",
+    "source_hash": "0fb27437"
+  },
+  "web.layout.heroicons": {
+    "text": "Heroicons",
+    "source_hash": "5e7cc07e"
+  },
+  "web.layout.carbon": {
+    "text": "Carbon",
+    "source_hash": "694c87c2"
+  },
+  "web.layout.font_awesome_6": {
+    "text": "Font Awesome 6",
+    "source_hash": "d4eedb15"
+  },
+  "web.layout.view_source_on_github": {
+    "text": "Visualizza sorgente su GitHub",
+    "source_hash": "75e96614"
+  },
+  "web.layout.website_version_v_ot_version": {
+    "text": "Versione sito: v{0}",
+    "source_hash": "343f57de"
+  },
+  "web.layout.current_language_is_currentlocal": {
+    "text": "Cambia lingua. Lingua attuale: {0}",
+    "source_hash": "77f9c322"
+  },
+  "web.layout.language_changed_to_newlocale": {
+    "text": "Lingua cambiata in {0}",
+    "source_hash": "1680f4fe"
+  },
+  "web.layout.reset_to_default_language": {
+    "text": "Reimposta a {0}",
+    "source_hash": "c0cfa9b2"
+  },
+  "web.layout.switch_to_blank_mode": {
+    "text": "Passa alla modalità {0}",
+    "source_hash": "c8b909e0"
+  },
+  "web.layout.blank_mode_enabled": {
+    "text": "Modalità {0} attivata",
+    "source_hash": "e1d200cb"
+  },
+  "web.layout.workspace": {
+    "text": "Area di lavoro",
+    "source_hash": "87bb59ba"
+  },
+  "web.layout.workspace_context": {
+    "text": "Contesto area di lavoro",
+    "source_hash": "dc6fa4f5"
+  },
+  "web.footer.workspace": {
+    "text": "Area di lavoro",
+    "source_hash": "87bb59ba"
+  },
+  "web.help.default_content": {
+    "text": "Contatta il supporto per ricevere assistenza",
+    "source_hash": "752bca14"
+  },
+  "web.layout.colonels_only_badge": {
+    "text": "Solo Colonel",
+    "source_hash": "3f1e2dbd"
+  },
+  "web.footer.dpa": {
+    "text": "Accordo sul trattamento dei dati",
+    "source_hash": "112eae6b"
+  },
+  "web.footer.cookie_policy": {
+    "text": "Informativa sui cookie",
+    "source_hash": "ee290b3d"
+  },
+  "web.footer.acceptable_use": {
+    "text": "Norme di utilizzo accettabile",
+    "source_hash": "34aa287a"
+  }
+}

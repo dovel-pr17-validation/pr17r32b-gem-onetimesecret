@@ -1,0 +1,57 @@
+# lib/onetime/cli/queue/rabbitmq_helpers.rb
+#
+# frozen_string_literal: true
+
+require 'uri'
+
+module Onetime
+  module CLI
+    module Queue
+      # Shared helpers for CLI commands that interact with RabbitMQ.
+      #
+      # Include this module in any Command class that needs to parse AMQP URLs,
+      # build management API URLs, or mask credentials in output.
+      module RabbitMQHelpers
+        # Parse an AMQP URL into its component parts.
+        #
+        # Returns a hash with keys: :host, :port, :user, :password, :vhost, :scheme
+        def parse_amqp_url(url)
+          uri          = URI.parse(url)
+          raw_path     = uri.path&.sub(%r{^/}, '')
+          vhost        = raw_path.nil? || raw_path.empty? ? '/' : raw_path
+          scheme       = uri.scheme || 'amqp'
+          default_port = scheme == 'amqps' ? 5671 : 5672
+          {
+            host: uri.host || 'localhost',
+            port: uri.port || default_port,
+            user: uri.user || 'guest',
+            password: uri.password || 'guest',
+            vhost: vhost,
+            scheme: scheme,
+          }
+        end
+
+        # Base URL for the RabbitMQ Management HTTP API.
+        # ENV override intentional: management API often on different host/port than AMQP.
+        def management_url
+          OT.conf.dig('jobs', 'rabbitmq_management_url') ||
+            ENV.fetch('RABBITMQ_MANAGEMENT_URL', 'http://localhost:15672')
+        end
+
+        # Returns [user, password] extracted from rabbitmq_url config.
+        def management_credentials
+          amqp_url = OT.conf.dig('jobs', 'rabbitmq_url')
+          parsed   = parse_amqp_url(amqp_url)
+          [parsed[:user], parsed[:password]]
+        end
+
+        # Mask credentials in an AMQP URL for display. The whole userinfo and
+        # any query string become "***" via the shared redactor, so a password
+        # containing ":", "@", "/" or "?" redacts wider rather than leaking.
+        def mask_amqp_credentials(url)
+          OT::Utils.redact_uri_userinfo(url)
+        end
+      end
+    end
+  end
+end

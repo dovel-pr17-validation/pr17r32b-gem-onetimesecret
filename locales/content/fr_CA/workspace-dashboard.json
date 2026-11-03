@@ -1,0 +1,38 @@
+{
+  "web.dashboard.title_received": {
+    "text": "Reçu",
+    "source_hash": "49f19bee"
+  },
+  "web.dashboard.title_not_received": {
+    "text": "Non reçu",
+    "source_hash": "a4cf12ca"
+  },
+  "web.dashboard.title_no_recent_secrets": {
+    "text": "Aucun secret récent",
+    "source_hash": "02b7b86b"
+  },
+  "web.dashboard.get_started_by_creating_your_first_secret": {
+    "text": "Commencez par créer votre premier secret.",
+    "source_hash": "e96db24d"
+  },
+  "web.dashboard.fetch_error_title": {
+    "text": "Impossible de charger les données",
+    "source_hash": "ba7df1be"
+  },
+  "web.dashboard.fetch_error_description": {
+    "text": "Un problème est survenu lors du chargement de vos données. Veuillez réessayer.",
+    "source_hash": "ff0d904e"
+  },
+  "web.teams.create_first_team_title": {
+    "text": "Créez votre première équipe",
+    "source_hash": "54693f14"
+  },
+  "web.teams.create_first_team_description": {
+    "text": "Les équipes vous permettent de collaborer avec d'autres personnes dans un espace de travail partagé.",
+    "source_hash": "d61b86b5"
+  },
+  "web.teams.create_team": {
+    "text": "Créer une équipe",
+    "source_hash": "284ff194"
+  }
+}

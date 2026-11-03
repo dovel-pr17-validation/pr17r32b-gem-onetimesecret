@@ -1,0 +1,62 @@
+{
+  "api.domains.errors.domain_id_required": {
+    "text": "Domän-ID krävs",
+    "source_hash": "6837426b"
+  },
+  "api.domains.errors.domain_not_found": {
+    "text": "Domänen hittades inte: %{extid}",
+    "source_hash": "a0fd1025"
+  },
+  "api.domains.errors.organization_not_found": {
+    "text": "Ingen organisation hittades för domänen: %{domain}",
+    "source_hash": "632afc93"
+  },
+  "api.domains.errors.incoming_secrets_disabled": {
+    "text": "Inkommande hemligheter är inte aktiverat på den här instansen",
+    "source_hash": "45c0b5c4"
+  },
+  "api.domains.errors.incoming_secrets_entitlement_required": {
+    "text": "Hantering av inkommande hemligheter kräver behörigheten incoming_secrets. Uppgradera din plan.",
+    "source_hash": "1af54ec2"
+  },
+  "api.domains.errors.incoming_config_not_found": {
+    "text": "Ingen konfiguration för inkommande hittades för domänen: %{extid}",
+    "source_hash": "491644a8"
+  },
+  "api.domains.errors.recipients_max_exceeded": {
+    "text": "Högst %{max} mottagare tillåtna",
+    "source_hash": "159842ad"
+  },
+  "api.domains.errors.recipients_invalid_email": {
+    "text": "Ogiltig e-postadress: %{email}",
+    "source_hash": "e9c729c7"
+  },
+  "api.domains.errors.recipients_duplicate": {
+    "text": "Dubblerade mottagar-e-postadresser är inte tillåtna",
+    "source_hash": "6de22182"
+  },
+  "api.domains.errors.homepage_secrets_mode_invalid": {
+    "text": "Ogiltigt secrets_mode: %{secrets_mode}",
+    "source_hash": "cf093a04"
+  },
+  "api.domains.errors.homepage_incoming_entitlement_required": {
+    "text": "Läget för inkommande hemligheter kräver behörigheten incoming_secrets. Uppgradera din plan.",
+    "source_hash": "d68b13d8"
+  },
+  "api.domains.errors.homepage_incoming_not_ready": {
+    "text": "Inkommande hemligheter måste aktiveras med minst en mottagare innan det kan användas som startsida.",
+    "source_hash": "556da6e2"
+  },
+  "api.domains.errors.related_origins_invalid": {
+    "text": "Inte ett giltigt ursprung: %{origins}. Ange schema och värd, till exempel https://vault.example.com",
+    "source_hash": "5acb92ca"
+  },
+  "api.domains.errors.related_origins_foreign_organization": {
+    "text": "Dessa ursprung tillhör en annan organisation och kan inte läggas till: %{origins}",
+    "source_hash": "ac21c1e7"
+  },
+  "api.domains.errors.allowed_signup_domains_invalid": {
+    "text": "Inte en giltig domän: %{domains}. Ange ett registrerbart domännamn, till exempel example.com",
+    "source_hash": "2d93472c"
+  }
+}

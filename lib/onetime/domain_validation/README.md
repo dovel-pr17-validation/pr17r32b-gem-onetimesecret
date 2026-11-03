@@ -1,0 +1,242 @@
+# Domain Validation Module
+
+Custom domain SSL and DNS validation strategies.
+
+## Strategies
+
+| Strategy          | Ownership check                                                      | SSL Certs | DNS Widget | Use Case                 |
+| ----------------- | -------------------------------------------------------------------- | --------- | ---------- | ------------------------ |
+| `approximated`    | TXT record, via the Approximated API with our own lookup as fallback | Managed   | Yes        | Approximated.app service |
+| `caddy_on_demand` | TXT record, via our own lookup                                       | Auto      | No         | Caddy on-demand TLS      |
+| `passthrough`     | None                                                                 | External  | No         | Manual/external certs    |
+
+## Serving
+
+Under `approximated` and `caddy_on_demand`, a registered domain is served (classified `:custom` by `DomainStrategy`) only while its ownership is verified, by a passing TXT check or a Colonel override (`CustomDomain#served_as_tenant?`). Until then, and after a demotion, its host answers 404 for every path, the domain-context picker does not offer it (`GET /api/account/permissions` lists it with `served: false`), adding it does not make it the session's domain context, and secret creation refuses it as a `share_domain`. A certificate Caddy or Approximated already holds for the name does not change this: TLS completes, and the application answers 404. Under `passthrough`, registration by the owning organization is the basis. A record with no organization is never served. `features.domains.serve_unverified: true` serves every registered domain that has an organization and logs a warning at boot.
+
+Serving follows each domain's stored ownership state, and only a check updates it. After switching `validation_strategy`, run `bin/ots domains verify --all` before the deployment takes traffic. Under `approximated` and `caddy_on_demand`, a domain whose TXT record a later check no longer finds loses its verified state (unless a Colonel override holds it) and stops being served; the verification page tells the customer to keep the record in place. `bin/ots domains orphaned` lists the records with no organization, which are not served.
+
+## Ownership check
+
+`validate_ownership` has three outcomes (see `base_strategy.rb`):
+
+| `validated`                     | Meaning                                                                                                                   | Effect on the stored `verified` flag             |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `true`                          | Exactly one TXT value at the domain's validation record, equal to the challenge                                           | Set to true                                      |
+| `false`                         | The resolver stated the record is missing (NXDOMAIN, or NOERROR without TXT data) or the values are not exactly one match | Set to false, unless a Colonel override holds it |
+| `nil` (+ `indeterminate: true`) | No answer: SERVFAIL, REFUSED, timeout, network error, a hostname with no A-label form                                     | Left unchanged, for at most 7 days (see below)   |
+
+`TxtVerifier` implements this with `TxtResolver`, a small resolver that reads the DNS response code. `Resolv::DNS#getresources` cannot be used for it: it returns `[]` for NXDOMAIN, SERVFAIL and a timeout alike.
+
+A reply only counts as definitive when it is an answer about the name (`DnsStubResolver#ensure_usable!`). Two kinds of NOERROR or NXDOMAIN reply are skipped like a failed exchange, so they end up indeterminate rather than "not found": one with neither `ra` nor `aa` set whose answer section holds no data record (empty, or CNAMEs only; typically a nameserver that does not recurse for us sending an upward referral), and one whose answer section holds nothing owned by the queried name. Data records are read whatever `ra` and `aa` say, because a server that recurses for nobody can still answer from its cache. CNAME chains are followed whatever order the answer section lists them in.
+
+Internationalised hostnames are queried, and probed, in their A-label form (`AsciiHostname`). `CustomDomain` stores the hostname as typed; sent as typed it would come back NXDOMAIN, which is our encoding speaking and not the customer's DNS.
+
+The TXT challenge record name (`CustomDomain#validation_record`) is built from A-labels for the same reason, so `bücher.example.com` gets its challenge at `_onetime-challenge-<id>.xn--bcher-kva.example.com` while `display_domain`, `trd` and `base_domain` keep the spelling the customer typed. The name is converted when it is read, which also covers a challenge host stored with a Unicode label by an earlier version. A domain whose challenge name would not fit the DNS name limits (it is 27 bytes longer than the domain) is refused at creation. The domain API returns the name as `txt_validation_record`, and in the display spelling as `txt_validation_record_display`.
+
+The reverse direction is handled in the `CustomDomain` lookup. Names that arrive over the wire are A-labels: the SNI name Caddy passes to the ACME ask endpoint, and the Host header. `CustomDomain.display_domain_id_for` (behind `load_by_display_domain`, `from_display_domain` and `resolve_domain_id`) tries the name as given, then its A-label form, then its Unicode (NFC) form when that form encodes back to the same A-label, so a domain stored as `bücher.example` is found when asked for as `xn--bcher-kva.example` and the other way round. Stored data is not rewritten, a plain ASCII name still costs one index read, and a name that cannot be converted is a miss (403 from the ask endpoint), not an error. An A-label that is not the encoding of an NFC name (for example the punycode of a decomposed spelling) is looked up by its exact string only: it is a different DNS name from the one its decoded characters normalise to. The same lookup keeps the second form of an already registered name from being registered as a separate domain.
+
+Under `caddy_on_demand` the TXT check is the ownership proof. Caddy completing an ACME challenge shows that the name resolves to this deployment; it does not show which account, if any, controls the domain. The internal ACME endpoint (`apps/internal/acme`) only authorises a certificate for a domain that is `ready?`, which requires `verified`.
+
+`caddy_on_demand` makes one exception to "nil leaves `verified` unchanged": a domain that is verified with no `verified_confirmed_at`. The hold exists to protect a verification a TXT check once established, and `verified_confirmed_at` is the record of that check; without one there is nothing on record for the hold to protect, and with the status probe now filling in `resolving`, holding the flag would make the domain `ready?`. The strategy returns `false` for it instead of `nil`. A Colonel override holds the domain as for any other `false`, and the next check that finds the record verifies it.
+
+Three kinds of domain are verified with no `verified_confirmed_at`:
+
+- Verified by `caddy_on_demand` before it checked TXT records. No proof exists.
+- Verified by `passthrough`, which passes every domain without a lookup. `VerifyDomain` records a confirmation only for a strategy whose `proves_ownership?` is true (`approximated`, `caddy_on_demand`), so a passthrough pass never writes the field. No proof exists.
+- Verified by `approximated` on a version that did not have the field yet. The proof was real and is simply not on record. The field is written by the first passing check on this version.
+
+The third kind matters for a cutover from `approximated` to `caddy_on_demand`. Cutover is also the first time the app needs its own working resolver for every check; with no nameserver in `resolv.conf` or DNS egress blocked, every lookup is indeterminate. Before switching strategy:
+
+1. Upgrade while still on `approximated`.
+2. Still on `approximated`, run `bin/ots domains verify --all` to completion, **without `--dry-run`**: a dry run records no confirmation timestamps. Alternatively, let [domain refresh](#domain-refresh) walk every page. Every passing TXT check records `verified_confirmed_at` for that domain; an unsuccessful check does not.
+3. Confirm the application host has configured nameservers and outbound DNS access, and can resolve names. Check the [network requirements](#network-requirements) before switching.
+
+Otherwise an unanswered first lookup under `caddy_on_demand` withdraws `verified` from a domain Approximated had proven, until the next passing check or a Colonel override.
+
+Existing domains are only re-checked when something runs the check. Installs without a running scheduler or with `jobs.domain_refresh.enabled: false` must run `bin/ots domains verify --all` once after upgrading for the TXT check to take effect on existing domains, and periodically after that (for example, from cron) to detect removed records. See [domain refresh](#domain-refresh) for scheduler setup and defaults.
+
+A domain record with no organization is not checked: `VerifyDomain` reports it as skipped and writes nothing, and `DomainRefreshJob` leaves it out of its page. Such a record is never served, so its verification decides nothing, and an operator who adopts it resets its verification (`CustomDomain.claim_orphaned_domain`).
+
+Under `approximated` the API's answer is used when it has one. When it has none, the application falls back to `TxtVerifier`. "None" covers a 200 whose own DNS lookup failed (`actual_values: false`) and every case where the checker could not be asked: no API key configured, a non-200 response, a client exception. None of those is evidence about the customer's DNS, so none is reported as a failed check by itself.
+
+A matching native answer confirms ownership. A native definitive negative keeps an unverified domain unverified, but for a domain that is already verified, the strategy promotes that negative to indeterminate. This applies whether Approximated's lookup was indeterminate or the API was unavailable. The domain retains verification within the confirmation window below; a further indeterminate check after the window expires withdraws verification unless a Colonel override holds it. A native lookup that produces no answer is also indeterminate. A definitive negative from Approximated still fails the check without waiting for the window. An exception raised by a strategy is handled in `VerifyDomain` as indeterminate, never failed.
+
+### Confirmation window
+
+An indeterminate check may not hold `verified` indefinitely. `VerifyDomain::ConfirmationWindow` (`lib/onetime/operations/verify_domain/confirmation_window.rb`) keeps two timestamps on `CustomDomain`:
+
+- `verified_confirmed_at`: the last passing TXT check in the current verified lineage. Not written for a pass from a strategy that does not check the record (`passthrough`). If passthrough promotes a domain after a definitive check demoted it, the older confirmation is cleared; if the domain stayed verified across the strategy change, its confirmation remains current and is preserved.
+- `verified_unconfirmed_since`: the first indeterminate check of a verified domain since then. A definitive outcome clears it when stored. While an explicit override holds, the timestamp is retained and the domain is exempt from expiry.
+
+When a check is indeterminate and `verified_unconfirmed_since` is more than 7 days old (`ConfirmationWindow::MAX_AGE`), `verified` is withdrawn. The result reports `dns_outcome: confirmation_expired`, bulk results count it in `confirmation_expired_count`, and VerifyDomain logs a warning.
+
+The window runs from the first indeterminate check, not from the last passing one. A deployment that does not run `DomainRefreshJob` may check a domain once in months, and one resolver failure on that check must not demote it. A demotion always takes two indeterminate checks at least 7 days apart with no passing check between them.
+
+- A domain with no clock, which is every domain at upgrade, starts one on its first indeterminate check and is not demoted by that check (except under `caddy_on_demand` when it was never confirmed, see above).
+- A Colonel override exempts the domain, as it does for a definitive failure.
+- Unverified domains are not affected.
+- A demoted domain becomes verified again on its next passing check.
+
+## Domain refresh
+
+Domain refresh requires a running `bin/ots scheduler` process and `jobs.domain_refresh.enabled: true` (the job setting defaults to true). Neither `JOBS_ENABLED` nor `JOBS_SCHEDULER_ENABLED` gates this job: the scheduler registers it from its own setting, and runs it without RabbitMQ.
+
+- The [full Compose stack](../../../docker/compose/docker-compose.full.yml) starts a scheduler service.
+- The [S6 image](../../../docker/s6/README.md) starts a scheduler in its default all-services mode; its web-only mode does not.
+- The [simple Compose stack](../../../docker/compose/docker-compose.simple.yml) and a plain `docker run` of the standard, non-S6 image start only the web application, not a scheduler.
+- For a source install using [Procfile.example](../../../Procfile.example), uncomment its `scheduler` line, or supervise `bin/ots scheduler` separately.
+
+Run **one scheduler per datastore**. There is no cross-process coordination: another scheduler repeats the scheduled work, including outbound DNS, TLS and Approximated API calls. Replicating the all-services S6 container also replicates its scheduler; use web-only mode for additional web replicas. See the [scheduler guide](../jobs/README.md#scheduler).
+
+Each run checks one page of up to `jobs.domain_refresh.batch_size` domains (default 200), at `jobs.domain_refresh.check_interval` (default `30m`). The page comes from the clock and interval; no cursor is stored. For a stable domain set, a full walk takes `ceil(domain_count / batch_size)` intervals if no ticks are skipped. Runs do not overlap within one scheduler process: a tick during an unfinished run is skipped, not queued, so its page waits until the next walk.
+
+Under `caddy_on_demand`, the TXT lookup and DNS/TLS status probe have a combined ceiling of 13 seconds per domain, or about 43 minutes for a 200-domain page. A resolver outage uses up to 8 seconds per domain without reaching TLS, or about 27 minutes per page. Lower `batch_size` if runs routinely exceed `check_interval`; allow extra time for skipped ticks when waiting for a complete cutover verification pass.
+
+`jobs.domain_refresh.dns_propagation_window` defaults to `24h`; set it to `'0'` to disable extra propagation checks. Domains added, edited or checked within this window that remain unverified or unresolved can fill spare capacity after the regular page, without exceeding `batch_size` or checking the same domain twice in one run. Eligibility uses the instances timeline's last-modified score, not creation time alone; saving a verification result refreshes that score. The regular page takes priority, so a full page leaves no room for extra checks.
+
+## Bulk pacing
+
+`bulk_rate_limit` is the pause, in seconds, a bulk run takes between domains. `approximated` declares 0.5 for its API rate cap; the other strategies declare none. `VerifyDomain` uses it for bulk runs unless the caller passes `rate_limit:` (the `jobs.domain_refresh.rate_limit` setting, or `bin/ots domains verify --all --rate-limit N`), which overrides the strategy, including with 0.
+
+## Status check
+
+`check_status` reports two things, each with the same three outcomes (`true`, `false`, `nil` = could not tell). An unknown `is_resolving` changes neither `resolving` nor the `vhost` blob. An unknown `has_ssl` alongside a known `is_resolving` still rewrites the blob, and stored SSL fields are carried into it only as described under how the result is stored, below.
+
+|                | Stored in                         | `approximated`                                             | `caddy_on_demand`     | `passthrough`                  |
+| -------------- | --------------------------------- | ---------------------------------------------------------- | --------------------- | ------------------------------ |
+| `is_resolving` | `CustomDomain#resolving`          | Approximated's claim (`nil` while its status is `UNKNOWN`) | Our own A/AAAA lookup | Always `true`                  |
+| `has_ssl`      | inside the `vhost` blob (`:data`) | Approximated's claim                                       | Our own TLS handshake | Always `true` (nothing stored) |
+
+### Network requirements
+
+Under `caddy_on_demand`, the application host needs a working system resolver (including nameservers in `resolv.conf`), outbound DNS access, and outbound TCP 443 access to the custom domains it serves. Apply these requirements to every process that runs verification, including the scheduler and one-off CLI checks.
+
+- If DNS produces no answer (SERVFAIL, REFUSED or timeout), the status probe preserves stored resolving and SSL state and records a failed status check. TXT verification follows the separate [ownership](#ownership-check) and [confirmation-window](#confirmation-window) rules; a DNS outage can still withdraw verification from a never-confirmed Caddy domain or after the window expires.
+- If DNS resolves but TCP 443 times out or has no route, resolving status is updated while SSL remains inconclusive. A previous certificate observation from this strategy is retained only until its recorded expiry; Approximated-era SSL data is not carried forward.
+- A refused or dropped connection, a TLS error, or an untrusted or mismatched certificate reports no SSL, not an inconclusive result. A private CA certificate, including Caddy's `tls internal`, is untrusted unless its CA is in the system trust store.
+- If any A/AAAA address is non-public, the probe connects to none of them: resolving is true and SSL is inconclusive. This does not bypass TXT verification.
+
+### Probe and stored status
+
+Caddy has no per-domain status API, so `caddy_on_demand` uses `TlsProbe`:
+
+1. `AddressResolver` looks up A and AAAA and reads the response code. An address means `is_resolving: true`; NXDOMAIN or an empty NOERROR from both families means `false` (and `has_ssl: false`); SERVFAIL, REFUSED or a timeout means `nil` for both.
+2. The addresses go through the shared egress guard (`Onetime::Http::Guard.validate_addresses!`). The hostname is customer-controlled, so if any address is loopback, private, link-local or otherwise reserved, nothing is dialled: `is_resolving: true`, `has_ssl: nil`.
+3. The probe connects to a vetted IP on port 443 (never re-resolving the name), sends the hostname as SNI, completes a handshake with chain and hostname verification, and closes. No application data is sent. A verified handshake is `has_ssl: true`. A TLS error, an untrusted or mismatched certificate, or a refused or dropped connection is `false`. A timeout or an unroutable address is `nil`.
+
+`resolving` only means the name has an address record. It does not wait for a certificate, because the ACME ask endpoint requires `resolving` before Caddy may obtain one. Neither check shows that the address is this deployment's: the TLS check only proves that whatever answers at the resolved address presents a trusted certificate valid for the hostname, which an unrelated server or CDN also does. Ownership rests on the TXT check alone.
+
+How the result is stored (`VerifyDomain#persist_changes`):
+
+- `is_resolving` `true`/`false` is written to `resolving`; `nil` is skipped.
+- `has_ssl` exists only inside the `vhost` blob. The strategy rewrites the blob whenever `is_resolving` is known, so its `status` and `is_resolving` follow the `resolving` field. When `has_ssl` is unknown, stored SSL fields are carried only from a blob this strategy owns and only while the stored `ssl_active_until` is in the future. At or after expiry (or when the date cannot be read), those fields are omitted: the blob makes no certificate claim and reports `PENDING_SSL` until a probe sees the current certificate. Approximated-era status is replaced instead of presented as a current probe result. The blob uses the keys the domain pages already read (`status`, `status_message`, `has_ssl`, `is_resolving`, `dns_pointed_at`, `ssl_active_from`, `ssl_active_until`, `last_monitored_unix`) plus `source: tls_probe` and two keys of its own: `ssl_checked_unix`, the time of the probe that observed `has_ssl` (written with it and carried with it, so a carried certificate keeps the date it was seen while `last_monitored_unix` is the check that re-observed `is_resolving`), and `ssl_inconclusive: true` on any blob whose probe did not learn `has_ssl`, whether or not it carries one. `status` is `ACTIVE_SSL`, `PENDING_SSL` (resolves, no valid certificate yet) or `DNS_INCORRECT` (does not resolve).
+- When the probe could not tell anything, the strategy returns neither `:data` nor `:mode`. Nothing stored changes and `vhost_fetch_failed_at` is set, which the UI shows as a failed check.
+- After an `approximated` cutover, a known probe result replaces the stale UI-facing blob. The replacement carries `approximated_vhost_pending_cleanup: true`, preserving the cleanup obligation without presenting old Approximated status as current Caddy status.
+
+Time budget per domain: address lookup 3s, connect plus handshake 5s, each spent only on a timeout. `DomainRefreshJob` runs the TXT check and this probe for every domain on its page; the job's header comment works out the per-page ceiling.
+
+A certificate from a private CA (for example Caddy's `tls internal`) fails verification against the system trust store and is reported as `has_ssl: false`.
+
+## Customer pages
+
+The workspace decides what to show from two predicates in `src/utils/features.ts`. They read one capability table, which is the only place the frontend interprets a strategy name; a new strategy needs a row there.
+
+|                                                                                                                          | `approximated` | `caddy_on_demand` | `passthrough`              |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------- | ----------------- | -------------------------- |
+| `isDomainOwnershipChecked()` (mirrors `proves_ownership?`): status badge, TXT record, verify button, `DomainVerify` page | Yes            | Yes               | No, plain `DomainDns` page |
+| `isApproximatedDomainValidation()`: address record points at `proxy_ip` / `proxy_host`, DNS widget                       | Yes            | No                | No                         |
+
+Without the Approximated proxy the address record points at this install by name: a CNAME, or ALIAS/ANAME for an apex domain, to the canonical domain, falling back to the site host (`useDomainDnsRecord`). `proxy_ip` / `proxy_host` are never shown under `caddy_on_demand`, including when they stay configured for the cleanup chore below. The Colonel domain DNS panel (`AdminDomainDnsDetails`) takes its address record from the same composable, reading the strategy from the `cluster` in the Colonel response, so an operator sees the record the customer sees.
+
+The badge reads the blob's `status` together with `verified` (`useDomainStatus.ts`). The blob says what was last seen on the network; `verified` says whether the TXT check has passed, and the badge never promises more than `verified` allows. A resolving domain (`ACTIVE`, `ACTIVE_SSL`, `ACTIVE_SSL_PROXIED` or `PENDING_SSL`) that is not verified shows "Pending Verification" in the warning style, links to the verification page and does not get the Manage quick action. That covers a new domain whose TXT record is not published yet, and a demoted one: after the record is removed the certificate issued earlier keeps serving, so the probe keeps writing `ACTIVE_SSL` while `verified` is false. A verified domain reads "Active" for the active statuses and "Certificate pending" for `PENDING_SSL`, and is not flagged. "Unverified" is reserved for a failed status check (`vhost_fetch_failed_at` within the freshness window): "could not tell" and "not verified" have different text, and the status link's accessible name carries that text. An absent `has_ssl` shows as "Unknown" in the status table, not "Inactive". The table hides the target address row when the blob has no `target_address` (the probe writes none) and derives "Last monitored" from `last_monitored_unix` when there is no `last_monitored_humanized`.
+
+The badge reflects stored state, which an indeterminate TXT check does not change. What the check itself learned is in the verify response: `POST /api/domains/:extid/verify` returns `details.dns_outcome` (`validated`, `indeterminate`, `confirmation_expired`, `failed`, `override_held`) and `details.dns_indeterminate`, the same values the Colonel verify response carries. The customer pages choose the verify toast and alert from it (`domainVerifyNotice.ts`): success for `validated` only, "the check could not be completed, try again" for `indeterminate` and `confirmation_expired`, and "record not found" for `failed` and `override_held`.
+
+## Configuration
+
+Configure in `config.yaml`:
+
+```yaml
+features:
+  domains:
+    validation_strategy: approximated # or passthrough, caddy_on_demand
+    approximated:
+      api_key: xxx
+      proxy_ip: 1.2.3.4
+      proxy_host: proxy.example.com
+      proxy_name: Production Proxy
+      vhost_target: target.example.com
+```
+
+`validation_strategy` is matched without regard to letter case, and `caddy` and `external` are accepted as aliases for `caddy_on_demand` and `passthrough` (`Features::STRATEGY_ALIASES`, which `Strategy.for_config` also reads). API payloads always carry the canonical name of the strategy in effect (`Features.effective_strategy_name`, used by `Features.safe_dump` and the bootstrap `domains.validation_strategy`), so the frontend capability table in `src/utils/features.ts` lists canonical names only. An unknown value runs, and is reported, as `passthrough` unless `strict_strategy` is set.
+
+## Moving off `approximated`
+
+Changing `validation_strategy` away from `approximated` does not delete anything on Approximated. Each domain provisioned before the change keeps its remote vhost there (billable, and able to serve the hostname for as long as DNS points at the cluster). Under `caddy_on_demand`, the next known probe result replaces the old UI-facing `vhost` JSON with current status and a cleanup marker. The `remove_orphaned_approximated_vhosts` housekeeping chore uses either the old blob or that marker to clean up the remote vhost and local state.
+
+Keep `approximated.api_key` and `proxy_ip` / `proxy_host` configured after the cutover. The chore needs the key to delete and the proxy address to tell which domains still point at the cluster. The chore reads `proxy_ip` as one or more entries separated by commas or spaces, each a single address or a CIDR range such as `203.0.113.0/24`. Under `approximated` the same value is shown to customers as the A record target in the domain setup screens, so only widen it before the cutover if no domain is still being set up against Approximated. After the cutover the customer pages no longer read it (see Customer pages above).
+
+```bash
+# Dry run (default): lists deletion candidates, makes no Approximated API call
+bin/ots housekeeping run Onetime::CustomDomain remove_orphaned_approximated_vhosts
+
+# Delete
+APPROXIMATED_VHOST_CLEANUP=apply bin/ots housekeeping run Onetime::CustomDomain remove_orphaned_approximated_vhosts
+```
+
+A vhost is deleted only when the domain resolves, from this host, to addresses outside the Approximated cluster, and Approximated itself reports the vhost as not resolving and not receiving traffic. A domain that still points at the cluster, has no DNS answer, or is served through another proxy (`ACTIVE_SSL_PROXIED`) is skipped and picked up again on the next run. `verified`, `resolving` and the TXT fields are never changed.
+
+For nightly cleanup, run the scheduler and enable **both** `jobs.maintenance.enabled` and `jobs.maintenance.housekeeping.enabled`; both default to false. Housekeeping defaults to 2 AM (`jobs.maintenance.housekeeping.cron: '0 2 * * *'`). If a housekeeping model allowlist is configured, include `Onetime::CustomDomain`. The chore remains a dry run unless the scheduler's environment contains `APPROXIMATED_VHOST_CLEANUP=apply`. Only the literal value `apply` enables deletion; setting it for a one-off CLI command does not change the environment of an already-running scheduler. The one-off commands above do not require the scheduling switches.
+
+Under `caddy_on_demand`, a known status probe replaces old Approximated UI data immediately and retains `approximated_vhost_pending_cleanup: true`. The chore processes probe blobs with that marker and ignores ordinary probe blobs that only have `source: tls_probe`.
+
+Re-run until the dry run reports no candidates. Domains that are skipped every time (no DNS answer, proxied, renamed, or a stored `vhost` value that is not valid JSON, which is logged as a warning) need a manual decision in the Approximated dashboard.
+
+## Files
+
+- `features.rb` - Config accessor (strategy, API keys, proxy settings)
+- `strategy.rb` - Factory for creating strategy instances
+- `base_strategy.rb` - Interface definition
+- `approximated_strategy.rb` - Approximated.app implementation
+- `approximated_client.rb` - HTTP client for Approximated API
+- `passthrough_strategy.rb` - No-op for external cert management
+- `caddy_on_demand_strategy.rb` - TXT ownership check and probe-based status; certificates delegated to Caddy
+- `txt_verifier.rb` - TXT ownership check with three outcomes (shared by the strategies above)
+- `txt_resolver.rb` - TXT lookup that reports the DNS response code
+- `address_resolver.rb` - A/AAAA lookup that reports the DNS response code
+- `dns_stub_resolver.rb` - Transport and time budget shared by the two resolvers
+- `ascii_hostname.rb` - A-label (punycode) form of a hostname for DNS and TLS
+- `tls_probe.rb` - Resolution and certificate check for `caddy_on_demand` status, behind the egress guard
+
+## DNS Widget Integration
+
+The Approximated strategy supports a DNS widget that auto-detects DNS providers and provides step-by-step instructions or automated updates.
+
+**Backend**: `strategy.get_dns_widget_token` returns a token for the widget.
+
+**Frontend**: Widget assets are self-hosted in `src/assets/approximated/`:
+
+- `dnswidget.v1.js`
+- `dnswidget.v1.css`
+
+The widget renders only when `validation_strategy === 'approximated'` (see `DomainVerify.vue`).
+
+## Usage
+
+```ruby
+strategy = Onetime::DomainValidation::Strategy.for_config(OT.conf)
+
+# Core operations
+strategy.validate_ownership(custom_domain) # DNS TXT validation (approximated, caddy_on_demand)
+strategy.request_certificate(custom_domain) # SSL provisioning
+strategy.check_status(custom_domain) # Current status
+
+# Management (Approximated only)
+strategy.delete_vhost(custom_domain) # Remove from provider
+strategy.get_dns_widget_token # Token for DNS widget
+
+# Capability checks
+strategy.supports_dns_widget? # => true for approximated
+strategy.manages_certificates? # => true for approximated
+```

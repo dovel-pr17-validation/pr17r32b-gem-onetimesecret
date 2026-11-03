@@ -1,0 +1,794 @@
+# lib/onetime/models/custom_domain/signup_config.rb
+#
+# frozen_string_literal: true
+
+require_relative '../features/boolean_encoding'
+require_relative '../features/guarded_config_writes'
+
+#
+# CustomDomain::SignupConfig - Per-domain signup email validation strategy
+#
+# This model stores signup validation configuration bound to a specific CustomDomain.
+# Enables per-tenant control over email validation during account creation.
+#
+# Use Cases:
+#   - Open signup: secrets.acme.com allows any email (passthrough)
+#   - Corporate restriction: secrets.corp.com restricts to @corp.com emails
+#     (domain_allowlist with allow_base_domain, or corp.com listed explicitly)
+#   - Partner access: secrets.corp.com admits @corp.com plus listed partners
+#   - Strict validation: secrets.secure.com requires MX/SMTP verification
+#
+# Strategy Types:
+#   - passthrough:      Format check only (BASIC_FORMAT regex)
+#   - domain_allowlist: Email domain must be in the effective allowlist:
+#                       allowed_signup_domains plus, when allow_base_domain
+#                       is set and available (allow_base_domain_effective?),
+#                       the custom domain's own registrable domain
+#                       (CustomDomain#base_domain: secrets.corp.com → corp.com),
+#                       derived at validation time so it follows the domain
+#   - mx:               Truemail MX lookup validation
+#   - smtp:             Truemail SMTP validation (strictest)
+#
+# See: apps/api/account/logic/account/create_account.rb (signup flow)
+#      apps/web/auth/config/hooks/omniauth.rb (SSO signup flow)
+#      docs/adr/adr-024-custom-domain-auth-override-resolution.md
+#      (source of truth for the two-flag model, resolution invariants, and the
+#      settings API/UI contract built on them)
+#
+class Onetime::CustomDomain::SignupConfig < Familia::Horreum
+  include Familia::Features::Autoloader
+
+  SCHEMA = 'models/domain-signup-config'
+
+  # Refusal from {#allowed_signup_domains=}. A Problem like any other
+  # setter refusal (the message is unchanged), typed the way
+  # SigninConfig::RelatedOriginError is: it carries the refused entry, its
+  # field and a locale key, so an API layer can show it against the field.
+  class InvalidAllowedSignupDomain < Onetime::Problem
+    ERROR_KEY = 'api.domains.errors.allowed_signup_domains_invalid'
+
+    attr_reader :domains
+
+    def initialize(domain, reason = nil)
+      @domains = Array(domain).map(&:to_s)
+      super(reason ? "Invalid domain: #{@domains.join(', ')} (#{reason})" : "Invalid domain: #{@domains.join(', ')}")
+    end
+
+    def error_key = ERROR_KEY
+    def field     = 'allowed_signup_domains'
+    def args      = { domains: domains.join(', ') }
+  end
+
+  # Supported validation strategy types
+  STRATEGY_TYPES = %w[passthrough domain_allowlist mx smtp].freeze
+
+  # The two answers allowlist_requirement_error can give, reported by
+  # #validation_errors and raised by the workspace API. REQUIRED: a strategy
+  # that consults the allowlist has no domain to admit. UNREADABLE: it would
+  # keep a stored list that cannot be read (allowed_signup_domains_corrupt?).
+  ALLOWLIST_REQUIRED_ERROR   = 'allowed_signup_domains is required when validation_strategy ' \
+                               'is domain_allowlist and allow_base_domain is not set'
+  ALLOWLIST_UNREADABLE_ERROR = 'allowed_signup_domains cannot be read and must be replaced'
+
+  # allow_base_domain takes effect only while the install enables it
+  # (features.organizations.base_domain_signup_enabled, set by
+  # ORGS_BASE_DOMAIN_SIGNUP_ENABLED) and the owning organization holds this
+  # entitlement. Both are off by default.
+  BASE_DOMAIN_SIGNUP_FEATURE_FLAG = 'base_domain_signup_enabled'
+  BASE_DOMAIN_SIGNUP_ENTITLEMENT  = 'base_domain_signup'
+
+  # Strategy metadata for UI/documentation
+  STRATEGY_METADATA = {
+    'passthrough' => {
+      description: 'Format check only - accepts any valid email format',
+      uses_allowlist: false,
+      network_validation: false,
+    },
+    'domain_allowlist' => {
+      description: 'Email domain must be in the configured allowed list',
+      uses_allowlist: true,
+      network_validation: false,
+    },
+    'mx' => {
+      description: 'Validates email domain has MX records (DNS lookup)',
+      uses_allowlist: false,
+      network_validation: true,
+    },
+    'smtp' => {
+      description: 'Full SMTP validation - strictest, may be slow',
+      uses_allowlist: false,
+      network_validation: true,
+    },
+  }.freeze
+
+  prefix :custom_domain__signup_config
+
+  # domain_id is the CustomDomain's identifier (objid), used as our key.
+  # This creates a 1:1 relationship: one signup config per domain.
+  identifier_field :domain_id
+  field :domain_id
+
+  # Core configuration fields
+  field :validation_strategy  # One of STRATEGY_TYPES
+  field :enabled              # Boolean string ('true'/'false')
+
+  # Domain allowlist (JSON array string) - used when strategy is 'domain_allowlist'
+  field :allowed_signup_domains_json
+
+  # Whether the custom domain's own registrable domain (CustomDomain#base_domain)
+  # is part of the effective allowlist without being listed. Real boolean,
+  # conservative default false. Only consulted under 'domain_allowlist', like
+  # the list itself, and only while allow_base_domain_effective? holds.
+  field :allow_base_domain
+
+  # Non-nullable boolean overrides with conservative defaults.
+  # signup_enabled: false (off until explicitly enabled), autoverify: false (require verification).
+  field :signup_enabled  # Override for AUTH_SIGNUP
+  field :autoverify      # Override for AUTH_AUTOVERIFY
+
+  # Timestamps (Unix epoch integers)
+  field :created
+  field :updated
+
+  # Colonel-writable fields, aggregated into
+  # {Onetime::CustomDomain::ConfigRegistry::FIELD_SPECS} (the registry
+  # validates at load time that every key has a setter here). This model's
+  # MIXED boolean encoding is declared HERE so the registry carries no
+  # second copy: `enabled` stores a legacy 'true'/'false' STRING while
+  # signup_enabled/autoverify store REAL booleans. The boolean_encoding
+  # feature (below) reads these specs to build tolerant predicates and
+  # normalizing setters, so writers that assign the "wrong" encoding
+  # (console, create!, the `.to_s` workspace writers in apps/api/domains)
+  # are normalized to the declared storage on assignment (#3951).
+  # allowed_signup_domains routes through the model setter
+  # (PublicSuffix validation, raises Onetime::Problem).
+  FIELD_SPECS = {
+    'enabled' => { type: :boolean, storage: :string },
+    'signup_enabled' => { type: :boolean, storage: :native },
+    'autoverify' => { type: :boolean, storage: :native },
+    'allow_base_domain' => { type: :boolean, storage: :native },
+    'validation_strategy' => { type: :enum, values: STRATEGY_TYPES, nullable: false },
+    'allowed_signup_domains' => { type: :string_array },
+  }.freeze
+
+  # Tolerant predicates + normalizing setters for the boolean fields in
+  # FIELD_SPECS above (#3951). Must come after both the field
+  # declarations and the constant.
+  feature :boolean_encoding
+  feature :guarded_config_writes
+
+  def init
+    self.enabled             ||= 'false'
+    self.validation_strategy ||= 'passthrough'
+    self.signup_enabled        = false if signup_enabled.nil?
+    self.autoverify            = false if autoverify.nil?
+    self.allow_base_domain     = false if allow_base_domain.nil?
+  end
+
+  # Returns metadata for the current validation strategy.
+  #
+  # @return [Hash] Strategy metadata
+  def strategy_metadata
+    STRATEGY_METADATA.fetch(validation_strategy, {})
+  end
+
+  # Whether this strategy consults the allowlist. It does not mean a domain
+  # must be listed: allow_base_domain can supply the only one (see
+  # allowlist_requirement_error).
+  #
+  # @return [Boolean]
+  def uses_allowlist?
+    strategy_metadata.fetch(:uses_allowlist, false)
+  end
+
+  # Whether this strategy performs network validation (slower).
+  #
+  # @return [Boolean]
+  def network_validation?
+    strategy_metadata.fetch(:network_validation, false)
+  end
+
+  # Enable this signup config.
+  # @return [void]
+  def enable!
+    update_stored!(enabled: 'true')
+  end
+
+  # Disable this signup config.
+  # @return [void]
+  def disable!
+    update_stored!(enabled: 'false')
+  end
+
+  # Get the list of allowed signup email domains.
+  #
+  # @return [Array<String>] Lowercase domain names
+  def allowed_signup_domains
+    return [] if allowed_signup_domains_json.to_s.empty?
+
+    JSON.parse(allowed_signup_domains_json)
+  rescue JSON::ParserError
+    []
+  end
+
+  # Set the list of allowed signup email domains.
+  #
+  # Validates each domain using PublicSuffix to ensure it has a valid TLD.
+  #
+  # @param domains [Array<String>] Domain names to allow
+  # @return [void]
+  # @raise [InvalidAllowedSignupDomain] if any domain is invalid
+  def allowed_signup_domains=(domains)
+    normalized = Array(domains).map { it.to_s.strip.downcase }.uniq.reject(&:empty?)
+
+    # Validate each domain using PublicSuffix
+    normalized.each do |domain|
+      Onetime::Utils::DomainParser.cached_parse(domain)
+    rescue PublicSuffix::Error => ex
+      raise InvalidAllowedSignupDomain.new(domain, ex.message)
+    end
+
+    self.allowed_signup_domains_json = normalized.empty? ? nil : JSON.generate(normalized)
+  end
+
+  # Whether allowed_signup_domains_json holds something we cannot read as a
+  # domain list.
+  #
+  # allowed_signup_domains (above) swallows JSON::ParserError and returns
+  # [] so config surfaces keep rendering. On the sign-up gate that [] would
+  # let allow_base_domain stand in for the restriction the value encodes,
+  # so validate_domain_allowlist denies when this is true. An absent/empty
+  # value is NOT corrupt (that is the
+  # legitimate cleared state written by allowed_signup_domains=); a
+  # well-formed empty array is not corrupt either. Mirrors
+  # SsoConfig#allowed_domains_corrupt?.
+  #
+  # @return [Boolean] true when a value is present but unreadable as an Array
+  def allowed_signup_domains_corrupt?
+    raw = allowed_signup_domains_json.to_s
+    return false if raw.empty?
+
+    !JSON.parse(raw).is_a?(Array)
+  rescue JSON::ParserError
+    true
+  end
+
+  # The registrable domain of the custom domain this config belongs to
+  # (CustomDomain#base_domain, parsed by PublicSuffix at domain creation:
+  # secrets.acme.com → acme.com, acme.co.uk → acme.co.uk), lower-cased.
+  #
+  # Read from the domain record on each call rather than copied into this
+  # record, so the domain record stays the one source for it. nil when the
+  # domain record is missing or carries no base_domain; allow_base_domain
+  # then adds nothing (fail closed) and never falls back to allow-all.
+  #
+  # @param domain [CustomDomain, nil] the domain record, when the caller
+  #   already loaded it
+  # @return [String, nil]
+  def base_domain(domain: nil)
+    return nil if domain_id.to_s.empty?
+
+    value = (domain || custom_domain)&.base_domain.to_s.strip.downcase
+    value.empty? ? nil : value
+  end
+
+  # allow_base_domain as the sign-up gate applies it: stored true, the
+  # install enables the feature, and the owning organization holds
+  # BASE_DOMAIN_SIGNUP_ENTITLEMENT. Evaluated on every call, so turning the
+  # install flag off or losing the entitlement stops the flag admitting
+  # anyone without rewriting the stored value. Cheapest checks first.
+  #
+  # @param domain [CustomDomain, nil] the domain record, when the caller
+  #   already loaded it
+  # @return [Boolean]
+  def allow_base_domain_effective?(domain: nil)
+    return false unless allow_base_domain?
+    return false unless self.class.base_domain_signup_enabled? # skips the record lookups below
+    return false if domain_id.to_s.empty?
+
+    self.class.base_domain_signup_available_for?((domain || custom_domain)&.primary_organization)
+  end
+
+  # The allowlist the sign-up gate consults under domain_allowlist: the
+  # explicit allowed_signup_domains plus, when allow_base_domain_effective?,
+  # the custom domain's own registrable domain. Matching is exact
+  # (lower-cased), the same as for a listed entry: a subdomain of the base
+  # domain (mail.acme.com) is not admitted by the flag.
+  #
+  # @param domain [CustomDomain, nil] the domain record, when the caller
+  #   already loaded it
+  # @return [Array<String>] Lowercase domain names, de-duplicated
+  def effective_allowed_signup_domains(domain: nil)
+    domains = allowed_signup_domains
+    return domains unless allow_base_domain?
+
+    domain ||= custom_domain
+    return domains unless allow_base_domain_effective?(domain: domain)
+
+    own = base_domain(domain: domain)
+    own ? (domains | [own]) : domains
+  end
+
+  # Validate an email address against the effective allowed domains list.
+  # Matching is exact and lower-cased. An empty list admits no one.
+  #
+  # @param email [String] Email address to validate
+  # @param domains [Array<String>] the list, when the caller has already
+  #   built it (saves a second domain-record read and JSON parse)
+  # @return [Boolean] true if email domain is allowed
+  def valid_email_domain?(email, domains: effective_allowed_signup_domains)
+    email_domain = email.to_s.split('@').last&.downcase
+    return false if email_domain.nil? || email_domain.empty?
+
+    domains.include?(email_domain)
+  end
+
+  # Validate an email address using this config's strategy.
+  #
+  # @param email [String] Email address to validate
+  # @param domain [CustomDomain, nil] the domain record this config belongs
+  #   to, when the caller already loaded it (SignupValidation does); saves
+  #   the allow_base_domain re-read under domain_allowlist. A record for
+  #   another domain is ignored and this config's own record is read.
+  # @return [Boolean] true if email passes validation
+  # @raise [Onetime::SignupPolicyUnavailable] when a read allow_base_domain
+  #   needs raised (see #validate_domain_allowlist)
+  def valid_signup_email?(email, domain: nil)
+    domain = nil unless domain&.identifier == domain_id
+
+    case validation_strategy
+    when 'passthrough'
+      validate_passthrough(email)
+    when 'domain_allowlist'
+      validate_domain_allowlist(email, domain: domain)
+    when 'mx'
+      validate_with_truemail(email, :mx)
+    when 'smtp'
+      validate_with_truemail(email, :smtp)
+    else
+      # Unknown strategy - fail closed
+      false
+    end
+  end
+
+  # Load the associated CustomDomain record.
+  #
+  # @return [CustomDomain, nil] The domain or nil if not found
+  def custom_domain
+    Onetime::CustomDomain.find_by_identifier(domain_id)
+  end
+
+  # Load the owning Organization via the CustomDomain.
+  #
+  # @return [Organization, nil] The organization or nil if not found
+  def organization
+    domain = custom_domain
+    return nil unless domain
+
+    Onetime::Organization.load(domain.org_id)
+  end
+
+  # Validate that all required fields are present.
+  #
+  # @return [Array<String>] List of validation error messages
+  def validation_errors
+    errors = []
+
+    errors << 'domain_id is required' if domain_id.to_s.empty?
+    errors << 'validation_strategy is required' if validation_strategy.to_s.empty?
+    errors << "validation_strategy must be one of: #{STRATEGY_TYPES.join(', ')}" unless STRATEGY_TYPES.include?(validation_strategy)
+
+    base_domain_counts, domain = allow_base_domain_for_validation
+    allowlist_error            = self.class.allowlist_requirement_error(
+      strategy: validation_strategy,
+      domains: allowed_signup_domains,
+      corrupt: allowed_signup_domains_corrupt?,
+      allow_base_domain: base_domain_counts,
+      base_domain: (base_domain(domain: domain) if base_domain_counts),
+    )
+    errors << allowlist_error if allowlist_error
+
+    errors
+  end
+
+  # Check if the configuration is valid.
+  #
+  # @return [Boolean] true if no validation errors
+  def valid?
+    validation_errors.empty?
+  end
+
+  class << self
+    # Returns strategy metadata for all supported strategies.
+    #
+    # @return [Hash] Strategy type => metadata hash
+    def strategy_metadata
+      STRATEGY_METADATA
+    end
+
+    # Returns metadata for a specific strategy type.
+    #
+    # @param strategy_type [String] One of STRATEGY_TYPES
+    # @return [Hash] Strategy metadata or empty hash
+    def metadata_for(strategy_type)
+      STRATEGY_METADATA.fetch(strategy_type.to_s, {})
+    end
+
+    # Whether this install offers allow_base_domain at all
+    # (BASE_DOMAIN_SIGNUP_FEATURE_FLAG under features.organizations).
+    #
+    # @return [Boolean]
+    def base_domain_signup_enabled?
+      OT.conf.dig('features', 'organizations', BASE_DOMAIN_SIGNUP_FEATURE_FLAG) == true
+    end
+
+    # Whether allow_base_domain can take effect for domains this
+    # organization owns: the install offers it and the organization holds
+    # BASE_DOMAIN_SIGNUP_ENTITLEMENT. The one statement of that rule, used
+    # by #allow_base_domain_effective? at sign-up and by the workspace API
+    # on save (SignupConfig::Base#base_domain_signup_available?).
+    #
+    # @param organization [Onetime::Organization, nil] the owning organization
+    # @return [Boolean]
+    def base_domain_signup_available_for?(organization)
+      return false unless base_domain_signup_enabled?
+
+      organization&.can?(BASE_DOMAIN_SIGNUP_ENTITLEMENT) || false
+    end
+
+    # The allowlist requirement, shared by #validation_errors and the
+    # workspace API (SignupConfig::Base#validate_allowlist_requirement). A
+    # strategy that uses the allowlist must keep a list it can read and
+    # have at least one domain to admit: listed explicitly, or supplied by
+    # allow_base_domain. The flag counts only when it is effective (callers
+    # pass allow_base_domain_effective?, not the stored value) and the
+    # custom domain has a base_domain to derive; otherwise the effective
+    # list is empty and validate_domain_allowlist denies everyone.
+    #
+    # An unreadable stored list parses as [], which the flag could
+    # otherwise satisfy, but the gate denies everyone while it is
+    # unreadable. corrupt: is required so every caller decides it; a
+    # request that replaces the list passes false.
+    #
+    # Mirrored client-side by allowlistRequirementMet in
+    # src/schemas/contracts/custom-domain/signup-config.ts, which never sees
+    # a corrupt list (the wire format cannot carry one). Both are held to
+    # the shared table tests/fixtures/signup_allowlist_requirement_cases.json.
+    #
+    # @param strategy [String] validation strategy
+    # @param domains [Array<String>, nil] explicitly listed domains
+    # @param corrupt [Boolean] whether domains stands in for a stored list
+    #   that cannot be read (allowed_signup_domains_corrupt?)
+    # @param allow_base_domain [Boolean] effective allow_base_domain value
+    # @param base_domain [String, nil] the custom domain's registrable domain
+    # @return [String, nil] ALLOWLIST_UNREADABLE_ERROR, ALLOWLIST_REQUIRED_ERROR,
+    #   or nil when the requirement is met
+    def allowlist_requirement_error(strategy:, domains:, corrupt:, allow_base_domain:, base_domain:)
+      return nil unless metadata_for(strategy)[:uses_allowlist]
+      return ALLOWLIST_UNREADABLE_ERROR if corrupt
+      return nil unless Array(domains).empty?
+      return nil if allow_base_domain && !base_domain.to_s.strip.empty?
+
+      ALLOWLIST_REQUIRED_ERROR
+    end
+
+    # Find signup config by domain ID.
+    #
+    # @param domain_id [String] CustomDomain identifier (objid)
+    # @return [CustomDomain::SignupConfig, nil] The config or nil if not found
+    def find_by_domain_id(domain_id)
+      return nil if domain_id.to_s.empty?
+
+      load(domain_id)
+    end
+
+    # Resolve effective signup availability, combining the install-level
+    # (global) capability with an optional per-domain override.
+    #
+    # AND semantics: an enabled per-domain config can only *narrow* the
+    # global capability — it can never re-enable signup when the operator
+    # has disabled it globally (AUTH_ENABLED / AUTH_SIGNUP). When no config
+    # is enabled, the global value is authoritative.
+    #
+    # Mirrors SigninConfig.resolve_signin_enabled and is the source of
+    # truth for the runtime gate (Core::Controllers::Base#signup_enabled?).
+    #
+    # @param global [Boolean] install-level availability (auth.enabled && auth.signup)
+    # @param config [SignupConfig, nil] the per-domain config, if any
+    # @return [Boolean]
+    def resolve_signup_enabled(global, config)
+      global = global == true
+      return global unless config&.enabled?
+
+      global && config.signup_enabled?
+    end
+
+    # Effective sign-up availability for a CUSTOM DOMAIN request.
+    #
+    # Mirrors SigninConfig.resolve_signin_enabled_for_custom_domain: custom
+    # domains default OFF, so both "no config" and "config present but
+    # master switch off" resolve to false. Unlike resolve_signup_enabled
+    # (which lets an unconfigured CANONICAL request follow the global
+    # default, ADR-024 invariant #2), sign-up on a custom domain requires
+    # an explicitly *enabled* SignupConfig. The global kill switch still
+    # gates the result — an enabled config can only narrow, never re-enable
+    # sign-up disabled globally.
+    #
+    # Single source of truth for the custom-domain default, shared by the
+    # runtime route gate (Core::Controllers::Base#signup_enabled?) and the
+    # branded-masthead display gate
+    # (Core::Views::DomainSerializer#effective_signup_enabled?).
+    #
+    # @param global [Boolean] install-level availability (auth.enabled && auth.signup)
+    # @param config [SignupConfig, nil] the per-domain config, if any
+    # @return [Boolean]
+    def resolve_signup_enabled_for_custom_domain(global, config)
+      return false unless config&.enabled?
+
+      resolve_signup_enabled(global, config)
+    end
+
+    # Effective sign-up availability for a REQUEST, chosen by the request's
+    # DomainStrategy classification.
+    # ADR-024#operator-defaults-require-positive-classification
+    #
+    # Mirrors SigninConfig.resolve_signin_enabled_for_request, and shares
+    # its operator test rather than restating the classification list:
+    # SigninConfig.operator_host? is the ONE owner of "which hosts may
+    # inherit operator auth defaults", and sign-up must not be able to
+    # disagree with sign-in about that. Only :canonical and :subdomain take
+    # the global default; :custom, :invalid and nil are default-OFF, so a
+    # datastore blip that classifies a real customer domain :invalid can no
+    # longer hand it the operator's global sign-up setting.
+    #
+    # There is no display carve-out here — unlike sign-in, sign-up has no
+    # SSO path that works without an enabled config.
+    #
+    # @param global [Boolean] install-level availability (auth.enabled && auth.signup)
+    # @param config [SignupConfig, nil] the per-domain config, if any
+    # @param domain_strategy [Symbol, String, nil] env['onetime.domain_strategy']
+    # @return [Boolean]
+    def resolve_signup_enabled_for_request(global, config, domain_strategy:)
+      if Onetime::CustomDomain::SigninConfig.operator_host?(domain_strategy)
+        return resolve_signup_enabled(global, config)
+      end
+
+      resolve_signup_enabled_for_custom_domain(global, config)
+    end
+
+    # What the sign-up gate answers when the policy for this request host
+    # could NOT be read (#4157). Mirrors
+    # SigninConfig.resolve_lookup_failure exactly — same carve-out, same
+    # error family, different copy — because "disabled unless explicitly
+    # enabled" is only true if the application can actually READ the
+    # tenant's SignupConfig. Two datastore reads back that policy
+    # (CustomDomain.from_display_domain, then find_by_domain_id); when
+    # either raises, the gate cannot establish explicit enablement and must
+    # not guess.
+    #
+    # Guessing here is not hypothetical: before this, a Redis::BaseError on
+    # those reads propagated as an unhandled 500 in the controller — fail
+    # closed with the wrong shape — and, worse, the SAME blip that broke
+    # the read is what makes DomainStrategy answer :invalid for a real
+    # customer domain, which used to route that request to the operator's
+    # global sign-up default. Availability failure, access widening.
+    #
+    # OPERATOR HOSTS ARE CARVED OUT, and it costs nothing: a :canonical or
+    # :subdomain request has no per-domain SignupConfig to lose. The read
+    # could only ever have produced nil there, and nil is exactly what this
+    # returns, so the caller resolves against the operator's in-memory
+    # global setting as it always would. The test is POSITIVE
+    # (SigninConfig.operator_host?, the single owner of "which hosts may
+    # inherit operator auth defaults"), never `!= :custom`: :invalid and
+    # nil are precisely the classifications a datastore failure
+    # manufactures for a customer domain.
+    #
+    # @param domain_strategy [Symbol, String, nil] env['onetime.domain_strategy']
+    # @raise [Onetime::SignupPolicyUnavailable] on any host that is not positively an operator host
+    # @return [nil] on an operator host — "no per-domain config", the only
+    #   answer such a host could ever have had
+    def resolve_lookup_failure(domain_strategy:)
+      unless Onetime::CustomDomain::SigninConfig.operator_host?(domain_strategy)
+        raise Onetime::SignupPolicyUnavailable
+      end
+
+      nil
+    end
+
+    # Install-level signup capability — the `global` input to
+    # resolve_signup_enabled, defined once so the runtime gate
+    # (Core::Controllers::Base#signup_enabled?) and the settings API
+    # (DomainsAPI signup_config details) cannot drift in how they read it
+    # (ADR-024). Strict-boolean like the resolver: anything but true is
+    # treated as off.
+    #
+    # @param auth [Hash, nil] site.authentication settings (injectable for tests)
+    # @return [Boolean]
+    def global_signup_enabled(auth = nil)
+      auth ||= OT.conf.dig('site', 'authentication') || {}
+      (auth['enabled'] && auth['signup']) == true
+    end
+
+    # Check if a domain has signup config.
+    #
+    # @param domain_id [String] CustomDomain identifier
+    # @return [Boolean] true if signup config exists
+    def exists_for_domain?(domain_id)
+      return false if domain_id.to_s.empty?
+
+      exists?(domain_id)
+    end
+
+    # Create a new signup config for a domain.
+    #
+    # @param domain_id [String] CustomDomain identifier
+    # @param attrs [Hash] Configuration attributes
+    # @return [CustomDomain::SignupConfig] The created config
+    # @raise [Onetime::Problem] if config already exists
+    def create!(domain_id:, **attrs)
+      raise Onetime::Problem, 'domain_id is required' if domain_id.to_s.empty?
+
+      exists_message = 'Signup config already exists for this domain'
+      refuse_existing_config!(domain_id, exists_message)
+
+      config = new(domain_id: domain_id)
+
+      # Set fields
+      config.validation_strategy = attrs[:validation_strategy] if attrs.key?(:validation_strategy)
+      config.enabled             = attrs[:enabled].to_s if attrs.key?(:enabled)
+
+      # Set allowed domains
+      config.allowed_signup_domains = attrs[:allowed_signup_domains] if attrs.key?(:allowed_signup_domains)
+
+      # Non-nullable boolean fields with conservative defaults
+      config.signup_enabled    = attrs.key?(:signup_enabled) ? attrs[:signup_enabled] : false
+      config.autoverify        = attrs.key?(:autoverify) ? attrs[:autoverify] : false
+      config.allow_base_domain = attrs.key?(:allow_base_domain) ? attrs[:allow_base_domain] : false
+
+      # Initialize timestamps
+      now            = Familia.now.to_i
+      config.created = now
+      config.updated = now
+
+      save_new_config!(config, exists_message)
+
+      config
+    end
+
+    # List all domain signup configs.
+    #
+    # @return [Array<CustomDomain::SignupConfig>] All configs (newest first)
+    def all
+      identifiers = instances.revrangeraw(0, -1)
+      return [] if identifiers.empty?
+
+      load_multi(identifiers).compact
+    end
+
+    # Count of domains with signup config.
+    #
+    # @return [Integer] Number of signup configs
+    def count
+      instances.size
+    end
+  end
+
+  private
+
+  # Format-only validation using BASIC_FORMAT regex.
+  def validate_passthrough(email)
+    Onetime::Utils::EmailFormat.valid_format?(email)
+  end
+
+  # Domain allowlist validation.
+  #
+  # Fails closed. The operator chose domain_allowlist, so a list we cannot
+  # read (corrupt JSON) or an empty effective list cannot admit anyone: the
+  # empty list is already an invalid configuration (see validation_errors),
+  # but a saved record can still end up there without a write: the install
+  # flag turned off, or the entitlement lost, while allow_base_domain was
+  # the whole list.
+  # A corrupt list denies even when allow_base_domain is set: the stored
+  # restriction cannot be read, so nothing about it is trusted. The
+  # effective list is empty with the flag set when the domain record is
+  # missing or has no base_domain, or when allow_base_domain_effective? is
+  # false (install flag off, entitlement missing); valid_email_domain? then
+  # admits no one. Same reasoning as SsoConfig#allowed_domains_corrupt? on
+  # the SSO sign-in path.
+  #
+  # A listed address is admitted from the loaded record alone. Only an
+  # address the list does not admit reaches the reads behind
+  # allow_base_domain (domain record, owning organization, entitlements).
+  # When one of those raises (policy_read_failure?) the gate cannot tell
+  # whether the base domain counts, so it raises
+  # Onetime::SignupPolicyUnavailable (503) rather than denying with the
+  # wrong answer or escaping as a 500. Unconditional, unlike
+  # resolve_lookup_failure: this host's own config was already read, so
+  # there is no operator default to keep.
+  def validate_domain_allowlist(email, domain: nil)
+    # Must also pass format check
+    return false unless Onetime::Utils::EmailFormat.valid_format?(email)
+    return false if allowed_signup_domains_corrupt?
+    return true if valid_email_domain?(email, domains: allowed_signup_domains)
+
+    valid_email_domain?(email, domains: effective_allowed_signup_domains(domain: domain))
+  rescue StandardError => ex
+    raise unless policy_read_failure?(ex)
+
+    OT.le "[SignupConfig] Sign-up allowlist lookup failed domain_id=#{domain_id} #{ex.class}"
+    raise Onetime::SignupPolicyUnavailable
+  end
+
+  # allow_base_domain_effective? as #validation_errors applies it, with the
+  # domain record it was judged against. A read that raises
+  # (policy_read_failure?), the domain record's own included, makes the
+  # flag not count, so the list is judged on its own: a datastore blip or a
+  # broken plan catalog cannot fail an unrelated write, such as the colonel
+  # upsert's before/after comparison (Operations::Domains::UpsertDomainConfig),
+  # and cannot block disabling or repairing the config. Only validation
+  # reads it this way; the gate answers 503 for the same failure
+  # (#validate_domain_allowlist).
+  #
+  # @return [Array(Boolean, CustomDomain)] whether the flag counts, and the
+  #   domain record when it does (nil otherwise)
+  def allow_base_domain_for_validation
+    return [false, nil] unless allow_base_domain? && self.class.base_domain_signup_enabled? # skips the record lookups
+
+    domain = custom_domain
+    return [false, nil] unless domain && allow_base_domain_effective?(domain: domain)
+
+    [true, domain]
+  rescue StandardError => ex
+    raise unless policy_read_failure?(ex)
+
+    OT.le "[SignupConfig] allow_base_domain not counted for validation domain_id=#{domain_id} #{ex.class}"
+    [false, nil]
+  end
+
+  # A datastore read that raised, or an entitlement check that failed
+  # closed on an unresolvable plan. PlanCacheMissError is matched by name:
+  # builds without the billing app never define (or raise) it.
+  def policy_read_failure?(ex)
+    return true if ex.is_a?(Redis::BaseError)
+    return false unless defined?(::Billing::PlanCacheMissError)
+
+    ex.is_a?(::Billing::PlanCacheMissError)
+  end
+
+  # Truemail validation with per-call configuration.
+  #
+  # @param email [String] Email to validate
+  # @param validation_type [Symbol] :mx or :smtp
+  # @return [Boolean] true if email passes validation
+  def validate_with_truemail(email, validation_type)
+    # Must also pass format check first
+    return false unless Onetime::Utils::EmailFormat.valid_format?(email)
+
+    custom_config = build_truemail_config(validation_type: validation_type)
+    result        = Truemail.validate(email, custom_configuration: custom_config)
+    result.result.success
+  rescue StandardError => ex
+    OT.le "[SignupConfig] Truemail validation error: #{ex.message}"
+    # On error, fall back to format-only validation
+    Onetime::Utils::EmailFormat.valid_format?(email)
+  end
+
+  # Build a per-call Truemail configuration.
+  #
+  # @param validation_type [Symbol] :mx or :smtp
+  # @return [Truemail::Configuration]
+  def build_truemail_config(validation_type:)
+    Truemail::Configuration.new do |config|
+      # Copy essential settings from global config
+      global_config = Truemail.configuration
+
+      config.verifier_email     = global_config.verifier_email
+      config.verifier_domain    = global_config.verifier_domain
+      config.connection_timeout = global_config.connection_timeout
+      config.response_timeout   = global_config.response_timeout
+
+      # Set the requested validation type
+      config.default_validation_type = validation_type
+    end
+  end
+end

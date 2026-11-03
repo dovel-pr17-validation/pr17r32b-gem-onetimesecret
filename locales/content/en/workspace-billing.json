@@ -1,0 +1,1078 @@
+{
+  "web.billing.already_subscribed": {
+    "text": "You are already subscribed to this plan.",
+    "content_hash": "2b02438b"
+  },
+  "web.billing.subscription_synced_title": {
+    "text": "Subscription Synced",
+    "content_hash": "3086ef43"
+  },
+  "web.billing.subscription_synced_description": {
+    "text": "Your subscription benefits have been synced from another region.",
+    "content_hash": "a99b7a98"
+  },
+  "web.billing.upgrade.required": {
+    "text": "Upgrade Required",
+    "content_hash": "16487236"
+  },
+  "web.billing.upgrade.viewPlans": {
+    "text": "View Plans",
+    "content_hash": "a865d424"
+  },
+  "web.billing.upgrade.needTeams": {
+    "text": "Team management requires Identity Plus or higher",
+    "content_hash": "95bdda65"
+  },
+  "web.billing.upgrade.needCustomDomains": {
+    "text": "Custom domains require Identity Plus or higher",
+    "content_hash": "e8af8484"
+  },
+  "web.billing.upgrade.needApiAccess": {
+    "text": "API access requires Identity Plus or higher",
+    "content_hash": "ab8be865"
+  },
+  "web.billing.upgrade.needAuditLogs": {
+    "text": "Audit logs require Multi-Team plan or higher",
+    "content_hash": "91df96b0"
+  },
+  "web.billing.manage_subscription_and_billing": {
+    "text": "Manage your subscription, organizations, and billing settings",
+    "content_hash": "3995095c"
+  },
+  "web.billing.overview.title": {
+    "text": "Billing Overview",
+    "content_hash": "479a3c4c"
+  },
+  "web.billing.overview.description": {
+    "text": "View and manage your subscription and payment details",
+    "content_hash": "60e5a00e"
+  },
+  "web.billing.overview.billing_for_organization": {
+    "text": "Billing for this organization",
+    "content_hash": "21806992"
+  },
+  "web.billing.overview.current_plan": {
+    "text": "Current Plan",
+    "content_hash": "5d856320"
+  },
+  "web.billing.overview.plan_features": {
+    "text": "Plan Features",
+    "content_hash": "fbab9086"
+  },
+  "web.billing.overview.payment_method": {
+    "text": "Payment Method",
+    "content_hash": "f89a4e17"
+  },
+  "web.billing.overview.next_billing_date": {
+    "text": "Next Billing Date",
+    "content_hash": "3d1df54e"
+  },
+  "web.billing.overview.quick_actions": {
+    "text": "Quick Actions",
+    "content_hash": "2cc2b6f7"
+  },
+  "web.billing.overview.manage_billing": {
+    "text": "Manage Billing",
+    "content_hash": "6d3a16f5"
+  },
+  "web.billing.overview.view_invoices": {
+    "text": "View Invoices",
+    "content_hash": "cfc0404e"
+  },
+  "web.billing.overview.upgrade_plan": {
+    "text": "Upgrade Plan",
+    "content_hash": "17787ab7"
+  },
+  "web.billing.overview.change_plan": {
+    "text": "Change Plan",
+    "content_hash": "2d0b195b"
+  },
+  "web.billing.overview.manage_subscription": {
+    "text": "Manage Subscription",
+    "content_hash": "cbc4ef92"
+  },
+  "web.billing.plans.legacy_plan_info": {
+    "text": "You're on a grandfathered plan with special pricing.",
+    "content_hash": "e9aa8bf0"
+  },
+  "web.billing.plans.early_supporter_plan": {
+    "text": "Identity Plus (Early Supporter)",
+    "content_hash": "f37cd0d9"
+  },
+  "web.billing.plans.legacy_plan_warning": {
+    "text": "Switching plans will forfeit your grandfathered rate. This cannot be undone.",
+    "content_hash": "eda13d64"
+  },
+  "web.billing.overview.no_payment_method": {
+    "text": "No payment method on file",
+    "content_hash": "77f71037"
+  },
+  "web.billing.overview.no_upcoming_billing": {
+    "text": "No upcoming billing",
+    "content_hash": "746314de"
+  },
+  "web.billing.overview.days_remaining": {
+    "text": "days remaining",
+    "content_hash": "385438a3"
+  },
+  "web.billing.overview.billing_on": {
+    "text": "Billing on {date}",
+    "content_hash": "40dcb7cf"
+  },
+  "web.billing.overview.view_plans_action": {
+    "text": "View Plans",
+    "content_hash": "a865d424"
+  },
+  "web.billing.overview.view_plans_description": {
+    "text": "Compare and upgrade",
+    "content_hash": "40e02bff"
+  },
+  "web.billing.overview.view_invoices_action": {
+    "text": "View Invoices",
+    "content_hash": "cfc0404e"
+  },
+  "web.billing.overview.view_invoices_description": {
+    "text": "Download history",
+    "content_hash": "b8ff5cac"
+  },
+  "web.billing.overview.manage_billing_action": {
+    "text": "Manage Billing",
+    "content_hash": "6d3a16f5"
+  },
+  "web.billing.overview.manage_billing_description": {
+    "text": "Update payment info",
+    "content_hash": "1f981aaf"
+  },
+  "web.billing.overview.no_organizations_title": {
+    "text": "No Workspaces",
+    "content_hash": "c7f70723"
+  },
+  "web.billing.overview.no_organizations_description": {
+    "text": "Create a workspace to manage your billing and subscription",
+    "content_hash": "e0fd27a5"
+  },
+  "web.billing.overview.load_error": {
+    "text": "Failed to load billing information",
+    "content_hash": "3bc44882"
+  },
+  "web.billing.overview.upgrade_success": {
+    "text": "Your plan has been upgraded successfully",
+    "content_hash": "00ac43f8"
+  },
+  "web.billing.overview.upgrade_success_description": {
+    "text": "Your new plan is now active. Thank you for your purchase.",
+    "content_hash": "fd1caeb1"
+  },
+  "web.billing.overview.billing_contact": {
+    "text": "Billing Contact",
+    "content_hash": "8f782ad8"
+  },
+  "web.billing.overview.entitlements.create_secrets": {
+    "text": "Create Secrets",
+    "content_hash": "0320541d"
+  },
+  "web.billing.overview.entitlements.view_receipt": {
+    "text": "View Receipts",
+    "content_hash": "6c664c31"
+  },
+  "web.billing.overview.entitlements.api_access": {
+    "text": "API Access",
+    "content_hash": "5f31cc2f"
+  },
+  "web.billing.overview.entitlements.custom_domains": {
+    "text": "Custom Domains",
+    "content_hash": "6170ab94"
+  },
+  "web.billing.overview.entitlements.custom_privacy_defaults": {
+    "text": "Custom Privacy Defaults",
+    "content_hash": "e677e27d"
+  },
+  "web.billing.overview.entitlements.extended_default_expiration": {
+    "text": "Extended Default Expiration",
+    "content_hash": "19b19637"
+  },
+  "web.billing.overview.entitlements.custom_mail_sender": {
+    "text": "Custom Mail Defaults",
+    "content_hash": "95aebfb9"
+  },
+  "web.billing.overview.entitlements.flexible_from_domain": {
+    "text": "Flexible Email Sender Domain",
+    "content_hash": "607572c3"
+  },
+  "web.billing.overview.entitlements.custom_branding": {
+    "text": "Custom Branding",
+    "content_hash": "237dabec"
+  },
+  "web.billing.overview.entitlements.homepage_secrets": {
+    "text": "Homepage Secrets",
+    "content_hash": "6360f7ec"
+  },
+  "web.billing.overview.entitlements.incoming_secrets": {
+    "text": "Incoming Secrets",
+    "content_hash": "883dbca9"
+  },
+  "web.billing.overview.entitlements.manage_org": {
+    "text": "Manage Organization",
+    "content_hash": "f03a4985"
+  },
+  "web.billing.overview.entitlements.manage_orgs": {
+    "text": "Manage Organizations",
+    "content_hash": "be0fe4c3"
+  },
+  "web.billing.overview.entitlements.manage_teams": {
+    "text": "Manage Teams",
+    "content_hash": "2a52d5b4"
+  },
+  "web.billing.overview.entitlements.manage_members": {
+    "text": "Manage Members",
+    "content_hash": "af812b01"
+  },
+  "web.billing.overview.entitlements.manage_sso": {
+    "text": "Single Sign-On (SSO)",
+    "content_hash": "5db5c812"
+  },
+  "web.billing.overview.entitlements.audit_logs": {
+    "text": "Audit Logs",
+    "content_hash": "5428d7fe"
+  },
+  "web.billing.overview.entitlements.manage_billing": {
+    "text": "Manage Billing",
+    "content_hash": "6d3a16f5"
+  },
+  "web.billing.overview.entitlements.custom_signup_validation": {
+    "text": "Custom Signup Validation",
+    "content_hash": "0ff55bfa"
+  },
+  "web.billing.overview.entitlements.base_domain_signup": {
+    "text": "Automatic Base Domain Signup",
+    "content_hash": "4cc30024"
+  },
+  "web.billing.overview.entitlements.sso": {
+    "text": "Single Sign-On (SSO)",
+    "content_hash": "5db5c812"
+  },
+  "web.billing.overview.entitlements.priority_support": {
+    "text": "Priority Support",
+    "content_hash": "ed8a65c8"
+  },
+  "web.billing.overview.entitlements.sla": {
+    "text": "Service Level Agreement",
+    "content_hash": "436f2550"
+  },
+  "web.billing.overview.entitlements_load_error": {
+    "text": "Could not load feature details",
+    "content_hash": "c350973c"
+  },
+  "web.billing.overview.no_entitlements": {
+    "text": "No features available",
+    "content_hash": "03d195e8"
+  },
+  "web.billing.features.create_secrets": {
+    "text": "Create & Share Secrets",
+    "content_hash": "303f9386"
+  },
+  "web.billing.features.api_access": {
+    "text": "API Access",
+    "content_hash": "5f31cc2f"
+  },
+  "web.billing.features.custom_domains": {
+    "text": "Custom Domains",
+    "content_hash": "6170ab94"
+  },
+  "web.billing.features.custom_domain": {
+    "text": "1 Custom Domain",
+    "content_hash": "6a6be744"
+  },
+  "web.billing.features.unlimited_custom_domains": {
+    "text": "Unlimited Custom Domains",
+    "content_hash": "53eb7521"
+  },
+  "web.billing.features.custom_branding": {
+    "text": "Custom Branding",
+    "content_hash": "237dabec"
+  },
+  "web.billing.features.homepage_secrets": {
+    "text": "Homepage Secrets",
+    "content_hash": "6360f7ec"
+  },
+  "web.billing.features.manage_teams": {
+    "text": "Team Management",
+    "content_hash": "6bcbac8f"
+  },
+  "web.billing.features.manage_members": {
+    "text": "Member Management",
+    "content_hash": "b38b89db"
+  },
+  "web.billing.features.manage_orgs": {
+    "text": "Organization Management",
+    "content_hash": "780ad17c"
+  },
+  "web.billing.features.flexible_from_domain": {
+    "text": "Flexible Email Sender Domain",
+    "content_hash": "607572c3"
+  },
+  "web.billing.features.unlimited_admins": {
+    "text": "Unlimited Administrators",
+    "content_hash": "5871a536"
+  },
+  "web.billing.features.audit_logs": {
+    "text": "Audit Logs",
+    "content_hash": "5428d7fe"
+  },
+  "web.billing.features.sso": {
+    "text": "SSO",
+    "content_hash": "5ba3ac9f"
+  },
+  "web.billing.features.priority_support": {
+    "text": "Priority Support",
+    "content_hash": "ed8a65c8"
+  },
+  "web.billing.features.sla": {
+    "text": "Service Level Agreement",
+    "content_hash": "436f2550"
+  },
+  "web.billing.features.centralized_billing": {
+    "text": "Centralized Billing",
+    "content_hash": "62042d3b"
+  },
+  "web.billing.features.audit_trail": {
+    "text": "Audit Trail",
+    "content_hash": "d52b4039"
+  },
+  "web.billing.features.activity_stream": {
+    "text": "Activity Stream",
+    "content_hash": "b9c6cba7"
+  },
+  "web.billing.features.handoff_workflows": {
+    "text": "Handoff Workflows",
+    "content_hash": "07202af3"
+  },
+  "web.billing.features.manage_sso": {
+    "text": "SSO",
+    "content_hash": "5ba3ac9f"
+  },
+  "web.billing.plans.title": {
+    "text": "Select a Plan",
+    "content_hash": "79506c82"
+  },
+  "web.billing.plans.choose_plan": {
+    "text": "Choose the plan that fits your needs",
+    "content_hash": "5f039cb9"
+  },
+  "web.billing.plans.subtitle": {
+    "text": "Choose the perfect plan for your organization",
+    "content_hash": "308076f2"
+  },
+  "web.billing.plans.current": {
+    "text": "Current Plan",
+    "content_hash": "5d856320"
+  },
+  "web.billing.plans.reactivate": {
+    "text": "Reactivate",
+    "context": "Plan card button label when subscription is scheduled for cancellation",
+    "content_hash": "2dc7478f"
+  },
+  "web.billing.plans.current_badge": {
+    "text": "Current",
+    "content_hash": "e0d1b682"
+  },
+  "web.billing.plans.upgrade": {
+    "text": "Upgrade",
+    "content_hash": "7ec0261b"
+  },
+  "web.billing.plans.downgrade": {
+    "text": "Downgrade",
+    "content_hash": "d955b7e8"
+  },
+  "web.billing.plans.cancel_to_downgrade": {
+    "text": "Cancel to switch",
+    "content_hash": "1c4cda89"
+  },
+  "web.billing.plans.monthly": {
+    "text": "Monthly",
+    "content_hash": "9b11f6b7"
+  },
+  "web.billing.plans.yearly": {
+    "text": "Yearly",
+    "content_hash": "6e69b59e"
+  },
+  "web.billing.plans.per_month": {
+    "text": "/month",
+    "content_hash": "eec5d08b"
+  },
+  "web.billing.plans.per_year": {
+    "text": "/year",
+    "content_hash": "a2d5f1bc"
+  },
+  "web.billing.plans.billing_interval": {
+    "text": "Billing interval",
+    "content_hash": "3ce28209"
+  },
+  "web.billing.plans.save_yearly": {
+    "text": "Save {percent}% with yearly billing",
+    "content_hash": "88c451f2"
+  },
+  "web.billing.plans.free_plan": {
+    "text": "Free",
+    "content_hash": "f411a1fb"
+  },
+  "web.billing.plans.single_team_plan": {
+    "text": "Single Team",
+    "content_hash": "267ad4cf"
+  },
+  "web.billing.plans.multi_team_plan": {
+    "text": "Multi Team",
+    "content_hash": "ffc73d2c"
+  },
+  "web.billing.plans.individual_account": {
+    "text": "Individual Account",
+    "content_hash": "324221e2"
+  },
+  "web.billing.plans.team_account": {
+    "text": "Team Account",
+    "content_hash": "44e90aad"
+  },
+  "web.billing.plans.multi_team_account": {
+    "text": "Organization Account",
+    "content_hash": "86e3a165"
+  },
+  "web.billing.plans.features": {
+    "text": "Features",
+    "content_hash": "5697d03d"
+  },
+  "web.billing.plans.unlimited_secrets": {
+    "text": "Unlimited secrets",
+    "content_hash": "0f077568"
+  },
+  "web.billing.plans.api_access": {
+    "text": "API access",
+    "content_hash": "923fd434"
+  },
+  "web.billing.plans.priority_support": {
+    "text": "Priority support",
+    "content_hash": "acea4b40"
+  },
+  "web.billing.plans.select_plan": {
+    "text": "Select Plan",
+    "content_hash": "8709f894"
+  },
+  "web.billing.plans.contact_sales": {
+    "text": "Contact Sales",
+    "content_hash": "484aa053"
+  },
+  "web.billing.plans.custom_needs_title": {
+    "text": "Have questions or need something custom?",
+    "content_hash": "2f68484c"
+  },
+  "web.billing.plans.custom_needs_description": {
+    "text": "We'd love to hear from you. Let us know what you're looking for.",
+    "content_hash": "a6b7f407"
+  },
+  "web.billing.plans.teams_limit": {
+    "text": "{count} team | {count} teams",
+    "content_hash": "a83641bc"
+  },
+  "web.billing.plans.members_limit": {
+    "text": "{count} member per team | {count} members per team",
+    "content_hash": "54fb2b4b"
+  },
+  "web.billing.plans.unlimited_teams": {
+    "text": "Unlimited teams",
+    "content_hash": "6d9fde65"
+  },
+  "web.billing.plans.unlimited_members": {
+    "text": "Unlimited members per team",
+    "content_hash": "728ecef0"
+  },
+  "web.billing.plans.most_popular": {
+    "text": "Most Popular",
+    "content_hash": "9e1006a4"
+  },
+  "web.billing.plans.suggested": {
+    "text": "Suggested",
+    "content_hash": "93b63bab"
+  },
+  "web.billing.plans.everything_in": {
+    "text": "Includes everything in {plan}",
+    "content_hash": "1c73c298"
+  },
+  "web.billing.plans.no_plans_available": {
+    "text": "No {interval} plans available at this time.",
+    "content_hash": "d8454436"
+  },
+  "web.billing.plans.load_error": {
+    "text": "Failed to load plans",
+    "content_hash": "a37d4d9a"
+  },
+  "web.billing.plans.change_immediate": {
+    "text": "Your plan will change immediately.",
+    "content_hash": "889d13be"
+  },
+  "web.billing.plans.current_plan_label": {
+    "text": "Current plan:",
+    "content_hash": "648a0ab2"
+  },
+  "web.billing.plans.new_plan_label": {
+    "text": "New plan:",
+    "content_hash": "edb868c4"
+  },
+  "web.billing.plans.credit_label": {
+    "text": "Credit for unused time:",
+    "content_hash": "001e4901"
+  },
+  "web.billing.plans.due_today": {
+    "text": "Due today:",
+    "content_hash": "e370e3aa"
+  },
+  "web.billing.plans.next_billing": {
+    "text": "Next billing ({date}):",
+    "content_hash": "a6846a85"
+  },
+  "web.billing.plans.next_invoice": {
+    "text": "Next invoice",
+    "content_hash": "5670e027"
+  },
+  "web.billing.plans.limits_update_notice": {
+    "text": "Your feature limits will update immediately after the plan change.",
+    "content_hash": "9cb09f73"
+  },
+  "web.billing.plans.change_failed": {
+    "text": "Plan change failed. Please try again.",
+    "content_hash": "a4e86372"
+  },
+  "web.billing.plans.confirm_upgrade": {
+    "text": "Confirm Upgrade",
+    "content_hash": "71a4ab02"
+  },
+  "web.billing.plans.confirm_downgrade": {
+    "text": "Confirm Downgrade",
+    "content_hash": "deaf8189"
+  },
+  "web.billing.plans.upgrade_to": {
+    "text": "Upgrade to {plan}?",
+    "content_hash": "b1e4e88c"
+  },
+  "web.billing.plans.downgrade_to": {
+    "text": "Downgrade to {plan}?",
+    "content_hash": "8eb8ea81"
+  },
+  "web.billing.plans.credit_applies_heading": {
+    "text": "How your credit applies:",
+    "content_hash": "a0943c3b"
+  },
+  "web.billing.plans.next_bill_amount": {
+    "text": "Next bill amount:",
+    "content_hash": "526ad28f"
+  },
+  "web.billing.plans.credit_applied_to_bill": {
+    "text": "Credit applied:",
+    "content_hash": "e5f2e81a"
+  },
+  "web.billing.plans.amount_due_next_billing": {
+    "text": "Amount due at next billing:",
+    "content_hash": "22ee868a"
+  },
+  "web.billing.plans.remaining_account_credit": {
+    "text": "Remaining account credit:",
+    "content_hash": "eedd0c0a"
+  },
+  "web.billing.plans.credit_future_note": {
+    "text": "Applied to future invoices",
+    "content_hash": "5007add6"
+  },
+  "web.billing.invoices.title": {
+    "text": "Billing History",
+    "content_hash": "5ade0861"
+  },
+  "web.billing.invoices.view_history": {
+    "text": "View your billing history and download invoices",
+    "content_hash": "eb72573c"
+  },
+  "web.billing.invoices.invoice_date": {
+    "text": "Date",
+    "content_hash": "99c40ab4"
+  },
+  "web.billing.invoices.invoice_amount": {
+    "text": "Amount",
+    "content_hash": "49e96d7c"
+  },
+  "web.billing.invoices.invoice_status": {
+    "text": "Status",
+    "content_hash": "920e413c"
+  },
+  "web.billing.invoices.invoice_download": {
+    "text": "Download",
+    "content_hash": "d6eafe82"
+  },
+  "web.billing.invoices.invoice_number": {
+    "text": "Invoice #",
+    "content_hash": "48a67cac"
+  },
+  "web.billing.invoices.no_invoices": {
+    "text": "No invoices yet",
+    "content_hash": "92d2d0ce"
+  },
+  "web.billing.invoices.no_invoices_description": {
+    "text": "Your invoices will appear here once you upgrade to a paid plan",
+    "content_hash": "7f16be70"
+  },
+  "web.billing.invoices.view_plans": {
+    "text": "View Plans",
+    "content_hash": "a865d424"
+  },
+  "web.billing.invoices.paid": {
+    "text": "Paid",
+    "content_hash": "fb81b961"
+  },
+  "web.billing.invoices.pending": {
+    "text": "Pending",
+    "content_hash": "331551b0"
+  },
+  "web.billing.invoices.failed": {
+    "text": "Failed",
+    "content_hash": "031a8f0f"
+  },
+  "web.billing.invoices.draft": {
+    "text": "Draft",
+    "content_hash": "ebf12ef4"
+  },
+  "web.billing.invoices.open": {
+    "text": "Open",
+    "content_hash": "ed077f3d"
+  },
+  "web.billing.invoices.uncollectible": {
+    "text": "Uncollectible",
+    "content_hash": "c8d3b241"
+  },
+  "web.billing.invoices.void": {
+    "text": "Void",
+    "content_hash": "4e7ba403"
+  },
+  "web.billing.invoices.load_error": {
+    "text": "Failed to load invoices",
+    "content_hash": "0b0cb3f7"
+  },
+  "web.billing.notices.org_managed": {
+    "text": "Billing is managed by {orgName}",
+    "content_hash": "6cfe0fb4"
+  },
+  "web.billing.notices.view_org_billing": {
+    "text": "View organization billing",
+    "content_hash": "2ae16262"
+  },
+  "web.billing.limits.members_reached": {
+    "text": "You've reached the member limit for this team",
+    "content_hash": "ce8f2a24"
+  },
+  "web.billing.limits.members_upgrade": {
+    "text": "Upgrade to add more members",
+    "content_hash": "602bdef4"
+  },
+  "web.billing.subscription.title": {
+    "text": "Subscription",
+    "content_hash": "4999c6c6"
+  },
+  "web.billing.subscription.status": {
+    "text": "Subscription Status",
+    "content_hash": "c7a08e1d"
+  },
+  "web.billing.subscription.active": {
+    "text": "Active",
+    "content_hash": "92340695"
+  },
+  "web.billing.subscription.inactive": {
+    "text": "Inactive",
+    "content_hash": "ac7c949f"
+  },
+  "web.billing.subscription.past_due": {
+    "text": "Past Due",
+    "content_hash": "2bda1c7b"
+  },
+  "web.billing.subscription.canceled": {
+    "text": "Canceled",
+    "content_hash": "13ca2ee2"
+  },
+  "web.billing.subscription.catalog_name": {
+    "text": "Plan",
+    "content_hash": "fa8ed0bd"
+  },
+  "web.billing.subscription.team_usage": {
+    "text": "Team Usage",
+    "content_hash": "f9989642"
+  },
+  "web.billing.subscription.teams_used": {
+    "text": "{used} of {limit} teams",
+    "content_hash": "1db6b53c"
+  },
+  "web.billing.portal.title": {
+    "text": "Billing Portal",
+    "content_hash": "9baaf69e"
+  },
+  "web.billing.portal.description": {
+    "text": "Manage your subscription, payment methods, and billing history",
+    "content_hash": "1a8f3c19"
+  },
+  "web.billing.portal.open_portal": {
+    "text": "Open Billing Portal",
+    "content_hash": "23fbfa2b"
+  },
+  "web.billing.portal.redirecting": {
+    "text": "Redirecting to billing portal...",
+    "content_hash": "b6f47df3"
+  },
+  "web.billing.portal.open_error": {
+    "text": "Could not open the billing portal. Please try again.",
+    "content_hash": "3d5331c0"
+  },
+  "web.billing.start_today": {
+    "text": "Start today",
+    "content_hash": "80e73fc7"
+  },
+  "web.billing.start_today_with_identity_plus": {
+    "text": "Start today with Identity Plus",
+    "content_hash": "cce4c7d7"
+  },
+  "web.billing.per_month": {
+    "text": "per month",
+    "content_hash": "88b1d1a6"
+  },
+  "web.billing.full_api_access": {
+    "text": "Full API access",
+    "content_hash": "f5bedf1c"
+  },
+  "web.billing.privacy_first_design": {
+    "text": "Privacy-first design",
+    "content_hash": "587d738c"
+  },
+  "web.billing.identity_plus": {
+    "text": "Identity Plus",
+    "content_hash": "bb273516"
+  },
+  "web.billing.click_this_lightning_bolt_to_upgrade_for_custom_domains": {
+    "text": "Click this lightning bolt to upgrade for custom domains",
+    "content_hash": "84cb4258"
+  },
+  "web.billing.maybe_later": {
+    "text": "Maybe Later",
+    "content_hash": "166b26ab"
+  },
+  "web.billing.upgrade_account": {
+    "text": "Upgrade account",
+    "content_hash": "4799b02e"
+  },
+  "web.billing.upgrade_to_identity_plus": {
+    "text": "Upgrade to Identity Plus",
+    "content_hash": "272d3c80"
+  },
+  "web.billing.upgrade_for_teams": {
+    "text": "Upgrade for Teams",
+    "content_hash": "90dfb533"
+  },
+  "web.billing.benefits_of": {
+    "text": "Benefits of",
+    "content_hash": "75403743"
+  },
+  "web.billing.t_benefits_of_identity_plus": {
+    "text": "{0}: Identity Plus",
+    "content_hash": "f13e5f3e"
+  },
+  "web.billing.upgrade_to": {
+    "text": "Upgrade to",
+    "content_hash": "2ecdd437"
+  },
+  "web.billing.upgrade_for_yourdomain": {
+    "text": "Upgrade for secrets.yourdomain.com",
+    "content_hash": "8e4d766a"
+  },
+  "web.billing.includes_all_features_and_unlimited_sharing_capa": {
+    "text": "All plans include privacy features and unlimited sharing capacity",
+    "content_hash": "e728e4e1"
+  },
+  "web.billing.includes_all_data_locality_options": {
+    "text": "All plans include choice of data locality: {0} regions",
+    "content_hash": "22a60b49"
+  },
+  "web.billing.get_started": {
+    "text": "Get started",
+    "content_hash": "61e8d44a"
+  },
+  "web.billing.frequency_value_annually_annual_monthly_subscrip": {
+    "text": "{0} subscription",
+    "content_hash": "eaf5e2ef"
+  },
+  "web.billing.elevate_your_secure_sharing_with_custom_domains_": {
+    "text": "Elevate your secure sharing with custom domains, unlimited capacity, and enterprise-grade features.",
+    "content_hash": "db458d30"
+  },
+  "web.billing.payment_frequency": {
+    "text": "Payment frequency",
+    "content_hash": "b2c87e39"
+  },
+  "web.billing.secure_your_brand_and_build_customer_trust_with_": {
+    "text": "Secure your brand and build customer trust with links from your domain. Perfect for businesses that value privacy and professionalism.",
+    "content_hash": "c07cd25c"
+  },
+  "web.billing.secure_links_stronger_connections": {
+    "text": "Secure Links, Stronger Connections",
+    "content_hash": "dd8dae5d"
+  },
+  "web.billing.identity_tier_not_found_in_product_tiers": {
+    "text": "Identity tier not found in product tiers",
+    "content_hash": "d0204fc4"
+  },
+  "web.billing.cancel.link_text": {
+    "text": "Cancel subscription",
+    "context": "Link text shown below the plan selector for paid users",
+    "content_hash": "3f85967f"
+  },
+  "web.billing.cancel.title": {
+    "text": "Cancel Subscription",
+    "context": "Modal dialog heading/title",
+    "content_hash": "882e0c83"
+  },
+  "web.billing.cancel.confirmation": {
+    "text": "Are you sure you want to cancel your {plan} subscription?",
+    "content_hash": "f4d1b6ee"
+  },
+  "web.billing.cancel.what_happens": {
+    "text": "What happens when you cancel:",
+    "content_hash": "4d8f5751"
+  },
+  "web.billing.cancel.access_until": {
+    "text": "You'll retain access to all features until {date}",
+    "content_hash": "eab1efe3"
+  },
+  "web.billing.cancel.access_until_period_end": {
+    "text": "You'll retain access until your current billing period ends",
+    "content_hash": "1b07a54a"
+  },
+  "web.billing.cancel.no_future_charges": {
+    "text": "You won't be charged again",
+    "content_hash": "a01cdc16"
+  },
+  "web.billing.cancel.downgrade_to_free": {
+    "text": "Your account will revert to the free plan",
+    "content_hash": "e01b3fc3"
+  },
+  "web.billing.cancel.keep_subscription": {
+    "text": "Keep Subscription",
+    "context": "Secondary button in modal - keeps subscription active",
+    "content_hash": "31e80c41"
+  },
+  "web.billing.cancel.confirm_cancel": {
+    "text": "Cancel Subscription",
+    "context": "Primary action button in modal - confirms the cancellation",
+    "content_hash": "882e0c83"
+  },
+  "web.billing.cancel.success": {
+    "text": "Your subscription has been cancelled. You'll retain access until the end of your billing period.",
+    "content_hash": "e18fd9d5"
+  },
+  "web.billing.cancel.error": {
+    "text": "Failed to cancel subscription. Please try again.",
+    "content_hash": "68e8bdde"
+  },
+  "web.billing.cancel.scheduled_title": {
+    "text": "Subscription Cancellation Scheduled",
+    "context": "Alert banner heading shown when cancellation is pending",
+    "content_hash": "1427d139"
+  },
+  "web.billing.cancel.scheduled_description": {
+    "text": "Your subscription will remain active until {date}. You'll continue to have full access to all features until then.",
+    "context": "Alert banner description explaining continued access",
+    "content_hash": "aab4b1dc"
+  },
+  "web.billing.cancel.scheduled_note": {
+    "text": "Changed your mind? You can reactivate your subscription anytime before the cancellation date.",
+    "context": "Alert banner note encouraging reactivation",
+    "content_hash": "c94d5527"
+  },
+  "web.billing.cancel.reactivate_button": {
+    "text": "Reactivate Subscription",
+    "context": "Button in cancellation banner to undo scheduled cancellation",
+    "content_hash": "aa036442"
+  },
+  "web.billing.cancel.reactivate_success": {
+    "text": "Your subscription has been reactivated. You will continue to be billed as normal.",
+    "context": "Success message after undoing a scheduled cancellation",
+    "content_hash": "523bf7bf"
+  },
+  "web.billing.cancel.reactivate_error": {
+    "text": "Failed to reactivate subscription. Please try again or contact support.",
+    "context": "Error message when subscription reactivation fails",
+    "content_hash": "d0c79bd4"
+  },
+  "web.billing.overview.entitlements.notifications": {
+    "text": "Email Notifications",
+    "content_hash": "04e0f1e9"
+  },
+  "web.billing.overview.entitlements.ip_access_rules": {
+    "text": "IP Access Rules",
+    "content_hash": "db966d47"
+  },
+  "web.billing.overview.entitlements.workspace_branding": {
+    "text": "Workspace Branding",
+    "content_hash": "e7acbf6f"
+  },
+  "web.billing.features.extended_retention": {
+    "text": "30-day Secret Retention",
+    "content_hash": "21d6d514"
+  },
+  "web.billing.features.incoming_secrets": {
+    "text": "Incoming Secrets",
+    "content_hash": "883dbca9"
+  },
+  "web.billing.features.team_members_5": {
+    "text": "Up to 5 team members",
+    "content_hash": "e7518d07"
+  },
+  "web.billing.features.team_members_10": {
+    "text": "Up to 10 team members",
+    "content_hash": "0c64c064"
+  },
+  "web.billing.features.team_members_25": {
+    "text": "Up to 25 team members",
+    "content_hash": "bf3b84c8"
+  },
+  "web.billing.features.team_members_50": {
+    "text": "Up to 50 team members",
+    "content_hash": "3c2d9a14"
+  },
+  "web.billing.features.unlimited_members": {
+    "text": "Unlimited team members",
+    "content_hash": "b7491ee9"
+  },
+  "web.billing.features.notifications": {
+    "text": "Email Notifications",
+    "content_hash": "04e0f1e9"
+  },
+  "web.billing.features.ip_access_rules": {
+    "text": "IP Access Rules",
+    "content_hash": "db966d47"
+  },
+  "web.billing.features.workspace_branding": {
+    "text": "Workspace Branding",
+    "content_hash": "e7acbf6f"
+  },
+  "web.billing.features.dedicated_infrastructure": {
+    "text": "Dedicated Infrastructure",
+    "content_hash": "0c10aea7"
+  },
+  "web.billing.features.shared_workflows": {
+    "text": "Shared Workflows",
+    "content_hash": "158f558e"
+  },
+  "web.billing.currency_migration.title": {
+    "text": "Currency Change Required",
+    "context": "Modal title when plan requires different currency than current subscription",
+    "content_hash": "2cd800c5"
+  },
+  "web.billing.currency_migration.description": {
+    "text": "Your current subscription uses {from}. The selected plan is billed in {to}. This requires migrating your subscription to the new currency.",
+    "content_hash": "f0cdf727"
+  },
+  "web.billing.currency_migration.current_plan": {
+    "text": "Current plan:",
+    "content_hash": "648a0ab2"
+  },
+  "web.billing.currency_migration.new_plan": {
+    "text": "New plan:",
+    "content_hash": "edb868c4"
+  },
+  "web.billing.currency_migration.current_period_ends": {
+    "text": "Current period ends:",
+    "content_hash": "2e20e596"
+  },
+  "web.billing.currency_migration.choose_timing": {
+    "text": "When should the switch happen?",
+    "content_hash": "f4aabb13"
+  },
+  "web.billing.currency_migration.graceful_title": {
+    "text": "Switch at end of billing period",
+    "content_hash": "55cd980b"
+  },
+  "web.billing.currency_migration.graceful_description": {
+    "text": "Your current plan stays active until {date}. After that, you'll complete checkout for your new plan.",
+    "content_hash": "b8661418"
+  },
+  "web.billing.currency_migration.immediate_title": {
+    "text": "Switch immediately",
+    "content_hash": "e9d0ba59"
+  },
+  "web.billing.currency_migration.immediate_description": {
+    "text": "Your current plan is cancelled now. You'll receive a refund for your unused time and complete checkout for the new plan.",
+    "content_hash": "b08de0ca"
+  },
+  "web.billing.currency_migration.confirm": {
+    "text": "Confirm Currency Change",
+    "content_hash": "1edc1c78"
+  },
+  "web.billing.currency_migration.error": {
+    "text": "Currency migration failed. Please try again.",
+    "content_hash": "4a6e1ced"
+  },
+  "web.billing.currency_migration.success": {
+    "text": "Your subscription currency has been updated successfully.",
+    "content_hash": "a8bf437e"
+  },
+  "web.billing.currency_migration.graceful_success": {
+    "text": "Your current plan will remain active until the end of the billing period. You'll be prompted to complete checkout for your new plan after that.",
+    "content_hash": "15d41483"
+  },
+  "web.billing.currency_migration.warning_credit_balance": {
+    "text": "You have a credit balance in {currency} that cannot be transferred to the new currency.",
+    "content_hash": "aa15be91"
+  },
+  "web.billing.currency_migration.warning_pending_items": {
+    "text": "You have pending invoice items that will need to be resolved before migration.",
+    "content_hash": "7b4c5e10"
+  },
+  "web.billing.currency_migration.warning_coupons": {
+    "text": "Active coupons on your account may not be compatible with the new currency.",
+    "content_hash": "f572ee81"
+  },
+  "web.billing.currency_migration.pending_title": {
+    "text": "Currency Migration Pending",
+    "context": "Banner heading when graceful migration is scheduled",
+    "content_hash": "018ae653"
+  },
+  "web.billing.currency_migration.pending_description": {
+    "text": "Your current plan ends on {date}. Complete your switch to {plan} ({currency}).",
+    "content_hash": "998ba4ab"
+  },
+  "web.billing.currency_migration.complete_migration": {
+    "text": "Complete Migration",
+    "context": "Button to start checkout for the new currency plan",
+    "content_hash": "fa794e0c"
+  },
+  "web.billing.currency_migration.refund_failed_warning": {
+    "text": "Your previous plan was cancelled, but we couldn't automatically issue the refund for your unused time. Please contact support to receive your refund. You still need to complete checkout to activate your new plan.",
+    "context": "Warning shown when an immediate currency migration succeeds but the prorated refund could not be issued",
+    "content_hash": "a390c498"
+  },
+  "web.billing.currency_migration.refund_failed_continue": {
+    "text": "Continue to Checkout",
+    "context": "Button to proceed to checkout after acknowledging the refund failure warning",
+    "content_hash": "eccdb8aa"
+  },
+  "web.billing.checkout_session_failed": {
+    "text": "Failed to create checkout session",
+    "context": "Error when Stripe checkout session creation returns no URL",
+    "content_hash": "a53f6fa3"
+  },
+  "web.billing.checkout_initiate_failed": {
+    "text": "Failed to initiate checkout",
+    "context": "Fallback error for checkout failures",
+    "content_hash": "3ff06e41"
+  },
+  "web.billing.plan_switch_success": {
+    "text": "Successfully switched to {plan}",
+    "context": "Success message after plan change",
+    "content_hash": "ab7c715c"
+  },
+  "web.billing.plan_unavailable_region_mismatch": {
+    "text": "Available in your original subscription region only",
+    "context": "Hint shown on plan cards when currency does not match active subscription",
+    "content_hash": "10de32e5"
+  }
+}

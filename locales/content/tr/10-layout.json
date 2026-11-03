@@ -1,0 +1,366 @@
+{
+  "web.footer.api_docs": {
+    "text": "API Belgeleri",
+    "source_hash": "f4137804"
+  },
+  "web.footer.branding_guide": {
+    "text": "Markalama Kılavuzu",
+    "source_hash": "53f994c5"
+  },
+  "web.footer.customize": {
+    "text": "Özelleştir",
+    "source_hash": "c5276e27"
+  },
+  "web.footer.plans": {
+    "text": "Planlar",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.footer.security": {
+    "text": "Güvenlik",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.footer.learn_about_our_security_measures": {
+    "text": "Güvenlik önlemlerimiz hakkında bilgi edinin",
+    "source_hash": "16c8adae"
+  },
+  "web.footer.view_our_terms_and_conditions": {
+    "text": "Hüküm ve Koşullarımızı görüntüleyin",
+    "source_hash": "0dde60b7"
+  },
+  "web.footer.terms": {
+    "text": "Koşullar",
+    "source_hash": "ede54899"
+  },
+  "web.footer.privacy": {
+    "text": "Gizlilik",
+    "source_hash": "54a57c31"
+  },
+  "web.footer.contact": {
+    "text": "İletişim",
+    "source_hash": "2b5c3d26"
+  },
+  "web.footer.support": {
+    "text": "Destek",
+    "source_hash": "be91940b"
+  },
+  "web.footer.legals": {
+    "text": "Yasal Bilgiler",
+    "source_hash": "0a410c78"
+  },
+  "web.feedback.when_you_submit_feedback_well_see": {
+    "text": "Geri bildirim gönderdiğinizde şunları göreceğiz:",
+    "source_hash": "fe77172e"
+  },
+  "web.footer.read_our_privacy_policy": {
+    "text": "Gizlilik Politikamızı okuyun",
+    "source_hash": "eb443229"
+  },
+  "web.footer.check_our_service_status": {
+    "text": "Hizmet durumumuzu kontrol edin",
+    "source_hash": "1f04937e"
+  },
+  "web.footer.explore_our_api_documentation": {
+    "text": "API belgelerimizi keşfedin",
+    "source_hash": "45beb8f8"
+  },
+  "web.footer.docs": {
+    "text": "Belgeler",
+    "source_hash": "7af023c4"
+  },
+  "web.footer.access_our_documentation": {
+    "text": "Belgelerimize erişin",
+    "source_hash": "37686da2"
+  },
+  "web.footer.view_our_source_code_on_github": {
+    "text": "Kaynak kodumuzu GitHub'da görüntüleyin",
+    "source_hash": "d5def0ab"
+  },
+  "web.footer.resources": {
+    "text": "Kaynaklar",
+    "source_hash": "e89b30aa"
+  },
+  "web.footer.blog": {
+    "text": "Blog",
+    "source_hash": "8c6bc099"
+  },
+  "web.footer.read_our_latest_blog_posts": {
+    "text": "En son blog yazılarımızı okuyun",
+    "source_hash": "77468d43"
+  },
+  "web.footer.view_our_subscription_pricing": {
+    "text": "Abonelik fiyatlandırmamızı görüntüleyin",
+    "source_hash": "55f1f590"
+  },
+  "web.footer.learn_about_our_company": {
+    "text": "Şirketimiz hakkında bilgi edinin",
+    "source_hash": "780e18cd"
+  },
+  "web.footer.company": {
+    "text": "Şirket",
+    "source_hash": "de4743c8"
+  },
+  "web.footer.product": {
+    "text": "Ürün",
+    "source_hash": "fb9ef894"
+  },
+  "web.footer.source_code_purveyor": {
+    "text": "Kaynak Kodu",
+    "source_hash": "bc47da66"
+  },
+  "web.navigation.billing": {
+    "text": "Faturalandırma",
+    "source_hash": "3ac8bbca"
+  },
+  "web.navigation.billingOverview": {
+    "text": "Genel Bakış",
+    "source_hash": "d4b1ea57"
+  },
+  "web.navigation.organizations": {
+    "text": "Kuruluşlar",
+    "source_hash": "2730183d"
+  },
+  "web.site.website_version": {
+    "text": "Web Sitesi Sürümü",
+    "source_hash": "4d4a570f"
+  },
+  "web.meta.were_making_onetime_secret_available_in_multiple": {
+    "text": "{onetime-secret} özelliğini birden fazla dilde kullanıma sunuyoruz. Bu yeni bir özellik olduğundan, çeviri hataları veya garip ifadelerle karşılaşabilirsiniz. Geri bildirimleriniz bize yardımcı olur - herhangi bir sorunla karşılaşırsanız, lütfen {send-feedback}",
+    "source_hash": "3b482d7f"
+  },
+  "web.meta.translations_are_new_spotted_an_error": {
+    "text": "Çeviriler yenidir. Bir hata mı gördünüz? {send-feedback}",
+    "source_hash": "31eca08d"
+  },
+  "web.meta.we_recently_added_translations": {
+    "text": "Yakın zamanda çeviriler ekledik. Bir hata mı fark ettiniz? {send-feedback}",
+    "source_hash": "6e2455c1"
+  },
+  "web.meta.privacy_and_security_should_be_accessible": {
+    "text": "Gizlilik ve güvenlik, dil farkı gözetmeksizin herkes için erişilebilir olmalıdır. Kullanıcılarımızın ve mesaj alıcılarının güvenli mesajları ve bağlantıları nasıl güvenli bir şekilde kullanacaklarını ve erişeceklerini daha iyi anlamalarına yardımcı olmak için çeviriler ekliyoruz. Bu yeni bir özellik olduğundan, bazı çeviri hataları veya belirsiz talimatlarla karşılaşabilirsiniz. Çevirilerimizin netliğini ve doğruluğunu, özellikle güvenlikle ilgili kritik içeriklerde iyileştirmemize yardımcı olmak için, herhangi bir sorun fark ederseniz lütfen {send-feedback}",
+    "source_hash": "1b8bb38f"
+  },
+  "web.help.learn_more": {
+    "text": "Daha fazla bilgi edinin",
+    "source_hash": "1445799c"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.title": {
+    "text": "Ne görüyorum?",
+    "source_hash": "b9766df3"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.description": {
+    "text": "{product_name} aracılığıyla sizinle paylaşılan güvenli bir mesajı görüntülüyorsunuz. Bu içerik yalnızca bir kez gösterilir ve ardından sunucularımızdan kalıcı olarak silinir.",
+    "source_hash": "7a4e9d16"
+  },
+  "web.help.secret_view_faq.can_i_view_again.title": {
+    "text": "Bu gizli mesajı daha sonra tekrar görüntüleyebilir miyim?",
+    "source_hash": "c8c2c9da"
+  },
+  "web.help.secret_view_faq.can_i_view_again.description": {
+    "text": "Hayır. Güvenlik nedeniyle, bu gizli mesaj yalnızca bir kez görüntülenebilir. Bu sayfayı kapattıktan sonra içerik kalıcı olarak silinecek ve biz dahil kimse tarafından kurtarılamayacaktır.",
+    "source_hash": "4bf980a4"
+  },
+  "web.help.secret_view_faq.how_to_copy.title": {
+    "text": "Bu bilgiyi nasıl kaydedebilirim?",
+    "source_hash": "90deddbb"
+  },
+  "web.help.secret_view_faq.how_to_copy.description": {
+    "text": "Tüm gizli mesajı kopyalamak için 'Panoya Kopyala' düğmesini kullanın. Daha uzun gizli mesajlar için bu sayfadan ayrılmadan önce içeriğin tamamını kopyaladığınızı doğrulayın.",
+    "source_hash": "440aa828"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.title": {
+    "text": "Bu gizli mesajı görüntülemem takip ediliyor mu?",
+    "source_hash": "90145e28"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.description": {
+    "text": "Gönderene gizli mesajının görüntülendiği bildirilecektir, ancak kimin veya hangi konumdan görüntülediğini takip etmiyoruz. Gizliliğiniz korunmaktadır.",
+    "source_hash": "70737473"
+  },
+  "web.help.secret_view_faq.one_time_warning": {
+    "text": "Bu sayfadan ayrıldığınızda veya sayfayı yenilediğinizde, bu gizli mesaj kalıcı olarak silinecek ve kimse tarafından kurtarılamayacaktır.",
+    "source_hash": "47feab6e"
+  },
+  "web.layout.go_back_to_previous_page": {
+    "text": "Önceki sayfaya geri dön",
+    "source_hash": "1778f2e7"
+  },
+  "web.layout.site_footer": {
+    "text": "Site altbilgisi",
+    "source_hash": "6ca09429"
+  },
+  "web.layout.toggle_dark_mode": {
+    "text": "Karanlık modu aç/kapat",
+    "source_hash": "ffe32a00"
+  },
+  "web.layout.provide_feedback": {
+    "text": "Geri bildirim sağlayın",
+    "source_hash": "a70766ae"
+  },
+  "web.layout.company_logo": {
+    "text": "Şirket logosu",
+    "source_hash": "87a86135"
+  },
+  "web.layout.brand_logo": {
+    "text": "Marka logosu",
+    "source_hash": "e458e2b5"
+  },
+  "web.layout.dashboard_navigation": {
+    "text": "Kontrol Paneli Navigasyonu",
+    "source_hash": "da5c1c43"
+  },
+  "web.layout.mobile_navigation": {
+    "text": "Mobil Navigasyon",
+    "source_hash": "ccea1730"
+  },
+  "web.layout.main_navigation": {
+    "text": "Ana Navigasyon",
+    "source_hash": "56ea852a"
+  },
+  "web.layout.mobile_nav_item_count": {
+    "text": "{count} öğe",
+    "source_hash": "f65216b3"
+  },
+  "web.layout.release_notes": {
+    "text": "Sürüm Notları",
+    "source_hash": "bd4702c1"
+  },
+  "web.layout.loading_settings_content": {
+    "text": "Ayarlar içeriği yükleniyor...",
+    "source_hash": "81a2a30e"
+  },
+  "web.layout.settings_sections_0": {
+    "text": "Ayarlar bölümleri",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.close_settings": {
+    "text": "Ayarları kapat",
+    "source_hash": "0ccfef82"
+  },
+  "web.layout.settings_sections": {
+    "text": "Ayarlar bölümleri",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.customize_your_app_preferences_and_settings": {
+    "text": "Uygulama tercihlerinizi ve ayarlarınızı özelleştirin",
+    "source_hash": "00d74c98"
+  },
+  "web.layout.return_home": {
+    "text": "Ana sayfaya dön",
+    "source_hash": "bbcc935e"
+  },
+  "web.layout.return_to_home_page": {
+    "text": "Ana sayfaya dön",
+    "source_hash": "8d27b81d"
+  },
+  "web.layout.return_to_home": {
+    "text": "Ana Sayfaya Dön",
+    "source_hash": "299291b0"
+  },
+  "web.layout.view_privacy_policy": {
+    "text": "Gizlilik Politikasını Görüntüle",
+    "source_hash": "377733b6"
+  },
+  "web.layout.view_terms_of_service": {
+    "text": "Hizmet Koşullarını Görüntüle",
+    "source_hash": "e2f124cd"
+  },
+  "web.layout.visit_onetime_secret_homepage": {
+    "text": "{product_name} ana sayfasını ziyaret edin",
+    "source_hash": "87802af5"
+  },
+  "web.layout.footer_navigation": {
+    "text": "Altbilgi navigasyonu",
+    "source_hash": "76363a64"
+  },
+  "web.layout.terms_of_service": {
+    "text": "Hizmet Koşulları",
+    "source_hash": "4afa55bf"
+  },
+  "web.layout.privacy_policy": {
+    "text": "Gizlilik Politikası",
+    "source_hash": "506ff394"
+  },
+  "web.layout.icon_library": {
+    "text": "Simge Kütüphanesi",
+    "source_hash": "a73f4c07"
+  },
+  "web.layout.google_material": {
+    "text": "Google Material",
+    "source_hash": "7c7afa99"
+  },
+  "web.layout.material_design_icons": {
+    "text": "Material Design Simgeleri",
+    "source_hash": "0fb27437"
+  },
+  "web.layout.heroicons": {
+    "text": "Heroicons",
+    "source_hash": "5e7cc07e"
+  },
+  "web.layout.carbon": {
+    "text": "Carbon",
+    "source_hash": "694c87c2"
+  },
+  "web.layout.font_awesome_6": {
+    "text": "Font Awesome 6",
+    "source_hash": "d4eedb15"
+  },
+  "web.layout.view_source_on_github": {
+    "text": "Kaynak kodu GitHub'da görüntüle",
+    "source_hash": "75e96614"
+  },
+  "web.layout.website_version_v_ot_version": {
+    "text": "Web Sitesi Sürümü: v{0}",
+    "source_hash": "343f57de"
+  },
+  "web.layout.current_language_is_currentlocal": {
+    "text": "Dili değiştir. Mevcut dil: {0}",
+    "source_hash": "77f9c322"
+  },
+  "web.layout.language_changed_to_newlocale": {
+    "text": "Dil {0} olarak değiştirildi",
+    "source_hash": "1680f4fe"
+  },
+  "web.layout.reset_to_default_language": {
+    "text": "{0} diline sıfırla",
+    "source_hash": "c0cfa9b2"
+  },
+  "web.layout.switch_to_blank_mode": {
+    "text": "{0} moduna geç",
+    "source_hash": "c8b909e0"
+  },
+  "web.layout.blank_mode_enabled": {
+    "text": "{0} modu etkinleştirildi",
+    "source_hash": "e1d200cb"
+  },
+  "web.layout.workspace": {
+    "text": "Çalışma Alanı",
+    "source_hash": "87bb59ba"
+  },
+  "web.layout.workspace_context": {
+    "text": "Çalışma alanı bağlamı",
+    "source_hash": "dc6fa4f5"
+  },
+  "web.footer.workspace": {
+    "text": "Çalışma Alanı",
+    "source_hash": "87bb59ba"
+  },
+  "web.help.default_content": {
+    "text": "Yardım için lütfen destekle iletişime geçin",
+    "source_hash": "752bca14"
+  },
+  "web.layout.colonels_only_badge": {
+    "text": "Yalnızca Colonel'lere Özel",
+    "source_hash": "3f1e2dbd"
+  },
+  "web.footer.dpa": {
+    "text": "Veri İşleme Sözleşmesi",
+    "source_hash": "112eae6b"
+  },
+  "web.footer.cookie_policy": {
+    "text": "Çerez Politikası",
+    "source_hash": "ee290b3d"
+  },
+  "web.footer.acceptable_use": {
+    "text": "Kabul Edilebilir Kullanım Politikası",
+    "source_hash": "34aa287a"
+  }
+}

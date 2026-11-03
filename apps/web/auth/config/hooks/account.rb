@@ -1,0 +1,1396 @@
+# apps/web/auth/config/hooks/account.rb
+#
+# frozen_string_literal: true
+
+# Redis-only, except-current session revoke used by the password hooks below to
+# enforce M-2 (sessions must not survive a password change/reset). Required
+# explicitly (mirroring the colonel logic classes) so the constant is loaded when
+# these hooks fire, rather than relying on ambient load order.
+require 'onetime/operations/sessions/revoke_all_for_customer_except_current'
+require 'auth/account_statuses'
+require 'auth/operations/customers/purge'
+require 'auth/operations/customers/purge_preflight'
+require 'auth/operations/remove_authentication_data'
+
+module Auth::Config::Hooks
+  module Account
+    # Resolve the Customer identifier for a Rodauth account row, fail SECURE:
+    # prefer external_id (== Customer.extid), fall back to email when it is blank
+    # so credential-change/reset revocation still runs rather than silently
+    # skipping. Called from the after_*_password hook blocks below, which execute
+    # in the Rodauth INSTANCE context — a bare private method would not be in
+    # scope there, so this is an explicit-receiver module method.
+    def self.resolve_custid(account)
+      account[:external_id].to_s.empty? ? account[:email] : account[:external_id]
+    end
+
+    # Account closure is destructive, so a present external_id is authoritative.
+    # Falling back to email after that lookup misses could select a different
+    # Customer record that has since claimed the same address.
+    def self.resolve_customer(account)
+      extid = account[:external_id].to_s
+      return Onetime::Customer.find_by_extid(extid) unless extid.empty?
+
+      Onetime::Customer.find_by_email(account[:email])
+    end
+
+    # rubocop:disable Metrics/PerceivedComplexity, Metrics/MethodLength
+    def self.configure(auth)
+      #
+      # Hook: Before Account Creation
+      #
+      # This hook is triggered before a new account is created. It performs
+      # several validation checks on the provided email address.
+      #
+      # NOTE: Rodauth hooks don't chain — each auth.before_create_account call
+      # overwrites the previous definition. All before_create_account logic must
+      # live here, not split across hook files. billing.rb's capture_plan_selection
+      # was moved here after the hook-collision bug (#3275).
+      #
+      auth.before_create_account do
+        # Billing: capture plan selection from query params before validation.
+        # Method defined by Billing.configure via auth_class_eval; no-op if billing disabled.
+        capture_plan_selection if respond_to?(:capture_plan_selection)
+
+        # Check if email already exists in either database
+        # SECURITY: Two-database consistency check prevents orphaned accounts
+        email = normalize_login(param(login_param))
+
+        # Per-domain signup validation (allowlist, MX, SMTP).
+        # Reuses the request's CustomDomain lookup and enforces its
+        # SignupConfig if one is configured and enabled. Falls back to the
+        # global allowed_signup_domains policy when no per-domain config
+        # applies. Identical user-visible error message to the existing
+        # email-conflict paths prevents enumeration of which domains, MX
+        # records, or mailboxes are accepted.
+        display_domain = request.env['onetime.display_domain']
+        unless Onetime::SignupValidation.valid_signup_email?(
+          email,
+          display_domain: display_domain,
+          custom_domain_lookup: request.env[Onetime::CustomDomain::Lookup::ENV_KEY],
+          domain_strategy: request.env['onetime.domain_strategy'],
+        )
+          Auth::Logging.log_auth_event(
+            :registration_blocked_signup_validation,
+            level: :info,
+            email: OT::Utils.obscure_email(email),
+            display_domain: display_domain,
+          )
+
+          set_error_flash(create_account_error_flash)
+          request.env['rodauth.error_flash'] = create_account_error_flash
+          throw_rodauth_error
+        end
+
+        # A closure deletes the accounts row (#4819), so a closed row here is
+        # one a closure left before that change and `bin/ots customers
+        # prune-closed-accounts` has not yet removed. Such rows never reserve
+        # the address. The Redis check below still refuses reuse if customer
+        # cleanup is incomplete.
+        existing_account = db[:accounts].where(email: email)
+          .exclude(status_id: Auth::AccountStatuses::CLOSED).first
+
+        if existing_account
+          # The SQL row alone decides the answer; Redis only picks the log
+          # line. With its customer record this is an ordinary duplicate
+          # (info); without one it is the two-database mismatch the hint
+          # describes. An unreachable Redis must not turn the refusal into a
+          # 500, so the lookup failure is logged and the refusal still runs.
+          customer_exists =
+            begin
+              Onetime::Customer.email_exists?(email)
+            rescue Redis::BaseError => ex
+              Auth::Logging.log_auth_event(
+                :registration_blocked_existing_account,
+                level: :warn,
+                email: OT::Utils.obscure_email(email),
+                account_id: existing_account[:id],
+                customer_lookup_error: ex.class.name,
+              )
+              nil
+            end
+
+          if customer_exists
+            Auth::Logging.log_auth_event(
+              :registration_blocked_existing_account,
+              level: :info,
+              email: OT::Utils.obscure_email(email),
+              account_id: existing_account[:id],
+            )
+          elsif customer_exists == false
+            diagnostic_hint = <<~HINT.strip
+              Registration blocked: Account exists in authdb but is missing from
+              Redis. This can occur after clearing Redis without resetting authdb.
+              Consider: (1) deleting the account from authdb, or (2) resetting both
+              databases together.
+            HINT
+
+            Auth::Logging.log_auth_event(
+              :registration_blocked_auth_db_conflict,
+              level: :error,
+              email: OT::Utils.obscure_email(email),
+              account_id: existing_account[:id],
+              diagnostic_hint: diagnostic_hint,
+            )
+          end
+
+          # The shared answer (config/overrides/duplicate_signup.rb).
+          refuse_signup_for_existing_account(email)
+        end
+
+        # A record a closure left behind when it stopped part-way (#4830) does
+        # not hold the address: its owner asked for it to be deleted. The check
+        # below lets it through, and it is finished at the end of this hook,
+        # after every precondition, so a sign-up that a precondition refuses
+        # changes nothing in Redis. A finish that stops part-way also refuses
+        # the sign-up, with part of the record already purged. A closure still
+        # running has its accounts row, refused above.
+        leftover = Auth::Operations::EnsureCustomerForAccount.closing_customer(email)
+
+        # Check Redis (customer database)
+        # Note: In shared Redis dev setups, a customer may exist without an auth account
+        if leftover.nil? && Onetime::Customer.email_exists?(email)
+          diagnostic_hint = <<~HINT.strip
+            Registration blocked: Customer record exists in Redis but no auth account
+            found. This typically occurs in worktree/multi-instance dev setups with
+            shared Redis. Consider: (1) using isolated Redis per instance, (2) clearing
+            Redis data, or (3) logging in with existing account if it exists elsewhere.
+          HINT
+
+          Auth::Logging.log_auth_event(
+            :registration_blocked_redis_conflict,
+            level: :error,
+            email: OT::Utils.obscure_email(email),
+            diagnostic_hint: diagnostic_hint,
+          )
+
+          set_error_flash(create_account_error_flash)
+          request.env['rodauth.error_flash'] = create_account_error_flash
+          throw_rodauth_error
+        end
+
+        # When an invite_token is supplied, validate the invitation up front:
+        # invitation exists, still pending, not expired, and the signup email
+        # matches the invited email. Failing precondition checks here aborts
+        # before any account/customer row is written, so we never roll back
+        # partial Redis state on email-mismatch or expired tokens.
+        invite_token = param_or_nil('invite_token').to_s.strip
+        unless invite_token.empty?
+          invitation = Onetime::OrganizationMembership.find_by_token(invite_token)
+
+          invalid_reason =
+            if invitation.nil?
+              'token_not_found'
+            elsif !invitation.pending?
+              'not_pending'
+            elsif invitation.expired?
+              'expired'
+            elsif OT::Utils.normalize_email(email) !=
+                  OT::Utils.normalize_email(invitation.invited_email)
+              'email_mismatch'
+            end
+
+          if invalid_reason
+            Auth::Logging.log_auth_event(
+              :registration_blocked_invalid_invite,
+              level: :warn,
+              email: OT::Utils.obscure_email(email),
+              invite_token_prefix: invite_token[0..7],
+              reason: invalid_reason,
+            )
+
+            set_error_flash(create_account_error_flash)
+            request.env['rodauth.error_flash'] = create_account_error_flash
+            throw_rodauth_error
+          end
+        end
+
+        # Last: finish the leftover closure (see above). finish_leftover_closure
+        # reads the record again, so it acts on its state after these checks.
+        # When it cannot be finished (the purge refused or stopped, or the
+        # closure is too recent to tell from one still running; logged as
+        # interrupted_closure_not_finished), the sign-up is refused under its
+        # own event, since the shared-Redis hint above would point the wrong way.
+        unfinished = Auth::Operations::EnsureCustomerForAccount.finish_leftover_closure(email)
+        if unfinished
+          Auth::Logging.log_auth_event(
+            :registration_blocked_interrupted_closure,
+            level: :error,
+            email: OT::Utils.obscure_email(email),
+            external_id: unfinished.extid,
+          )
+
+          set_error_flash(create_account_error_flash)
+          request.env['rodauth.error_flash'] = create_account_error_flash
+          throw_rodauth_error
+        end
+      end
+
+      # When this is part of a regular user signup flow, we'll have already
+      # called Truemail.validate on this address in the CreateAccount logic,
+      # but we call it here as a defensive in depth regardless. It's easier
+      # to call it twice than to try to keep track of the state through
+      # multiple codepaths.
+      auth.login_valid_email? do |email|
+        validator = Truemail.validate(email)
+        is_valid  = super(email) && validator.result.valid?
+
+        unless is_valid
+          Auth::Logging.log_auth_event(
+            :invalid_email_rejected,
+            level: :info,
+            email: email,
+          )
+        end
+
+        is_valid
+      end
+
+      #
+      # Hook: After Account Creation
+      #
+      # This hook is triggered after a new user successfully creates an account.
+      # It ensures a corresponding Onetime::Customer record is created and linked,
+      # and creates a default organization and team for the new user.
+      #
+      auth.after_create_account do
+        # Read via Rodauth's `param_or_nil` so this hook works under both
+        # normal HTTP requests and `internal_request` (which only populates
+        # rodauth.params, not the Rack request body).
+        hook_invite_token = param_or_nil('invite_token').to_s.strip
+
+        # Determine the provisioning origin from request context. This is
+        # metadata only — capabilities are governed by org/team role.
+        provisioning_origin = if hook_invite_token != ''
+                                'invite'
+                              elsif request.env['onetime.display_domain'] &&
+                                    Onetime::CustomDomain::Lookup.for(request.env).record
+                                'domain_signup'
+                              else
+                                'canonical_signup'
+                              end
+
+        # No identity key here on purpose. The accounts row has no `extid`
+        # column (it is `external_id`, see auth/migrations/001_initial.rb) and
+        # the Customer this hook is about to create does not exist yet, so
+        # there is no extid to attribute a failure to. Accepted attribution
+        # loss: the event is still captured and grouped, but actor cardinality
+        # is unanswerable for the create-customer class.
+        customer = Onetime::ErrorHandler.safe_execute('create_customer', account_id: account_id) do
+          Auth::Operations::EnsureCustomerForAccount.new(
+            account_id: account_id,
+            account: account,
+            db: Auth::Database.connection,
+            provisioning_origin: provisioning_origin,
+          ).call
+        end
+
+        if customer.is_a?(Onetime::Customer)
+          invite_token  = hook_invite_token
+          invite_signup = !invite_token.empty?
+
+          if invite_signup
+            # Invite signup: skip default workspace creation. The user is joining
+            # an existing org via the explicit POST /api/invite/:token/accept
+            # call that follows signup. A personal default workspace would be
+            # dead state they never use.
+            #
+            # Auto-verify at both the Redis (customer) and SQL (account) layers.
+            # The invite link itself proves email ownership — before_create_account
+            # already validated the token and that the signup email matches the
+            # invited email, so we can mark the customer verified here without
+            # a separate email round-trip.
+            Onetime::ErrorHandler.safe_execute('auto_verify_invite_signup', external_id: customer.extid) do
+              customer.verified    = true
+              customer.verified_by = 'invite_token'
+              customer.save
+
+              update_account(account_status_column => account_open_status_value)
+
+              had_verify_key = respond_to?(:remove_verify_account_key)
+              remove_verify_account_key if had_verify_key
+
+              # The token is NOT consumed here — that's the point of the
+              # explicit accept step. No session is set up here either
+              # (create_account_autologin? is false, account_management.rb):
+              # /api/invite/:token/signup sets up the session /accept needs.
+
+              Auth::Logging.log_auth_event(
+                :invite_signup_verified,
+                level: :info,
+                email: customer.email,
+                account_id: account_id,
+                invite_token_prefix: invite_token[0..7],
+                verify_key_removed: had_verify_key,
+              )
+            end
+          else
+            # Standard signup: provision the default organization and team so
+            # the user has a workspace to land in after email verification.
+            #
+            # SECURITY: a standard email/password account is NOT email-verified
+            # at this point (the verification email hasn't even been sent). Defer
+            # claiming any PendingFederatedSubscription until the user verifies,
+            # so an attacker cannot register a paying subscriber's email in this
+            # region and steal their federated subscription at signup time. The
+            # deferred claim runs from after_verify_account below.
+            #
+            # When the verify_account feature is not loaded (neither the
+            # verify_account flag nor webauthn_verify_account, which depends on
+            # it: Onetime.auth_config.verify_account_loaded?) there is no
+            # verification step to defer to, so we preserve the immediate-claim
+            # behavior (require_verification: false) rather than never claiming.
+            #
+            # RESIDUAL: in that verify-disabled config the immediate claim
+            # happens with NO proof of email ownership — an attacker who knows a
+            # subscriber's email could register it here and claim their pending
+            # federated subscription. We deliberately do not gate on verified?
+            # here (the Redis customer.verified flag never becomes true without
+            # verify_account, so gating would disable federated claims entirely);
+            # EnsureDefaultWorkspace instead emits a loud security-audit log for
+            # each such unverified immediate claim. See
+            # EnsureDefaultWorkspace#apply_pending_federation! and #initialize.
+            require_verification = Onetime.auth_config.verify_account_loaded?
+
+            Onetime::ErrorHandler.safe_execute('ensure_default_workspace', external_id: customer.extid) do
+              Auth::Operations::EnsureDefaultWorkspace.new(
+                customer: customer,
+                require_verification: require_verification,
+              ).call
+            # Only the collision is rescued. Onetime::AccountProvisioningUnavailable
+            # deliberately is NOT: it persists nothing, so safe_execute's generic
+            # path (error log + tracking, returns nil) is the right visibility.
+            # At signup no other request can hold the creation lock, so reaching
+            # it means the datastore failed mid-scan: an incident signal, not a
+            # routine transient. Signup still completes and
+            # OrganizationContext#auth_org re-runs provisioning on the first
+            # authenticated request.
+            rescue Auth::Operations::WorkspaceCollision::ProvisioningCollision => ex
+              # EnsureDefaultWorkspace persisted the bounded failure state before
+              # raising. Keep the SQL account + Customer observable and let later
+              # organization/entitlement access surface AccountProvisioningFailed.
+              Auth::Logging.log_auth_event(
+                :account_provisioning_failed,
+                level: :error,
+                account_id: account_id,
+                external_id: customer.extid,
+                code: customer.provisioning_failure_code,
+                classification: ex.collision.classification,
+              )
+              nil
+            end
+          end
+
+          # Capture plan intent for email verification flow (issue #3126).
+          # Session-based billing redirect doesn't survive email verification, so we
+          # persist the plan selection on the Customer record with a 24h TTL.
+          product  = request.params['product']
+          interval = request.params['interval']
+
+          if product.to_s.strip != '' && interval.to_s.strip != ''
+            intent = {
+              product: product,
+              interval: interval,
+              captured_at: Time.now.utc.iso8601,
+              source_url: request.fullpath,
+            }.to_json
+
+            customer.pending_plan_intent = intent
+
+            Auth::Logging.log_auth_event(
+              :plan_intent_captured,
+              level: :debug,
+              customer_extid: customer.extid,
+              product: product,
+              interval: interval,
+            )
+          end
+
+          # Capture the post-auth return destination for the verification flow
+          # (issue #4305). Same problem and same solution as the plan intent
+          # above: the verification email link is routinely opened in a FRESH
+          # browser session, so a session-carried `redirect` is gone by the
+          # time it matters. Persist it on the Customer (24h TTL) and surface
+          # it from after_verify_account below.
+          #
+          # SECURITY: validated HERE (capture) and again at surface time. This
+          # value round-trips through storage and comes back as a navigation
+          # target, so "it was checked once" is not good enough — a path that
+          # only ever passed the capture-time check would still be trusted by
+          # a later reader that skipped its own check.
+          #
+          # A non-String param (e.g. `?redirect[]=x`, which Rack parses to an
+          # Array) is rejected by safe_internal_path? rather than coerced:
+          # `.to_s` on an Array produces a plausible-looking string that no
+          # user ever typed.
+          raw_redirect = request.params['redirect']
+
+          if raw_redirect.is_a?(String) && !raw_redirect.strip.empty?
+            if OT::Utils.safe_internal_path?(raw_redirect)
+              customer.pending_auth_redirect = raw_redirect
+
+              # Log the leading path segment, NOT the value. An accepted
+              # redirect is routinely a live bearer credential here
+              # (`/invite/<token>`, `/secret/<key>`), so the accept branch
+              # needs the same discipline as the reject branch below.
+              Auth::Logging.log_auth_event(
+                :auth_redirect_captured,
+                level: :debug,
+                customer_extid: customer.extid,
+                redirect_prefix: OT::Utils.loggable_path(raw_redirect),
+                value_length: raw_redirect.length,
+              )
+            else
+              # Log the LENGTH, not the value: the rejected value is an
+              # attacker-supplied URL (that is why it was rejected) and
+              # echoing it into the log stream just moves the payload.
+              Auth::Logging.log_auth_event(
+                :auth_redirect_rejected,
+                level: :info,
+                customer_extid: customer.extid,
+                reason: 'not_a_safe_internal_path',
+                value_length: raw_redirect.length,
+              )
+            end
+          end
+        end
+
+        # Billing redirect: add plan selection to JSON response (issue #3275).
+        # Billing.configure defines add_billing_redirect_to_response via auth_class_eval,
+        # so the method is only available when billing is enabled. Check respond_to?
+        # to avoid NoMethodError when billing is disabled (self-hosted).
+        if json_request? && respond_to?(:add_billing_redirect_to_response)
+          add_billing_redirect_to_response
+        end
+      end
+
+      #
+      # Hook: After Account Verification
+      #
+      # This hook is triggered when a user verifies their account by following
+      # the emailed key, with or without the passkey ceremony of
+      # webauthn_verify_account. It updates the verification status of the
+      # associated Onetime::Customer record, runs the federated claim the
+      # signup hook above deferred, and surfaces the pending plan intent and
+      # return destination.
+      #
+      # Registered whenever the Rodauth :verify_account feature is loaded,
+      # which is what Onetime.auth_config.verify_account_loaded? answers: by
+      # the verify_account flag, or as the dependency of
+      # webauthn_verify_account (features/webauthn.rb, configured after these
+      # hooks). Features::AccountManagement enables the feature under the same
+      # predicate, so the after_verify_account DSL method exists here in both
+      # cases. Checked against the flag alone, a passkey-only deployment
+      # verified the account in SQL while the Customer stayed unverified and
+      # the deferred claim never ran. When neither flag is on (the test default
+      # via auth.yaml), the feature isn't loaded and the DSL method doesn't
+      # exist.
+      #
+      if Onetime.auth_config.verify_account_loaded?
+        auth.after_verify_account do
+          # A verified account must not keep a verification key row: it reads
+          # as a pending verification (Operations::Customers::Diagnose).
+          # Rodauth's clear_tokens(:verify_account) deletes the row in the
+          # onetimesecret fork (onetimesecret/rodauth#3) and through 2.45,
+          # but released 2.46 through 2.48 rotate it in place instead. The
+          # delete is idempotent and runs inside the verify transaction.
+          remove_verify_account_key
+
+          Auth::Logging.log_auth_event(
+            :account_verified,
+            level: :info,
+            account_id: account_id,
+            external_id: account[:external_id],
+            email: account[:email],
+          )
+
+          Onetime::ErrorHandler.safe_execute('verify_customer', external_id: account[:external_id]) do
+            next unless account[:external_id]
+
+            customer = Onetime::Customer.find_by_extid(account[:external_id])
+            next unless customer
+
+            Auth::Operations::SetCustomerVerification.new(
+              customer: customer,
+              verified: true,
+              verified_by: 'email',
+              rodauth_already_synced: true,
+            ).call
+          end
+
+          # Claim any pending federated subscription now that the email is
+          # verified (issue: federated benefit theft via unverified signup).
+          # EnsureDefaultWorkspace defers this claim on the standard signup path;
+          # here we apply it to the workspace created at signup. Idempotent and a
+          # safe no-op when nothing is pending or it was already claimed. Re-fetch
+          # the customer so verified? reflects the state just persisted above.
+          Onetime::ErrorHandler.safe_execute('claim_pending_federation', external_id: account[:external_id]) do
+            next unless account[:external_id]
+
+            verified_customer = Onetime::Customer.find_by_extid(account[:external_id])
+            next unless verified_customer
+
+            Auth::Operations::EnsureDefaultWorkspace.claim_pending_federation_for(verified_customer)
+          end
+
+          # Surface pending plan intent for checkout redirect (issue #3126)
+          # If the user had selected a plan before signup, redirect them to checkout
+          # after verification completes.
+          Onetime::ErrorHandler.safe_execute('surface_plan_intent', external_id: account[:external_id]) do
+            # account[:external_id] (Rodauth/SQL) == customer.extid (Familia/Redis)
+            customer = Onetime::Customer.find_by_extid(account[:external_id])
+
+            if customer&.pending_plan_intent&.value.to_s.strip != ''
+              begin
+                intent   = JSON.parse(customer.pending_plan_intent.value)
+                product  = intent['product']
+                interval = intent['interval']
+
+                # Lazy-load billing dependencies (may not be available on self-hosted)
+                require_relative '../../../billing/lib/plan_resolver'
+
+                # Validate the plan still exists before redirecting
+                result = ::Billing::PlanResolver.resolve(product: product, interval: interval)
+
+                if result.success?
+                  # SPA route shape: /billing/plans?product=X&interval=Y.
+                  # PlanSelector.vue reads route.query.product/interval; the
+                  # three-segment /billing/plans/:product/:interval path this
+                  # used to build matches NO route in the router
+                  # (src/apps/workspace/routes/billing.ts declares /billing,
+                  # /billing/plans, /billing/:extid/plans and nothing else), so
+                  # every redirect it produced landed on the SPA's not-found
+                  # handler. It went unnoticed because the JSON path discarded
+                  # the value entirely — see the note below.
+                  checkout_path = "/billing/plans?#{URI.encode_www_form(product: product, interval: interval)}"
+
+                  # Non-JSON clients: verify_account_redirect (see
+                  # features/account_management.rb) reads this session key and
+                  # issues a real 302.
+                  session['plan_checkout_redirect'] = checkout_path
+
+                  # JSON/SPA clients: rodauth's json feature overrides
+                  # `redirect(_)` to discard its argument and return the JSON
+                  # body instead (rodauth-2.45.0 features/json.rb:205-208), so
+                  # verify_account_redirect's return value NEVER reaches the
+                  # SPA. Put the destination in the response body or it is
+                  # lost (issue #4305). Set FIRST so it wins the precedence
+                  # contract: valid plan intent > redirect > SPA default.
+                  json_response[:redirect] = checkout_path if json_request?
+
+                  # DELIBERATELY NOT deleted here (issues #4305, #4306).
+                  # Surfacing is a PEEK everywhere now: after_login /
+                  # after_two_factor_authentication re-surface the intent as
+                  # billing_redirect (hooks/billing.rb — the #3130
+                  # fresh-session fallback) without deleting it either. The
+                  # intent is consumed only when the authenticated handoff
+                  # succeeds — the client entering the billing plans flow —
+                  # via Onetime::Customer#consume_pending_plan_intent! in
+                  # Billing::Controllers::BillingController#subscription_status.
+                  # Deleting it at verification time — as this hook used to —
+                  # destroyed the only surviving copy for JSON clients, since
+                  # the session redirect above never reached them either. The
+                  # 24h TTL bounds the extra lifetime; the intent is a plan
+                  # preference, not an authorization.
+
+                  Auth::Logging.log_auth_event(
+                    :plan_intent_surfaced,
+                    level: :info,
+                    customer_extid: customer.extid,
+                    product: product,
+                    interval: interval,
+                    json_client: json_request?,
+                  )
+                else
+                  customer.pending_plan_intent.delete!
+
+                  Auth::Logging.log_auth_event(
+                    :plan_intent_invalid,
+                    level: :warn,
+                    customer_extid: customer.extid,
+                    product: product,
+                    interval: interval,
+                    error: result.error,
+                  )
+                end
+              rescue JSON::ParserError => ex
+                customer.pending_plan_intent.delete!
+
+                Auth::Logging.log_auth_event(
+                  :plan_intent_parse_error,
+                  level: :warn,
+                  customer_extid: customer.extid,
+                  error: ex.message,
+                )
+              rescue LoadError
+                customer.pending_plan_intent.delete!
+              end
+            end
+          end
+
+          # Surface the captured return destination (issue #4305).
+          #
+          # PRECEDENCE: a valid paid-plan intent already claimed
+          # json_response[:redirect] above and is NOT overwritten here —
+          # `redirect` is the fallback navigation target, per the issue's
+          # "valid plan intent > redirect > default" contract.
+          #
+          # CONSUMPTION: single-use. The stored value is deleted on read
+          # whether or not it is used, so a stale target cannot resurface on a
+          # later verification and a value that fails re-validation cannot sit
+          # in Redis being re-evaluated.
+          Onetime::ErrorHandler.safe_execute('surface_auth_redirect', external_id: account[:external_id]) do
+            next unless account[:external_id]
+
+            customer = Onetime::Customer.find_by_extid(account[:external_id])
+            next unless customer
+
+            stored = customer.pending_auth_redirect&.value.to_s
+            next if stored.strip.empty?
+
+            customer.pending_auth_redirect.delete!
+
+            # Re-validate on read. Storage is not a trust boundary crossing we
+            # get to skip: this value re-enters the response as a navigation
+            # target, and the ruleset may have tightened since capture.
+            unless OT::Utils.safe_internal_path?(stored)
+              Auth::Logging.log_auth_event(
+                :auth_redirect_rejected,
+                level: :warn,
+                customer_extid: customer.extid,
+                reason: 'stored_value_failed_revalidation',
+                value_length: stored.length,
+              )
+              next
+            end
+
+            # Non-JSON clients: verify_account_redirect falls back to this
+            # session key when no plan checkout redirect is pending.
+            session['auth_redirect'] ||= stored
+
+            next unless json_request?
+            next if json_response.key?(:redirect)
+
+            json_response[:redirect] = stored
+
+            # Leading path segment only -- see the capture-side note. This
+            # one is logged at :info, so the value would otherwise reach the
+            # default production log stream.
+            Auth::Logging.log_auth_event(
+              :auth_redirect_surfaced,
+              level: :info,
+              customer_extid: customer.extid,
+              redirect_prefix: OT::Utils.loggable_path(stored),
+              value_length: stored.length,
+            )
+          end
+        end
+      end
+
+      #
+      # Hook: After Password Reset Request
+      #
+      # This hook is triggered after a user requests a password reset.
+      #
+      auth.after_reset_password_request do
+        Auth::Logging.log_auth_event(
+          :password_reset_requested,
+          level: :info,
+          account_id: account_id,
+          email: account[:email],
+        )
+      end
+
+      #
+      # Hook: After Password Reset
+      #
+      # This hook is triggered after a user successfully resets their password.
+      #
+      auth.after_reset_password do
+        Auth::Logging.log_auth_event(
+          :password_reset_complete,
+          level: :info,
+          account_id: account_id,
+          email: account[:email],
+        )
+
+        # Credential watermark (#3810): stamp Customer#last_password_update, same
+        # as after_change_password below. Session validation (Helpers/
+        # BaseSessionAuthStrategy) rejects any session blob authenticated before
+        # this instant, so the watermark — not the blob deletion below, which is
+        # hygiene — is the authoritative revocation boundary. Reset previously
+        # skipped this stamp, so untracked pre-reset blobs stayed valid until
+        # their 24h TTL. The Redis stamp is not rollback-aware: a reset that
+        # rolls back after this point still forces re-login everywhere
+        # (fail-secure, accepted).
+        #
+        # NOT wrapped in ErrorHandler.safe_execute: that helper swallows a raise
+        # into routine :warn logging, and a silently-missing watermark means the
+        # async sweep below runs UNGUARDED (it may then kill legitimate
+        # post-reset sessions — fail-secure, but it must be attributable). The
+        # stamp failure never fails the reset itself.
+        begin
+          stamped = Auth::Operations::UpdatePasswordMetadata.new(account: account).call
+          unless stamped
+            Auth::Logging.log_auth_event(
+              :credential_watermark_stamp_FAILED,
+              level: :error,
+              account_id: account_id,
+              hook: :after_reset_password,
+              reason: 'customer not found',
+              security_warning: 'credential watermark not stamped; the watermark is the authoritative revocation boundary — the async sweep runs unguarded',
+            )
+          end
+        rescue StandardError => ex
+          Auth::Logging.log_auth_event(
+            :credential_watermark_stamp_FAILED,
+            level: :error,
+            account_id: account_id,
+            hook: :after_reset_password,
+            error: ex.message,
+            security_warning: 'credential watermark not stamped; the watermark is the authoritative revocation boundary — the async sweep runs unguarded',
+          )
+
+          if defined?(Sentry) && Sentry.initialized?
+            Sentry.capture_exception(ex) do |scope|
+              scope.set_level(:error)
+              scope.set_tags(component: 'auth.session_revocation', hook: 'after_reset_password', finding: 'M-2')
+              scope.set_context('session_revocation', { account_id: account_id })
+            end
+          end
+        end
+
+        # SECURITY (M-2): a password reset MUST invalidate every existing session
+        # for the account — the whole point of a reset is to lock out whoever
+        # currently holds a live session. The user is UNAUTHENTICATED here (they
+        # followed an email link), so there is no current session to preserve:
+        # revoke them ALL.
+        #
+        # Rodauth's own clear_tokens(:reset_password) already ran inside this
+        # transaction and cleared the SQL account_active_session_keys rows (full
+        # mode). But those rows only gate /auth/* routes; the app's real auth gate
+        # is the encrypted Redis session blob (BaseSessionAuthStrategy). Revoke
+        # those blobs here or a pre-reset attacker session survives the reset.
+        # Deliberately NOT wrapped in Onetime::ErrorHandler.safe_execute. That
+        # helper swallows a StandardError into a routine :warn-level "error-handler"
+        # log line and returns nil — so a Redis DELETE that raises here would leave
+        # the pre-reset session blobs ALIVE while the reset still reports success.
+        # That is fail-OPEN for the exact scenario a reset exists to defend against
+        # (a stolen session surviving the credential change). We handle the raise
+        # EXPLICITLY below: distinct error-level event + Sentry re-capture, so a
+        # non-revoking reset pages instead of blending into routine hook logging.
+        #
+        # RESIDUAL RISK, NOW BACKSTOPPED (#3810): revocation here is still
+        # best-effort, but the durable idempotent retry exists — the after_commit
+        # block below enqueues an async FULL sweep (the worker runs the untracked
+        # keyspace scan this in-transaction revoke deliberately skips). A
+        # Redis-raise here now degrades to "the sweep gets it", and the credential
+        # watermark stamped above is the authoritative boundary regardless. The
+        # raise is still handled LOUDLY below.
+        #
+        # Fail SECURE (M-2): revocation MUST still run when external_id is absent.
+        # A bare `next unless account[:external_id]` would silently skip the revoke
+        # and leave live session blobs alive across the reset. Fall back to the
+        # account email — RevokeAllForCustomerExceptCurrent resolves it the same way
+        # (Customer.load_by_extid_or_email). Only when neither identifier is usable
+        # do we skip, and then LOUDLY so a non-revoking reset is visible.
+        custid = Auth::Config::Hooks::Account.resolve_custid(account)
+        if custid.to_s.strip.empty?
+          Auth::Logging.log_auth_event(
+            :sessions_revoke_skipped_no_identity,
+            level: :warn,
+            account_id: account_id,
+          )
+        else
+          # Durable follow-up (#3810): enqueue the async FULL sweep — including
+          # the untracked keyspace scan the in-transaction revoke below skips —
+          # once the reset actually COMMITS. First use of Sequel's after_commit in
+          # this codebase: Rodauth 2.45 runs this hook INSIDE its reset
+          # transaction, and after_commit defers the block until commit (skipped
+          # entirely on rollback; yields immediately when no transaction is open).
+          # Registered BEFORE the inline revoke so the sweep is enqueued even when
+          # that revoke raises — it IS the durable retry the comment above
+          # promises. With jobs disabled the publisher falls back to running the
+          # sweep inline after commit; acceptable, since small keyspaces sweep
+          # fast and the watermark — not the sweep — is the security boundary.
+          db.after_commit do
+            # MANDATORY internal rescue: an exception escaping an after_commit
+            # block propagates out of the ALREADY-COMMITTED transaction and would
+            # 500 a successful password reset. Broker failure degrades to a loud
+            # log + Sentry capture instead.
+            Onetime::Jobs::Publisher.enqueue_session_revocation_sweep(custid)
+
+            Auth::Logging.log_auth_event(
+              :sessions_sweep_enqueued,
+              level: :info,
+              account_id: account_id,
+            )
+          rescue StandardError => ex
+            Auth::Logging.log_auth_event(
+              :sessions_sweep_enqueue_FAILED,
+              level: :error,
+              account_id: account_id,
+              hook: :after_reset_password,
+              error: ex.message,
+              security_warning: 'async session sweep not enqueued; untracked pre-reset blobs rely on watermark validation + TTL',
+            )
+
+            if defined?(Sentry) && Sentry.initialized?
+              Sentry.capture_exception(ex) do |scope|
+                scope.set_level(:error)
+                scope.set_tags(component: 'auth.session_revocation', hook: 'after_reset_password', finding: 'M-2')
+                scope.set_context('session_revocation', { account_id: account_id })
+              end
+            end
+          end
+
+          begin
+            # scan_untracked: false keeps the bounded keyspace SCAN out of Rodauth's
+            # open reset transaction; the guaranteed tracked kill still revokes every
+            # post-sidecar session (see RevokeAllForCustomerExceptCurrent docs).
+            # `custid:` is a genuine id-only entry point: this hook holds a Rodauth
+            # account row (external_id/email), never a Customer record.
+            result = Onetime::Operations::Sessions::RevokeAllForCustomerExceptCurrent.new(
+              custid: custid,
+              scan_untracked: false,
+            ).call
+
+            Auth::Logging.log_auth_event(
+              :sessions_revoked_on_reset,
+              level: :info,
+              account_id: account_id,
+              blobs_deleted: result.blobs_deleted,
+              scan_capped: result.scan_capped,
+            )
+          rescue StandardError => ex
+            # FAIL-OPEN, MADE LOUD: the reset already committed (Rodauth cleared the
+            # SQL reset tokens), but the encrypted Redis session blobs may STILL be
+            # live. Emit a distinct error-level event and re-capture to Sentry so
+            # this alerts rather than hiding in routine error-handler logging.
+            Auth::Logging.log_auth_event(
+              :sessions_revoke_FAILED,
+              level: :error,
+              account_id: account_id,
+              hook: :after_reset_password,
+              error: ex.message,
+              security_warning: 'password reset succeeded but pre-reset session blobs may still be live',
+            )
+
+            if defined?(Sentry) && Sentry.initialized?
+              Sentry.capture_exception(ex) do |scope|
+                scope.set_level(:error)
+                scope.set_tags(component: 'auth.session_revocation', hook: 'after_reset_password', finding: 'M-2')
+                scope.set_context('session_revocation', { account_id: account_id })
+              end
+            end
+          end
+        end
+      end
+
+      #
+      # Hook: After Password Change
+      #
+      # This hook is triggered after a user changes their password. It updates
+      # metadata in the associated Onetime::Customer record.
+      #
+      auth.after_change_password do
+        Auth::Logging.log_auth_event(
+          :password_changed,
+          level: :info,
+          account_id: account_id,
+          email: account[:email],
+        )
+
+        # The credential that produced any recent full re-authentication proof
+        # no longer exists, so the proof must not outlive it (#4420). Cleared on
+        # the PRE-rotation sid, before the :renew below re-keys the session.
+        Onetime::RecentReauth.clear(session)
+
+        # Rodauth is the source of truth for password management. Here, we sync
+        # metadata to the customer record — including the credential watermark
+        # (Customer#last_password_update), the authoritative revocation boundary
+        # session validation and the async sweep below both key on.
+        #
+        # NOT wrapped in ErrorHandler.safe_execute (same reasoning as
+        # after_reset_password above): a silently-missing watermark means the
+        # async sweep runs UNGUARDED and may kill the just-rotated session —
+        # fail-secure, but it must be attributable, not swallowed into routine
+        # :warn logging. The stamp failure never fails the password change.
+        begin
+          stamped = Auth::Operations::UpdatePasswordMetadata.new(account: account).call
+          unless stamped
+            Auth::Logging.log_auth_event(
+              :credential_watermark_stamp_FAILED,
+              level: :error,
+              account_id: account_id,
+              hook: :after_change_password,
+              reason: 'customer not found',
+              security_warning: 'credential watermark not stamped; the watermark is the authoritative revocation boundary — the async sweep runs unguarded',
+            )
+          end
+        rescue StandardError => ex
+          Auth::Logging.log_auth_event(
+            :credential_watermark_stamp_FAILED,
+            level: :error,
+            account_id: account_id,
+            hook: :after_change_password,
+            error: ex.message,
+            security_warning: 'credential watermark not stamped; the watermark is the authoritative revocation boundary — the async sweep runs unguarded',
+          )
+
+          if defined?(Sentry) && Sentry.initialized?
+            Sentry.capture_exception(ex) do |scope|
+              scope.set_level(:error)
+              scope.set_tags(component: 'auth.session_revocation', hook: 'after_change_password', finding: 'M-2')
+              scope.set_context('session_revocation', { account_id: account_id })
+            end
+          end
+        end
+
+        # SECURITY (M-2): changing the password must sign out every OTHER session
+        # (the standard "someone may know my password" remediation) while KEEPING
+        # the session the user is changing it from. Unlike reset, change_password
+        # does NOT trigger Rodauth's clear_tokens, so BOTH session stores must be
+        # handled here.
+        #
+        # Resolve the current Rack session id (== the sid tracked in
+        # Customer#active_sessions). If it cannot be determined we fail SECURE:
+        # except_session_id stays nil, revoking ALL sessions incl. the current one,
+        # so the user is simply logged out rather than a stale session surviving.
+        current_sid = begin
+          session.id&.public_id
+        rescue StandardError => ex
+          # Item 6: surface the swallowed error so a failure to resolve the
+          # current sid is visible. We still fall through to nil (fail SECURE:
+          # except_session_id stays nil → the user is logged out of every
+          # session incl. the current one, rather than a stale one surviving).
+          Auth::Logging.log_auth_event(
+            :current_session_id_unresolved,
+            level: :warn,
+            account_id: account_id,
+            error: ex.message,
+          )
+          nil
+        end
+
+        # (1) Rodauth SQL account_active_session_keys (full mode only; the
+        # active_sessions feature is toggleable via AUTH_ACTIVE_SESSIONS_ENABLED and
+        # absent in simple mode, so guard on respond_to?). Keeps the current Rodauth
+        # session key. The user is logged in here, so the helper's except-current
+        # path applies.
+        if respond_to?(:remove_all_active_sessions_except_current)
+          Onetime::ErrorHandler.safe_execute('revoke_rodauth_sessions_on_change', account_id: account_id) do
+            remove_all_active_sessions_except_current
+          end
+        end
+
+        # (2) Encrypted Redis session blobs — the real app auth gate
+        # (BaseSessionAuthStrategy). Keep the current sid; revoke the rest.
+        #
+        # Deliberately NOT wrapped in Onetime::ErrorHandler.safe_execute (same
+        # reasoning as after_reset_password above): that helper would swallow a
+        # Redis-raise into routine :warn error-handler logging and return nil, so a
+        # failed DELETE leaves the OTHER session blobs ALIVE while the change still
+        # reports success — fail-OPEN for the "someone may know my password"
+        # remediation. We handle the raise EXPLICITLY: distinct error-level event +
+        # Sentry re-capture so a non-revoking change alerts.
+        #
+        # RESIDUAL RISK, NOW BACKSTOPPED (#3810): revocation here is still
+        # best-effort, but the durable idempotent retry exists — the after_commit
+        # block below enqueues an async FULL sweep (untracked keyspace scan
+        # included) after the change commits, and the credential watermark
+        # (UpdatePasswordMetadata above) is the authoritative revocation boundary
+        # regardless of what either deletion reaches.
+        #
+        # Fail SECURE (M-2): revocation MUST still run when external_id is absent.
+        # A bare `next unless account[:external_id]` would silently skip the revoke
+        # and leave OTHER live session blobs alive across the change. Fall back to
+        # the account email — RevokeAllForCustomerExceptCurrent resolves it the same
+        # way (Customer.load_by_extid_or_email). Only when neither identifier is
+        # usable do we skip, and then LOUDLY so a non-revoking change is visible.
+        custid = Auth::Config::Hooks::Account.resolve_custid(account)
+        if custid.to_s.strip.empty?
+          Auth::Logging.log_auth_event(
+            :sessions_revoke_skipped_no_identity,
+            level: :warn,
+            account_id: account_id,
+          )
+        else
+          # Durable follow-up (#3810): enqueue the async FULL sweep once the
+          # change actually COMMITS, mirroring after_reset_password above (see the
+          # after_commit rationale there — deferred to commit, skipped on
+          # rollback, registered BEFORE the inline revoke so it enqueues even when
+          # that revoke raises). except_session_id carries the PRE-rotation sid;
+          # the rotated current session is protected by the worker honoring the
+          # credential watermark, not by sid identity — protection that holds
+          # only when the watermark stamp above actually landed. When it did
+          # not, the sweep runs unguarded and may log the user out (fail-secure);
+          # the :credential_watermark_stamp_FAILED event makes that attributable.
+          db.after_commit do
+            # MANDATORY internal rescue: an exception escaping an after_commit
+            # block propagates out of the ALREADY-COMMITTED transaction and would
+            # 500 a successful password change. Broker failure degrades to a loud
+            # log + Sentry capture instead.
+            Onetime::Jobs::Publisher.enqueue_session_revocation_sweep(custid, except_session_id: current_sid)
+
+            Auth::Logging.log_auth_event(
+              :sessions_sweep_enqueued,
+              level: :info,
+              account_id: account_id,
+            )
+          rescue StandardError => ex
+            Auth::Logging.log_auth_event(
+              :sessions_sweep_enqueue_FAILED,
+              level: :error,
+              account_id: account_id,
+              hook: :after_change_password,
+              error: ex.message,
+              security_warning: 'async session sweep not enqueued; untracked pre-change blobs rely on watermark validation + TTL',
+            )
+
+            if defined?(Sentry) && Sentry.initialized?
+              Sentry.capture_exception(ex) do |scope|
+                scope.set_level(:error)
+                scope.set_tags(component: 'auth.session_revocation', hook: 'after_change_password', finding: 'M-2')
+                scope.set_context('session_revocation', { account_id: account_id })
+              end
+            end
+          end
+
+          begin
+            # scan_untracked: false keeps the bounded keyspace SCAN out of Rodauth's
+            # open change transaction; the guaranteed tracked kill still revokes every
+            # OTHER post-sidecar session (see RevokeAllForCustomerExceptCurrent docs).
+            # `custid:` is a genuine id-only entry point: this hook holds a Rodauth
+            # account row (external_id/email), never a Customer record.
+            result = Onetime::Operations::Sessions::RevokeAllForCustomerExceptCurrent.new(
+              custid: custid,
+              except_session_id: current_sid,
+              scan_untracked: false,
+            ).call
+
+            Auth::Logging.log_auth_event(
+              :sessions_revoked_on_change,
+              level: :info,
+              account_id: account_id,
+              blobs_deleted: result.blobs_deleted,
+              kept_current: !current_sid.to_s.empty?,
+              scan_capped: result.scan_capped,
+            )
+          rescue StandardError => ex
+            # FAIL-OPEN, MADE LOUD: the password change already committed, but the
+            # OTHER encrypted Redis session blobs may STILL be live. Emit a distinct
+            # error-level event and re-capture to Sentry so this alerts rather than
+            # hiding in routine error-handler logging.
+            Auth::Logging.log_auth_event(
+              :sessions_revoke_FAILED,
+              level: :error,
+              account_id: account_id,
+              hook: :after_change_password,
+              error: ex.message,
+              security_warning: 'password change succeeded but other session blobs may still be live',
+            )
+
+            if defined?(Sentry) && Sentry.initialized?
+              Sentry.capture_exception(ex) do |scope|
+                scope.set_level(:error)
+                scope.set_tags(component: 'auth.session_revocation', hook: 'after_change_password', finding: 'M-2')
+                scope.set_context('session_revocation', { account_id: account_id })
+              end
+            end
+          end
+        end
+
+        # Rotate the session id + re-stamp the kept session (#3810). The two are
+        # ordering-coupled, so both live inside the rotation block:
+        #
+        # ROTATION (session-fixation finding): a credential change is a privilege
+        # boundary, so the sid that existed before the change must not remain
+        # valid after it. Setting :renew makes Rack's commit path call
+        # Onetime::Session#delete_session (which DELETES the old sid's blob) and
+        # re-persist the session data under a fresh sid — the same lever the
+        # logout controller uses. write_session then re-creates the sidecar +
+        # index entry for the NEW sid via TrackMetadata, so only the old sid's
+        # metadata needs tidying here (the tidy_sidecars pattern from
+        # RevokeAllForCustomerExceptCurrent).
+        #
+        # RE-STAMP (watermark survival): the credential watermark stamped above
+        # (UpdatePasswordMetadata) rejects — via the auth-time `<=` check — any
+        # session whose authenticated_at is at or before it, so the kept session
+        # must be stamped to a value STRICTLY GREATER than the watermark or
+        # validation kills it on its very next request. The re-stamp runs ONLY
+        # after :renew has been requested, so a rotation that cannot happen fails
+        # SECURE: the un-rotated pre-change sid keeps its stale authenticated_at
+        # and the watermark (<=) retires it on its next request. Same string key
+        # + clock as SyncSession#populate_session stamps at login.
+        begin
+          if request.env['rack.session.options']
+            request.env['rack.session.options'][:renew] = true
+
+            # One Customer load drives both the watermark read and the stale-sid
+            # index cleanup below. A blank custid (or a miss) yields nil, and the
+            # `&.` chains degrade every use to a no-op — the same fail-secure
+            # outcome the separate `custid` blank-guard gave, without the reload.
+            rotation_customer = Onetime::Customer.load_by_extid_or_email(custid)
+
+            # Strictly postdate the watermark UpdatePasswordMetadata just wrote.
+            # [now, watermark + 1].max is > watermark under any clock relationship;
+            # if the watermark cannot be resolved (0) fall back to now + 1 so the
+            # "strictly greater than the real watermark" invariant still holds.
+            watermark                   = rotation_customer&.last_password_update.to_i
+            session['authenticated_at'] =
+              watermark.positive? ? [Familia.now.to_i, watermark + 1].max : Familia.now.to_i + 1
+
+            unless current_sid.to_s.empty?
+              Onetime::SessionMetadata.load(current_sid)&.destroy!
+              rotation_customer&.active_sessions&.remove(current_sid)
+            end
+          else
+            # rack.session.options absent → Rack's renew lever is unavailable, so
+            # the sid cannot be rotated. Do NOT re-stamp: leaving the pre-change
+            # sid's stale authenticated_at in place lets the watermark (<=) retire
+            # it on its next request (fail SECURE). Log loudly so it is attributable.
+            Auth::Logging.log_auth_event(
+              :session_rotation_FAILED,
+              level: :error,
+              account_id: account_id,
+              security_warning: 'rack.session.options missing; session id not rotated, watermark will retire old sid',
+            )
+          end
+        rescue StandardError => ex
+          # Rotation failure must never fail the password change, but must never
+          # be silent either: without rotation the pre-change sid stays live
+          # (session fixation) until watermark validation or TTL retires it.
+          Auth::Logging.log_auth_event(
+            :session_rotation_FAILED,
+            level: :error,
+            account_id: account_id,
+            error: ex.message,
+            security_warning: 'password change succeeded but the session id was not rotated',
+          )
+        end
+
+        # Best-effort security notification that the password changed. Never
+        # let a delivery problem surface as a password-change failure.
+        Onetime::ErrorHandler.safe_execute('password_changed_email', account_id: account_id) do
+          recipient = Onetime::Customer.find_by_email(account[:email])
+          # Customers default locale to "" (matches Redis string load), which is
+          # truthy and would slip past a bare `||`. Treat blank as missing.
+          locale    = recipient&.locale
+          locale    = OT.default_locale if locale.to_s.strip.empty?
+          Onetime::Jobs::Publisher.enqueue_email(
+            :password_changed,
+            {
+              email_address: account[:email],
+              changed_at: Time.now.utc.iso8601,
+              locale: locale,
+            },
+            fallback: :async_thread,
+          )
+        end
+      end
+
+      #
+      # Hooks: Account Closure Preflight and Cleanup
+      #
+      # Rodauth calls before_close_account before changing the SQL account status,
+      # and after_close_account afterward but inside the same SQL transaction. The
+      # preflight therefore refuses retained/drifted organization state before the
+      # irreversible closure step. The after hook applies the validated cleanup.
+      #
+      # Rodauth's close_account only flips the status column and deletes the
+      # password hash. The remaining credential rows go through the feature
+      # after_close_account chain (omniauth identities, two-factor secrets,
+      # active sessions, remember keys), reached via `super()`, and through
+      # TeardownAccount's SQL removal, which covers every table whether or not
+      # its feature is loaded in this boot. The accounts row and its audit log
+      # are removed last, by the delete_account override below (#4819).
+      #
+      auth.before_close_account do
+        customer = Auth::Config::Hooks::Account.resolve_customer(account)
+        unless customer
+          raise Onetime::FormError.new(
+            'Account deletion was refused because the customer record could not be resolved.',
+            error_type: 'account_deletion_refused',
+            details: { status: :refused, blockers: [{ code: :customer_not_found }] },
+          )
+        end
+
+        plan = Auth::Operations::Customers::PurgePreflight.new(customer: customer).call
+        unless plan.executable?
+          raise Onetime::FormError.new(
+            'Account deletion was refused because organization data or membership state requires attention.',
+            error_type: 'account_deletion_refused',
+            details: {
+              status: :refused,
+              blockers: plan.blockers,
+              planned_actions: plan.action_details,
+            },
+          )
+        end
+
+        @close_account_customer       = customer
+        @close_account_plan_signature = plan.signature
+      end
+
+      auth.after_close_account do
+        # Explicit `super()`: Rodauth config blocks become define_method bodies,
+        # where implicit-argument super is not allowed.
+        super()
+
+        # The closure marker (#4819, #4830) goes on before the purge's first
+        # mutation. From here on the closure either commits, and
+        # delete_account below deletes the accounts row, or it is refused
+        # with nothing changed. A failed write (Valkey unreachable) refuses
+        # it here. A refusal clears the marker again (the rescue below).
+        # Writing it any later fails one way or the other in an outage that
+        # starts mid-purge: after the purge it is skipped and the surviving
+        # record reads as a customer that never had an auth account; in
+        # delete_account it raises and rolls back a closure whose Redis half
+        # is already gone.
+        marker = @close_account_customer.mark_closure_started!
+
+        purge  = Auth::Operations::Customers::Purge.new(
+          customer: @close_account_customer,
+          self_service: true,
+          retain_auth_account: true,
+          expected_plan_signature: @close_account_plan_signature,
+        )
+        result = purge.call
+
+        unless result.status == :success
+          unless purge.mutation_started? || result.actions.any? || result.completed_stages.any?
+            raise Onetime::FormError.new(
+              'Account deletion could not be completed because organization state changed. No account closure was committed.',
+              error_type: 'account_deletion_refused',
+              details: {
+                status: result.status,
+                stage: result.stage,
+                blockers: result.blockers,
+              },
+            )
+          end
+
+          Auth::Logging.log_auth_event(
+            :account_close_cleanup_partial,
+            level: :error,
+            account_id: account_id,
+            external_id: account[:external_id],
+            email: account[:email],
+            cleanup_status: result.status,
+            stage: result.stage,
+            blockers: result.blockers,
+            completed_actions: result.actions,
+            completed_stages: result.completed_stages,
+          )
+        end
+
+        Auth::Logging.log_auth_event(
+          :account_closed,
+          level: :info,
+          account_id: account_id,
+          external_id: account[:external_id],
+          email: account[:email],
+          cleanup_status: result.status,
+        )
+      rescue StandardError => ex
+        unless purge&.mutation_started?
+          # Refused with nothing changed (the FormError above lands here too):
+          # the account stays open, so the marker goes, if this request wrote
+          # it. A marker already there is an earlier request's, such as the
+          # first of two submits that committed and left the record behind,
+          # and still describes that closure. Best effort: a marker left on a
+          # live account reads as a closure that rolled back, which
+          # `customers doctor --repair` clears.
+          if marker == :written
+            begin
+              @close_account_customer.clear_closure_marker!
+            rescue StandardError => clear_error
+              OT.le(
+                '[account_close] closure marker not cleared after a refusal',
+                exception: clear_error,
+                original_exception: ex,
+                external_id: account[:external_id],
+              )
+            end
+          end
+          raise ex
+        end
+
+        context = purge.outcome_context
+        begin
+          Auth::Logging.log_auth_event(
+            :account_close_cleanup_failed_after_mutation,
+            level: :error,
+            account_id: account_id,
+            external_id: account[:external_id],
+            email: account[:email],
+            error: ex.class.name,
+            message: ex.message,
+            stage: context[:stage],
+            completed_actions: context[:actions],
+            completed_stages: context[:completed_stages],
+          )
+        rescue StandardError => logging_error
+          OT.le(
+            '[account_close_cleanup_failed_after_mutation] observability write failed',
+            exception: logging_error,
+            original_exception: ex,
+            account_id: account_id,
+            external_id: account[:external_id],
+            stage: context[:stage],
+          )
+        end
+        nil
+      end
+
+      #
+      # Account Row Deletion After Closure (#4819)
+      #
+      # Rodauth's close_account route runs, inside one transaction:
+      # before_close_account, close_account (status to closed, password hash
+      # dropped), after_close_account, clear_session, clear_tokens and, with
+      # delete_account_on_close? on, delete_account (rodauth 2.48.0
+      # close_account.rb). The audit_logging feature inserts its "Account
+      # closed" row from hook_action at the end of after_close_account, AFTER
+      # the block above returns, so the teardown there leaves the accounts row
+      # in place (retain_auth_account: true) and the row goes here, last.
+      #
+      # The override deletes every row still referencing the account first:
+      # the audit log, including the row Rodauth just inserted, and anything
+      # a feature wrote between the hook and this point. delete_dependent_rows
+      # also holds the accounts row FOR UPDATE (taken by the teardown above,
+      # re-taken here, released at commit), so on PostgreSQL a request still
+      # in flight for the account cannot slip a child row in between these
+      # deletes and super()'s DELETE and fail its foreign-key check; the
+      # insert waits for the commit and then fails on the missing parent.
+      # Nothing of the account survives the commit: no accounts row, no audit
+      # history. Administrative purges run outside Rodauth and delete the
+      # same rows in TeardownAccount.
+      #
+      # The lock is only held to super()'s DELETE while both run in one
+      # transaction. Rodauth runs delete_account inside close_account's,
+      # which db.transaction joins; should a later Rodauth call it outside,
+      # db.transaction opens one, so the boundary stays this override's.
+      #
+      # The row also goes when the cleanup stopped before TeardownAccount
+      # closed the auth account: a partial Purge, or one that raised after its
+      # first mutation, still commits (after_close_account above). Such a
+      # customer record is still in Redis; after_close_account marked it
+      # before the purge started, so it reads as an interrupted closure and
+      # not as a customer that never had an auth account. Nothing here
+      # touches Redis: a write failing at this point would roll back a
+      # closure whose Redis half is already gone.
+      #
+      auth.delete_account_on_close? true
+
+      auth.delete_account do
+        db.transaction do
+          Auth::Operations::RemoveAuthenticationData.delete_dependent_rows(db, account_id)
+          super()
+        end
+      end
+    end
+    # rubocop:enable Metrics/PerceivedComplexity, Metrics/MethodLength
+  end
+end

@@ -1,0 +1,249 @@
+# apps/web/auth/config.rb
+#
+# frozen_string_literal: true
+
+#
+# IMPORTANT: Test files should NOT require this file or anything below it.
+#
+# This file triggers the full boot chain (database.rb → Onetime.auth_config)
+# which requires production config files and database connections.
+#
+# For specs that need constants from config/features/*.rb, use:
+#   require_relative 'spec/support/auth_test_constants'
+#   include AuthTestConstants
+#
+# This provides test-safe copies of MFA limits, status IDs, etc.
+
+require 'rodauth'
+require 'rodauth/tools'
+
+module Auth
+  class Config < Rodauth::Auth
+    # Track configuration state to prevent duplicate configuration.
+    # In test environments, this file may be required multiple times
+    # (via specs and Application Registry discovery). Rodauth's configure
+    # block runs each time it's called, so we guard against re-entry.
+    @configured = false
+
+    class << self
+      attr_accessor :configured
+    end
+
+    require_relative 'lib/logging'
+    require_relative 'database'
+    require_relative 'operations'
+    require_relative 'config/base'
+    require_relative 'config/email'
+    require_relative 'config/features'
+    require_relative 'config/hooks'
+    require_relative 'config/overrides'
+    require_relative 'config/rodauth_overrides'
+
+    configure do
+      # =====================================================================
+      # CONFIGURATION GUARD
+      # =====================================================================
+      #
+      # Skip if already configured. This prevents errors when the configure
+      # block is called multiple times (e.g., in test environments).
+      # Use `next` not `return` because we're in an instance_exec context.
+      #
+      if Auth::Config.configured
+        OT.lw '[Auth::Config] Skipping duplicate configuration (already configured)'
+        next
+      end
+
+      # =====================================================================
+      # CONFIGURATION MODULES
+      # =====================================================================
+      #
+      # Each module handles its own `enable` calls alongside configuration.
+      # This keeps feature enablement co-located with feature configuration.
+      #
+
+      # Core features: base, json, login, logout, table_guard, etc.
+      Base.configure(self)
+
+      # Password hashing: argon2id
+      Features::Argon2.configure(self)
+
+      # Audit logging for authentication events (feature enablement, defaults,
+      # and the per-event audit_log_message_for/metadata_for registrations)
+      Features::AuditLogging.configure(self)
+
+      # Account lifecycle: create, verify, close, change/reset password
+      # (must come before Email.configure - provides email_base feature)
+      Features::AccountManagement.configure(self)
+
+      # Email delivery configuration (requires email_base from above)
+      Email.configure(self)
+
+      # Hooks for customizing authentication behavior.
+      # NOTE: hooks don't chain — this order is a precedence list (last writer
+      # wins per hook name); each hook has exactly one owner. See config/hooks.rb.
+      # restrict_to enforcement
+      # (ADR-034#restrict-to-is-an-access-control-not-a-display-preference
+      # / #reject-as-not-found-not-forbidden, #4139). Registered FIRST among
+      # the hooks because before_rodauth fires for every route: a method the
+      # request host restricts away must 404 before any other hook observes the
+      # request. Registration order is otherwise irrelevant (hooks are
+      # last-writer-wins per NAME, and this is the sole owner of
+      # before_rodauth), but reading order should match execution order.
+      Hooks::RestrictTo.configure(self)
+
+      Hooks::Account.configure(self)
+      Hooks::Login.configure(self)
+      Hooks::Logout.configure(self)
+      Hooks::Password.configure(self)
+      # Rate limiting for POST /auth/reset-password-request (issue #3872):
+      # bounds the timing-residual sampling the enumeration override (#3857)
+      # accepts. Requires :reset_password (enabled by AccountManagement above)
+      # so the before_reset_password_request_route hook exists.
+      Hooks::ResetPasswordRequest.configure(self)
+      # Rate limiting for POST /auth/create-account (issue #3948, audit
+      # 2026-07-30 finding #4): bounds unauthenticated, unthrottled account
+      # creation — one Customer record (no TTL) plus one welcome email per
+      # distinct address. Simple mode enforces the SAME limiter from
+      # AccountAPI::Logic::Account::CreateAccount#raise_concerns; this is the
+      # full-mode half, and full mode is what production runs. Requires
+      # :create_account (enabled by AccountManagement above) so the
+      # before_create_account_route hook exists.
+      Hooks::CreateAccount.configure(self)
+
+      # Method overrides (replace Rodauth methods, not before/after hooks)
+      # Absolute URLs (every *_email_link, the WebAuthn origin) follow the
+      # request's public host rather than the proxy-rewritten authority
+      # (#4221). Also defines public_display_domain, which the email template
+      # blocks above read at request time. Its per-route recipient-origin
+      # guards are prepended at the END of this block
+      # (configure_recipient_origins, below).
+      Overrides::PublicBaseUrl.configure(self)
+      Overrides::PasswordMigration.configure(self)
+      Overrides::ErrorHandling.configure(self)
+      # Stable `code` / `code_scope` on Rodauth's refusals (#4469): the
+      # set_error_reason seam, policy in Auth::CredentialFailureCode.
+      Overrides::FailureCode.configure(self)
+      # NOT HERE: enumeration safety for the login-request routes
+      # (Overrides::LoginRequestEnumeration) is configured at the END of this
+      # block, after every feature it covers can have been enabled.
+
+      # One answer for a sign-up whose login already has an account, however
+      # late it is detected (a unique violation from a concurrent sign-up).
+      Overrides::DuplicateSignup.configure(self)
+      # Surface-bound sessions (#4409): stamp the establishing surface in
+      # update_session, the seam shared by `login` and every autologin
+      # (create/verify/reset). Prepended, so it chains with the
+      # active-sessions update_session override regardless of order.
+      Overrides::SurfaceBinding.configure(self)
+      RodauthOverrides.configure(self)
+
+      # Lockout: brute force protection
+      if Onetime.auth_config.lockout_enabled?
+        Features::Lockout.configure(self)
+      end
+
+      # Password requirements: strength validation
+      if Onetime.auth_config.password_requirements_enabled?
+        Features::PasswordRequirements.configure(self)
+      end
+
+      # Active sessions: track and manage sessions across devices
+      if Onetime.auth_config.active_sessions_enabled?
+        Features::ActiveSessions.configure(self)
+      end
+
+      # Remember me: the checkbox makes this session last a fixed 14 days
+      if Onetime.auth_config.remember_me_enabled?
+        Features::RememberMe.configure(self)
+      end
+
+      # Multi-Factor Authentication: TOTP, recovery codes
+      if Onetime.auth_config.mfa_enabled?
+        Features::MFA.configure(self)
+        Hooks::MFA.configure(self)
+      end
+
+      # Email auth: passwordless login via email links (aka magic links)
+      if Onetime.auth_config.email_auth_enabled?
+        Features::EmailAuth.configure(self)
+        Hooks::EmailAuth.configure(self)
+        # Rate limiting for POST /auth/email-login-request
+        # (RISK-2026-08-14-M04): per client IP and per submitted login,
+        # before account lookup. before_email_auth_request_route only exists
+        # once :email_auth is enabled.
+        Hooks::EmailLoginRequest.configure(self)
+        # before_email_auth_request only exists once :email_auth is enabled;
+        # closes the multi-phase-login magic-link path on the /login route.
+        Hooks::RestrictTo.configure_email_auth(self)
+      end
+
+      # WebAuthn: biometrics, security keys (Face ID, Touch ID, YubiKey)
+      if Onetime.auth_config.webauthn_enabled?
+        Features::WebAuthn.configure(self)
+        Hooks::WebAuthn.configure(self)
+      end
+
+      # Two-factor completion: after_two_factor_authentication is provided by
+      # two_factor_base, which BOTH the otp and webauthn features enable
+      # transitively. The app-side completion (SyncSession, awaiting_mfa
+      # clear, deferred SSO bind, sign-in alert) must fire for EITHER factor,
+      # so this registers whenever any two-factor feature is loaded —
+      # including webauthn-only deployments (AUTH_MFA_ENABLED=false), which
+      # would otherwise complete Rodauth's webauthn-auth but never sync the
+      # app session. Must come AFTER the MFA/WebAuthn feature blocks above so
+      # two_factor_base (and therefore the hook method) exists.
+      if Onetime.auth_config.mfa_enabled? || Onetime.auth_config.webauthn_enabled?
+        Hooks::TwoFactor.configure(self)
+      end
+
+      # OmniAuth: external identity providers (SSO via OIDC)
+      # Routes are registered when either:
+      # - AUTH_SSO_ENABLED=true (platform-level SSO with env var credentials)
+      # - ORGS_SSO_ENABLED=true (domain-level SSO with DB credentials)
+      # When only orgs_sso_enabled?, platform providers may be empty but routes
+      # must exist for OmniAuthTenant hook to inject tenant credentials at runtime.
+      if Onetime.auth_config.omniauth_enabled? || Onetime.auth_config.orgs_sso_enabled?
+        Features::OmniAuth.configure(self)
+        Hooks::OmniAuth.configure(self)
+        Hooks::OmniAuthTenant.configure(self)
+      end
+
+      # Billing: plan selection carry-through for checkout flow
+      if Onetime.billing_config.enabled?
+        Hooks::Billing.configure(self)
+      end
+
+      # Enumeration safety for the login-request routes (issue #3857,
+      # RISK-2026-08-14-M03): reset-password-request, email-login-request and
+      # verify-account-resend answer every account state alike. LAST on
+      # purpose: it reads the class's enabled features to decide which
+      # overrides to install, and :email_auth (above) and :verify_account
+      # (AccountManagement, or transitively via webauthn_verify_account) are
+      # enabled conditionally. Configured earlier, an override for a feature
+      # enabled later would be silently skipped.
+      Overrides::LoginRequestEnumeration.configure(self)
+      # The recipient-origin half of the same guarantee: a recipient with no
+      # credential origin answers like a missing account on those routes,
+      # before any key write. Last for the same reason.
+      Overrides::PublicBaseUrl.configure_recipient_origins(self)
+
+      # Onetime.auth_config.verify_account_loaded? restates which enables
+      # above bring in :verify_account, for the code that runs before this
+      # class has a feature list (AccountManagement's enable, the email
+      # template, the after_verify_account hook, the signup deferral). Refuse
+      # a boot where the two disagree: an enable added without updating the
+      # predicate would load the verify-account route while the hook, the
+      # email and the deferral stay off.
+      verify_account_loaded    = auth.features.include?(:verify_account)
+      verify_account_predicate = Onetime.auth_config.verify_account_loaded?
+      unless verify_account_loaded == verify_account_predicate
+        raise "[Auth::Config] :verify_account loaded is #{verify_account_loaded} but " \
+              "Onetime.auth_config.verify_account_loaded? is #{verify_account_predicate.inspect}; " \
+              'update the predicate together with the enable (lib/onetime/auth_config.rb)'
+      end
+
+      # Mark configuration complete
+      Auth::Config.configured = true
+    end
+  end
+end

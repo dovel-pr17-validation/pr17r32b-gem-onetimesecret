@@ -1,0 +1,78 @@
+{
+  "web.errors.why_is_this_secret_unavailable": {
+    "text": "Waarom is dit bericht niet beschikbaar?",
+    "source_hash": "bd545472"
+  },
+  "web.errors.secrets_are_designed_to_be_viewed_only_once": {
+    "text": "Berichten zijn ontworpen om slechts één keer te worden bekeken. Deze link kan al zijn geopend, verlopen of handmatig door de afzender zijn verwijderd.",
+    "source_hash": "44c54ed2"
+  },
+  "web.errors.what_should_i_do_now": {
+    "text": "Wat moet ik nu doen?",
+    "source_hash": "fbf3e67f"
+  },
+  "web.errors.contact_the_person_who_sent_you_this_link": {
+    "text": "Neem contact op met de persoon die je deze link heeft gestuurd en vraag of ze een nieuw bericht willen aanmaken. Laat weten dat je de originele informatie niet kon openen.",
+    "source_hash": "d9f4f41a"
+  },
+  "web.errors.warning_dismissed": {
+    "text": "Waarschuwing gesloten",
+    "source_hash": "e6d67409"
+  },
+  "web.errors.dismiss_truncation_warning": {
+    "text": "Afkapwaarschuwing sluiten",
+    "source_hash": "79e02fe6"
+  },
+  "web.errors.oops_the_page_you_are_looking_for_doesnt_exist_o": {
+    "text": "Oeps! De pagina die je zoekt bestaat niet of is verplaatst.",
+    "source_hash": "78207a09"
+  },
+  "web.errors.404_page_not_found_0": {
+    "text": "404 - Pagina niet gevonden",
+    "source_hash": "27595daa"
+  },
+  "web.errors.404_page_not_found": {
+    "text": "404 - Pagina niet gevonden",
+    "source_hash": "27595daa"
+  },
+  "web.errors.dismiss_warning": {
+    "text": "Waarschuwing sluiten",
+    "source_hash": "9f6e4da3"
+  },
+  "web.errors.dismiss_notification": {
+    "text": "Melding sluiten",
+    "source_hash": "b7bb3f34"
+  },
+  "web.errors.if_youre_unsure_what_to_do_next_please_follow_up": {
+    "text": "Als je niet zeker weet wat je nu moet doen, neem dan contact op met de persoon die je deze link heeft gestuurd voor meer informatie.",
+    "source_hash": "0df00d3f"
+  },
+  "web.errors.information_shared_through_our_service_can_only_": {
+    "text": "Informatie die via onze dienst wordt gedeeld, kan slechts één keer worden geopend. Na het bekijken wordt de inhoud permanent van onze servers verwijderd om vertrouwelijkheid te garanderen. Deze aanpak helpt je gevoelige gegevens te beschermen door de blootstelling te beperken en ongeautoriseerde toegang te voorkomen.",
+    "source_hash": "a3fd8283"
+  },
+  "web.errors.were_sorry_but_an_unexpected_error_occurred_whil": {
+    "text": "Het spijt ons, maar er is een onverwachte fout opgetreden bij het verwerken van je verzoek. Ons team is op de hoogte gesteld en we werken aan een oplossing.",
+    "source_hash": "f3b50965"
+  },
+  "web.errors.t_web_common_oops_something_went_wrong": {
+    "text": "{0} Er is iets misgegaan",
+    "source_hash": "93529f24"
+  },
+  "web.errors.go_share_a_secret": {
+    "text": "Ga een bericht delen!",
+    "source_hash": "04c04b1a"
+  },
+  "web.errors.the_page_youre_looking_for_doesnt_exist_or_has_b": {
+    "text": "De pagina die je zoekt bestaat niet of is verplaatst. Geen zorgen, dat overkomt de besten!",
+    "source_hash": "e26522de"
+  },
+  "web.errors.t_web_common_oops_404": {
+    "text": "{0} 404",
+    "source_hash": "ba5b5737"
+  },
+  "web.errors.unable_to_load_data_due_to_data_format_issues_pl": {
+    "text": "Kan gegevens niet laden vanwege problemen met het gegevensformaat. Probeer het later opnieuw.",
+    "source_hash": "a7b6f998"
+  }
+}

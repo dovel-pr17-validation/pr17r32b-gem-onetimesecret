@@ -1,0 +1,366 @@
+{
+  "web.footer.api_docs": {
+    "text": "API-dokumentaro",
+    "source_hash": "f4137804"
+  },
+  "web.footer.branding_guide": {
+    "text": "Marka gvidilo",
+    "source_hash": "53f994c5"
+  },
+  "web.footer.customize": {
+    "text": "Personecigi",
+    "source_hash": "c5276e27"
+  },
+  "web.footer.plans": {
+    "text": "Planoj",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.footer.security": {
+    "text": "Sekureco",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.footer.learn_about_our_security_measures": {
+    "text": "Lernu pri niaj sekurecaj mezuroj",
+    "source_hash": "16c8adae"
+  },
+  "web.footer.view_our_terms_and_conditions": {
+    "text": "Vidu niajn kondiĉojn kaj terminojn",
+    "source_hash": "0dde60b7"
+  },
+  "web.footer.terms": {
+    "text": "Kondiĉoj",
+    "source_hash": "ede54899"
+  },
+  "web.footer.privacy": {
+    "text": "Privateco",
+    "source_hash": "54a57c31"
+  },
+  "web.footer.contact": {
+    "text": "Kontakti",
+    "source_hash": "2b5c3d26"
+  },
+  "web.footer.support": {
+    "text": "Subteno",
+    "source_hash": "be91940b"
+  },
+  "web.footer.legals": {
+    "text": "Juraj",
+    "source_hash": "0a410c78"
+  },
+  "web.feedback.when_you_submit_feedback_well_see": {
+    "text": "Kiam vi sendos rimarkojn, ni vidos:",
+    "source_hash": "fe77172e"
+  },
+  "web.footer.read_our_privacy_policy": {
+    "text": "Legu nian privatec-politikon",
+    "source_hash": "eb443229"
+  },
+  "web.footer.check_our_service_status": {
+    "text": "Kontrolu la staton de nia servo",
+    "source_hash": "1f04937e"
+  },
+  "web.footer.explore_our_api_documentation": {
+    "text": "Esploru nian API-dokumentaron",
+    "source_hash": "45beb8f8"
+  },
+  "web.footer.docs": {
+    "text": "Dokumentaro",
+    "source_hash": "7af023c4"
+  },
+  "web.footer.access_our_documentation": {
+    "text": "Aliru nian dokumentaron",
+    "source_hash": "37686da2"
+  },
+  "web.footer.view_our_source_code_on_github": {
+    "text": "Vidu nian fontkodon ĉe GitHub",
+    "source_hash": "d5def0ab"
+  },
+  "web.footer.resources": {
+    "text": "Rimedoj",
+    "source_hash": "e89b30aa"
+  },
+  "web.footer.blog": {
+    "text": "Blogo",
+    "source_hash": "8c6bc099"
+  },
+  "web.footer.read_our_latest_blog_posts": {
+    "text": "Legu niajn plej lastajn blogaĵojn",
+    "source_hash": "77468d43"
+  },
+  "web.footer.view_our_subscription_pricing": {
+    "text": "Vidu niajn abonajn prezojn",
+    "source_hash": "55f1f590"
+  },
+  "web.footer.learn_about_our_company": {
+    "text": "Lernu pri nia kompanio",
+    "source_hash": "780e18cd"
+  },
+  "web.footer.company": {
+    "text": "Kompanio",
+    "source_hash": "de4743c8"
+  },
+  "web.footer.product": {
+    "text": "Produkto",
+    "source_hash": "fb9ef894"
+  },
+  "web.footer.source_code_purveyor": {
+    "text": "Fontkodo",
+    "source_hash": "bc47da66"
+  },
+  "web.navigation.billing": {
+    "text": "Fakturado",
+    "source_hash": "3ac8bbca"
+  },
+  "web.navigation.billingOverview": {
+    "text": "Superrigardo",
+    "source_hash": "d4b1ea57"
+  },
+  "web.navigation.organizations": {
+    "text": "Organizoj",
+    "source_hash": "2730183d"
+  },
+  "web.site.website_version": {
+    "text": "Reteja versio",
+    "source_hash": "4d4a570f"
+  },
+  "web.meta.were_making_onetime_secret_available_in_multiple": {
+    "text": "Ni igas {onetime-secret} disponebla en pluraj lingvoj. Ĉar tio estas nova funkcio, vi eble renkontos tradukerarojn aŭ mallertan frazadon. Via reago helpas nin pliboniĝi - se vi rimarkas iujn problemojn, bonvolu {send-feedback}",
+    "source_hash": "3b482d7f"
+  },
+  "web.meta.translations_are_new_spotted_an_error": {
+    "text": "La tradukoj estas novaj. Ĉu vi rimarkis eraron? {send-feedback}",
+    "source_hash": "31eca08d"
+  },
+  "web.meta.we_recently_added_translations": {
+    "text": "Ni lastatempe aldonis tradukojn. Ĉu vi rimarkis eraron? {send-feedback}",
+    "source_hash": "6e2455c1"
+  },
+  "web.meta.privacy_and_security_should_be_accessible": {
+    "text": "Privateco kaj sekureco devus esti alireblaj por ĉiuj, sendepende de lingvo. Ni aldonas tradukojn por helpi kaj niajn uzantojn kaj iliajn mesaĝricevantojn pli bone kompreni kiel sekure uzi kaj aliri sekurajn mesaĝojn kaj ligilojn. Ĉar tio estas nova funkcio, vi eble renkontos kelkajn tradukerarojn aŭ neklarajn instrukciojn. Por helpi nin plibonigi la klarecon kaj precizecon de niaj tradukoj, precipe por kritika sekureco-rilata enhavo, bonvolu {send-feedback} se vi rimarkas iujn problemojn",
+    "source_hash": "1b8bb38f"
+  },
+  "web.help.learn_more": {
+    "text": "Lernu pli",
+    "source_hash": "1445799c"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.title": {
+    "text": "Kion mi rigardas?",
+    "source_hash": "b9766df3"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.description": {
+    "text": "Vi rigardas sekuran mesaĝon, kiu estis kunhavigita kun vi per {product_name}. Ĉi tiu enhavo estas montrata nur unufoje kaj poste por ĉiam forigita el niaj serviloj.",
+    "source_hash": "7a4e9d16"
+  },
+  "web.help.secret_view_faq.can_i_view_again.title": {
+    "text": "Ĉu mi povas vidi ĉi tiun sekreton denove poste?",
+    "source_hash": "c8c2c9da"
+  },
+  "web.help.secret_view_faq.can_i_view_again.description": {
+    "text": "Ne. Pro sekurecaj kialoj, ĉi tiu sekreto estas videbla nur unufoje. Post fermo de ĉi tiu paĝo, la enhavo estos porĉiame forigita kaj ne reakirigebla de iu ajn, inkluzive de ni.",
+    "source_hash": "4bf980a4"
+  },
+  "web.help.secret_view_faq.how_to_copy.title": {
+    "text": "Kiel mi konservas ĉi tiun informon?",
+    "source_hash": "90deddbb"
+  },
+  "web.help.secret_view_faq.how_to_copy.description": {
+    "text": "Uzu la butonon 'Kopii al tondujo' por kopii la tutan sekreton. Por pli longaj sekretoj, certigu ke vi kopiis la kompletan enhavon antaŭ ol forlasi ĉi tiun paĝon.",
+    "source_hash": "440aa828"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.title": {
+    "text": "Ĉu mia vidado de ĉi tiu sekreto estas spurata?",
+    "source_hash": "90145e28"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.description": {
+    "text": "La sendinto estos sciigita ke ilia sekreto estis vidata, sed ni ne spuras kiu vidis ĝin aŭ de kiu loko. Via privateco estas protektata.",
+    "source_hash": "70737473"
+  },
+  "web.help.secret_view_faq.one_time_warning": {
+    "text": "Post kiam vi forlasos aŭ refreŝigos ĉi tiun paĝon, ĉi tiu sekreto estos porĉiame forigita kaj ne reakirigebla de iu ajn.",
+    "source_hash": "47feab6e"
+  },
+  "web.layout.go_back_to_previous_page": {
+    "text": "Reveni al antaŭa paĝo",
+    "source_hash": "1778f2e7"
+  },
+  "web.layout.site_footer": {
+    "text": "Reteja piedteksto",
+    "source_hash": "6ca09429"
+  },
+  "web.layout.toggle_dark_mode": {
+    "text": "Baskuligi malhelan reĝimon",
+    "source_hash": "ffe32a00"
+  },
+  "web.layout.provide_feedback": {
+    "text": "Doni retrosciigon",
+    "source_hash": "a70766ae"
+  },
+  "web.layout.company_logo": {
+    "text": "Kompania emblemo",
+    "source_hash": "87a86135"
+  },
+  "web.layout.brand_logo": {
+    "text": "Marka emblemo",
+    "source_hash": "e458e2b5"
+  },
+  "web.layout.dashboard_navigation": {
+    "text": "Panela navigado",
+    "source_hash": "da5c1c43"
+  },
+  "web.layout.mobile_navigation": {
+    "text": "Poŝtelefona navigado",
+    "source_hash": "ccea1730"
+  },
+  "web.layout.main_navigation": {
+    "text": "Ĉefa navigado",
+    "source_hash": "56ea852a"
+  },
+  "web.layout.mobile_nav_item_count": {
+    "text": "{count} eroj",
+    "source_hash": "f65216b3"
+  },
+  "web.layout.release_notes": {
+    "text": "Eldonnotoj",
+    "source_hash": "bd4702c1"
+  },
+  "web.layout.loading_settings_content": {
+    "text": "Ŝargas agordan enhavon...",
+    "source_hash": "81a2a30e"
+  },
+  "web.layout.settings_sections_0": {
+    "text": "Agordaj sekcioj",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.close_settings": {
+    "text": "Fermi agordojn",
+    "source_hash": "0ccfef82"
+  },
+  "web.layout.settings_sections": {
+    "text": "Agordaj sekcioj",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.customize_your_app_preferences_and_settings": {
+    "text": "Personecigu viajn aplikaĵajn preferojn kaj agordojn",
+    "source_hash": "00d74c98"
+  },
+  "web.layout.return_home": {
+    "text": "Reveni hejmen",
+    "source_hash": "bbcc935e"
+  },
+  "web.layout.return_to_home_page": {
+    "text": "Reveni al hejmpaĝo",
+    "source_hash": "8d27b81d"
+  },
+  "web.layout.return_to_home": {
+    "text": "Reveni al Hejmo",
+    "source_hash": "299291b0"
+  },
+  "web.layout.view_privacy_policy": {
+    "text": "Vidi privatecan politikon",
+    "source_hash": "377733b6"
+  },
+  "web.layout.view_terms_of_service": {
+    "text": "Vidi kondiĉojn de servo",
+    "source_hash": "e2f124cd"
+  },
+  "web.layout.visit_onetime_secret_homepage": {
+    "text": "Vizitu la ĉefpaĝon de {product_name}",
+    "source_hash": "87802af5"
+  },
+  "web.layout.footer_navigation": {
+    "text": "Piedteksta navigado",
+    "source_hash": "76363a64"
+  },
+  "web.layout.terms_of_service": {
+    "text": "Kondiĉoj de servo",
+    "source_hash": "4afa55bf"
+  },
+  "web.layout.privacy_policy": {
+    "text": "Privateca politiko",
+    "source_hash": "506ff394"
+  },
+  "web.layout.icon_library": {
+    "text": "Piktograma biblioteko",
+    "source_hash": "a73f4c07"
+  },
+  "web.layout.google_material": {
+    "text": "Google Material",
+    "source_hash": "7c7afa99"
+  },
+  "web.layout.material_design_icons": {
+    "text": "Material Design Icons",
+    "source_hash": "0fb27437"
+  },
+  "web.layout.heroicons": {
+    "text": "Heroicons",
+    "source_hash": "5e7cc07e"
+  },
+  "web.layout.carbon": {
+    "text": "Carbon",
+    "source_hash": "694c87c2"
+  },
+  "web.layout.font_awesome_6": {
+    "text": "Font Awesome 6",
+    "source_hash": "d4eedb15"
+  },
+  "web.layout.view_source_on_github": {
+    "text": "Vidi fontkodon ĉe GitHub",
+    "source_hash": "75e96614"
+  },
+  "web.layout.website_version_v_ot_version": {
+    "text": "Reteja versio: v{0}",
+    "source_hash": "343f57de"
+  },
+  "web.layout.current_language_is_currentlocal": {
+    "text": "Ŝanĝi lingvon. Nuna lingvo estas {0}",
+    "source_hash": "77f9c322"
+  },
+  "web.layout.language_changed_to_newlocale": {
+    "text": "Lingvo ŝanĝita al {0}",
+    "source_hash": "1680f4fe"
+  },
+  "web.layout.reset_to_default_language": {
+    "text": "Restarigi al {0}",
+    "source_hash": "c0cfa9b2"
+  },
+  "web.layout.switch_to_blank_mode": {
+    "text": "Ŝanĝi al {0} reĝimo",
+    "source_hash": "c8b909e0"
+  },
+  "web.layout.blank_mode_enabled": {
+    "text": "{0} reĝimo ebligita",
+    "source_hash": "e1d200cb"
+  },
+  "web.layout.workspace": {
+    "text": "Laborspaco",
+    "source_hash": "87bb59ba"
+  },
+  "web.layout.workspace_context": {
+    "text": "Laborspaca kunteksto",
+    "source_hash": "dc6fa4f5"
+  },
+  "web.footer.workspace": {
+    "text": "Laborspaco",
+    "source_hash": "87bb59ba"
+  },
+  "web.help.default_content": {
+    "text": "Bonvolu kontakti subtenon por helpo",
+    "source_hash": "752bca14"
+  },
+  "web.layout.colonels_only_badge": {
+    "text": "Nur Colonel-oj",
+    "source_hash": "3f1e2dbd"
+  },
+  "web.footer.dpa": {
+    "text": "Interkonsento pri datumprilaborado",
+    "source_hash": "112eae6b"
+  },
+  "web.footer.cookie_policy": {
+    "text": "Kuketa politiko",
+    "source_hash": "ee290b3d"
+  },
+  "web.footer.acceptable_use": {
+    "text": "Politiko pri akceptebla uzo",
+    "source_hash": "34aa287a"
+  }
+}

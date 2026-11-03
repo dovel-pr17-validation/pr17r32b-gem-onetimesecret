@@ -1,0 +1,74 @@
+{
+  "web.feedback.your_feedback": {
+    "text": "Twoja opinia",
+    "source_hash": "cdb1c0a5"
+  },
+  "web.feedback.all_feedback_welcome": {
+    "text": "Każda opinia jest mile widziana!",
+    "source_hash": "c57d3006"
+  },
+  "web.feedback.help_us_improve": {
+    "text": "Pomóż nam się doskonalić",
+    "source_hash": "f35439c4"
+  },
+  "web.feedback.close_feedback_modal": {
+    "text": "Zamknij okno opinii",
+    "source_hash": "41689bb4"
+  },
+  "web.feedback.share_your_feedback": {
+    "text": "Podziel się swoją opinią",
+    "source_hash": "6d62dfbd"
+  },
+  "web.feedback.delano_mandelbaum": {
+    "text": "Delano Mandelbaum",
+    "source_hash": "6da0b72b"
+  },
+  "web.feedback.delano": {
+    "text": "Delano",
+    "source_hash": "f58154f7"
+  },
+  "web.feedback.help_content_goes_here": {
+    "text": "Treść pomocy pojawi się tutaj.",
+    "source_hash": "796979ea"
+  },
+  "web.feedback.founder_note_line1": {
+    "text": "Czytam każdą opinię, która tu trafia. W ten sposób określam, na co poświęcić czas.",
+    "source_hash": "8b430d93"
+  },
+  "web.feedback.founder_note_line2": {
+    "text": "Jeśli coś jest nie tak lub masz pomysły na to, jak to powinno działać, to jest właściwe miejsce.",
+    "source_hash": "d4b8f073"
+  },
+  "web.feedback.open_feedback_form": {
+    "text": "Otwórz formularz opinii",
+    "source_hash": "acd8409b"
+  },
+  "web.feedback.enter_your_feedback": {
+    "text": "Wprowadź swoją opinię",
+    "source_hash": "1bb310f4"
+  },
+  "web.feedback.send_feedback": {
+    "text": "Wyślij opinię",
+    "source_hash": "8235980b"
+  },
+  "web.feedback.sending_ellipses": {
+    "text": "Wysyłanie...",
+    "source_hash": "286a3af7"
+  },
+  "web.feedback.reason_email_change_unauthorized": {
+    "text": "Wygląda na to, że zgłaszasz nieautoryzowaną zmianę adresu e-mail na swoim koncie. Opisz, co się stało, a my natychmiast to zbadamy.",
+    "source_hash": "00e56551"
+  },
+  "web.feedback.anonymous_no_reply": {
+    "text": "Uwaga: jeśli chcesz otrzymać odpowiedź, podpisz się lub podaj adres e-mail w wiadomości.",
+    "source_hash": "c984f705"
+  },
+  "web.feedback.characters_remaining": {
+    "text": "Pozostało znaków: {count}",
+    "source_hash": "8d796f40"
+  },
+  "web.feedback.character_limit_reached": {
+    "text": "Osiągnięto limit znaków",
+    "source_hash": "031e9310"
+  }
+}

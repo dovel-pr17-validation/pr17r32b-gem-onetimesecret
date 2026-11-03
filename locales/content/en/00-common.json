@@ -1,0 +1,1591 @@
+{
+  "web.COMMON.broadcast": {
+    "text": "",
+    "skip": true,
+    "note": "empty source"
+  },
+  "web.COMMON.tagline": {
+    "text": "Secure links that only work once",
+    "content_hash": "9da7aece"
+  },
+  "web.COMMON.powered_by": {
+    "text": "Powered by",
+    "content_hash": "fdc5d2e9"
+  },
+  "web.COMMON.website_url": {
+    "text": "https://onetimesecret.com/en",
+    "content_hash": "440f5303"
+  },
+  "web.COMMON.button_generate_secret_short": {
+    "text": "Generate Password",
+    "content_hash": "fdcbfcc7"
+  },
+  "web.COMMON.generate_password_disabled": {
+    "text": "Generate Password is disabled when the form is valid",
+    "content_hash": "dc0e2b8c"
+  },
+  "web.COMMON.email_placeholder": {
+    "text": "e.g. tom{'@'}myspace.com",
+    "content_hash": "f2350739"
+  },
+  "web.COMMON.password_placeholder": {
+    "text": "Enter your password",
+    "content_hash": "c06bf967"
+  },
+  "web.COMMON.custom_domains_title": {
+    "text": "Custom Domains",
+    "content_hash": "6170ab94"
+  },
+  "web.COMMON.custom_domains_description": {
+    "text": "Strengthen connections and build trust with your own branded secret links.",
+    "content_hash": "71fddc05"
+  },
+  "web.COMMON.get_started_button": {
+    "text": "Get Started",
+    "content_hash": "983f3110"
+  },
+  "web.COMMON.confirm_password_placeholder": {
+    "text": "Confirm your password",
+    "content_hash": "bfd8c343"
+  },
+  "web.COMMON.header_settings": {
+    "text": "Settings",
+    "content_hash": "74a883a0"
+  },
+  "web.COMMON.submit_with": {
+    "text": "Submit",
+    "content_hash": "155f816c"
+  },
+  "web.COMMON.submitting": {
+    "text": "Submitting...",
+    "content_hash": "64115d5b"
+  },
+  "web.COMMON.processing": {
+    "text": "Processing...",
+    "content_hash": "f40a853e"
+  },
+  "web.COMMON.description": {
+    "text": "Keep sensitive information out of your chat logs and email. Share a secret link that is available only one time.",
+    "content_hash": "4c895f85"
+  },
+  "web.COMMON.secret_og_title": {
+    "text": "A secret link was shared with you",
+    "note": "og:title on /secret pages (the recipient's page); shown by chat and social unfurlers, so it must not name the page or the sender",
+    "content_hash": "cc3d83ce"
+  },
+  "web.COMMON.secret_og_description": {
+    "text": "This secure link works one time. Open it when you are ready to view the content.",
+    "note": "og:description on /secret pages",
+    "content_hash": "781e497c"
+  },
+  "web.COMMON.receipt_og_title": {
+    "text": "Receipt for a secret you sent",
+    "note": "og:title on /receipt and /incoming/:receiptKey pages (the sender's page); shown by unfurlers, so it must not name the page or the recipient",
+    "content_hash": "6e81c2bb"
+  },
+  "web.COMMON.receipt_og_description": {
+    "text": "This page shows the status of a secret you sent. Only the recipient can view the content.",
+    "note": "og:description on /receipt and /incoming/:receiptKey pages",
+    "content_hash": "0eca018e"
+  },
+  "web.COMMON.incorrect_passphrase": {
+    "text": "Incorrect passphrase",
+    "content_hash": "a55f9636"
+  },
+  "web.COMMON.keywords": {
+    "text": "secret,password generator,share a secret,onetime",
+    "content_hash": "52728258"
+  },
+  "web.COMMON.button_create_secret": {
+    "text": "Create a secret link",
+    "content_hash": "a3e07632"
+  },
+  "web.COMMON.button_generate_secret": {
+    "text": "Or generate a random password",
+    "content_hash": "8c1c764b"
+  },
+  "web.COMMON.secret_privacy_options": {
+    "text": "Privacy Options",
+    "content_hash": "643a6921"
+  },
+  "web.COMMON.secret_passphrase": {
+    "text": "Passphrase",
+    "content_hash": "e7611f05"
+  },
+  "web.COMMON.secret_passphrase_hint": {
+    "text": "A word or phrase that's difficult to guess",
+    "content_hash": "29d0cf13"
+  },
+  "web.COMMON.secret_recipient_address": {
+    "text": "Recipient Address",
+    "content_hash": "f6f6311d"
+  },
+  "web.COMMON.secret_placeholder": {
+    "text": "Secret content goes here...",
+    "content_hash": "54630bab"
+  },
+  "web.COMMON.header_create_account": {
+    "text": "Create Account",
+    "content_hash": "0dffe234"
+  },
+  "web.COMMON.about": {
+    "text": "About",
+    "content_hash": "4efca0d1"
+  },
+  "web.COMMON.header_sign_in": {
+    "text": "Sign In",
+    "content_hash": "bcc0bcc9"
+  },
+  "web.COMMON.header_dashboard": {
+    "text": "Account",
+    "content_hash": "7e1b0d56"
+  },
+  "web.COMMON.header_logout": {
+    "text": "Logout",
+    "content_hash": "d0527e4b"
+  },
+  "web.COMMON.secret": {
+    "text": "Secret | Secrets",
+    "content_hash": "c7ebd045"
+  },
+  "web.COMMON.recent": {
+    "text": "Recent",
+    "content_hash": "690dbe9d"
+  },
+  "web.COMMON.not_set": {
+    "text": "Not set",
+    "content_hash": "4895f731"
+  },
+  "web.COMMON.word_edit": {
+    "text": "Edit",
+    "content_hash": "464c4ffd"
+  },
+  "web.COMMON.word_save": {
+    "text": "Save",
+    "content_hash": "1509f561"
+  },
+  "web.COMMON.configure": {
+    "text": "Configure",
+    "content_hash": "6defafa2"
+  },
+  "web.COMMON.burn": {
+    "text": "Burn",
+    "content_hash": "926c5b43"
+  },
+  "web.COMMON.burned": {
+    "text": "Burned",
+    "content_hash": "6d747b33"
+  },
+  "web.COMMON.expires_in": {
+    "text": "Expires in",
+    "content_hash": "de996752"
+  },
+  "web.COMMON.burn_this_secret": {
+    "text": "Burn this secret",
+    "content_hash": "ffff30e8"
+  },
+  "web.COMMON.burn_this_secret_hint": {
+    "text": "Burning a secret will delete it before it has been read (click to confirm)",
+    "content_hash": "c6a8b145"
+  },
+  "web.COMMON.burn_this_secret_confirm_hint": {
+    "text": "Burning a secret is permanent and cannot be undone",
+    "content_hash": "ab774967"
+  },
+  "web.COMMON.msg_check_email": {
+    "text": "Check your email",
+    "content_hash": "77322879"
+  },
+  "web.COMMON.click_to_continue": {
+    "text": "Click to reveal →",
+    "content_hash": "41658f99"
+  },
+  "web.COMMON.click_to_verify": {
+    "text": "Continue to verify your account:",
+    "content_hash": "954d6fc9"
+  },
+  "web.COMMON.error_secret": {
+    "text": "You did not provide anything to share",
+    "content_hash": "9ac6488f"
+  },
+  "web.COMMON.error_passphrase": {
+    "text": "Double check that passphrase",
+    "content_hash": "b582f3a6"
+  },
+  "web.COMMON.enter_passphrase_here": {
+    "text": "Enter the passphrase here",
+    "content_hash": "ee855dad"
+  },
+  "web.COMMON.view_secret": {
+    "text": "View Secret",
+    "content_hash": "01835e7c"
+  },
+  "web.COMMON.careful_only_see_once": {
+    "text": "Careful: we will only show it once.",
+    "content_hash": "d29e2820"
+  },
+  "web.COMMON.warning": {
+    "text": "Warning",
+    "content_hash": "e981ddae"
+  },
+  "web.COMMON.oops": {
+    "text": "Oops!",
+    "content_hash": "8344947a"
+  },
+  "web.COMMON.error": {
+    "text": "Error",
+    "content_hash": "54a0e8c1"
+  },
+  "web.COMMON.unexpected_error": {
+    "text": "An unexpected error occurred. Please try again.",
+    "content_hash": "e198269c"
+  },
+  "web.COMMON.secret_was_truncated": {
+    "text": "The message was truncated",
+    "content_hash": "1d1730d4"
+  },
+  "web.COMMON.signup_for_more": {
+    "text": "Signup for more",
+    "content_hash": "cc1421d0"
+  },
+  "web.COMMON.login_to_your_account": {
+    "text": "Log in to your account",
+    "content_hash": "62f1fe13"
+  },
+  "web.COMMON.sent_to": {
+    "text": "Sent to: ",
+    "content_hash": "e79c8bcb"
+  },
+  "web.COMMON.field_email": {
+    "text": "Email",
+    "content_hash": "969ccbd3"
+  },
+  "web.COMMON.field_password": {
+    "text": "Password",
+    "content_hash": "e7cf3ef4"
+  },
+  "web.COMMON.field_password2": {
+    "text": "Confirm Password",
+    "content_hash": "c292210c"
+  },
+  "web.COMMON.button_create_account": {
+    "text": "Create Account",
+    "content_hash": "0dffe234"
+  },
+  "web.COMMON.share_a_secret": {
+    "text": "Share a secret",
+    "content_hash": "5384461b"
+  },
+  "web.COMMON.title_home": {
+    "text": "Home",
+    "content_hash": "3a786953"
+  },
+  "web.COMMON.word_none": {
+    "text": "None",
+    "content_hash": "dc937b59"
+  },
+  "web.COMMON.word_burned": {
+    "text": "burned",
+    "content_hash": "2f79ea62"
+  },
+  "web.COMMON.word_received": {
+    "text": "received",
+    "content_hash": "318c5ad5"
+  },
+  "web.COMMON.word_confirm": {
+    "text": "Confirm",
+    "content_hash": "eebdd24a"
+  },
+  "web.COMMON.word_cancel": {
+    "text": "Cancel",
+    "content_hash": "19766ed6"
+  },
+  "web.COMMON.word_continue": {
+    "text": "Continue",
+    "content_hash": "31fbef16"
+  },
+  "web.COMMON.word_done": {
+    "text": "Done",
+    "content_hash": "11a6767d"
+  },
+  "web.COMMON.back": {
+    "text": "Back",
+    "content_hash": "76900f1b"
+  },
+  "web.COMMON.feedback_text": {
+    "text": "Share your thoughts, ideas, or experiences...",
+    "content_hash": "6bd0351a"
+  },
+  "web.COMMON.button_send_feedback": {
+    "text": "Send Feedback",
+    "content_hash": "84195de9"
+  },
+  "web.COMMON.verification_sent_to": {
+    "text": "A verification was sent to",
+    "content_hash": "62da29c0"
+  },
+  "web.COMMON.autoverified_success": {
+    "text": "Account created. Please sign in.",
+    "content_hash": "fd3610bf"
+  },
+  "web.COMMON.signup_success_generic": {
+    "text": "If an account with this email exists, you will receive a verification email.",
+    "content_hash": "f596cdd0"
+  },
+  "web.COMMON.burn_this_secret_aria": {
+    "text": "Burn this secret permanently",
+    "content_hash": "0a7afc29"
+  },
+  "web.COMMON.burn_confirmation_title": {
+    "text": "Please Confirm",
+    "content_hash": "dcd78dfb"
+  },
+  "web.COMMON.burn_confirmation_message": {
+    "text": "Are you sure you want to burn this secret? This action cannot be undone.",
+    "content_hash": "5dde5dd9"
+  },
+  "web.COMMON.confirm_burn": {
+    "text": "Yes, burn this secret",
+    "content_hash": "6e5b02a7"
+  },
+  "web.COMMON.burn_security_notice": {
+    "text": "Burning a secret will delete it before it has been received.",
+    "content_hash": "b4c8bbc3"
+  },
+  "web.COMMON.share_link_securely": {
+    "text": "For security, share this link separately from other details.",
+    "content_hash": "c46e6204"
+  },
+  "web.COMMON.copy_to_clipboard": {
+    "text": "Copy to clipboard",
+    "content_hash": "b749e205"
+  },
+  "web.COMMON.copied_to_clipboard": {
+    "text": "Copied to clipboard",
+    "content_hash": "d37078fe"
+  },
+  "web.COMMON.button_create_incoming": {
+    "text": "Create Incoming",
+    "content_hash": "5bb95106"
+  },
+  "web.COMMON.faq_title": {
+    "text": "F.A.Q.",
+    "content_hash": "bd7394ac"
+  },
+  "web.COMMON.verification_not_valid": {
+    "text": "Verification is not valid",
+    "content_hash": "abf07ced"
+  },
+  "web.COMMON.verification_already_logged_in": {
+    "text": "Cannot verify an account when you're already logged in",
+    "content_hash": "f0a17c5f"
+  },
+  "web.COMMON.show_password": {
+    "text": "Show password",
+    "content_hash": "6aeaa6a5"
+  },
+  "web.COMMON.hide_password": {
+    "text": "Hide password",
+    "content_hash": "a60a56c5"
+  },
+  "web.COMMON.minimum_8_characters": {
+    "text": "Password must be at least 8 characters",
+    "content_hash": "e3b8d09d"
+  },
+  "web.COMMON.password_requirements": {
+    "text": "Password must be at least 8 characters long",
+    "content_hash": "e5054833"
+  },
+  "web.COMMON.passwords_do_not_match": {
+    "text": "Passwords do not match",
+    "content_hash": "b6eb82cd"
+  },
+  "web.COMMON.form_field_required": {
+    "text": "This field is required",
+    "content_hash": "6876f12e"
+  },
+  "web.COMMON.form_processing": {
+    "text": "Processing your request",
+    "content_hash": "a512a73b"
+  },
+  "web.COMMON.remember_me_description": {
+    "text": "Keep me logged in for 30 days",
+    "content_hash": "6e069c11"
+  },
+  "web.COMMON.redirecting": {
+    "text": "Redirecting...",
+    "content_hash": "cd23991b"
+  },
+  "web.COMMON.continue": {
+    "text": "Continue",
+    "content_hash": "31fbef16"
+  },
+  "web.COMMON.are_you_sure": {
+    "text": "Are you sure?",
+    "content_hash": "f0762c4f"
+  },
+  "web.COMMON.caution_zone": {
+    "text": "Careful Consideration Zone",
+    "content_hash": "fe27a3a8"
+  },
+  "web.COMMON.user_menu": {
+    "text": "User menu",
+    "content_hash": "6fa25be1"
+  },
+  "web.COMMON.security": {
+    "text": "Security",
+    "content_hash": "8f6fb4eb"
+  },
+  "web.COMMON.manage": {
+    "text": "Manage",
+    "content_hash": "5a234448"
+  },
+  "web.COMMON.loading": {
+    "text": "Loading...",
+    "content_hash": "47d2a515"
+  },
+  "web.COMMON.save_changes": {
+    "text": "Save changes",
+    "content_hash": "dd0ae7a5"
+  },
+  "web.COMMON.saving": {
+    "text": "Saving...",
+    "content_hash": "dc85af8f"
+  },
+  "web.COMMON.adding_ellipses": {
+    "text": "Adding",
+    "content_hash": "0a6691ef"
+  },
+  "web.COMMON.e_g_example": {
+    "text": "e.g.",
+    "content_hash": "a79b4bf9"
+  },
+  "web.COMMON.example_placeholder": {
+    "text": "e.g. {example}",
+    "content_hash": "cc921aaa"
+  },
+  "web.COMMON.status": {
+    "text": "Status",
+    "content_hash": "920e413c"
+  },
+  "web.COMMON.escape": {
+    "text": "Escape",
+    "content_hash": "037c9684"
+  },
+  "web.COMMON.active": {
+    "text": "Active",
+    "content_hash": "92340695"
+  },
+  "web.COMMON.preview": {
+    "text": "Preview",
+    "content_hash": "324b134f"
+  },
+  "web.COMMON.remove": {
+    "text": "Remove",
+    "content_hash": "c3812fc4"
+  },
+  "web.COMMON.delete": {
+    "text": "Delete",
+    "content_hash": "e2d0a549"
+  },
+  "web.COMMON.add": {
+    "text": "Add",
+    "content_hash": "9fd728c6"
+  },
+  "web.COMMON.enabled": {
+    "text": "Enabled",
+    "content_hash": "92c1cdfd"
+  },
+  "web.COMMON.disabled": {
+    "text": "Disabled",
+    "content_hash": "75081b59"
+  },
+  "web.COMMON.yes_delete": {
+    "text": "Yes, delete",
+    "content_hash": "7b05a8e3"
+  },
+  "web.COMMON.press_esc_to_close": {
+    "text": "Press ESC to close",
+    "content_hash": "5aa83883"
+  },
+  "web.COMMON.enter": {
+    "text": "Enter",
+    "content_hash": "dc8659db"
+  },
+  "web.COMMON.important": {
+    "text": "Important",
+    "content_hash": "ddca9a57"
+  },
+  "web.COMMON.language": {
+    "text": "Language",
+    "content_hash": "a4fe6526"
+  },
+  "web.COMMON.theme": {
+    "text": "Theme",
+    "content_hash": "efb52e71"
+  },
+  "web.COMMON.appearance": {
+    "text": "Appearance",
+    "content_hash": "3907fa7f"
+  },
+  "web.COMMON.done": {
+    "text": "Done",
+    "content_hash": "11a6767d"
+  },
+  "web.COMMON.end": {
+    "text": "End",
+    "content_hash": "f4db1e48"
+  },
+  "web.COMMON.general": {
+    "text": "General",
+    "content_hash": "c910d474"
+  },
+  "web.COMMON.note": {
+    "text": "Note",
+    "content_hash": "d8da2c49"
+  },
+  "web.COMMON.monthly": {
+    "text": "Monthly",
+    "content_hash": "9b11f6b7"
+  },
+  "web.COMMON.yearly": {
+    "text": "Yearly",
+    "content_hash": "6e69b59e"
+  },
+  "web.COMMON.go_on_then": {
+    "text": "Go on then.",
+    "content_hash": "fb697cc7"
+  },
+  "web.COMMON.loading_ellipses": {
+    "text": "Loading...",
+    "content_hash": "47d2a515"
+  },
+  "web.COMMON.not_received": {
+    "text": "NOT RECEIVED",
+    "content_hash": "d84ee92c"
+  },
+  "web.COMMON.confirm_password": {
+    "text": "Confirm password",
+    "content_hash": "5ac265f3"
+  },
+  "web.COMMON.new_password": {
+    "text": "New password",
+    "content_hash": "3dd9df44"
+  },
+  "web.COMMON.email_address": {
+    "text": "Email address",
+    "content_hash": "f2488fd4"
+  },
+  "web.COMMON.switch": {
+    "text": "switch",
+    "content_hash": "78b49fb2"
+  },
+  "web.COMMON.features": {
+    "text": "Features",
+    "content_hash": "5697d03d"
+  },
+  "web.COMMON.not_found": {
+    "text": "Not Found",
+    "content_hash": "0019dfc4"
+  },
+  "web.COMMON.emoji_x": {
+    "text": "❌",
+    "content_hash": "2b2966a5"
+  },
+  "web.COMMON.emoji_checkmark": {
+    "text": "✅",
+    "content_hash": "1d456424"
+  },
+  "web.COMMON.supported": {
+    "text": "Supported",
+    "content_hash": "c1658000"
+  },
+  "web.COMMON.version": {
+    "text": "Version",
+    "content_hash": "dd167905"
+  },
+  "web.COMMON.other": {
+    "text": "Other",
+    "content_hash": "f97e9da0"
+  },
+  "web.COMMON.error_code": {
+    "text": "Error Code",
+    "content_hash": "46832415"
+  },
+  "web.COMMON.http_status": {
+    "text": "HTTP Status",
+    "content_hash": "b2a629f2"
+  },
+  "web.COMMON.field": {
+    "text": "Field",
+    "content_hash": "f45fc1df"
+  },
+  "web.COMMON.details": {
+    "text": "Details",
+    "content_hash": "45989de4"
+  },
+  "web.COMMON.min_width_1024px": {
+    "text": "(min-width: 1024px)",
+    "content_hash": "c8a306d0"
+  },
+  "web.COMMON.ctrl_enter": {
+    "text": "Ctrl + Enter",
+    "content_hash": "78192e6e"
+  },
+  "web.COMMON.enter_0": {
+    "text": "⌘ + Enter",
+    "content_hash": "558acbab"
+  },
+  "web.COMMON.mac": {
+    "text": "Mac",
+    "content_hash": "8b3795aa"
+  },
+  "web.COMMON.email_address_copied_to_clipboard": {
+    "text": "Email address copied to clipboard!",
+    "content_hash": "23238b4e"
+  },
+  "web.COMMON.value": {
+    "text": "Value",
+    "content_hash": "8e37953d"
+  },
+  "web.COMMON.host": {
+    "text": "Host",
+    "content_hash": "4a823118"
+  },
+  "web.COMMON.type": {
+    "text": "Type",
+    "content_hash": "baaddf70"
+  },
+  "web.COMMON.previous": {
+    "text": "Previous",
+    "content_hash": "a57b08a4"
+  },
+  "web.COMMON.next": {
+    "text": "Next",
+    "content_hash": "1ff57a29"
+  },
+  "web.COMMON.password_strength": {
+    "text": "Password Strength:",
+    "content_hash": "663d6499"
+  },
+  "web.COMMON.great": {
+    "text": "Great",
+    "content_hash": "c8cc1c7b"
+  },
+  "web.COMMON.pretty_good": {
+    "text": "Pretty good",
+    "content_hash": "521a41b6"
+  },
+  "web.COMMON.fair": {
+    "text": "Fair",
+    "content_hash": "f7b19afc"
+  },
+  "web.COMMON.meh": {
+    "text": "Meh",
+    "content_hash": "8b0d6190"
+  },
+  "web.COMMON.not_great": {
+    "text": "Not great",
+    "content_hash": "00561207"
+  },
+  "web.COMMON.open_options": {
+    "text": "Open options",
+    "content_hash": "3dc08503"
+  },
+  "web.COMMON.inactive": {
+    "text": "Inactive",
+    "content_hash": "ac7c949f"
+  },
+  "web.COMMON.unknown": {
+    "text": "Unknown",
+    "content_hash": "b764cdc0"
+  },
+  "web.COMMON.an_error_occurred": {
+    "text": "An error occurred",
+    "content_hash": "ddf785b7"
+  },
+  "web.COMMON.copy_secret_to_clipboard": {
+    "text": "Copy secret to clipboard",
+    "content_hash": "a2ceff6d"
+  },
+  "web.COMMON.secret_copied_to_clipboard": {
+    "text": "Secret copied to clipboard",
+    "content_hash": "da84ff02"
+  },
+  "web.COMMON.double_check_that_passphrase": {
+    "text": "Double check that passphrase",
+    "content_hash": "b582f3a6"
+  },
+  "web.COMMON.press_copy_button_below": {
+    "text": "Press the copy button below.",
+    "content_hash": "77fcf6fb"
+  },
+  "web.COMMON.external_link": {
+    "text": "External link",
+    "content_hash": "be6f6527"
+  },
+  "web.LABELS.view_toggle.show": {
+    "text": "Show",
+    "content_hash": "0df6f1ca"
+  },
+  "web.LABELS.view_toggle.hide": {
+    "text": "Hide",
+    "content_hash": "ac20a57b"
+  },
+  "web.LABELS.view_toggle.show_more": {
+    "text": "Show More",
+    "content_hash": "ba8a80fd"
+  },
+  "web.LABELS.view_toggle.show_less": {
+    "text": "Show Less",
+    "content_hash": "0264d7b0"
+  },
+  "web.LABELS.show_passphrase": {
+    "text": "Show passphrase",
+    "content_hash": "76880d38"
+  },
+  "web.LABELS.hide_passphrase": {
+    "text": "Hide passphrase",
+    "content_hash": "8ecdc98c"
+  },
+  "web.LABELS.enable": {
+    "text": "Enable",
+    "content_hash": "5342e09f"
+  },
+  "web.LABELS.disable": {
+    "text": "Disable",
+    "content_hash": "b7e3e4aa"
+  },
+  "web.LABELS.stats": {
+    "text": "Stats",
+    "content_hash": "b4a73657"
+  },
+  "web.LABELS.timeline": {
+    "text": "Timeline",
+    "content_hash": "9dcff98e"
+  },
+  "web.LABELS.lifespan": {
+    "text": "Lifespan",
+    "content_hash": "58994285"
+  },
+  "web.LABELS.expiration_time": {
+    "text": "Expiration Time",
+    "content_hash": "c5db84a8"
+  },
+  "web.LABELS.secret_ttl": {
+    "text": "Expires in",
+    "content_hash": "de996752"
+  },
+  "web.LABELS.close": {
+    "text": "Close",
+    "content_hash": "7d9eb7ac"
+  },
+  "web.LABELS.loading": {
+    "text": "Loading...",
+    "content_hash": "47d2a515"
+  },
+  "web.LABELS.cancel": {
+    "text": "Cancel",
+    "content_hash": "19766ed6"
+  },
+  "web.LABELS.saving": {
+    "text": "Saving...",
+    "content_hash": "dc85af8f"
+  },
+  "web.LABELS.saved": {
+    "text": "Saved",
+    "content_hash": "b5c120b3"
+  },
+  "web.LABELS.save": {
+    "text": "Save",
+    "content_hash": "1509f561"
+  },
+  "web.LABELS.save_all": {
+    "text": "Save All",
+    "content_hash": "d3c54e39"
+  },
+  "web.LABELS.update": {
+    "text": "Update",
+    "content_hash": "c1c1009d"
+  },
+  "web.LABELS.updating": {
+    "text": "Updating...",
+    "content_hash": "0a4e0b71"
+  },
+  "web.LABELS.details": {
+    "text": "Details",
+    "content_hash": "45989de4"
+  },
+  "web.LABELS.encrypted": {
+    "text": "Encrypted",
+    "content_hash": "f45aef6e"
+  },
+  "web.LABELS.secret_status": {
+    "text": "Secret Status",
+    "content_hash": "57330d93"
+  },
+  "web.LABELS.need_help": {
+    "text": "Need help?",
+    "content_hash": "c225cdfb"
+  },
+  "web.LABELS.create_new_secret": {
+    "text": "Create New Secret",
+    "content_hash": "311d266c"
+  },
+  "web.LABELS.actions": {
+    "text": "Actions",
+    "content_hash": "ff8059dc"
+  },
+  "web.LABELS.no_passphrase": {
+    "text": "No Passphrase Required",
+    "content_hash": "6b43174d"
+  },
+  "web.LABELS.copy_to_clipboard": {
+    "text": "Copy to clipboard",
+    "content_hash": "b749e205"
+  },
+  "web.LABELS.receipts": {
+    "text": "Receipts",
+    "content_hash": "60a627df"
+  },
+  "web.LABELS.share": {
+    "text": "Share",
+    "content_hash": "29887a5f"
+  },
+  "web.LABELS.secret_link": {
+    "text": "Secret Link",
+    "content_hash": "a02fb1cd"
+  },
+  "web.LABELS.dismiss": {
+    "text": "Dismiss",
+    "content_hash": "48845bff"
+  },
+  "web.LABELS.security_details": {
+    "text": "Security Details",
+    "content_hash": "96d2098c"
+  },
+  "web.LABELS.items_count": {
+    "text": "{count} Items",
+    "content_hash": "63e0dea7"
+  },
+  "web.LABELS.recipients_count": {
+    "text": "{count} Recipients",
+    "content_hash": "48187543"
+  },
+  "web.LABELS.view": {
+    "text": "View",
+    "content_hash": "dcc839a4"
+  },
+  "web.LABELS.views": {
+    "text": "Views",
+    "content_hash": "69c40459"
+  },
+  "web.LABELS.times_viewed": {
+    "text": "times viewed",
+    "content_hash": "73758343"
+  },
+  "web.LABELS.view_progress": {
+    "text": "View Progress",
+    "content_hash": "6c072c1f"
+  },
+  "web.LABELS.help_section": {
+    "text": "Help Section",
+    "content_hash": "614e14f0"
+  },
+  "web.LABELS.passphrase_protected": {
+    "text": "Protected with passphrase",
+    "content_hash": "a52b9edf"
+  },
+  "web.LABELS.feedback_received": {
+    "text": "Feedback received.",
+    "content_hash": "3fa595ef"
+  },
+  "web.LABELS.sending_ellipses": {
+    "text": "Sending...",
+    "content_hash": "286a3af7"
+  },
+  "web.LABELS.title_recent_secrets": {
+    "text": "Recent Secrets",
+    "content_hash": "0b907f8b"
+  },
+  "web.LABELS.pricing": {
+    "text": "Pricing",
+    "content_hash": "dfe95783"
+  },
+  "web.LABELS.refresh": {
+    "text": "Refresh",
+    "content_hash": "0e916101"
+  },
+  "web.LABELS.reload": {
+    "text": "Reload",
+    "content_hash": "bdc090ec"
+  },
+  "web.LABELS.filter": {
+    "text": "Filter",
+    "content_hash": "638e249f"
+  },
+  "web.LABELS.clear": {
+    "text": "Clear",
+    "content_hash": "83b12c22"
+  },
+  "web.LABELS.caption_recent_secrets": {
+    "text": "Secrets links created in this session",
+    "content_hash": "6c7ceab8"
+  },
+  "web.LABELS.create_link_short": {
+    "text": "Create Link",
+    "content_hash": "cac74fdb"
+  },
+  "web.LABELS.create_link": {
+    "text": "Create Secret Link",
+    "content_hash": "a30a47b9"
+  },
+  "web.LABELS.create_request_short": {
+    "text": "Create Request",
+    "content_hash": "71a0bd40"
+  },
+  "web.LABELS.create_request": {
+    "text": "Create Request Link",
+    "content_hash": "190463dc"
+  },
+  "web.LABELS.related_settings": {
+    "text": "Related Settings",
+    "content_hash": "68574b20"
+  },
+  "web.LABELS.benefits": {
+    "text": "Benefits",
+    "context": "Section header for listing benefits",
+    "content_hash": "d5b67bc9"
+  },
+  "web.LABELS.creating_links_for": {
+    "text": "Creating links for",
+    "content_hash": "57db069e"
+  },
+  "web.LABELS.scope_indicator": {
+    "text": "Creating secrets in {domain}",
+    "content_hash": "3bbed96b"
+  },
+  "web.STATUS.new": {
+    "text": "New",
+    "content_hash": "18fdd549"
+  },
+  "web.STATUS.unread": {
+    "text": "Unread",
+    "content_hash": "1b9f384c"
+  },
+  "web.STATUS.viewed": {
+    "text": "Link opened",
+    "content_hash": "66844573"
+  },
+  "web.STATUS.received": {
+    "text": "Received",
+    "content_hash": "49f19bee"
+  },
+  "web.STATUS.previewed": {
+    "text": "Previewed",
+    "content_hash": "3d391a9b"
+  },
+  "web.STATUS.revealed": {
+    "text": "Revealed",
+    "content_hash": "17376ee4"
+  },
+  "web.STATUS.burned": {
+    "text": "Burned",
+    "content_hash": "6d747b33"
+  },
+  "web.STATUS.destroyed": {
+    "text": "Destroyed",
+    "content_hash": "ff49630c"
+  },
+  "web.STATUS.expiring_soon": {
+    "text": "Expiring Soon",
+    "content_hash": "0259442c"
+  },
+  "web.STATUS.created": {
+    "text": "Created",
+    "content_hash": "d70b9e24"
+  },
+  "web.STATUS.expires": {
+    "text": "Expires",
+    "content_hash": "f6725f3a"
+  },
+  "web.STATUS.expired": {
+    "text": "Expired",
+    "content_hash": "424a2551"
+  },
+  "web.STATUS.orphaned": {
+    "text": "Orphaned",
+    "content_hash": "8d827807"
+  },
+  "web.STATUS.secured": {
+    "text": "Secured",
+    "content_hash": "b0cbaa5b"
+  },
+  "web.STATUS.securing": {
+    "text": "Securing",
+    "content_hash": "37c84053"
+  },
+  "web.STATUS.copied": {
+    "text": "Copied",
+    "content_hash": "8d525e5f"
+  },
+  "web.STATUS.time_remaining": {
+    "text": "Time Remaining",
+    "content_hash": "9e65f559"
+  },
+  "web.STATUS.new_description": {
+    "text": "Secret link has been created and not yet viewed",
+    "content_hash": "447c4445"
+  },
+  "web.STATUS.unread_description": {
+    "text": "Secret link has been created and has not been viewed",
+    "content_hash": "83b9a0ca"
+  },
+  "web.STATUS.viewed_description": {
+    "text": "Secret link has been opened and ready to be viewed",
+    "content_hash": "f392af12"
+  },
+  "web.STATUS.received_description": {
+    "text": "Secret has been revealed to the recipient",
+    "content_hash": "ceb756b4"
+  },
+  "web.STATUS.previewed_description": {
+    "text": "Secret link has been opened and is ready to be revealed",
+    "content_hash": "cc7d1e92"
+  },
+  "web.STATUS.revealed_description": {
+    "text": "Secret content has been revealed to the recipient",
+    "content_hash": "39b32f80"
+  },
+  "web.STATUS.burned_description": {
+    "text": "Secret was manually burned before being viewed",
+    "content_hash": "e7aa1ec1"
+  },
+  "web.STATUS.destroyed_description": {
+    "text": "Secret has been permanently destroyed",
+    "content_hash": "9bcb9949"
+  },
+  "web.STATUS.expiring_soon_description": {
+    "text": "Secret will expire soon",
+    "content_hash": "e182e8f4"
+  },
+  "web.STATUS.orphaned_description": {
+    "text": "Secret has been orphaned and will be destroyed soon",
+    "content_hash": "49b87422"
+  },
+  "web.STATUS.expired_description": {
+    "text": "Secret has expired before being viewed",
+    "content_hash": "f527de55"
+  },
+  "web.STATUS.success": {
+    "text": "Success",
+    "content_hash": "c88a0b90"
+  },
+  "web.STATUS.delivered": {
+    "text": "Delivered",
+    "content_hash": "90611565"
+  },
+  "web.STATUS.dns_incorrect": {
+    "text": "DNS Incorrect",
+    "content_hash": "7848d601"
+  },
+  "web.STATUS.unverified": {
+    "text": "Unverified",
+    "content_hash": "33c8e8de"
+  },
+  "web.STATUS.active": {
+    "text": "Active",
+    "content_hash": "92340695"
+  },
+  "web.STATUS.inactive": {
+    "text": "Inactive",
+    "content_hash": "ac7c949f"
+  },
+  "web.STATUS.pending_ssl": {
+    "text": "Certificate pending",
+    "content_hash": "dd34f305"
+  },
+  "web.FEATURES.unlimited_views": {
+    "text": "Unlimited Views",
+    "content_hash": "3f6859b0"
+  },
+  "web.FEATURES.custom_domain_protected": {
+    "text": "Trusted domain branding",
+    "content_hash": "5e39b05c"
+  },
+  "web.FEATURES.encrypted_in_transit": {
+    "text": "Encrypted in transit and at rest",
+    "content_hash": "314c7974"
+  },
+  "web.UNITS.ttl.duration": {
+    "text": "{count} {unit}",
+    "content_hash": "e6c9e0e6"
+  },
+  "web.UNITS.ttl.time.day": {
+    "text": "day | days",
+    "content_hash": "6ac0d345"
+  },
+  "web.UNITS.ttl.time.hour": {
+    "text": "hour | hours",
+    "content_hash": "f4fef91b"
+  },
+  "web.UNITS.ttl.time.minute": {
+    "text": "minute | minutes",
+    "content_hash": "08d71a9f"
+  },
+  "web.UNITS.ttl.time.second": {
+    "text": "second | seconds",
+    "content_hash": "e655e068"
+  },
+  "web.UNITS.ttl.noOptionsAvailable": {
+    "text": "---",
+    "content_hash": "cb3f91d5"
+  },
+  "web.UNITS.ttl_remaining.duration": {
+    "text": "{count} {unit} remaining",
+    "content_hash": "18f6c6e8"
+  },
+  "web.UNITS.ttl_remaining.time.day": {
+    "text": "day remaining | days remaining",
+    "content_hash": "6702855e"
+  },
+  "web.UNITS.ttl_remaining.time.hour": {
+    "text": "hour remaining | hours remaining",
+    "content_hash": "2eaebd6f"
+  },
+  "web.UNITS.ttl_remaining.time.minute": {
+    "text": "minute remaining | minutes remaining",
+    "content_hash": "26c80140"
+  },
+  "web.UNITS.ttl_remaining.time.second": {
+    "text": "second remaining | seconds remaining",
+    "content_hash": "01159ce3"
+  },
+  "web.UNITS.ttl_remaining.noOptionsAvailable": {
+    "text": "---",
+    "content_hash": "cb3f91d5"
+  },
+  "web.UNITS.limited_views": {
+    "text": "{count} view limit",
+    "content_hash": "8db0e228"
+  },
+  "web.UNITS.days_remaining": {
+    "text": "{count} Days Left",
+    "content_hash": "398e4024"
+  },
+  "web.UNITS.hours_remaining": {
+    "text": "{count} Hours Left",
+    "content_hash": "717b6d58"
+  },
+  "web.UNITS.minutes_remaining": {
+    "text": "{count} Minutes Left",
+    "content_hash": "d322f4c5"
+  },
+  "web.TITLES.incoming": {
+    "text": "Incoming Secrets",
+    "content_hash": "883dbca9"
+  },
+  "web.TITLES.feedback": {
+    "text": "Feedback",
+    "content_hash": "aac77df3"
+  },
+  "web.TITLES.help": {
+    "text": "Help",
+    "content_hash": "b79cac92"
+  },
+  "web.TITLES.signin": {
+    "text": "Sign In",
+    "content_hash": "bcc0bcc9"
+  },
+  "web.TITLES.signup": {
+    "text": "Create Account",
+    "content_hash": "0dffe234"
+  },
+  "web.TITLES.forgot_password": {
+    "text": "Forgot Password",
+    "content_hash": "fdfd41de"
+  },
+  "web.TITLES.reset_password": {
+    "text": "Reset Password",
+    "content_hash": "4e70f1fd"
+  },
+  "web.TITLES.logout": {
+    "text": "Logging Out",
+    "content_hash": "afbce8a6"
+  },
+  "web.TITLES.verify_account": {
+    "text": "Verify Account",
+    "content_hash": "2f3ea760"
+  },
+  "web.TITLES.check_email": {
+    "text": "Check Your Email",
+    "content_hash": "0e5fc27d"
+  },
+  "web.TITLES.mfa_verify": {
+    "text": "Two-Factor Authentication",
+    "content_hash": "bc074b60"
+  },
+  "web.TITLES.email_login": {
+    "text": "Email Login",
+    "content_hash": "c316e3d7"
+  },
+  "web.TITLES.accept_invitation": {
+    "text": "Accept Invitation",
+    "content_hash": "ce7cfeaf"
+  },
+  "web.TITLES.secret": {
+    "text": "Secret",
+    "content_hash": "7e32a729"
+  },
+  "web.TITLES.metadata": {
+    "text": "Secret Details",
+    "content_hash": "c11bd410"
+  },
+  "web.TITLES.receipt": {
+    "text": "Secret Receipt",
+    "content_hash": "fe0c79e9"
+  },
+  "web.TITLES.burn_secret": {
+    "text": "Burn Secret",
+    "content_hash": "28785b83"
+  },
+  "web.TITLES.dashboard": {
+    "text": "Dashboard",
+    "content_hash": "67b69646"
+  },
+  "web.TITLES.recent": {
+    "text": "Recent Secrets",
+    "content_hash": "0b907f8b"
+  },
+  "web.TITLES.domains": {
+    "text": "Custom Domains",
+    "content_hash": "6170ab94"
+  },
+  "web.TITLES.domain_add": {
+    "text": "Add Domain",
+    "content_hash": "0f09df73"
+  },
+  "web.TITLES.domain_verify": {
+    "text": "Verify Domain",
+    "content_hash": "b416f537"
+  },
+  "web.TITLES.domain_dns": {
+    "text": "DNS Setup",
+    "content_hash": "6c63df31"
+  },
+  "web.TITLES.domain_brand": {
+    "text": "Brand Domain",
+    "content_hash": "35e4dfbe"
+  },
+  "web.TITLES.domain_detail": {
+    "text": "Domain Settings",
+    "content_hash": "e24f338d"
+  },
+  "web.TITLES.account": {
+    "text": "Account",
+    "content_hash": "7e1b0d56"
+  },
+  "web.TITLES.data_region": {
+    "text": "Data Region",
+    "content_hash": "a1c6039f"
+  },
+  "web.TITLES.current_region": {
+    "text": "Current Region",
+    "content_hash": "b92e254d"
+  },
+  "web.TITLES.available_regions": {
+    "text": "Available Regions",
+    "content_hash": "ee788590"
+  },
+  "web.TITLES.why_data_sovereignty": {
+    "text": "Why Data Sovereignty Matters",
+    "content_hash": "67de6cf7"
+  },
+  "web.TITLES.profile_settings": {
+    "text": "Profile Settings",
+    "content_hash": "4f1063c9"
+  },
+  "web.TITLES.preferences_settings": {
+    "text": "Preferences",
+    "content_hash": "66962f72"
+  },
+  "web.TITLES.privacy_settings": {
+    "text": "Privacy",
+    "content_hash": "54a57c31"
+  },
+  "web.TITLES.notification_settings": {
+    "text": "Notifications",
+    "content_hash": "78801183"
+  },
+  "web.TITLES.change_email": {
+    "text": "Change Email",
+    "content_hash": "18c3f2d5"
+  },
+  "web.TITLES.confirm_email_change": {
+    "text": "Confirm Email Change",
+    "content_hash": "c2736949"
+  },
+  "web.TITLES.security_overview": {
+    "text": "Security",
+    "content_hash": "8f6fb4eb"
+  },
+  "web.TITLES.change_password": {
+    "text": "Change Password",
+    "content_hash": "a949f462"
+  },
+  "web.TITLES.mfa_settings": {
+    "text": "Two-Factor Authentication",
+    "content_hash": "bc074b60"
+  },
+  "web.TITLES.active_sessions": {
+    "text": "Active Sessions",
+    "content_hash": "b58fa4e0"
+  },
+  "web.TITLES.recovery_codes": {
+    "text": "Recovery Codes",
+    "content_hash": "579c7f4e"
+  },
+  "web.TITLES.passkeys": {
+    "text": "Passkeys",
+    "context": "Page title for passkey management",
+    "content_hash": "c87ccdb4"
+  },
+  "web.TITLES.connected_identities": {
+    "text": "Connected Identities",
+    "context": "Page title for the SSO connected-identities management panel (#3840 Phase 2)",
+    "content_hash": "e132c4d9"
+  },
+  "web.TITLES.api_settings": {
+    "text": "API Settings",
+    "content_hash": "6c2a9675"
+  },
+  "web.TITLES.advanced_settings": {
+    "text": "Advanced Settings",
+    "content_hash": "22d4f608"
+  },
+  "web.TITLES.system_settings": {
+    "text": "System Settings",
+    "content_hash": "1f87f883"
+  },
+  "web.TITLES.not_found": {
+    "text": "Page Not Found",
+    "content_hash": "cb2f00d1"
+  },
+  "web.TITLES.organizations_settings": {
+    "text": "Workspaces",
+    "content_hash": "1377264b"
+  },
+  "web.TITLES.organization_settings": {
+    "text": "Organization Settings",
+    "content_hash": "cc1d9e61"
+  },
+  "web.TITLES.domain_signin": {
+    "text": "Sign-In Configuration",
+    "content_hash": "2da38c03"
+  },
+  "web.TITLES.domain_signin_sso": {
+    "text": "Single Sign-On Configuration",
+    "content_hash": "4bbf1a2f"
+  },
+  "web.TITLES.domain_signup": {
+    "text": "Domain Signup Validation",
+    "content_hash": "c8ce809a"
+  },
+  "web.TITLES.domain_email": {
+    "text": "Email Configuration",
+    "content_hash": "6f38aa51"
+  },
+  "web.TITLES.domain_incoming": {
+    "text": "Incoming Secrets",
+    "content_hash": "883dbca9"
+  },
+  "web.TITLES.pricing": {
+    "text": "Pricing",
+    "content_hash": "dfe95783"
+  },
+  "web.ARIA.focus_is_now_in_the_main_text_area": {
+    "text": "Focus is now in the main text area",
+    "content_hash": "e00dd260"
+  },
+  "web.INSTRUCTION.sharing_instructions": {
+    "text": "Sharing Instructions",
+    "content_hash": "1a450046"
+  },
+  "web.INSTRUCTION.share_link_instruction": {
+    "text": "Share the link with the intended recipient",
+    "content_hash": "43bdee1d"
+  },
+  "web.INSTRUCTION.share_passphrase_instruction": {
+    "text": "Share the passphrase separately through a secure channel",
+    "content_hash": "c348d386"
+  },
+  "web.INSTRUCTION.secure_channel_instruction": {
+    "text": "Use a different secure channel to share sensitive information",
+    "content_hash": "fc78d9cb"
+  },
+  "web.INSTRUCTION.phishing_warning": {
+    "text": "Always verify you're on the official {product_name} website. Fraudsters sometimes create fake websites that look exactly like {product_name} to steal your secrets. To avoid phishing attacks, verify the region's domain in your address bar before creating new links.",
+    "content_hash": "2e3b856e"
+  },
+  "web.pricing.title": {
+    "text": "Simple, Transparent Pricing",
+    "content_hash": "97e283c7"
+  },
+  "web.pricing.subtitle": {
+    "text": "Choose the plan that fits your needs. All plans include unlimited secret sharing and privacy-first design.",
+    "content_hash": "9204dff4"
+  },
+  "web.pricing.get_started_free": {
+    "text": "Get Started Free",
+    "content_hash": "6bb5a4a7"
+  },
+  "web.pricing.start_trial": {
+    "text": "Get Started",
+    "content_hash": "983f3110"
+  },
+  "web.pricing.already_have_account": {
+    "text": "Already have an account?",
+    "content_hash": "e77fea93"
+  },
+  "web.pricing.sign_in": {
+    "text": "Sign in",
+    "content_hash": "bfd402b2"
+  },
+  "web.pricing.recommended_for_you": {
+    "text": "Recommended for You",
+    "content_hash": "00093fbd"
+  },
+  "web.COMMON.received": {
+    "text": "Received",
+    "content_hash": "49f19bee"
+  },
+  "web.LABELS.add_note": {
+    "text": "Add note...",
+    "content_hash": "32738894"
+  },
+  "web.LABELS.edit_note": {
+    "text": "Edit note",
+    "content_hash": "299e604c"
+  },
+  "web.LABELS.add_memo": {
+    "text": "Add memo...",
+    "content_hash": "02384c53"
+  },
+  "web.LABELS.edit_memo": {
+    "text": "Edit memo",
+    "content_hash": "0ec1a5db"
+  },
+  "web.pricing.free_tier_description": {
+    "text": "Create and share secrets with basic features. No credit card required.",
+    "content_hash": "3a4f2bc0"
+  },
+  "web.COMMON.enter_password_to_continue": {
+    "text": "Enter your password to continue",
+    "context": "Prompt for password confirmation modal",
+    "content_hash": "09055357"
+  },
+  "web.COMMON.password_required_for_action": {
+    "text": "Your password is required to complete this action",
+    "context": "Description for password confirmation modal",
+    "content_hash": "cc078766"
+  },
+  "api.errors.unexpected_error": {
+    "text": "An unexpected error occurred",
+    "context": "Generic error message for unhandled exceptions in API",
+    "content_hash": "6615bf1c"
+  },
+  "api.errors.service_unavailable": {
+    "text": "Service temporarily unavailable. Please try again shortly.",
+    "context": "Error message when database connection fails",
+    "content_hash": "343ccdcb"
+  },
+  "api.errors.request_processing_error": {
+    "text": "Unable to process your request at this time",
+    "context": "Error message for recoverable server errors",
+    "content_hash": "fb961f3f"
+  },
+  "api.errors.authentication_required": {
+    "text": "Authentication required",
+    "context": "Returned when an authenticated endpoint receives an anonymous request",
+    "content_hash": "0fcfb12d"
+  },
+  "api.errors.sso_only_action_blocked": {
+    "text": "This action is not available in SSO-only mode",
+    "context": "Returned when an account management action (destroy, change password/email) is attempted while SSO-only mode is active (lib/onetime/logic/sso_only_gating.rb)",
+    "content_hash": "9bc26394"
+  },
+  "web.COMMON.upgrade_description": {
+    "text": "Upgrade to unlock more features",
+    "context": "Description shown for free plan users encouraging upgrade",
+    "content_hash": "783f174c"
+  },
+  "web.COMMON.field_confirm_password": {
+    "text": "Confirm Password",
+    "context": "Label for password confirmation field",
+    "content_hash": "c292210c"
+  },
+  "web.COMMON.passwords_must_match": {
+    "text": "Passwords must match",
+    "context": "Error message when password confirmation doesn't match",
+    "content_hash": "0c060bd4"
+  },
+  "web.COMMON.and": {
+    "text": "and",
+    "context": "Conjunction between terms (e.g., Terms and Privacy)",
+    "content_hash": "6201111b"
+  },
+  "web.COMMON.or": {
+    "text": "or",
+    "context": "Alternative conjunction (e.g., Sign in or use SSO)",
+    "content_hash": "7175517a"
+  },
+  "web.COMMON.copied": {
+    "text": "Copied",
+    "context": "Feedback when content copied to clipboard",
+    "content_hash": "8d525e5f"
+  },
+  "web.COMMON.copy": {
+    "text": "Copy",
+    "context": "Tooltip for copy buttons",
+    "content_hash": "e21f935f"
+  },
+  "web.COMMON.copy_email": {
+    "text": "Copy email address",
+    "context": "Tooltip for copy email button in user menu",
+    "content_hash": "61b94846"
+  },
+  "web.COMMON.copy_id": {
+    "text": "Copy account ID",
+    "context": "Tooltip for copy ID button in user menu",
+    "content_hash": "fd493ffd"
+  },
+  "web.COMMON.org_id_tooltip": {
+    "text": "Your organization's unique identifier",
+    "context": "Tooltip for organization ID in user menu footer",
+    "content_hash": "c8c08d29"
+  },
+  "web.COMMON.success": {
+    "text": "Success",
+    "content_hash": "c88a0b90"
+  },
+  "web.COMMON.need_help": {
+    "text": "Need help",
+    "content_hash": "4ca0ca38"
+  },
+  "web.COMMON.open_help_dialog": {
+    "text": "Open help dialog",
+    "content_hash": "55cd1515"
+  },
+  "web.COMMON.focus_is_now_in_the_main_text_area": {
+    "text": "Focus is now in the main text area",
+    "content_hash": "e00dd260"
+  },
+  "web.LABELS.copy_icon": {
+    "text": "Copy icon",
+    "content_hash": "d1a5fc0c"
+  },
+  "web.LABELS.copied_icon": {
+    "text": "Copied icon",
+    "content_hash": "90a4b4f1"
+  }
+}

@@ -1,0 +1,316 @@
+# spec/unit/onetime/config/load_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+require 'tempfile'
+require 'fileutils'
+
+RSpec.describe Onetime::Config do
+  let(:temp_dir) { Dir.mktmpdir('onetime_config_test') }
+  let(:test_config_path) { File.join(temp_dir, 'config.yaml') }
+  let(:valid_yaml) do
+    <<~YAML
+      ---
+      site:
+        host: example.com
+        ssl: true
+        secret: <%= ENV['SECRET'] || 'test_secret' %>
+        authentication:
+          enabled: true
+          signup: true
+      redis:
+        uri: redis://localhost:6379/0
+      mail:
+        truemail:
+          default_validation_type: :regex
+      development:
+        enabled: false
+    YAML
+  end
+
+  before do
+    # Store original state
+    @original_path = described_class.instance_variable_get(:@path)
+    @original_dirname = described_class.instance_variable_get(:@dirname)
+    @original_mode = Onetime.mode
+
+    # Create test directory and files
+    FileUtils.mkdir_p(temp_dir)
+    File.write(test_config_path, valid_yaml)
+
+    # Suppress logs during tests
+    allow(Onetime).to receive(:ld)
+    allow(Onetime).to receive(:le)
+  end
+
+  after do
+    # Restore original state
+    described_class.instance_variable_set(:@path, @original_path)
+    described_class.instance_variable_set(:@dirname, @original_dirname)
+    Onetime.mode = @original_mode
+
+    # Clean up test directory
+    FileUtils.remove_entry(temp_dir)
+  end
+
+  describe '.load' do
+    context 'with a valid configuration file' do
+      it 'loads and parses YAML successfully' do
+        config = described_class.load(test_config_path)
+
+        expect(config).to be_a(Hash)
+        expect(config['site']['host']).to eq('example.com')
+        expect(config['site']['ssl']).to eq(true)
+        expect(config['site']['authentication']['enabled']).to eq(true)
+      end
+
+      it 'processes ERB templates in the configuration' do
+        # Set environment variable for testing
+        allow(ENV).to receive(:[]).with('SECRET').and_return('env_secret')
+
+        config = described_class.load(test_config_path)
+
+        expect(config['site']['secret']).to eq('env_secret')
+      end
+
+      it 'falls back to default value in ERB when environment variable is not set' do
+        # Ensure environment variable is not set
+        allow(ENV).to receive(:[]).with('SECRET').and_return(nil)
+
+        config = described_class.load(test_config_path)
+
+        expect(config['site']['secret']).to eq('test_secret')
+      end
+    end
+
+    context 'with invalid configuration files' do
+      it 'uses a default path when given nil' do
+        expect(described_class.load(nil)).to be_a(Hash)
+        expect(described_class.path).to be_a(String)
+      end
+
+      it 'raises ArgumentError for unreadable file' do
+        nonexistent_path = '/path/does/not/exist.yaml'
+        expect { described_class.load(nonexistent_path) }.to raise_error(OT::ConfigError, /Config not readable/)
+      end
+
+      it 'exits with error for invalid YAML' do
+        invalid_yaml_path = File.join(temp_dir, 'invalid.yaml')
+        File.write(invalid_yaml_path, "---\nsite: *undefined_alias\n")
+
+        expect(Onetime).to receive(:le).at_least(:once)
+        expect { described_class.load(invalid_yaml_path) }.to raise_error(OT::ConfigError)
+      end
+
+      it 'exits with error for invalid ERB' do
+        invalid_erb_path = File.join(temp_dir, 'invalid_erb.yaml')
+        File.write(invalid_erb_path, "---\nsite:\n  :host: <%= undefined_method %>\n")
+
+        expect(Onetime).to receive(:le).at_least(:once)
+        expect { described_class.load(invalid_erb_path) }.to raise_error(OT::ConfigError)
+      end
+    end
+
+    context 'when a BRAND_* value contains YAML-significant characters' do
+      # Regression: the brand block interpolates each BRAND_* var as a
+      # JSON-quoted scalar (`&.to_json`), so an operator value like "& Co: *x"
+      # parses cleanly instead of aborting the whole document the way a bare
+      # `site: *undefined_alias` does above. See the brand block in
+      # etc/defaults/config.defaults.yaml.
+      let(:brand_config_path) { File.join(temp_dir, 'brand.yaml') }
+      let(:brand_yaml) do
+        <<~YAML
+          ---
+          brand:
+            product_name: <%= ENV['BRAND_PRODUCT_NAME']&.to_json %>
+        YAML
+      end
+
+      around do |example|
+        original = ENV.fetch('BRAND_PRODUCT_NAME', nil)
+        example.run
+      ensure
+        original.nil? ? ENV.delete('BRAND_PRODUCT_NAME') : (ENV['BRAND_PRODUCT_NAME'] = original)
+      end
+
+      before { File.write(brand_config_path, brand_yaml) }
+
+      it 'parses instead of aborting the document' do
+        ENV['BRAND_PRODUCT_NAME'] = '& Co: "special" *value'
+
+        expect { described_class.load(brand_config_path) }.not_to raise_error
+        config = described_class.load(brand_config_path)
+        expect(config.dig('brand', 'product_name')).to eq('& Co: "special" *value')
+      end
+    end
+
+    context 'header layout knobs in the shipped defaults (#3612)' do
+      # The masthead layout knobs must render as YAML nil when their env vars
+      # are unset OR blank ("not specified" — show_name's auto-hide heuristic
+      # depends on the distinction), and as real values when set. Loads the
+      # real defaults file so the ERB ternaries themselves are pinned.
+      let(:defaults_path) { File.expand_path('../../../../etc/defaults/config.defaults.yaml', __dir__) }
+
+      around do |example|
+        saved = %w[LOGO_LINK LOGO_SHOW_NAME LOGO_PROMINENT].to_h { |k| [k, ENV.fetch(k, nil)] }
+        example.run
+      ensure
+        saved.each { |k, v| v.nil? ? ENV.delete(k) : (ENV[k] = v) }
+      end
+
+      it 'renders all three knobs as nil when the env vars are unset' do
+        %w[LOGO_LINK LOGO_SHOW_NAME LOGO_PROMINENT].each { |k| ENV.delete(k) }
+
+        logo = described_class.load(defaults_path).dig('site', 'interface', 'ui', 'header', 'logo')
+        expect(logo).to eq('href' => nil, 'show_name' => nil, 'prominent' => nil)
+      end
+
+      it 'treats blank env vars as unset (nil), not as explicit values' do
+        ENV['LOGO_LINK']      = ''
+        ENV['LOGO_SHOW_NAME'] = ''
+        ENV['LOGO_PROMINENT'] = ''
+
+        logo = described_class.load(defaults_path).dig('site', 'interface', 'ui', 'header', 'logo')
+        expect(logo).to eq('href' => nil, 'show_name' => nil, 'prominent' => nil)
+      end
+
+      it 'renders explicit values when the env vars are set' do
+        ENV['LOGO_LINK']      = '/home'
+        ENV['LOGO_SHOW_NAME'] = 'false'
+        ENV['LOGO_PROMINENT'] = 'true'
+
+        logo = described_class.load(defaults_path).dig('site', 'interface', 'ui', 'header', 'logo')
+        expect(logo).to eq('href' => '/home', 'show_name' => false, 'prominent' => true)
+      end
+
+      it 'ships no branding nesting, site_name, or vendor defaults in the header' do
+        %w[LOGO_LINK LOGO_SHOW_NAME LOGO_PROMINENT].each { |k| ENV.delete(k) }
+
+        header = described_class.load(defaults_path).dig('site', 'interface', 'ui', 'header')
+        expect(header).not_to have_key('branding')
+        expect(header.to_s).not_to include('One-Time Secret')
+        expect(header.to_s).not_to include('DefaultLogo.vue')
+      end
+    end
+  end
+
+  describe '.path' do
+    context 'when path is already set' do
+      it 'returns the cached path' do
+        described_class.instance_variable_set(:@path, '/cached/path')
+        expect(described_class.path).to eq('/cached/path')
+      end
+    end
+
+    context 'when path is not set' do
+      before do
+        described_class.instance_variable_set(:@path, nil)
+      end
+
+      it 'uses ConfigResolver to find test config in test environment' do
+        # In RACK_ENV=test, ConfigResolver returns spec/config.test.yaml
+        expect(described_class.path).to include('spec/config.test.yaml')
+      end
+
+      it 'falls back to find_configs when ConfigResolver returns nil' do
+        # Simulate ConfigResolver returning nil (no config found)
+        allow(Onetime::Utils::ConfigResolver).to receive(:resolve).with('config').and_return(nil)
+        expect(described_class).to receive(:find_configs).and_return(['/found/config.yaml'])
+        expect(described_class.path).to eq('/found/config.yaml')
+      end
+    end
+  end
+
+  describe '.find_configs' do
+    let(:service_paths) { ['/etc/onetime', './etc', './etc/defaults'] }
+    let(:utility_paths) { ['~/.onetime', '/etc/onetime', './etc', './etc/defaults'] }
+
+    context 'in service mode' do
+      before do
+        Onetime.mode = :app
+      end
+
+      it 'checks service paths' do
+        # Setup expanded paths that will be checked
+        expanded_paths = service_paths.map { |p| File.expand_path(File.join(p, 'config.yaml')) }
+
+        # Expect file existence check for each expanded path
+        expanded_paths.each do |path|
+          expect(File).to receive(:exist?).with(path).and_return(false)
+        end
+
+        described_class.find_configs
+      end
+
+      it 'returns existing config files' do
+        # Create test file in one of the paths
+        etc_dir = File.join(temp_dir, 'etc')
+        FileUtils.mkdir_p(etc_dir)
+        test_file = File.join(etc_dir, 'config.yaml')
+
+        # Write test configuration to the file
+        File.write(test_file, valid_yaml)
+
+        # Make sure the file exists
+        expect(File.exist?(test_file)).to be true
+
+        # Stub the constant to include our test directory
+        stub_const('Onetime::Config::SERVICE_PATHS', [etc_dir])
+
+        result = described_class.find_configs
+        expect(result).to eq([test_file])
+      end
+    end
+
+    context 'in CLI mode' do
+      before do
+        Onetime.mode = :cli
+      end
+
+      it 'checks utility paths' do
+        # Setup expanded paths that will be checked
+        expanded_paths = utility_paths.map { |p| File.expand_path(File.join(p, 'config.yaml')) }
+
+        # Expect file existence check for each expanded path
+        expanded_paths.each do |path|
+          expect(File).to receive(:exist?).with(path).and_return(false)
+        end
+
+        described_class.find_configs
+      end
+
+      it 'supports custom filename' do
+        custom_filename = 'custom_config.yaml'
+
+        # Setup expanded paths with custom filename
+        expanded_paths = utility_paths.map { |p| File.expand_path(File.join(p, custom_filename)) }
+
+        # Expect file existence check for each expanded path with custom filename
+        expanded_paths.each do |path|
+          expect(File).to receive(:exist?).with(path).and_return(false)
+        end
+
+        described_class.find_configs(custom_filename)
+      end
+    end
+  end
+
+  describe '.dirname' do
+    it 'returns the directory name of the config path' do
+      described_class.instance_variable_set(:@path, '/path/to/config.yaml')
+      expect(described_class.dirname).to eq('/path/to')
+    end
+
+    it 'caches the dirname after first call' do
+      described_class.instance_variable_set(:@path, '/path/to/config.yaml')
+      dirname = described_class.dirname
+
+      # Change path after caching
+      described_class.instance_variable_set(:@path, '/different/path/config.yaml')
+
+      # Should still return cached value
+      expect(described_class.dirname).to eq(dirname)
+    end
+  end
+end

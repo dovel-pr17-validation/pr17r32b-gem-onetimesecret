@@ -1,0 +1,121 @@
+# apps/api/colonel/logic/colonel/remove_custom_domain.rb
+#
+# frozen_string_literal: true
+
+require_relative '../base'
+require_relative 'domain_resolver'
+require 'onetime/operations/domains/remove'
+
+module ColonelAPI
+  module Logic
+    module Colonel
+      # Remove (permanently delete) a custom domain (Colonel) — surfaces the
+      # CLI-only `bin/ots domains remove` toolbox verb (#3731 P3).
+      #
+      # Thin adapter over {Onetime::Operations::Domains::Remove} — the single,
+      # audited implementation of the remove verb. The op owns the teardown, the
+      # display_domain_index re-assertion, and the ColonelAuditEvent; this class
+      # resolves the domain and threads the `dry_run` flag, and answers the op's
+      # SenderIdentityBusy refusal with a conflict.
+      #
+      # `dry_run` defaults to TRUE (dry-run default): the screen previews the
+      # domain details, then re-issues with `dry_run: false` behind a
+      # typed-confirmation dialog to apply.
+      #
+      # `details.sender_cleanup` is the applied teardown's remote sender
+      # identity outcome (Remove::Result#sender_cleanup), null on a dry run. A
+      # `failed` cleanup does not undo the removal, so the response still
+      # reports it as deleted.
+      #
+      # Security invariant (epic #20): BOTH the router (role=colonel) AND this
+      # logic (verify_one_of_roles!(colonel: true)) enforce the colonel role.
+      class RemoveCustomDomain < ColonelAPI::Logic::Base
+        include DomainResolver
+        include Onetime::LoggerMethods
+
+        attr_reader :extid, :dry_run, :custom_domain, :result
+
+        def process_params
+          @extid = sanitize_identifier(params['extid'])
+          raise_form_error('Domain ID is required', field: :extid) if extid.to_s.empty?
+
+          @dry_run = params.key?('dry_run') ? truthy?(params['dry_run']) : true
+          # OPTIONAL operator-supplied why (#4338) — query string, alongside
+          # dry_run and for the same reason. See
+          # ColonelAPI::Logic::Base#operator_reason_param.
+          @reason  = operator_reason_param
+        end
+
+        def raise_concerns
+          verify_one_of_roles!(colonel: true)
+
+          @custom_domain = resolve_custom_domain(extid)
+          raise_not_found('Domain not found') unless custom_domain
+
+          # PREVIEW EXEMPTION (#4326): a dry run writes nothing. dry_run
+          # defaults to TRUE here, so only an explicit apply is gated.
+          return if dry_run
+
+          # TIER 1. The URL carries the extid; the confirmation is the hostname.
+          guard_destructive_action!(
+            tier: :destructive,
+            confirm_with: custom_domain.display_domain,
+            confirm_subject: 'the domain name',
+            field: :extid,
+          )
+          charge_destructive_budget!
+        end
+
+        def process
+          @result = Onetime::Operations::Domains::Remove.new(
+            domain: custom_domain,
+            actor: cust.extid, # acting colonel's PUBLIC id (never an objid)
+            dry_run: dry_run,
+            reason: @reason,
+          ).call
+
+          # Log from result (snapshotted pre-destroy!) — on the applied path
+          # destroy! nils custom_domain.display_domain in memory. A failed
+          # sender cleanup logs at warn; DeleteSenderDomain has already logged
+          # the provider error.
+          level = result.sender_cleanup == :failed ? :warn : :info
+          app_logger.public_send(
+            level,
+            '[RemoveCustomDomain] Domain removal',
+            domain_display: result.display_domain,
+            status: result.status.to_s,
+            dry_run: dry_run,
+            org_id: result.org_id.to_s,
+            sender_cleanup: result.sender_cleanup.to_s,
+          )
+
+          # NOTE: no audit here — the op owns the single ColonelAuditEvent
+          # (exactly-once, applied path only). This adapter never audits.
+          success_data
+        rescue Onetime::Operations::Domains::Remove::SenderIdentityBusy => ex
+          # Provisioning or another sender identity change holds the lock;
+          # nothing was torn down.
+          raise_form_error(ex.message, field: :extid, error_type: :conflict)
+        end
+
+        def success_data
+          {
+            record: {
+              deleted: result.status == :removed,
+              domain_id: result.domain_id,
+              extid: result.extid,
+              display_domain: result.display_domain,
+            },
+            details: {
+              status: result.status.to_s,
+              dry_run: result.dry_run,
+              org_id: result.org_id.to_s,
+              org_name: result.org_name,
+              sender_cleanup: result.sender_cleanup&.to_s,
+            },
+          }
+        end
+      end
+    end
+  end
+end

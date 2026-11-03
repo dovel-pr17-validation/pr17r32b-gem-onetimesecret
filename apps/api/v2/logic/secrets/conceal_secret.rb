@@ -1,0 +1,34 @@
+# apps/api/v2/logic/secrets/conceal_secret.rb
+#
+# frozen_string_literal: true
+
+require_relative 'base_secret_action'
+
+module V2::Logic
+  module Secrets
+    using Familia::Refinements::TimeLiterals
+
+    # Conceal Secret
+    #
+    # @api Creates a new secret from user-provided content. Accepts the secret
+    #   value, an optional passphrase, TTL, recipient email, and share domain.
+    #   Returns the receipt and secret records with share URLs.
+    class ConcealSecret < BaseSecretAction
+      include Onetime::Logic::GuestRouteGating
+
+      SCHEMAS = { response: 'concealData', request: 'concealSecret' }.freeze
+
+      def process_secret
+        @kind         = 'conceal'
+        @secret_value = payload['secret']
+      end
+
+      def raise_concerns
+        require_guest_route_enabled!(:conceal)
+        super
+        raise_form_error 'You did not provide anything to share', field: :secret, error_type: :missing if secret_value.to_s.empty?
+        validate_secret_size(secret_value)
+      end
+    end
+  end
+end

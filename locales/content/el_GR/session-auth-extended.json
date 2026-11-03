@@ -1,0 +1,1009 @@
+{
+  "web.auth._guidance": {
+    "skip": true,
+    "_meta": {
+      "_purpose": "These messages follow OWASP/NIST guidelines to prevent information disclosure. Translations MUST maintain generic wording to prevent credential enumeration and timing attacks. Never reveal: which credential failed, precise timing, account existence, or attack progress.",
+      "authentication_failed": {
+        "security_note": "MUST NOT reveal which credential failed (password, OTP, or recovery code). This prevents attackers from determining valid credentials or enumerating accounts.",
+        "owasp_ref": "ASVS 2.2.2 - Authentication failure responses must be generic"
+      },
+      "rate_limited": {
+        "security_note": "MUST NOT reveal precise lockout duration, attempt counts, or remaining attempts. This prevents timing attacks and progress tracking.",
+        "owasp_ref": "ASVS 2.2.1 - Account lockout must not be timing-based enumerable"
+      },
+      "session_expired": {
+        "security_note": "Safe to indicate session issue as it doesn't reveal credential information. Helps users understand they need to re-authenticate.",
+        "owasp_ref": "Session management best practices"
+      },
+      "recovery_code_not_found": {
+        "security_note": "Safe to indicate recovery code context as user explicitly selected this authentication method. Does not reveal whether code exists.",
+        "owasp_ref": "Recovery code validation guidance"
+      },
+      "recovery_code_used": {
+        "security_note": "Safe expected behavior message. Users need to know recovery codes are single-use to prevent confusion.",
+        "owasp_ref": "User guidance for recovery mechanisms"
+      }
+    },
+    "_translation_guidelines": {
+      "DO_NOT_translate_as": [
+        "Wrong password",
+        "Invalid OTP code",
+        "Incorrect recovery code",
+        "Wait 5 minutes",
+        "3 attempts remaining",
+        "Account locked for 15 minutes"
+      ],
+      "MUST_translate_as": [
+        "Generic authentication failure (no credential specifics)",
+        "Generic rate limit message (no precise timing)",
+        "Recovery code validation (no existence confirmation)"
+      ],
+      "WHY": "These restrictions prevent attackers from: (1) determining valid usernames/emails, (2) knowing which credential to focus attacks on, (3) conducting timing attacks, (4) measuring attack progress"
+    },
+    "_safe_information": {
+      "format_requirements": "Safe to specify format rules (e.g., 'OTP must be 6 digits')",
+      "expected_behavior": "Safe to describe how features work (e.g., 'Codes expire every 30 seconds')",
+      "recovery_options": "Safe to offer alternatives (e.g., 'Use a recovery code instead')",
+      "general_guidance": "Safe to provide help (e.g., 'Check your authenticator app')"
+    }
+  },
+  "web.auth.mfa_required": {
+    "text": "Απαιτείται επαλήθευση MFA",
+    "context": "Page heading shown when user must complete MFA to proceed",
+    "source_hash": "e93fd3a4"
+  },
+  "web.auth.mfa_verification_required": {
+    "text": "Απαιτείται επαλήθευση MFA για πρόσβαση στον λογαριασμό σας",
+    "context": "Explanatory text below the heading",
+    "source_hash": "3cff3311"
+  },
+  "web.auth.complete_mfa_verification": {
+    "text": "Ολοκλήρωση επαλήθευσης MFA",
+    "source_hash": "0e681134"
+  },
+  "web.auth.security._guidance": {
+    "skip": true,
+    "context": "⚠️ SECURITY-CRITICAL: Messages prevent information disclosure. See src/locales/SECURITY-TRANSLATION-GUIDE.md"
+  },
+  "web.auth.security.authentication_failed": {
+    "text": "Η ταυτοποίηση απέτυχε. Παρακαλώ επαληθεύστε τα διαπιστευτήριά σας και δοκιμάστε ξανά.",
+    "source_hash": "b0eeece9"
+  },
+  "web.auth.security.rate_limited": {
+    "text": "Πάρα πολλές προσπάθειες. Παρακαλώ δοκιμάστε ξανά αργότερα.",
+    "source_hash": "282db6f3"
+  },
+  "web.auth.security.session_expired": {
+    "text": "Η συνεδρία έληξε. Παρακαλώ συνδεθείτε ξανά.",
+    "source_hash": "f6f51186"
+  },
+  "web.auth.security.recovery_code_not_found": {
+    "text": "Ο κωδικός ανάκτησης δεν βρέθηκε. Παρακαλώ επαληθεύστε ότι τον εισάγατε σωστά.",
+    "source_hash": "f5f1bd09"
+  },
+  "web.auth.security.recovery_code_used": {
+    "text": "Αυτός ο κωδικός ανάκτησης έχει ήδη χρησιμοποιηθεί. Κάθε κωδικός μπορεί να χρησιμοποιηθεί μόνο μία φορά.",
+    "source_hash": "b51d6820"
+  },
+  "web.auth.security.network_error": {
+    "text": "Σφάλμα δικτύου. Παρακαλώ ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.",
+    "source_hash": "31f2678d"
+  },
+  "web.auth.security.internal_error": {
+    "text": "Παρουσιάστηκε σφάλμα. Παρακαλώ προσπαθήστε ξανά.",
+    "source_hash": "9c170dda"
+  },
+  "web.auth.methods.password": {
+    "text": "Κωδικός πρόσβασης",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.methods.magicLink": {
+    "text": "Σύνδεσμος email",
+    "context": "Passwordless authentication via email link",
+    "source_hash": "1b6ffed2"
+  },
+  "web.auth.methods.webauthn": {
+    "text": "Βιομετρικά",
+    "source_hash": "ab2ba7db"
+  },
+  "web.auth.magicLink.title": {
+    "text": "Σύνδεση με email",
+    "source_hash": "79a864df"
+  },
+  "web.auth.magicLink.description": {
+    "text": "Θα σας στείλουμε έναν ασφαλή σύνδεσμο σύνδεσης",
+    "source_hash": "5d75aeb0"
+  },
+  "web.auth.magicLink.emailPlaceholder": {
+    "text": "Εισάγετε το email σας",
+    "source_hash": "2837f6fa"
+  },
+  "web.auth.magicLink.sendLink": {
+    "text": "Αποστολή συνδέσμου σύνδεσης",
+    "source_hash": "f5f52392"
+  },
+  "web.auth.magicLink.checkEmail": {
+    "text": "Ελέγξτε το email σας",
+    "source_hash": "77322879"
+  },
+  "web.auth.magicLink.sentTo": {
+    "text": "Στείλαμε σύνδεσμο σύνδεσης στο {email}",
+    "source_hash": "d9193f59"
+  },
+  "web.auth.magicLink.linkExpiresIn": {
+    "text": "Αυτός ο σύνδεσμος λήγει σε 15 λεπτά",
+    "source_hash": "91b5f027"
+  },
+  "web.auth.magicLink.tryDifferentEmail": {
+    "text": "Δοκιμάστε διαφορετικό email",
+    "source_hash": "98657c0b"
+  },
+  "web.auth.magicLink.noPasswordNeeded": {
+    "text": "Δεν χρειάζεται κωδικός πρόσβασης — απλά κάντε κλικ στον σύνδεσμο στο email σας",
+    "source_hash": "5f539b97"
+  },
+  "web.auth.magicLink.networkError": {
+    "text": "Σφάλμα δικτύου. Παρακαλώ προσπαθήστε ξανά.",
+    "source_hash": "9ff8cfaf"
+  },
+  "web.auth.magicLink.requestFailed": {
+    "text": "Αποτυχία αποστολής συνδέσμου σύνδεσης. Παρακαλώ προσπαθήστε ξανά.",
+    "source_hash": "4c685e97"
+  },
+  "web.auth.magicLink.invalidLink": {
+    "text": "Μη έγκυρος ή λείπει σύνδεσμος σύνδεσης",
+    "source_hash": "d726c0da"
+  },
+  "web.auth.magicLink.sessionExpired": {
+    "text": "Η συνεδρία σας έληξε. Παρακαλούμε ανανεώστε τη σελίδα και δοκιμάστε ξανά.",
+    "source_hash": "be9ed96d"
+  },
+  "web.auth.magicLink.loginFailed": {
+    "text": "Η σύνδεση απέτυχε. Παρακαλώ προσπαθήστε ξανά.",
+    "source_hash": "c95b4875"
+  },
+  "web.auth.magicLink.signingYouIn": {
+    "text": "Γίνεται σύνδεση...",
+    "source_hash": "9d432ef1"
+  },
+  "web.auth.magicLink.pleaseWait": {
+    "text": "Παρακαλώ περιμένετε ενώ επαληθεύουμε τον σύνδεσμό σας",
+    "source_hash": "81e4efed"
+  },
+  "web.auth.magicLink.error": {
+    "text": "Σφάλμα ταυτοποίησης",
+    "source_hash": "797b4f03"
+  },
+  "web.auth.magicLink.back_to_signin": {
+    "text": "Επιστροφή στη σύνδεση",
+    "source_hash": "ee9eb75e"
+  },
+  "web.auth.webauthn.signIn": {
+    "text": "Σύνδεση με Face ID / Touch ID",
+    "source_hash": "46f75469"
+  },
+  "web.auth.webauthn.setup": {
+    "text": "Ρύθμιση βιομετρικής σύνδεσης",
+    "source_hash": "7593dd46"
+  },
+  "web.auth.webauthn.notSupported": {
+    "text": "Η βιομετρική ταυτοποίηση δεν υποστηρίζεται σε αυτό το πρόγραμμα περιήγησης",
+    "source_hash": "fe2a2c2b"
+  },
+  "web.auth.webauthn.requiresModernBrowser": {
+    "text": "Παρακαλώ χρησιμοποιήστε ένα σύγχρονο πρόγραμμα περιήγησης που υποστηρίζει WebAuthn (Chrome, Safari, Firefox ή Edge)",
+    "source_hash": "fd9752eb"
+  },
+  "web.auth.webauthn.setupSuccess": {
+    "text": "Η βιομετρική σύνδεση ενεργοποιήθηκε",
+    "source_hash": "63407e97"
+  },
+  "web.auth.webauthn.setupFailed": {
+    "text": "Αποτυχία ρύθμισης βιομετρικής σύνδεσης",
+    "source_hash": "290cca44"
+  },
+  "web.auth.webauthn.passwordRequired": {
+    "text": "Απαιτείται κωδικός πρόσβασης για τη ρύθμιση passkey",
+    "source_hash": "085bb238"
+  },
+  "web.auth.webauthn.authFailed": {
+    "text": "Η βιομετρική ταυτοποίηση απέτυχε. Παρακαλώ προσπαθήστε ξανά.",
+    "source_hash": "626b9ece"
+  },
+  "web.auth.webauthn.cancelled": {
+    "text": "Η ταυτοποίηση ακυρώθηκε",
+    "source_hash": "57461b04"
+  },
+  "web.auth.webauthn.processing": {
+    "text": "Ταυτοποίηση...",
+    "source_hash": "1f6087c2"
+  },
+  "web.auth.webauthn.description": {
+    "text": "Χρησιμοποιήστε το δακτυλικό σας αποτύπωμα, το πρόσωπό σας ή κλειδί ασφαλείας για σύνδεση",
+    "source_hash": "f02f0427"
+  },
+  "web.auth.webauthn.supportedMethods": {
+    "text": "Υποστηρίζει Face ID, Touch ID, Windows Hello και κλειδιά ασφαλείας",
+    "source_hash": "3ea1c1a2"
+  },
+  "web.auth.passkeys.title": {
+    "text": "Passkeys",
+    "context": "Title for passkey management section",
+    "source_hash": "c87ccdb4"
+  },
+  "web.auth.passkeys.description": {
+    "text": "Σύνδεση με Face ID, Touch ID, Windows Hello ή κλειδί ασφαλείας",
+    "context": "Description of passkey authentication",
+    "source_hash": "a513ed5c"
+  },
+  "web.auth.passkeys.setup_description": {
+    "text": "Τα passkeys σας επιτρέπουν να συνδεθείτε με ασφάλεια χωρίς κωδικό πρόσβασης",
+    "context": "Setup page description",
+    "source_hash": "85630bef"
+  },
+  "web.auth.passkeys.not_configured": {
+    "text": "Δεν έχει ρυθμιστεί",
+    "context": "Status when no passkeys are registered",
+    "source_hash": "dd1841d2"
+  },
+  "web.auth.passkeys.count": {
+    "text": "{count} passkey καταχωρημένο | {count} passkeys καταχωρημένα",
+    "context": "Number of registered passkeys",
+    "source_hash": "82e6681f"
+  },
+  "web.auth.passkeys.add_passkey": {
+    "text": "Προσθήκη Passkey",
+    "context": "Button to add a new passkey",
+    "source_hash": "93713ad7"
+  },
+  "web.auth.passkeys.register_passkey": {
+    "text": "Καταχώρηση Passkey",
+    "context": "Button to register a new passkey",
+    "source_hash": "26db6968"
+  },
+  "web.auth.passkeys.remove_passkey": {
+    "text": "Αφαίρεση Passkey",
+    "context": "Button to remove a passkey",
+    "source_hash": "67b1d47c"
+  },
+  "web.auth.passkeys.confirm_remove": {
+    "text": "Είστε σίγουροι ότι θέλετε να αφαιρέσετε αυτό το passkey; Δεν θα μπορείτε πλέον να συνδεθείτε με αυτό.",
+    "context": "Confirmation message for passkey removal",
+    "source_hash": "487ab72c"
+  },
+  "web.auth.passkeys.removed_success": {
+    "text": "Το passkey αφαιρέθηκε επιτυχώς",
+    "context": "Success message after removing passkey",
+    "source_hash": "436c1050"
+  },
+  "web.auth.passkeys.registered_success": {
+    "text": "Το passkey καταχωρήθηκε επιτυχώς",
+    "context": "Success message after registering passkey",
+    "source_hash": "fbfb0713"
+  },
+  "web.auth.passkeys.no_passkeys": {
+    "text": "Δεν υπάρχουν καταχωρημένα passkeys",
+    "context": "Empty state when no passkeys exist",
+    "source_hash": "1d97fde4"
+  },
+  "web.auth.passkeys.no_passkeys_description": {
+    "text": "Προσθέστε ένα passkey για πιο ασφαλή σύνδεση χωρίς εισαγωγή κωδικού πρόσβασης",
+    "context": "Description for empty state",
+    "source_hash": "e5bc07f1"
+  },
+  "web.auth.passkeys.name": {
+    "text": "Κλειδί πρόσβασης",
+    "context": "Label for passkey name field",
+    "source_hash": "904c9aa9"
+  },
+  "web.auth.passkeys.created": {
+    "text": "Δημιουργήθηκε",
+    "context": "Label for creation date",
+    "source_hash": "d70b9e24"
+  },
+  "web.auth.passkeys.last_used": {
+    "text": "Τελευταία χρήση: {time}",
+    "context": "Last used timestamp",
+    "source_hash": "e1af94fe"
+  },
+  "web.auth.passkeys.never_used": {
+    "text": "Δεν χρησιμοποιήθηκε",
+    "context": "Status when passkey has not been used",
+    "source_hash": "24d3236c"
+  },
+  "web.auth.passkeys.benefit_secure": {
+    "text": "Ασφαλέστερο από κωδικούς πρόσβασης - ανθεκτικό σε επιθέσεις phishing",
+    "context": "Passkey benefit",
+    "source_hash": "41afb6ec"
+  },
+  "web.auth.passkeys.benefit_fast": {
+    "text": "Γρήγορο και εύκολο - χρησιμοποιήστε το δακτυλικό σας αποτύπωμα, το πρόσωπό σας ή το κλειδί ασφαλείας",
+    "context": "Passkey benefit",
+    "source_hash": "5a0ce96c"
+  },
+  "web.auth.passkeys.benefit_synced": {
+    "text": "Συγχρονισμένο σε όλες τις συσκευές σας κατά τη χρήση επαληθευτών πλατφόρμας",
+    "context": "Passkey benefit",
+    "source_hash": "7480c7ae"
+  },
+  "web.auth.passkeys.link_title": {
+    "text": "Passkeys",
+    "context": "Navigation link title",
+    "source_hash": "c87ccdb4"
+  },
+  "web.auth.lockout.attempts_remaining": {
+    "text": "Προειδοποίηση: Απομένουν {count} προσπάθειες σύνδεσης",
+    "source_hash": "151dcb5e"
+  },
+  "web.auth.lockout.account_locked": {
+    "text": "Ο λογαριασμός κλειδώθηκε λόγω πολλών αποτυχημένων προσπαθειών σύνδεσης",
+    "source_hash": "5247f389"
+  },
+  "web.auth.lockout.locked_until": {
+    "text": "Ο λογαριασμός σας είναι κλειδωμένος μέχρι τις {time}",
+    "source_hash": "1a8f382e"
+  },
+  "web.auth.lockout.contact_support": {
+    "text": "Επικοινωνήστε με την υποστήριξη αν χρειάζεστε άμεση πρόσβαση",
+    "source_hash": "23d82e46"
+  },
+  "web.auth.lockout.try_password_reset": {
+    "text": "Μπορείτε να επαναφέρετε τον κωδικό πρόσβασής σας",
+    "source_hash": "a98a3f9d"
+  },
+  "web.auth.sessions._guidance": {
+    "skip": true,
+    "context": "User's logged-in devices/browsers management page"
+  },
+  "web.auth.sessions.title": {
+    "text": "Ενεργές συνεδρίες",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.sessions.current": {
+    "text": "Τρέχουσα συνεδρία",
+    "source_hash": "386c7932"
+  },
+  "web.auth.sessions.other": {
+    "text": "Άλλες συνεδρίες",
+    "source_hash": "8409f445"
+  },
+  "web.auth.sessions.device": {
+    "text": "Συσκευή",
+    "source_hash": "6ba0bdec"
+  },
+  "web.auth.sessions.location": {
+    "text": "Τοποθεσία",
+    "source_hash": "15b61974"
+  },
+  "web.auth.sessions.ip_address": {
+    "text": "Διεύθυνση IP",
+    "source_hash": "3c3de0c9"
+  },
+  "web.auth.sessions.last_active": {
+    "text": "Τελευταία δραστηριότητα",
+    "source_hash": "b6dc1b95"
+  },
+  "web.auth.sessions.created": {
+    "text": "Δημιουργήθηκε",
+    "source_hash": "d70b9e24"
+  },
+  "web.auth.sessions.remove": {
+    "text": "Αφαίρεση",
+    "source_hash": "c3812fc4"
+  },
+  "web.auth.sessions.remove_all": {
+    "text": "Αποσύνδεση από όλες τις άλλες συνεδρίες",
+    "source_hash": "412bb9e2"
+  },
+  "web.auth.sessions.confirm_remove": {
+    "text": "Είστε βέβαιοι ότι θέλετε να αφαιρέσετε αυτή τη συνεδρία;",
+    "source_hash": "ef12c1ba"
+  },
+  "web.auth.sessions.confirm_remove_all": {
+    "text": "Αυτό θα σας αποσυνδέσει από όλες τις άλλες συσκευές. Είστε βέβαιοι;",
+    "source_hash": "4a1a73e9"
+  },
+  "web.auth.sessions.no_sessions": {
+    "text": "Δεν υπάρχουν άλλες ενεργές συνεδρίες",
+    "source_hash": "b83317f2"
+  },
+  "web.auth.sessions.removed_success": {
+    "text": "Η συνεδρία αφαιρέθηκε επιτυχώς",
+    "source_hash": "6d27d44a"
+  },
+  "web.auth.sessions.removed_all_success": {
+    "text": "Όλες οι άλλες συνεδρίες αποσυνδέθηκαν",
+    "source_hash": "1b49e75c"
+  },
+  "web.auth.sessions.link_title": {
+    "text": "Ενεργές συνεδρίες",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.mfa.title": {
+    "text": "Ταυτοποίηση δύο παραγόντων",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.mfa.enabled": {
+    "text": "Η ταυτοποίηση δύο παραγόντων είναι ενεργοποιημένη",
+    "source_hash": "d27a70c6"
+  },
+  "web.auth.mfa.disabled": {
+    "text": "Η ταυτοποίηση δύο παραγόντων είναι απενεργοποιημένη",
+    "source_hash": "0af18e50"
+  },
+  "web.auth.mfa.enable": {
+    "text": "Ενεργοποίηση ταυτοποίησης δύο παραγόντων",
+    "source_hash": "9b83e658"
+  },
+  "web.auth.mfa.disable": {
+    "text": "Απενεργοποίηση ταυτοποίησης δύο παραγόντων",
+    "source_hash": "c9698815"
+  },
+  "web.auth.mfa.setup_title": {
+    "text": "Ρύθμιση ταυτοποίησης δύο παραγόντων",
+    "source_hash": "04e05601"
+  },
+  "web.auth.mfa.setup_description": {
+    "text": "Προσθέστε ένα επιπλέον επίπεδο ασφάλειας στον λογαριασμό σας",
+    "source_hash": "d47240b9"
+  },
+  "web.auth.mfa.step_scan": {
+    "text": "1. Σάρωση κωδικού QR",
+    "source_hash": "efd0134a"
+  },
+  "web.auth.mfa.step_verify": {
+    "text": "2. Επαλήθευση ρύθμισης",
+    "source_hash": "59bba5f7"
+  },
+  "web.auth.mfa.scan_qr": {
+    "text": "Σαρώστε αυτόν τον κωδικό QR με την εφαρμογή ταυτοποίησής σας",
+    "source_hash": "65752db3"
+  },
+  "web.auth.mfa.manual_entry": {
+    "text": "Ή εισάγετε αυτόν τον κωδικό χειροκίνητα",
+    "source_hash": "3ea15b3e"
+  },
+  "web.auth.mfa.verify_code": {
+    "text": "Εισάγετε τον 6ψήφιο κωδικό από την εφαρμογή σας",
+    "source_hash": "38f61733"
+  },
+  "web.auth.mfa.enter_code": {
+    "text": "Εισάγετε τον κωδικό ταυτοποίησης",
+    "source_hash": "186a582a"
+  },
+  "web.auth.mfa.verify": {
+    "text": "Επαλήθευση και ενεργοποίηση",
+    "source_hash": "7c08f68d"
+  },
+  "web.auth.mfa.verify_login": {
+    "text": "Επαλήθευση",
+    "source_hash": "eea2745e"
+  },
+  "web.auth.mfa.code_required": {
+    "text": "Απαιτείται κωδικός ταυτοποίησης",
+    "source_hash": "217de0fc"
+  },
+  "web.auth.mfa.invalid_code": {
+    "text": "Μη έγκυρος κωδικός. Οι κωδικοί λήγουν κάθε 30 δευτερόλεπτα. Δοκιμάστε τον τελευταίο κωδικό από την εφαρμογή ταυτοποίησής σας.",
+    "source_hash": "94b58889"
+  },
+  "web.auth.mfa.success_enabled": {
+    "text": "Η ταυτοποίηση δύο παραγόντων ενεργοποιήθηκε",
+    "source_hash": "e5aff73d"
+  },
+  "web.auth.mfa.success_disabled": {
+    "text": "Η ταυτοποίηση δύο παραγόντων απενεργοποιήθηκε",
+    "source_hash": "4fd6b4b4"
+  },
+  "web.auth.mfa.require_password": {
+    "text": "Εισάγετε τον κωδικό πρόσβασής σας για απενεργοποίηση 2FA",
+    "source_hash": "c384b93c"
+  },
+  "web.auth.mfa.password_confirmation": {
+    "text": "Κωδικός πρόσβασης",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.mfa.password_reason": {
+    "text": "Επιβεβαιώστε την ταυτότητά σας για τροποποίηση των ρυθμίσεων ταυτοποίησης δύο παραγόντων",
+    "source_hash": "09a96c07"
+  },
+  "web.auth.mfa.last_used": {
+    "text": "Τελευταία χρήση: {time}",
+    "source_hash": "e1af94fe"
+  },
+  "web.auth.mfa.never_used": {
+    "text": "Δεν χρησιμοποιήθηκε ποτέ",
+    "source_hash": "24d3236c"
+  },
+  "web.auth.mfa.use_recovery_code": {
+    "text": "Χρήση κωδικού ανάκτησης",
+    "source_hash": "23d3441a"
+  },
+  "web.auth.mfa.use_recovery_code_short": {
+    "text": "Χρήση κωδικού ανάκτησης",
+    "source_hash": "50d5790d"
+  },
+  "web.auth.mfa.back_to_code": {
+    "text": "Επιστροφή στον κωδικό ταυτοποίησης",
+    "source_hash": "6fa090b4"
+  },
+  "web.auth.mfa.cancel": {
+    "text": "Ακύρωση και επιστροφή στη σύνδεση",
+    "source_hash": "83256742"
+  },
+  "web.auth.mfa.cancel_sign_in": {
+    "text": "Ακύρωση σύνδεσης",
+    "source_hash": "1bebad2f"
+  },
+  "web.auth.mfa.loading_status": {
+    "text": "Φόρτωση κατάστασης MFA...",
+    "source_hash": "01919f0e"
+  },
+  "web.auth.mfa.protected_description": {
+    "text": "Ο λογαριασμός σας προστατεύεται με ταυτοποίηση δύο παραγόντων",
+    "source_hash": "02b9d169"
+  },
+  "web.auth.mfa.enable_description": {
+    "text": "Προστατέψτε τον λογαριασμό σας με ένα επιπλέον επίπεδο ασφάλειας",
+    "source_hash": "06d9123b"
+  },
+  "web.auth.mfa.benefit_unauthorized": {
+    "text": "Αποτρέψτε μη εξουσιοδοτημένη πρόσβαση ακόμα κι αν ο κωδικός πρόσβασής σας παραβιαστεί",
+    "source_hash": "61d99c71"
+  },
+  "web.auth.mfa.benefit_apps": {
+    "text": "Λειτουργεί με Google Authenticator, Authy και άλλες εφαρμογές TOTP",
+    "source_hash": "6ee8ab12"
+  },
+  "web.auth.mfa.benefit_recovery": {
+    "text": "Εφεδρικοί κωδικοί ανάκτησης για επείγουσα πρόσβαση",
+    "source_hash": "747917bb"
+  },
+  "web.auth.mfa.password_placeholder": {
+    "text": "Εισάγετε τον κωδικό πρόσβασής σας",
+    "source_hash": "c06bf967"
+  },
+  "web.auth.mfa.disabling": {
+    "text": "Απενεργοποίηση...",
+    "source_hash": "e4080e19"
+  },
+  "web.auth.mfa.disable_button": {
+    "text": "Απενεργοποίηση 2FA",
+    "source_hash": "1c3193f3"
+  },
+  "web.auth.mfa.generating_qr": {
+    "text": "Δημιουργία κωδικού QR...",
+    "source_hash": "8eab9da9"
+  },
+  "web.auth.mfa.supported_apps": {
+    "text": "Χρησιμοποιήστε Google Authenticator, Authy ή οποιαδήποτε εφαρμογή TOTP",
+    "source_hash": "a8eaef9d"
+  },
+  "web.auth.mfa.continue_verification": {
+    "text": "Συνέχεια στην επαλήθευση",
+    "source_hash": "4da96e87"
+  },
+  "web.auth.mfa.enter_code_description": {
+    "text": "Εισάγετε τον 6ψήφιο κωδικό από την εφαρμογή ταυτοποίησής σας",
+    "source_hash": "a160dee6"
+  },
+  "web.auth.mfa.enable_and_continue": {
+    "text": "Ενεργοποίηση MFA",
+    "source_hash": "37c8090d"
+  },
+  "web.auth.mfa.complete_setup": {
+    "text": "Ολοκλήρωση ρύθμισης",
+    "source_hash": "30e87601"
+  },
+  "web.auth.mfa.enter_recovery_code": {
+    "text": "Εισάγετε έναν από τους κωδικούς ανάκτησής σας",
+    "source_hash": "91ab44cf"
+  },
+  "web.auth.mfa.recovery_code_label": {
+    "text": "Κωδικός ανάκτησης",
+    "source_hash": "cf25d0fc"
+  },
+  "web.auth.mfa.recovery_code_placeholder": {
+    "text": "Εισάγετε τον κωδικό ανάκτησης",
+    "source_hash": "586d719c"
+  },
+  "web.auth.mfa.verify_recovery_code": {
+    "text": "Επαλήθευση κωδικού ανάκτησης",
+    "source_hash": "c244c7bd"
+  },
+  "web.auth.mfa.six_digit_code": {
+    "text": "Εισάγετε 6ψήφιο κωδικό ταυτοποίησης",
+    "source_hash": "36a438ba"
+  },
+  "web.auth.mfa.recovery_code_mode_active": {
+    "text": "Λειτουργία κωδικού ανάκτησης ενεργή",
+    "source_hash": "c895f08b"
+  },
+  "web.auth.mfa.otp_mode_active": {
+    "text": "Λειτουργία κωδικού ταυτοποίησης ενεργή",
+    "source_hash": "8c44a306"
+  },
+  "web.auth.mfa.enter_all_digits": {
+    "text": "Παρακαλώ εισάγετε και τα 6 ψηφία για να συνεχίσετε",
+    "source_hash": "7914f7b2"
+  },
+  "web.auth.mfa.digit_of_count": {
+    "text": "Ψηφίο {current} από {total}",
+    "source_hash": "879df41a"
+  },
+  "web.auth.recovery_codes.title": {
+    "text": "Κωδικοί ανάκτησης",
+    "source_hash": "579c7f4e"
+  },
+  "web.auth.recovery_codes.description": {
+    "text": "Αποθηκεύστε αυτούς τους κωδικούς σε ασφαλές μέρος. Ο καθένας μπορεί να χρησιμοποιηθεί μία φορά αν χάσετε πρόσβαση στην εφαρμογή ταυτοποίησής σας.",
+    "source_hash": "87aebdfb"
+  },
+  "web.auth.recovery_codes.warning": {
+    "text": "Αυτοί οι κωδικοί θα εμφανιστούν μόνο μία φορά",
+    "source_hash": "d13f2877"
+  },
+  "web.auth.recovery_codes.save_required": {
+    "text": "Πρέπει να κατεβάσετε ή να αντιγράψετε τους κωδικούς ανάκτησής σας πριν ολοκληρώσετε τη ρύθμιση.",
+    "source_hash": "6b97bc6d"
+  },
+  "web.auth.recovery_codes.generate_new": {
+    "text": "Δημιουργία νέων κωδικών",
+    "source_hash": "4025779e"
+  },
+  "web.auth.recovery_codes.regenerate": {
+    "text": "Αναδημιουργία κωδικών",
+    "source_hash": "aa652d21"
+  },
+  "web.auth.recovery_codes.generate_new_warning": {
+    "text": "Αυτό θα ακυρώσει όλους τους υπάρχοντες κωδικούς ανάκτησης",
+    "source_hash": "9795a175"
+  },
+  "web.auth.recovery_codes.download": {
+    "text": "Λήψη κωδικών",
+    "source_hash": "9c23dbba"
+  },
+  "web.auth.recovery_codes.downloaded": {
+    "text": "Οι κωδικοί ανάκτησης κατέβηκαν",
+    "source_hash": "10486340"
+  },
+  "web.auth.recovery_codes.print": {
+    "text": "Εκτύπωση κωδικών",
+    "source_hash": "ff940182"
+  },
+  "web.auth.recovery_codes.copy": {
+    "text": "Αντιγραφή όλων των κωδικών",
+    "source_hash": "ee956b2b"
+  },
+  "web.auth.recovery_codes.copied": {
+    "text": "Οι κωδικοί αντιγράφηκαν στο πρόχειρο",
+    "source_hash": "06ebb466"
+  },
+  "web.auth.recovery_codes.copy_failed": {
+    "text": "Αποτυχία αντιγραφής κωδικών στο πρόχειρο",
+    "source_hash": "e8be6a51"
+  },
+  "web.auth.recovery_codes.code_used": {
+    "text": "Χρησιμοποιημένος",
+    "source_hash": "ae7d8dfa"
+  },
+  "web.auth.recovery_codes.code_unused": {
+    "text": "Αχρησιμοποίητος",
+    "source_hash": "231aedff"
+  },
+  "web.auth.recovery_codes.remaining": {
+    "text": "Απομένουν {count} από {limit} κωδικούς ανάκτησης",
+    "source_hash": "b5d484e7"
+  },
+  "web.auth.recovery_codes.usage_hint": {
+    "text": "Κάθε κωδικός μπορεί να χρησιμοποιηθεί μόνο μία φορά. Αναδημιουργήστε κωδικούς αν εξαντλούνται.",
+    "source_hash": "737a7702"
+  },
+  "web.auth.recovery_codes.none_remaining": {
+    "text": "Δεν απομένουν κωδικοί ανάκτησης",
+    "source_hash": "9ae26d68"
+  },
+  "web.auth.recovery_codes.generate_success": {
+    "text": "Δημιουργήθηκαν νέοι κωδικοί ανάκτησης",
+    "source_hash": "831cb1aa"
+  },
+  "web.auth.recovery_codes.link_title": {
+    "text": "Κωδικοί ανάκτησης",
+    "source_hash": "579c7f4e"
+  },
+  "web.auth.google": {
+    "text": "Google",
+    "source_hash": "ce770667"
+  },
+  "web.auth.mfa.alternative_auth_options": {
+    "text": "Εναλλακτικές επιλογές ελέγχου ταυτότητας",
+    "source_hash": "5ddea736"
+  },
+  "web.auth.remember.enabled": {
+    "text": "Παραμείνετε συνδεδεμένοι",
+    "source_hash": "b0a1ca80"
+  },
+  "web.auth.sessions.session_singular": {
+    "text": "συνεδρία",
+    "source_hash": "3f3af1ec"
+  },
+  "web.auth.sessions.session_plural": {
+    "text": "συνεδρίες",
+    "source_hash": "1225ae6c"
+  },
+  "web.auth.connections.title": {
+    "text": "Συνδεδεμένες ταυτότητες",
+    "source_hash": "e132c4d9"
+  },
+  "web.auth.connections.description": {
+    "text": "Διαχειριστείτε τους παρόχους ενιαίας σύνδεσης που είναι συνδεδεμένοι με τον λογαριασμό σας.",
+    "source_hash": "42c6d148"
+  },
+  "web.auth.connections.section_title": {
+    "text": "Ενιαία σύνδεση",
+    "source_hash": "3bc44ac2"
+  },
+  "web.auth.connections.section_subtitle": {
+    "text": "Πάροχοι ταυτότητας που μπορείτε να χρησιμοποιήσετε για να συνδεθείτε σε αυτόν τον λογαριασμό",
+    "source_hash": "507254cd"
+  },
+  "web.auth.connections.connect_title": {
+    "text": "Σύνδεση παρόχου",
+    "source_hash": "a002b3f3"
+  },
+  "web.auth.connections.connect_description": {
+    "text": "Συνδέστε έναν άλλο πάροχο ενιαίας σύνδεσης που μπορείτε να χρησιμοποιήσετε για να συνδεθείτε σε αυτόν τον λογαριασμό.",
+    "source_hash": "32895a5a"
+  },
+  "web.auth.connections.connect_action": {
+    "text": "Σύνδεση {provider}",
+    "context": "Button label to start linking a specific SSO provider; {provider} is the provider display name",
+    "source_hash": "c77540af"
+  },
+  "web.auth.connections.issuer": {
+    "text": "Εκδότης",
+    "source_hash": "39e02c46"
+  },
+  "web.auth.connections.identifier": {
+    "text": "Αναγνωριστικό",
+    "source_hash": "9b10587f"
+  },
+  "web.auth.connections.remove": {
+    "text": "Αφαίρεση",
+    "source_hash": "c3812fc4"
+  },
+  "web.auth.connections.remove_confirm_title": {
+    "text": "Αφαίρεση συνδεδεμένης ταυτότητας",
+    "source_hash": "4e8ffe4c"
+  },
+  "web.auth.connections.remove_confirm_message": {
+    "text": "Είστε βέβαιοι ότι θέλετε να αφαιρέσετε αυτή τη συνδεδεμένη ταυτότητα; Δεν θα μπορείτε πλέον να συνδεθείτε με αυτήν.",
+    "source_hash": "64939c89"
+  },
+  "web.auth.connections.removed_success": {
+    "text": "Η συνδεδεμένη ταυτότητα αφαιρέθηκε",
+    "source_hash": "cf87daf3"
+  },
+  "web.auth.connections.no_identities": {
+    "text": "Χωρίς συνδεδεμένες ταυτότητες",
+    "source_hash": "5254048e"
+  },
+  "web.auth.connections.no_identities_description": {
+    "text": "Δεν έχετε συνδέσει ακόμη κανέναν πάροχο ενιαίας σύνδεσης σε αυτόν τον λογαριασμό.",
+    "source_hash": "0f58d5d0"
+  },
+  "web.auth.connections.overview_status": {
+    "text": "Ενιαία σύνδεση",
+    "source_hash": "3bc44ac2"
+  },
+  "web.auth.connections.errors.last_credential": {
+    "text": "Αυτός είναι ο μόνος τρόπος σύνδεσής σας. Συνδέστε πρώτα έναν άλλο πάροχο ή ορίστε έναν κωδικό πρόσβασης από τις Ρυθμίσεις → Ασφάλεια, ώστε να μην κλειδωθείτε έξω.",
+    "source_hash": "3de8084d"
+  },
+  "web.auth.connections.errors.last_credential_sso_enforced": {
+    "text": "Αυτός είναι ο μόνος τρόπος σύνδεσής σας. Συνδέστε πρώτα έναν άλλο πάροχο ώστε να μην κλειδωθείτε έξω.",
+    "source_hash": "eed7a50e"
+  },
+  "web.auth.connections.errors.not_found": {
+    "text": "Αυτή η συνδεδεμένη ταυτότητα δεν βρέθηκε. Μπορεί να έχει ήδη αφαιρεθεί.",
+    "source_hash": "cf2c7673"
+  },
+  "web.auth.connections.errors.unauthorized": {
+    "text": "Η συνεδρία σας έληξε. Παρακαλώ συνδεθείτε ξανά.",
+    "source_hash": "b529fce2"
+  },
+  "web.auth.connections.errors.generic": {
+    "text": "Δεν μπορέσαμε να ολοκληρώσουμε αυτή την ενέργεια. Παρακαλώ δοκιμάστε ξανά.",
+    "source_hash": "a0d4edc0"
+  },
+  "web.link_sso.title": {
+    "text": "Συνδέστε τη μέθοδο σύνδεσής σας",
+    "source_hash": "46339bac"
+  },
+  "web.link_sso.prompt": {
+    "text": "Συνδεθήκατε με {provider}, που ταιριάζει με τον υπάρχοντα λογαριασμό {email}. Εισάγετε τον κωδικό πρόσβασης αυτού του λογαριασμού για να συνδέσετε το {provider} και να συνεχίσετε.",
+    "context": "Instruction on the sign-in interstitial. {provider} is a friendly provider name (e.g. Microsoft Entra); {email} is the claimed account email returned by GET /auth/link-sso/:token.",
+    "source_hash": "59da1c08"
+  },
+  "web.link_sso.password_label": {
+    "text": "Κωδικός πρόσβασης",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.link_sso.password_placeholder": {
+    "text": "Ο υπάρχων κωδικός πρόσβασής σας",
+    "source_hash": "ad4e56da"
+  },
+  "web.link_sso.submit": {
+    "text": "Σύνδεση και συνέχεια",
+    "source_hash": "c969b759"
+  },
+  "web.link_sso.cancel": {
+    "text": "Ακύρωση",
+    "source_hash": "19766ed6"
+  },
+  "web.link_sso.unavailable_title": {
+    "text": "Αυτό το αίτημα σύνδεσης έληξε",
+    "source_hash": "b53c7e55"
+  },
+  "web.link_sso.unavailable_message": {
+    "text": "Για την ασφάλειά σας, το αίτημα σύνδεσης αυτής της μεθόδου σύνδεσης δεν είναι πλέον έγκυρο. Συνδεθείτε με τον υπάρχοντα κωδικό πρόσβασής σας και στη συνέχεια συνδέστε αυτόν τον πάροχο στις Ρυθμίσεις ασφαλείας → Συνδεδεμένες ταυτότητες.",
+    "source_hash": "f7e349d1"
+  },
+  "web.link_sso.unavailable_action": {
+    "text": "Συνέχεια στη σύνδεση",
+    "source_hash": "d398cd0a"
+  },
+  "web.link_sso.errors.invalid_password": {
+    "text": "Αυτός ο κωδικός πρόσβασης δεν ταιριάζει με αυτόν τον λογαριασμό. Παρακαλώ δοκιμάστε ξανά.",
+    "source_hash": "3259b4f5"
+  },
+  "web.link_sso.errors.invalid_token": {
+    "text": "Αυτό το αίτημα σύνδεσης έληξε ή χρησιμοποιήθηκε ήδη. Συνδεθείτε με τον υπάρχοντα κωδικό πρόσβασής σας και στη συνέχεια συνδέστε αυτόν τον πάροχο από τις ρυθμίσεις του λογαριασμού σας.",
+    "source_hash": "541f9127"
+  },
+  "web.link_sso.errors.link_conflict": {
+    "text": "Δεν μπορέσαμε να συνδέσουμε αυτή τη μέθοδο σύνδεσης. Ο λογαριασμός σας μπορεί να έχει αλλάξει ή αυτός ο πάροχος είναι ήδη συνδεδεμένος με άλλον λογαριασμό. Συνδεθείτε με τον υπάρχοντα κωδικό πρόσβασής σας και στη συνέχεια διαχειριστείτε τις συνδέσεις στις Ρυθμίσεις ασφαλείας → Συνδεδεμένες ταυτότητες.",
+    "source_hash": "7b0e0d0e"
+  },
+  "web.link_sso.errors.link_rate_limited": {
+    "text": "Πάρα πολλές προσπάθειες κωδικού πρόσβασης. Παρακαλώ περιμένετε λίγα λεπτά και δοκιμάστε ξανά.",
+    "source_hash": "a95e78cd"
+  },
+  "web.link_sso.errors.invalid_request": {
+    "text": "Δεν μπορέσαμε να επεξεργαστούμε αυτό το αίτημα σύνδεσης. Παρακαλώ συνδεθείτε ξανά με τον πάροχο SSO σας.",
+    "source_hash": "053b9fc6"
+  },
+  "web.link_sso.errors.generic": {
+    "text": "Δεν μπορέσαμε να συνδέσουμε τον λογαριασμό σας. Παρακαλώ δοκιμάστε ξανά.",
+    "source_hash": "f727c174"
+  },
+  "web.sso_link_confirm.title": {
+    "text": "Επιβεβαιώστε τη σύνδεση του λογαριασμού σας",
+    "source_hash": "ad80bfe7"
+  },
+  "web.sso_link_confirm.prompt": {
+    "text": "Συνδεθήκατε με {provider}, που ταιριάζει με τον λογαριασμό σας {email}. Επιβεβαιώστε για να συνδέσετε το {provider} με αυτόν τον λογαριασμό και να ολοκληρώσετε τη σύνδεση.",
+    "context": "Consent instruction on the #3840 Phase 4 mailbox-proof SSO linking page. {provider} is a friendly provider name (e.g. Microsoft Entra); {email} is the claimed account email returned by GET /auth/sso-link-confirm/:token. No password is asked — clicking the emailed link is the proof.",
+    "source_hash": "6ff0d6cc"
+  },
+  "web.sso_link_confirm.submit": {
+    "text": "Επιβεβαίωση και σύνδεση",
+    "source_hash": "5cf663e6"
+  },
+  "web.sso_link_confirm.cancel": {
+    "text": "Ακύρωση",
+    "source_hash": "19766ed6"
+  },
+  "web.sso_link_confirm.unavailable_title": {
+    "text": "Αυτό το αίτημα σύνδεσης δεν μπορεί να ολοκληρωθεί",
+    "source_hash": "47abb784"
+  },
+  "web.sso_link_confirm.unavailable_message": {
+    "text": "Για την ασφάλειά σας, αυτό το αίτημα σύνδεσης της μεθόδου σύνδεσής σας δεν είναι πλέον έγκυρο. Συνδεθείτε ξανά με τον πάροχό σας και θα σας στείλουμε νέο σύνδεσμο με email.",
+    "source_hash": "080e6f9f"
+  },
+  "web.sso_link_confirm.unavailable_action": {
+    "text": "Επιστροφή στη σύνδεση",
+    "source_hash": "8504054f"
+  },
+  "web.sso_link_confirm.errors.link_expired": {
+    "text": "Αυτό το αίτημα σύνδεσης έληξε ή χρησιμοποιήθηκε ήδη. Συνδεθείτε ξανά με τον πάροχό σας και θα σας στείλουμε νέο σύνδεσμο με email.",
+    "source_hash": "a50538df"
+  },
+  "web.sso_link_confirm.errors.link_conflict": {
+    "text": "Δεν μπορέσαμε να συνδέσουμε αυτή τη μέθοδο σύνδεσης. Ο λογαριασμός σας μπορεί να έχει αλλάξει ή αυτός ο πάροχος είναι ήδη συνδεδεμένος με άλλον λογαριασμό. Συνδεθείτε ξανά με τον πάροχό σας για να συνεχίσετε.",
+    "source_hash": "c954854b"
+  },
+  "web.sso_link_confirm.errors.link_invalidated": {
+    "text": "Τα διαπιστευτήρια του λογαριασμού σας άλλαξαν μετά την αποστολή αυτού του συνδέσμου, επομένως δεν είναι πλέον έγκυρος. Συνδεθείτε ξανά με τον πάροχό σας και θα σας στείλουμε νέο σύνδεσμο με email.",
+    "source_hash": "db88cb1d"
+  },
+  "web.sso_link_confirm.errors.link_error": {
+    "text": "Κάτι πήγε στραβά από την πλευρά μας και δεν μπορέσαμε να επαληθεύσουμε αυτόν τον σύνδεσμο. Συνδεθείτε ξανά με τον πάροχό σας και θα σας στείλουμε νέο.",
+    "source_hash": "ec24e0a1"
+  },
+  "web.sso_link_confirm.errors.confirm_rate_limited": {
+    "text": "Πάρα πολλές προσπάθειες από τη συσκευή σας. Παρακαλώ περιμένετε λίγα λεπτά και στη συνέχεια ανοίξτε ξανά τον σύνδεσμο που στάλθηκε με email ή συνδεθείτε με τον πάροχό σας για νέο.",
+    "source_hash": "f29af782"
+  },
+  "web.sso_link_confirm.errors.generic": {
+    "text": "Δεν μπορέσαμε να επιβεβαιώσουμε αυτή τη σύνδεση. Παρακαλώ συνδεθείτε ξανά με τον πάροχό σας.",
+    "source_hash": "076fa25a"
+  },
+  "web.auth.mfa.passkey_mode_active": {
+    "text": "Ενεργή λειτουργία κλειδιού πρόσβασης",
+    "source_hash": "824dceb6"
+  },
+  "web.auth.mfa.passkey_prompt": {
+    "text": "Επαληθεύστε την ταυτότητά σας με ένα κλειδί πρόσβασης. Η συσκευή σας θα ζητήσει το δακτυλικό σας αποτύπωμα, το πρόσωπό σας ή το κλειδί ασφαλείας.",
+    "source_hash": "c0b0cbbc"
+  },
+  "web.auth.mfa.verify_with_passkey": {
+    "text": "Επαλήθευση με κλειδί πρόσβασης",
+    "source_hash": "4f105a30"
+  },
+  "web.auth.mfa.use_passkey": {
+    "text": "Χρήση κλειδιού πρόσβασης αντ' αυτού",
+    "source_hash": "bd6430a4"
+  },
+  "web.auth.passkeys.remove_failed": {
+    "text": "Δεν ήταν δυνατή η αφαίρεση του κλειδιού πρόσβασης",
+    "source_hash": "3e131515"
+  },
+  "web.auth.passkeys.load_failed": {
+    "text": "Δεν ήταν δυνατή η φόρτωση των κλειδιών πρόσβασης",
+    "source_hash": "8d704e00"
+  },
+  "web.auth.webauthn.emailRequired": {
+    "text": "Εισάγετε τη διεύθυνση email σας για να συνδεθείτε με κλειδί πρόσβασης",
+    "source_hash": "7f07647f"
+  },
+  "web.auth.login.verification_unavailable": {
+    "text": "Η σύνδεσή σας ήταν επιτυχής, αλλά δεν ήταν δυνατή η επιβεβαίωση της συνεδρίας σας. Δοκιμάστε ξανά σε λίγο.",
+    "source_hash": "9a19dfc9"
+  },
+  "web.auth.mfa.verification_unavailable": {
+    "text": "Ο κωδικός πρόσβασής σας έγινε αποδεκτός, αλλά δεν ήταν δυνατή η έναρξη της επαλήθευσης δύο παραγόντων. Δοκιμάστε ξανά σε λίγο.",
+    "source_hash": "5fd5e240"
+  },
+  "web.auth.session.ended": {
+    "text": "Η συνεδρία σας έληξε. Συνδεθείτε ξανά.",
+    "source_hash": "673e9822"
+  },
+  "web.auth.session.replaced": {
+    "text": "Η σύνδεσή σας άλλαξε σε άλλη καρτέλα, γι' αυτό αυτή η σελίδα φορτώθηκε ξανά.",
+    "source_hash": "3767d43b"
+  },
+  "web.auth.session.stale_session_title": {
+    "text": "Αυτή η σελίδα δεν είναι ενημερωμένη",
+    "source_hash": "0293e093"
+  },
+  "web.auth.session.stale_session_notice": {
+    "text": "Η συνεδρία σας άλλαξε από τη στιγμή που φορτώθηκε αυτή η σελίδα. Αντιγράψτε ό,τι δεν έχετε αποθηκεύσει και, στη συνέχεια, φορτώστε ξανά τη σελίδα για να συνεχίσετε.",
+    "source_hash": "c62e236c"
+  },
+  "web.auth.session.reload_now": {
+    "text": "Επαναφόρτωση σελίδας",
+    "source_hash": "437d0d63"
+  },
+  "web.auth.session.verification_unavailable_title": {
+    "text": "Δεν είναι δυνατή η επαλήθευση της συνεδρίας σας αυτήν τη στιγμή",
+    "source_hash": "2130dda1"
+  },
+  "web.auth.session.verification_unavailable_body": {
+    "text": "Δεν έχετε αποσυνδεθεί. Δεν ήταν δυνατή η επικοινωνία με τον διακομιστή για την επιβεβαίωση της συνεδρίας σας, γι' αυτό αυτή η σελίδα είναι κρυφή μέχρι να γίνει δυνατή. Θα συνεχίσουμε να προσπαθούμε.",
+    "source_hash": "bb230c2c"
+  },
+  "web.auth.session.retry": {
+    "text": "Δοκιμάστε ξανά",
+    "source_hash": "d8b8392e"
+  },
+  "web.auth.session.retrying": {
+    "text": "Έλεγχος…",
+    "source_hash": "ec963ffc"
+  },
+  "web.auth.session.retry_failed": {
+    "text": "Εξακολουθεί να μην είναι διαθέσιμο. Δοκιμάστε ξανά σε λίγο.",
+    "source_hash": "b81c022c"
+  }
+}

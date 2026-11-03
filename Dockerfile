@@ -1,0 +1,526 @@
+# syntax=docker/dockerfile:1.22@sha256:4a43a54dd1fedceb30ba47e76cfcf2b47304f4161c0caeac2db1c61804ea3c91
+# check=error=true
+
+##
+# ONETIME SECRET - DOCKER IMAGE
+#
+# Multi-stage build optimized for production deployment.
+# See docker/README.md for detailed usage instructions.
+#
+# For general project information, see README.md.
+#
+# IMPORTANT: This Dockerfile requires Docker Bake for building.
+# The "base" build context is injected by docker/bake.hcl — it is
+# NOT a stage defined in this file.
+#
+#   $ docker buildx bake -f docker/bake.hcl main       # main image
+#   $ docker buildx bake -f docker/bake.hcl s6         # S6 variant
+#   $ docker buildx bake -f docker/bake.hcl all        # all variants
+#   $ docker buildx bake -f docker/bake.hcl --print    # dry-run
+#
+# RUNNING:
+#
+#     # 1. Create a dedicated docker network
+#     $ docker network create onetime-network
+#
+#     # 2. Start a Valkey/Redis container with persistent storage:
+#     $ docker run -d --name onetime-maindb \
+#         --network onetime-network \
+#         -p 6379:6379 \
+#         -v onetime_maindb_data:/data \
+#         valkey/valkey
+#
+#     # 3. Set a unique secret:
+#     $ openssl rand -hex 24
+#     [Copy the output and save it somewhere safe]
+#
+#     $ echo -n "Enter a secret and press [ENTER]: "; read -s SECRET
+#     [Paste the secret you copied from the openssl command]
+#
+#     # 4. Run the application:
+#     $ docker run -p 3000:3000 --name onetime-app \
+#         --network onetime-network \
+#         -e SECRET=$SECRET \
+#         -e SESSION_SECRET=$SESSION_SECRET \
+#         -e REDIS_URL=redis://onetime-maindb:6379/0 \
+#         --detach \
+#         onetimesecret
+#
+# The app will be at http://localhost:3000. For more, see docker/README.md.
+#
+#     # Double-check the persistent storage for redis
+#     $ docker exec onetime-maindb ls -la /data
+#
+#     $ docker volume inspect onetime_maindb_data
+#
+#     # View application logs
+#     $ docker logs onetime-app
+
+ARG APP_DIR=/app
+ARG PUBLIC_DIR=/app/public
+ARG VERSION
+ARG RUBY_IMAGE_TAG=3.4-slim-trixie@sha256:d8fd978ffc10f0eddee04aa03eb82e5d247079471392ae655de5ae04bdaad914
+
+##
+# DEPENDENCIES: Install Ruby dependencies
+#
+# The "base" context is provided by docker/bake.hcl via:
+#   contexts = { base = "target:base" }
+#
+# It contains: Ruby 3.4, Node 26, build toolchain, yq, pnpm, appuser.
+# See docker/base.dockerfile for details.
+#
+# Built for the TARGET platform: native gem extensions must match the
+# architecture of the final image.
+#
+FROM base AS dependencies
+ARG APP_DIR
+
+WORKDIR ${APP_DIR}
+
+# Copy dependency manifests
+COPY .ruby-version Gemfile Gemfile.lock ./
+
+# Install Ruby dependencies
+# BUNDLE_WITHOUT excludes dev/test/optional gems from production image
+ENV BUNDLE_WITHOUT="development:test:optional"
+
+RUN set -eux && \
+    bundle install --jobs "$(nproc)" --retry=3 && \
+    bundle binstubs puma --force && \
+    bundle clean --force
+
+##
+# FRONTEND-DEPENDENCIES: Install Node.js dependencies
+#
+# Built for the BUILD platform ($BUILDPLATFORM), not the target platform.
+# Nothing from node_modules reaches a final image; only the compiled assets
+# do (public/, generated/, package.json), and those are architecture-
+# independent. Building them once, natively, and copying them into every
+# architecture's image keeps Node out of QEMU emulation in multi-arch builds.
+# Under emulation the arm64 Vite build ran about 6x slower than native, and
+# on 2026-10-15 its second pass stalled for nearly two hours.
+#
+# With bake's multi-platform `target:base` context, this stage uses the base
+# variant matching the builder (linux/amd64 on GitHub-hosted runners). When
+# base has no such variant (an arm64-only build), BuildKit uses the variant
+# it has and this stage runs under emulation, as it did before. In a
+# single-platform build BUILDPLATFORM is the target platform, so nothing
+# changes.
+#
+FROM --platform=$BUILDPLATFORM base AS frontend-dependencies
+ARG APP_DIR
+
+WORKDIR ${APP_DIR}
+ENV NODE_PATH=${APP_DIR}/node_modules
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+RUN set -eux && \
+    pnpm install --frozen-lockfile --prod=false
+
+##
+# BUILD: Compile and prepare application assets
+#
+# Inherits the build platform from frontend-dependencies; see above.
+#
+FROM frontend-dependencies AS build
+ARG APP_DIR
+ARG VERSION
+ARG COMMIT_HASH
+
+WORKDIR ${APP_DIR}
+
+# Copy application source
+COPY public ./public
+COPY src ./src
+COPY locales ./locales
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json vite.config.ts \
+     eslint.config.ts ./
+
+# Belt-and-suspenders version patch: if the host-side update-version.sh ran
+# but the Docker build context didn't pick up the modified package.json
+# (remote BuildKit builder, context snapshot timing, layer caching, etc.),
+# the VERSION build arg serves as a fallback to patch the version in-container
+# BEFORE the Vite build runs, so compiled assets also carry the correct version.
+ARG ALLOW_DEV_VERSION=false
+RUN set -eux && \
+    PKG_VERSION=$(node -p "require('./package.json').version") && \
+    if [ "${PKG_VERSION}" = "0.0.0-rc0" ] && [ -n "${VERSION}" ] && \
+       [ "${VERSION}" != "dev" ] && [ "${VERSION}" != "0.0.0-rc0" ]; then \
+      yq -i -o json ".version = \"${VERSION}\"" package.json && \
+      echo "NOTICE: package.json had placeholder; updated to ${VERSION} via build arg" >&2 && \
+      PKG_VERSION="${VERSION}" ; \
+    fi && \
+    if [ "${PKG_VERSION}" = "0.0.0-rc0" ]; then \
+      if [ "${ALLOW_DEV_VERSION}" = "true" ]; then \
+        echo "WARNING: Building with archetype version (${PKG_VERSION})" >&2 ; \
+      else \
+        echo "ERROR: package.json still has archetype placeholder version (${PKG_VERSION})." >&2 && \
+        echo "Run update-version.sh before building, or set --build-arg ALLOW_DEV_VERSION=true" >&2 && \
+        exit 1 ; \
+      fi ; \
+    fi
+
+# Generate build metadata BEFORE build so getSentryRelease() can read it.
+# COMMIT_HASH is passed as a build arg from CI (GitHub Actions).
+# The .commit_hash.txt file is read by vite.config.ts to bake the release
+# version into the frontend bundle, ensuring sourcemaps match errors.
+RUN set -eux && \
+    mkdir -p /tmp/build-meta && \
+    echo "${COMMIT_HASH:-dev}" > .commit_hash.txt && \
+    echo "${COMMIT_HASH:-dev}" > /tmp/build-meta/commit_hash.txt
+
+# Build application and generate schema
+RUN set -eux && \
+    pnpm run build && \
+    chmod -R a+rX public/ && \
+    pnpm prune --prod && \
+    rm -rf node_modules ~/.npm ~/.pnpm-store && \
+    npm uninstall -g pnpm
+
+# Build-time brand PACK overlay (trust signal, #3739 / #3774).
+#
+# The repo ships a brand-NEUTRAL default pack (public/branding/default: the
+# keyhole favicon/icon/social set + a value-free brand.yaml). A named pack
+# public/branding/<pack>/ is a COMPLETE generated brand pack (favicon.ico,
+# icon-*.png, favicon.svg, safari-pinned-tab.svg, site.webmanifest,
+# social-preview.png, and optionally brand.yaml). Named packs are gitignored
+# generator output (pnpm run gen:favicons:<pack>) — absent from OSS/CI builds, so
+# this is a no-op unless a pack was generated AND selected with
+# --build-arg BRAND_PACK=<name>, never overlaying our company brand onto
+# self-hosted builds. The pack arrives in the image via `COPY public ./public`
+# above (public/branding is not .dockerignore'd).
+#
+# v2 bake (#3774): brand resolution always lands on a pack, and an unset runtime
+# BRAND_PACK resolves to `default`. So baking overlays the selected pack ONTO the
+# default pack — the runtime then serves it with no env var set. Baking is
+# optional: the same selection also works live at runtime via BRAND_PACK /
+# BRAND_ASSETS_DIR (site.brand_pack / site.brand_assets_dir). Fails loudly if a
+# pack is selected but not present, so a typo/ungenerated pack can't silently
+# ship neutral assets.
+ARG BRAND_PACK=
+RUN set -eux && \
+    if [ -n "${BRAND_PACK}" ] && [ "${BRAND_PACK}" != "default" ]; then \
+      case "${BRAND_PACK}" in \
+        *..*|*/*|*\\*) \
+          echo "ERROR: BRAND_PACK must be a simple pack name (no '/', '\\', or '..'): ${BRAND_PACK}" >&2 && exit 1 ;; \
+      esac && \
+      if [ -d "public/branding/${BRAND_PACK}" ] && \
+         [ -n "$(find "public/branding/${BRAND_PACK}" -type f 2>/dev/null)" ]; then \
+        cp -R "public/branding/${BRAND_PACK}/." public/branding/default/ && \
+        chmod -R a+rX public/branding/default && \
+        echo "NOTICE: baked brand pack over default: ${BRAND_PACK}" >&2 ; \
+      else \
+        echo "ERROR: BRAND_PACK=${BRAND_PACK} set but public/branding/${BRAND_PACK} is empty or missing." >&2 && \
+        echo "Generate it first (e.g. pnpm run gen:favicons:${BRAND_PACK})." >&2 && \
+        exit 1 ; \
+      fi ; \
+    else \
+      echo "NOTICE: no BRAND_PACK build arg; using neutral default pack" >&2 ; \
+    fi
+
+##
+# FINAL-S6: Production image with S6 overlay for multi-process supervision
+#
+# Build with: docker buildx bake -f docker/bake.hcl s6
+#
+# This stage provides:
+# - S6 overlay v3.2.0.2 for process supervision
+# - Automatic service restart on crash
+# - Graceful shutdown coordination
+# - Service dependency management
+# - Runs web + scheduler + worker in single container
+#
+# See docker/s6/README.md for usage and deployment patterns.
+#
+FROM docker.io/library/ruby:${RUBY_IMAGE_TAG} AS final-s6
+ARG APP_DIR
+ARG PUBLIC_DIR
+ARG VERSION
+ARG S6_OVERLAY_VERSION=3.2.0.2
+
+LABEL org.opencontainers.image.version=${VERSION} \
+      org.opencontainers.image.title="OneTime Secret (S6)" \
+      org.opencontainers.image.description="Keep passwords out of your inboxes and chat logs with links that work only one time. Multi-process supervised container." \
+      org.opencontainers.image.source="https://github.com/onetimesecret/onetimesecret"
+
+# Install system packages + S6 dependencies
+# procps provides pgrep, used by bin/healthcheck.sh for role detection
+# (web vs. worker/scheduler) — see docker/entrypoints/healthcheck.sh
+RUN set -eux && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libsqlite3-0 \
+        libpq5 \
+        libsodium23 \
+        curl \
+        procps \
+        xz-utils \
+        ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+
+# Install S6 overlay
+# Supply-chain hardening (M-5): s6-overlay runs as PID 1, so a tampered or
+# corrupted tarball would compromise the whole container. skarnet publishes a
+# matching .sha256 for every release asset; download it alongside each tarball
+# and verify with `sha256sum -c` BEFORE extraction so the build fails loudly on
+# any mismatch. Tarballs are kept under their published names so the filename
+# recorded inside each .sha256 file matches the file being checked.
+RUN set -eux && \
+    ARCH=$(dpkg --print-architecture) && \
+    case "$ARCH" in \
+        amd64) S6_ARCH="x86_64" ;; \
+        arm64) S6_ARCH="aarch64" ;; \
+        armhf) S6_ARCH="armhf" ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac && \
+    cd /tmp && \
+    S6_BASE_URL="https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}" && \
+    curl -fsSL "${S6_BASE_URL}/s6-overlay-noarch.tar.xz" -o s6-overlay-noarch.tar.xz && \
+    curl -fsSL "${S6_BASE_URL}/s6-overlay-noarch.tar.xz.sha256" -o s6-overlay-noarch.tar.xz.sha256 && \
+    curl -fsSL "${S6_BASE_URL}/s6-overlay-${S6_ARCH}.tar.xz" -o "s6-overlay-${S6_ARCH}.tar.xz" && \
+    curl -fsSL "${S6_BASE_URL}/s6-overlay-${S6_ARCH}.tar.xz.sha256" -o "s6-overlay-${S6_ARCH}.tar.xz.sha256" && \
+    sha256sum -c s6-overlay-noarch.tar.xz.sha256 && \
+    sha256sum -c "s6-overlay-${S6_ARCH}.tar.xz.sha256" && \
+    tar -C / -Jxpf s6-overlay-noarch.tar.xz && \
+    tar -C / -Jxpf "s6-overlay-${S6_ARCH}.tar.xz" && \
+    rm -f s6-overlay-*.tar.xz s6-overlay-*.tar.xz.sha256
+
+WORKDIR ${APP_DIR}
+
+# Create non-root user
+# IMPORTANT: UID/GID 1001 must match docker/base.dockerfile and the "final" stage below.
+# This stage starts from a fresh ruby:slim image (not base), so appuser is recreated.
+# Keep all three definitions in sync to avoid permission mismatches on shared volumes.
+RUN groupadd -g 1001 appuser && \
+    useradd -r -u 1001 -g appuser -d ${APP_DIR} -s /sbin/nologin appuser
+
+# Copy runtime essentials from build stages
+COPY --from=dependencies /usr/local/bin/yq /usr/local/bin/yq
+COPY --from=dependencies /usr/local/bundle /usr/local/bundle
+
+# Copy application files
+COPY --chown=appuser:appuser --from=build ${APP_DIR}/public ./public
+COPY --chown=appuser:appuser --from=build ${APP_DIR}/src ./src
+COPY --chown=appuser:appuser --from=build ${APP_DIR}/generated ./generated
+COPY --chown=appuser:appuser --from=build /tmp/build-meta/commit_hash.txt ./.commit_hash.txt
+
+# Copy runtime files
+COPY --chown=appuser:appuser bin ./bin
+COPY --chown=appuser:appuser apps ./apps
+COPY --chown=appuser:appuser etc/ ./etc/
+COPY --chown=appuser:appuser lib ./lib
+COPY --chown=appuser:appuser migrations ./migrations
+COPY --chown=appuser:appuser docker/entrypoints/entrypoint.sh ./bin/
+COPY --chown=appuser:appuser docker/entrypoints/healthcheck.sh ./bin/
+COPY --chown=appuser:appuser tools/setup/setup.sh tools/setup/lib.sh ./tools/setup/
+COPY --chown=appuser:appuser --from=dependencies ${APP_DIR}/bin/puma ./bin/puma
+COPY --chown=appuser:appuser --from=build ${APP_DIR}/package.json ./
+COPY --chown=appuser:appuser config.ru .ruby-version Gemfile Gemfile.lock ./
+
+# Copy S6 service definitions (as root for proper ownership)
+COPY --chown=root:root docker/s6/services /etc/s6-overlay/s6-rc.d
+
+# Set permissions on service scripts
+RUN find /etc/s6-overlay/s6-rc.d -type f -name "run" -exec chmod +x {} \; && \
+    find /etc/s6-overlay/s6-rc.d -type f -name "finish" -exec chmod +x {} \; && \
+    find /etc/s6-overlay/s6-rc.d -type f -name "up" -exec chmod +x {} \;
+
+# Set production environment
+ENV RACK_ENV=production \
+    ONETIME_HOME=${APP_DIR} \
+    PUBLIC_DIR=${PUBLIC_DIR} \
+    RUBY_YJIT_ENABLE=1 \
+    SERVER_TYPE=puma \
+    BUNDLE_WITHOUT="development:test:optional" \
+    PATH=${APP_DIR}/bin:$PATH
+
+# S6 configuration
+ENV S6_BEHAVIOUR_IF_STAGE2_FAILS=2 \
+    S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
+    S6_VERBOSITY=2
+
+# Ensure config files exist
+RUN set -eux && \
+    for file in etc/defaults/*.defaults.*; do \
+        if [ -f "$file" ]; then \
+            target="etc/$(basename "$file" | sed 's/\.defaults//')"; \
+            cp --preserve --update=none "$file" "$target"; \
+        fi; \
+    done && \
+    cp --preserve --update=none etc/examples/puma.example.rb etc/puma.rb && \
+    chmod +x bin/entrypoint.sh bin/healthcheck.sh && \
+    # Ship /app/data owned by appuser so a named volume mounted there
+    # self-initializes with uid 1001 ownership (sqlite auth.db in full
+    # auth mode — see docker/README.md "Data Persistence"). Without this,
+    # Docker creates the mount point root-owned and the app cannot write.
+    #
+    # Absolute path on purpose: the PATH set above puts ${APP_DIR}/bin first,
+    # and bin/install (the operator front door for baremetal setup) shadows
+    # coreutils install(1) for every command run in this stage.
+    /usr/bin/install -d -o appuser -g appuser data
+
+# Bake bash completion for `ots`. The command tree is walked from the live
+# Dry::CLI registry (see lib/onetime/cli/completion_command.rb) and emitted as
+# a static script — the completer never invokes ots, so Tab is instant and
+# never boots the app. Sourced from /etc/bash.bashrc so an interactive
+# `docker exec -it <container> bash` gets completion without the
+# bash-completion framework (absent from the slim base image). Non-fatal:
+# completion is an operator convenience, not a runtime dependency.
+RUN set -eux && \
+    mkdir -p /etc/bash_completion.d && \
+    { bin/ots completion bash > /etc/bash_completion.d/ots && \
+      printf '\n[ -f /etc/bash_completion.d/ots ] && . /etc/bash_completion.d/ots\n' \
+        >> /etc/bash.bashrc; } || \
+    echo 'warning: ots bash completion generation skipped'
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD bin/healthcheck.sh
+
+# Run as non-root user
+USER appuser
+
+# S6 overlay entrypoint
+# Default: Starts all services defined in s6-rc.d/user bundle (web + scheduler + worker)
+# Override with command: ["bin/entrypoint.sh"] for web-only
+ENTRYPOINT ["/init"]
+CMD []
+
+##
+# FINAL: Production-ready application image (DEFAULT)
+#
+# This is the default build target when no --target is specified.
+# For S6 multi-process supervision, use: docker buildx bake -f docker/bake.hcl s6
+#
+FROM docker.io/library/ruby:${RUBY_IMAGE_TAG} AS final
+ARG APP_DIR
+ARG PUBLIC_DIR
+ARG VERSION
+
+LABEL org.opencontainers.image.version=${VERSION} \
+      org.opencontainers.image.title="OneTime Secret" \
+      org.opencontainers.image.description="Keep passwords out of your inboxes and chat logs with links that work only one time." \
+      org.opencontainers.image.source="https://github.com/onetimesecret/onetimesecret"
+
+# procps provides pgrep, used by bin/healthcheck.sh for role detection
+# (web vs. worker/scheduler) — see docker/entrypoints/healthcheck.sh
+RUN set -eux && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libsqlite3-0 \
+        libpq5 \
+        libsodium23 \
+        curl \
+        procps \
+        ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+
+WORKDIR ${APP_DIR}
+
+# Create non-root user for security
+# Note: nologin shell blocks SSH/su, but docker exec still works for debugging:
+#   docker exec -it container /bin/sh
+# IMPORTANT: UID/GID 1001 must match docker/base.dockerfile and the "final-s6" stage above.
+# This stage starts from a fresh ruby:slim image (not base), so appuser is recreated.
+# Keep all three definitions in sync to avoid permission mismatches on shared volumes.
+RUN groupadd -g 1001 appuser && \
+    useradd -r -u 1001 -g appuser -d ${APP_DIR} -s /sbin/nologin appuser
+
+# Copy only runtime essentials from build stages
+COPY --from=dependencies /usr/local/bin/yq /usr/local/bin/yq
+COPY --from=dependencies /usr/local/bundle /usr/local/bundle
+
+# Copy application files (using --chown to avoid extra layer)
+COPY --chown=appuser:appuser --from=build ${APP_DIR}/public ./public
+COPY --chown=appuser:appuser --from=build ${APP_DIR}/src ./src
+COPY --chown=appuser:appuser --from=build ${APP_DIR}/generated ./generated
+COPY --chown=appuser:appuser --from=build /tmp/build-meta/commit_hash.txt ./.commit_hash.txt
+
+# Copy runtime files
+COPY --chown=appuser:appuser bin ./bin
+COPY --chown=appuser:appuser apps ./apps
+COPY --chown=appuser:appuser etc/ ./etc/
+COPY --chown=appuser:appuser lib ./lib
+COPY --chown=appuser:appuser migrations ./migrations
+COPY --chown=appuser:appuser docker/entrypoints/entrypoint.sh ./bin/
+COPY --chown=appuser:appuser docker/entrypoints/healthcheck.sh ./bin/
+COPY --chown=appuser:appuser tools/setup/setup.sh tools/setup/lib.sh ./tools/setup/
+COPY --chown=appuser:appuser --from=dependencies ${APP_DIR}/bin/puma ./bin/puma
+COPY --chown=appuser:appuser --from=build ${APP_DIR}/package.json ./
+COPY --chown=appuser:appuser config.ru .ruby-version Gemfile Gemfile.lock ./
+
+# Set production environment
+ENV RACK_ENV=production \
+    ONETIME_HOME=${APP_DIR} \
+    PUBLIC_DIR=${PUBLIC_DIR} \
+    RUBY_YJIT_ENABLE=1 \
+    SERVER_TYPE=puma \
+    BUNDLE_WITHOUT="development:test:optional" \
+    PATH=${APP_DIR}/bin:$PATH
+
+# Ensure config files exist (preserve existing if mounted)
+# Copies all default config files from etc/defaults/*.defaults.* to etc/*
+# removing the .defaults suffix. For example:
+#   etc/defaults/config.defaults.yaml -> etc/config.yaml
+#   etc/defaults/auth.defaults.yaml -> etc/auth.yaml
+#   etc/defaults/logging.defaults.yaml -> etc/logging.yaml
+# The --update=none flag ensures existing files are not overwritten.
+RUN set -eux && \
+    for file in etc/defaults/*.defaults.*; do \
+        if [ -f "$file" ]; then \
+            target="etc/$(basename "$file" | sed 's/\.defaults//')"; \
+            cp --preserve --update=none "$file" "$target"; \
+        fi; \
+    done && \
+    cp --preserve --update=none etc/examples/puma.example.rb etc/puma.rb && \
+    chmod +x bin/entrypoint.sh bin/healthcheck.sh && \
+    # Ship /app/data owned by appuser so a named volume mounted there
+    # self-initializes with uid 1001 ownership (sqlite auth.db in full
+    # auth mode — see docker/README.md "Data Persistence"). Without this,
+    # Docker creates the mount point root-owned and the app cannot write.
+    #
+    # Absolute path on purpose: the PATH set above puts ${APP_DIR}/bin first,
+    # and bin/install (the operator front door for baremetal setup) shadows
+    # coreutils install(1) for every command run in this stage.
+    /usr/bin/install -d -o appuser -g appuser data
+
+# Bake bash completion for `ots`. The command tree is walked from the live
+# Dry::CLI registry (see lib/onetime/cli/completion_command.rb) and emitted as
+# a static script — the completer never invokes ots, so Tab is instant and
+# never boots the app. Sourced from /etc/bash.bashrc so an interactive
+# `docker exec -it <container> bash` gets completion without the
+# bash-completion framework (absent from the slim base image). Non-fatal:
+# completion is an operator convenience, not a runtime dependency.
+RUN set -eux && \
+    mkdir -p /etc/bash_completion.d && \
+    { bin/ots completion bash > /etc/bash_completion.d/ots && \
+      printf '\n[ -f /etc/bash_completion.d/ots ] && . /etc/bash_completion.d/ots\n' \
+        >> /etc/bash.bashrc; } || \
+    echo 'warning: ots bash completion generation skipped'
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD bin/healthcheck.sh
+
+# Run as non-root user
+USER appuser
+
+# About the interplay between the Dockerfile CMD, ENTRYPOINT,
+# and the Docker Compose command settings:
+#
+# 1. The CMD instruction in the Dockerfile sets the default command to
+# be executed when the container is started.
+#
+# 2. The command setting in the Docker Compose configuration overrides
+# the CMD instruction in the Dockerfile.
+#
+# 3. Using the CMD instruction in the Dockerfile provides a fallback
+# command, which can be useful if no specific command is set in the
+# Docker Compose configuration.
+CMD ["bin/entrypoint.sh"]

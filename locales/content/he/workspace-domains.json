@@ -1,0 +1,1694 @@
+{
+  "web.domains.learn_more_dns": {
+    "text": "למד עוד על הגדרת DNS",
+    "source_hash": "c592a5c6"
+  },
+  "web.domains.view_domain_verification_status": {
+    "text": "צפה בסטטוס אימות הדומיין",
+    "source_hash": "23635e2d"
+  },
+  "web.domains.domain_already_in_organization": {
+    "text": "דומיין זה כבר רשום בארגון שלך",
+    "source_hash": "6e0d628f"
+  },
+  "web.domains.domain_in_other_organization": {
+    "text": "דומיין זה כבר רשום לארגון אחר. אנא צור קשר עם התמיכה אם אתה מאמין שזו שגיאה.",
+    "source_hash": "7fae16a9"
+  },
+  "web.domains.domain_claimed_successfully": {
+    "text": "הדומיין נתבע בהצלחה ונוסף לארגון שלך",
+    "source_hash": "d53e1ac1"
+  },
+  "web.domains.privacy_defaults_title": {
+    "text": "ברירות מחדל לפרטיות",
+    "source_hash": "5bce069d"
+  },
+  "web.domains.privacy_defaults_description": {
+    "text": "הגדר אפשרויות פרטיות ברירת מחדל לסודות שנוצרים תחת דומיין זה. הגדרות אלה ימולאו מראש בעת יצירת סודות חדשים.",
+    "source_hash": "1d98959c"
+  },
+  "web.domains.privacy_defaults": {
+    "text": "ברירות מחדל לפרטיות",
+    "source_hash": "5bce069d"
+  },
+  "web.domains.privacy_defaults_icon": {
+    "text": "אייקון ברירות מחדל לפרטיות",
+    "source_hash": "c6bef509"
+  },
+  "web.domains.default_ttl_label": {
+    "text": "משך חיים ברירת מחדל",
+    "source_hash": "ce3c65fe"
+  },
+  "web.domains.default_ttl_hint": {
+    "text": "כמה זמן הסודות יהיו נגישים כברירת מחדל",
+    "source_hash": "777b978d"
+  },
+  "web.domains.passphrase_required_label": {
+    "text": "דרוש ביטוי סיסמה",
+    "source_hash": "3a448e69"
+  },
+  "web.domains.passphrase_required_hint": {
+    "text": "הפוך ביטוי סיסמה לחובה עבור כל הסודות בדומיין זה",
+    "source_hash": "6ac05bce"
+  },
+  "web.domains.notify_enabled_label": {
+    "text": "הפעל התראות",
+    "source_hash": "682be64a"
+  },
+  "web.domains.notify_enabled_hint": {
+    "text": "הפעל התראות דוא״ל כברירת מחדל כאשר סודות נצפים",
+    "source_hash": "3e16dd5f"
+  },
+  "web.domains.use_global_default": {
+    "text": "השתמש בברירת מחדל גלובלית",
+    "source_hash": "a83c91e4"
+  },
+  "web.domains.global_default": {
+    "text": "גלובלי",
+    "source_hash": "a258b30f"
+  },
+  "web.domains.required": {
+    "text": "חובה",
+    "source_hash": "4850b174"
+  },
+  "web.domains.optional": {
+    "text": "אופציונלי",
+    "source_hash": "59be7133"
+  },
+  "web.domains.enabled": {
+    "text": "הפעל",
+    "source_hash": "5342e09f"
+  },
+  "web.domains.disabled": {
+    "text": "מושבת",
+    "source_hash": "75081b59"
+  },
+  "web.domains.custom": {
+    "text": "מותאם אישית",
+    "source_hash": "494ca78f"
+  },
+  "web.domains.edit_defaults": {
+    "text": "עריכת ברירות מחדל",
+    "source_hash": "50f49b87"
+  },
+  "web.domains.ttl_short": {
+    "text": "TTL",
+    "source_hash": "76f6014f"
+  },
+  "web.domains.passphrase_short": {
+    "text": "ביטוי סיסמה",
+    "source_hash": "e7611f05"
+  },
+  "web.domains.notify_short": {
+    "text": "התראות",
+    "source_hash": "78801183"
+  },
+  "web.domains.scope_switch_label": {
+    "text": "החלף היקף דומיין",
+    "source_hash": "c776f846"
+  },
+  "web.domains.switcher_locked": {
+    "text": "החלפת דומיין לא זמינה בדף זה",
+    "source_hash": "ccd202fe"
+  },
+  "web.domains.scope_list_label": {
+    "text": "דומיינים זמינים",
+    "source_hash": "026552b3"
+  },
+  "web.domains.scope_header": {
+    "text": "דומיינים",
+    "source_hash": "ced67718"
+  },
+  "web.domains.add_domain": {
+    "text": "הוסף דומיין",
+    "source_hash": "d86476ae"
+  },
+  "web.domains.domain_settings": {
+    "text": "הגדרות דומיין",
+    "source_hash": "3dedc533"
+  },
+  "web.domains.canonical_no_settings": {
+    "text": "לדומיין ברירת המחדל אין דף הגדרות",
+    "source_hash": "59b8806e"
+  },
+  "web.domains.please_enter_a_domain_name": {
+    "text": "אנא הזן שם דומיין {0}",
+    "source_hash": "167f2d19"
+  },
+  "web.domains.domain_name": {
+    "text": "שם דומיין",
+    "source_hash": "421b1e61"
+  },
+  "web.domains.control_whether_users_can_create_secret_links": {
+    "text": "שליטה האם משתמשים יכולים ליצור קישורי סוד מדף הבית של הדומיין שלכם",
+    "source_hash": "a25d6fca"
+  },
+  "web.domains.homepage_access": {
+    "text": "גישה לדף הבית",
+    "source_hash": "00c89609"
+  },
+  "web.domains.and_status": {
+    "text": "וסטטוס",
+    "source_hash": "fe871d2c"
+  },
+  "web.domains.domain": {
+    "text": "דומיין",
+    "source_hash": "79fa3361"
+  },
+  "web.domains.manage_and_configure_your_verified_custom_domains": {
+    "text": "נהלו והגדירו את הדומיינים המותאמים אישית שאומתו",
+    "source_hash": "4e7f8311"
+  },
+  "web.domains.domains": {
+    "text": "דומיינים",
+    "source_hash": "ced67718"
+  },
+  "web.domains.last_monitored": {
+    "text": "נבדק לאחרונה",
+    "source_hash": "8d39d1d0"
+  },
+  "web.domains.ssl_status": {
+    "text": "סטטוס SSL",
+    "source_hash": "bec72630"
+  },
+  "web.domains.ssl_renews": {
+    "text": "חידוש SSL",
+    "source_hash": "c49a8cff"
+  },
+  "web.domains.dns_record": {
+    "text": "רשומת DNS",
+    "source_hash": "33cbb244"
+  },
+  "web.domains.target_address": {
+    "text": "כתובת יעד",
+    "source_hash": "5e812179"
+  },
+  "web.domains.domain_status": {
+    "text": "סטטוס דומיין",
+    "source_hash": "cd6b089b"
+  },
+  "web.domains.custom_domains_count": {
+    "text": "מספר דומיינים מותאמים אישית",
+    "source_hash": "a9929be0"
+  },
+  "web.domains.custom_domain": {
+    "text": "דומיין מותאם אישית",
+    "source_hash": "c1683eeb"
+  },
+  "web.domains.open_domain_in_new_tab": {
+    "text": "פתח דומיין בכרטיסייה חדשה",
+    "source_hash": "01571f31"
+  },
+  "web.domains.back_to_domains": {
+    "text": "חזרה לדומיינים",
+    "source_hash": "d1dc32ad"
+  },
+  "web.domains.return_to_domains_list": {
+    "text": "חזור לרשימת הדומיינים",
+    "source_hash": "c7632413"
+  },
+  "web.domains.verify_domain": {
+    "text": "אמת דומיין",
+    "source_hash": "b416f537"
+  },
+  "web.domains.manage_brand": {
+    "text": "ניהול מותג",
+    "source_hash": "b6ec5cd4"
+  },
+  "web.domains.added_formatdistancetonow_domain_created_addsuffix_true": {
+    "text": "נוסף {0}",
+    "source_hash": "dc9ff9ec"
+  },
+  "web.domains.add_your_domain": {
+    "text": "הוסף את הדומיין שלך",
+    "source_hash": "6b95c91c"
+  },
+  "web.domains.get_started_by_adding_a_custom_domain": {
+    "text": "התחילו על ידי הוספת דומיין מותאם אישית.",
+    "source_hash": "abdbe9ab"
+  },
+  "web.domains.no_domains_found": {
+    "text": "לא נמצאו דומיינים.",
+    "source_hash": "574264df"
+  },
+  "web.domains.loading_domain_information": {
+    "text": "טוען מידע על הדומיין...",
+    "source_hash": "b5549ff7"
+  },
+  "web.domains.in_order_to_connect_your_domain_youll_need_to_ha": {
+    "text": "כדי לחבר את הדומיין שלכם, תצטרכו רשומת CNAME ב-DNS שמצביעה",
+    "source_hash": "c560710e"
+  },
+  "web.domains.if_you_already_have_a_cname_record_for_that_addr": {
+    "text": "אם כבר יש לכם רשומת CNAME לכתובת זו, אנא שנו אותה להצביע על",
+    "source_hash": "6f23e6db"
+  },
+  "web.domains.a_cname_record_is_not_allowed_instead_youll_need": {
+    "text": "), רשומת CNAME אינה מותרת. במקום זאת, תצטרכו ליצור רשומת A. פרטים כיצד לעשות זאת מסופקים בהמשך העמוד.",
+    "source_hash": "76d5ab5f"
+  },
+  "web.domains.and_remove_any_other_a_aaaa_or_cname_records_for": {
+    "text": "והסירו כל רשומות A, AAAA או CNAME אחרות עבור כתובת מדויקת זו.",
+    "source_hash": "8978f5e7"
+  },
+  "web.domains.youll_need_to_complete_these_steps": {
+    "text": ", תצטרך להשלים את השלבים הבאים.",
+    "source_hash": "1d81c53e"
+  },
+  "web.domains.before_we_can_activate_links_for": {
+    "text": "לפני שנוכל להפעיל קישורים עבור",
+    "source_hash": "aae43a00"
+  },
+  "web.domains.please_note_that_for_apex_domains": {
+    "text": "שים לב שעבור דומיינים ראשיים (לדוגמה,",
+    "source_hash": "09a4b0ca"
+  },
+  "web.domains.verify_your_domain": {
+    "text": "אמת את הדומיין שלך",
+    "source_hash": "afa10517"
+  },
+  "web.domains.secrets_example_dot_com": {
+    "text": "secrets.example.com",
+    "source_hash": "9ea4d0d6"
+  },
+  "web.domains.customize_your_domain_branding": {
+    "text": "התאם אישית את מיתוג הדומיין שלך",
+    "source_hash": "e3f97ac1"
+  },
+  "web.domains.it_may_take_a_few_minutes_for_your_ssl_certifica": {
+    "text": "עשוי לקחת מספר דקות עד שתעודת ה-SSL שלכם תיכנס לתוקף.",
+    "source_hash": "2e4f3179"
+  },
+  "web.domains.dns_changes_can_take_as_little_as_60_seconds_or_": {
+    "text": "שינויי DNS יכולים לקחת רק 60 שניות -- או עד 24 שעות -- כדי להיכנס לתוקף.",
+    "source_hash": "38774290"
+  },
+  "web.domains.3_wait_for_propagation": {
+    "text": "3. המתן להפצה",
+    "source_hash": "3e6cf4e1"
+  },
+  "web.domains.value_2": {
+    "text": "ערך",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.value_1": {
+    "text": "ערך",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.host_1": {
+    "text": "מארח",
+    "source_hash": "4a823118"
+  },
+  "web.domains.type_2": {
+    "text": "סוג",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.type_1": {
+    "text": "סוג",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.2_create_the_cname_record": {
+    "text": "2. צור רשומת CNAME",
+    "source_hash": "781e438b"
+  },
+  "web.domains.value_0": {
+    "text": "ערך",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.host_0": {
+    "text": "מארח",
+    "source_hash": "4a823118"
+  },
+  "web.domains.type_0": {
+    "text": "סוג",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.2_create_the_a_record": {
+    "text": "2. צור רשומת A",
+    "source_hash": "7b5aa1fc"
+  },
+  "web.domains.add_this_hostname_to_your_dns_configuration": {
+    "text": "הוסיפו שם מארח זה להגדרת ה-DNS שלכם:",
+    "source_hash": "4bf09ead"
+  },
+  "web.domains.1_create_a_txt_record": {
+    "text": "1. צור רשומת TXT",
+    "source_hash": "62766ffd"
+  },
+  "web.domains.follow_these_steps_to_verify_domain_ownership_an": {
+    "text": "עקבו אחר שלבים אלו לאימות בעלות על דומיין והעלאת הנוכחות המקוונת שלכם:",
+    "source_hash": "a33f94d3"
+  },
+  "web.domains.domain_verification_steps": {
+    "text": "שלבי אימות דומיין",
+    "source_hash": "16dca977"
+  },
+  "web.domains.domain_verification_initiated_successfully": {
+    "text": "אימות דומיין החל בהצלחה.",
+    "source_hash": "5969b924"
+  },
+  "web.domains.are_you_sure_you_want_to_remove_this_domain": {
+    "text": "האם אתם בטוחים שברצונכם להסיר דומיין זה? לא ניתן לבטל פעולה זו.",
+    "source_hash": "403c6d3b"
+  },
+  "web.domains.remove_domain": {
+    "text": "הסר דומיין",
+    "source_hash": "07a1675d"
+  },
+  "web.domains.domain_removed_successfully": {
+    "text": "הדומיין הוסר בהצלחה",
+    "source_hash": "2984d483"
+  },
+  "web.domains.failed_to_add_domain": {
+    "text": "הוספת הדומיין נכשלה",
+    "source_hash": "5fc4c4b3"
+  },
+  "web.domains.domain_added_successfully": {
+    "text": "הדומיין נוסף בהצלחה",
+    "source_hash": "dd8180cf"
+  },
+  "web.domains.passphrase_set": {
+    "text": "מוגן",
+    "source_hash": "b0ed2633"
+  },
+  "web.domains.manage_domains": {
+    "text": "ניהול דומיינים",
+    "source_hash": "36dd9781"
+  },
+  "web.domains.global_defaults": {
+    "text": "ברירות מחדל גלובליות",
+    "source_hash": "4526107f"
+  },
+  "web.domains.edit_ttl": {
+    "text": "עריכת הגדרת משך חיים",
+    "source_hash": "ea8afd62"
+  },
+  "web.domains.edit_passphrase": {
+    "text": "עריכת דרישת ביטוי סיסמה",
+    "source_hash": "0b5555b5"
+  },
+  "web.domains.edit_notify": {
+    "text": "עריכת הגדרת התראות",
+    "source_hash": "2e9e1ea0"
+  },
+  "web.domains.configure_dns_records": {
+    "text": "הגדר רשומות DNS",
+    "source_hash": "5932f0cb"
+  },
+  "web.domains.dns_widget_description": {
+    "text": "השתמש בכלי למטה כדי לזהות אוטומטית את ספק ה-DNS שלך ולקבל הוראות צעד אחר צעד להגדרת הדומיין שלך.",
+    "source_hash": "91c1af2e"
+  },
+  "api.domains.errors.add_admin_required": {
+    "text": "רק בעלי ארגון ומנהלים יכולים להוסיף דומיינים מותאמים אישית",
+    "source_hash": "3324aabe"
+  },
+  "web.domains.public_homepage": {
+    "text": "דף בית ציבורי",
+    "source_hash": "2ae3ccba"
+  },
+  "web.domains.status_tooltip_active": {
+    "text": "הדומיין אומת והוא פעיל",
+    "source_hash": "e4b6a6e1"
+  },
+  "web.domains.status_tooltip_dns_incorrect": {
+    "text": "DNS לא מוגדר — לחץ לתיקון",
+    "source_hash": "892cb2cb"
+  },
+  "web.domains.status_tooltip_not_verified": {
+    "text": "הדומיין לא אומת — לחץ לאימות",
+    "source_hash": "a9806710"
+  },
+  "web.domains.status_tooltip_unverified": {
+    "text": "סטטוס הדומיין לא אומת — לחץ לרענון",
+    "source_hash": "a45aa76d"
+  },
+  "web.domains.last_check_failed": {
+    "text": "בדיקת האימות האחרונה נכשלה",
+    "source_hash": "88b594b8"
+  },
+  "web.domains.last_check_failed_ago": {
+    "text": "הבדיקה האחרונה נכשלה {0}",
+    "source_hash": "ddfb6412"
+  },
+  "web.domains.verify_now": {
+    "text": "אמת עכשיו",
+    "source_hash": "db383efb"
+  },
+  "web.domains.click_to_verify": {
+    "text": "לחץ לאימות",
+    "source_hash": "6eae7d9c"
+  },
+  "web.domains.remove_domain_description": {
+    "text": "הסרה סופית של דומיין זה וכל התצורה שלו.",
+    "source_hash": "73946b9e"
+  },
+  "web.domains.add_access_denied": {
+    "text": "הגישה נדחתה",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.add_access_denied_description": {
+    "text": "אין לך הרשאה להוסיף דומיינים לארגון זה. פנה למנהל הארגון שלך.",
+    "source_hash": "25e035c6"
+  },
+  "web.domains.dns_widget_load_failed": {
+    "text": "טעינת רכיב ה-DNS נכשלה",
+    "source_hash": "5a1d8ab5"
+  },
+  "web.domains.dns_widget_not_available": {
+    "text": "רכיב ה-DNS אינו זמין",
+    "source_hash": "4eed448b"
+  },
+  "web.domains.dns_widget_init_failed": {
+    "text": "אתחול רכיב ה-DNS נכשל",
+    "source_hash": "de477585"
+  },
+  "web.domains.verified": {
+    "text": "אומת",
+    "source_hash": "4f783840"
+  },
+  "web.domains.pending_verification": {
+    "text": "ממתין לאימות",
+    "source_hash": "77e07795"
+  },
+  "web.domains.unsaved_changes_confirmation": {
+    "text": "יש לך שינויים שלא נשמרו. האם אתה בטוח שברצונך לצאת?",
+    "source_hash": "322380c1"
+  },
+  "web.domains.entitlement_required_owner": {
+    "text": "תכונה זו דורשת שדרוג תוכנית.",
+    "source_hash": "6de1f752"
+  },
+  "web.domains.entitlement_required_member": {
+    "text": "תכונה זו אינה זמינה בתוכנית הנוכחית שלך. פנה לבעל הארגון שלך.",
+    "source_hash": "8f1688b2"
+  },
+  "web.domains.detail.manage": {
+    "text": "ניהול",
+    "source_hash": "5a234448"
+  },
+  "web.domains.detail.features": {
+    "text": "תכונות",
+    "source_hash": "5697d03d"
+  },
+  "web.domains.detail.homepage_title": {
+    "text": "סודות בדף הבית",
+    "source_hash": "6360f7ec"
+  },
+  "web.domains.detail.homepage_description": {
+    "text": "אפשר גישה ציבורית ליצירת סודות בדף הבית של הדומיין שלך",
+    "source_hash": "209b3ded"
+  },
+  "web.domains.detail.brand_description": {
+    "text": "לוגו, צבעים ומיתוג מותאם אישית",
+    "source_hash": "69f7a9e8"
+  },
+  "web.domains.detail.sso_description": {
+    "text": "הגדרות ספק כניסה יחידה (SSO)",
+    "source_hash": "234e6150"
+  },
+  "web.domains.detail.email_description": {
+    "text": "תצורת שולח דואר אלקטרוני מותאם אישית",
+    "source_hash": "7fcde01b"
+  },
+  "web.domains.detail.incoming_description": {
+    "text": "הגדרות נמען לסודות נכנסים",
+    "source_hash": "37c1fd6d"
+  },
+  "web.domains.detail.signup_description": {
+    "text": "אסטרטגיית אימות הרשמה לכל דומיין",
+    "source_hash": "3c5a511f"
+  },
+  "web.domains.detail.signin_description": {
+    "text": "תצורת שיטת כניסה לכל דומיין",
+    "source_hash": "73e01e36"
+  },
+  "web.domains.email.title": {
+    "text": "שליחת דואר אלקטרוני",
+    "source_hash": "6c428e5f"
+  },
+  "web.domains.email.config_title": {
+    "text": "תצורת דואר אלקטרוני",
+    "source_hash": "6f38aa51"
+  },
+  "web.domains.email.config_description": {
+    "text": "הגדר שליחת דואר אלקטרוני עבור דומיין זה",
+    "source_hash": "1c275ff0"
+  },
+  "web.domains.email.provider_label": {
+    "text": "ספק דואר אלקטרוני",
+    "source_hash": "a7ed3f4e"
+  },
+  "web.domains.email.provider_placeholder": {
+    "text": "בחר ספק דואר אלקטרוני",
+    "source_hash": "63c8080c"
+  },
+  "web.domains.email.from_name_label": {
+    "text": "שם השולח",
+    "source_hash": "2f13b589"
+  },
+  "web.domains.email.from_name_placeholder": {
+    "text": "לדוגמה Acme Security",
+    "source_hash": "03c0f138"
+  },
+  "web.domains.email.from_address_label": {
+    "text": "כתובת השולח",
+    "source_hash": "60643eae"
+  },
+  "web.domains.email.from_address_placeholder": {
+    "text": "לדוגמה secrets{'@'}example.com",
+    "source_hash": "a09b3928"
+  },
+  "web.domains.email.reply_to_label": {
+    "text": "כתובת למענה",
+    "source_hash": "4538ea9c"
+  },
+  "web.domains.email.reply_to_placeholder": {
+    "text": "לדוגמה support{'@'}example.com",
+    "source_hash": "fa3e5f0b"
+  },
+  "web.domains.email.save_changes": {
+    "text": "שמור שינויים",
+    "source_hash": "35322b5b"
+  },
+  "web.domains.email.discard_changes": {
+    "text": "בטל שינויים",
+    "source_hash": "e07e053c"
+  },
+  "web.domains.email.provider_ses": {
+    "text": "Amazon SES",
+    "source_hash": "15de4969"
+  },
+  "web.domains.email.provider_sendgrid": {
+    "text": "SendGrid",
+    "source_hash": "b889d002"
+  },
+  "web.domains.email.provider_lettermint": {
+    "text": "Lettermint",
+    "source_hash": "ec994dad"
+  },
+  "web.domains.email.provider_inherit": {
+    "text": "השתמש בברירות המחדל של החשבון",
+    "source_hash": "f6fa84e7"
+  },
+  "web.domains.email.provider_ses_description": {
+    "text": "דורש אימות דומיין באמצעות רשומות DKIM ו-SPF",
+    "source_hash": "4df5aa60"
+  },
+  "web.domains.email.provider_sendgrid_description": {
+    "text": "דורש הגדרת אימות דומיין",
+    "source_hash": "71b53242"
+  },
+  "web.domains.email.provider_lettermint_description": {
+    "text": "דורש אימות דומיין",
+    "source_hash": "87073c93"
+  },
+  "web.domains.email.provider_inherit_description": {
+    "text": "משתמש בתצורת שליחת הדואר האלקטרוני שהיא ברירת המחדל של חשבונך",
+    "source_hash": "3f798263"
+  },
+  "web.domains.email.dns_records_title": {
+    "text": "רשומות DNS",
+    "source_hash": "34d2c307"
+  },
+  "web.domains.email.dns_records_description": {
+    "text": "הוסף את רשומות ה-DNS הבאות כדי לאמת את הדומיין שלך לשליחת דואר אלקטרוני.",
+    "source_hash": "9fa85863"
+  },
+  "web.domains.email.dns_column_type": {
+    "text": "סוג",
+    "source_hash": "baaddf70"
+  },
+  "web.domains.email.dns_column_name": {
+    "text": "שם",
+    "source_hash": "dcd1d522"
+  },
+  "web.domains.email.dns_column_value": {
+    "text": "ערך",
+    "source_hash": "8e37953d"
+  },
+  "web.domains.email.dns_check_label": {
+    "text": "DNS",
+    "source_hash": "020965a2"
+  },
+  "web.domains.email.provider_check_label": {
+    "text": "ספק",
+    "source_hash": "472590ae"
+  },
+  "web.domains.email.dns_optional_label": {
+    "text": "מומלץ",
+    "source_hash": "d70604e8"
+  },
+  "web.domains.email.dns_optional_hint": {
+    "text": "רשומה זו מומלצת אך אינה נדרשת לאימות. ייתכן שמדיניות DMARC בדומיין הארגוני שלך כבר מכסה תת-דומיין זה.",
+    "source_hash": "58e1a12b"
+  },
+  "web.domains.email.copy": {
+    "text": "העתק",
+    "source_hash": "e21f935f"
+  },
+  "web.domains.email.copied": {
+    "text": "הועתק",
+    "source_hash": "8d525e5f"
+  },
+  "web.domains.email.status_verified": {
+    "text": "אומת",
+    "source_hash": "4f783840"
+  },
+  "web.domains.email.status_pending": {
+    "text": "ממתין",
+    "source_hash": "331551b0"
+  },
+  "web.domains.email.status_failed": {
+    "text": "נכשל",
+    "source_hash": "031a8f0f"
+  },
+  "web.domains.email.revalidate": {
+    "text": "אמת מחדש",
+    "source_hash": "4918da12"
+  },
+  "web.domains.email.validating": {
+    "text": "מאמת...",
+    "source_hash": "b28b48d5"
+  },
+  "web.domains.email.domain_verified": {
+    "text": "הדומיין אומת",
+    "source_hash": "08e0df67"
+  },
+  "web.domains.email.validation_failed": {
+    "text": "האימות נכשל",
+    "source_hash": "23a86f5a"
+  },
+  "web.domains.email.last_validated": {
+    "text": "אומת לאחרונה",
+    "source_hash": "887dd486"
+  },
+  "web.domains.email.upgrade_to_configure": {
+    "text": "שדרג את התוכנית שלך כדי להגדיר שליחת דואר אלקטרוני עבור דומיין זה.",
+    "source_hash": "16a876f7"
+  },
+  "web.domains.email.configure_email": {
+    "text": "הגדר דואר אלקטרוני",
+    "source_hash": "a48c0d40"
+  },
+  "web.domains.email.access_denied": {
+    "text": "הגישה נדחתה",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.email.access_denied_description": {
+    "text": "אין לך הרשאה לנהל את הגדרות הדואר האלקטרוני עבור דומיין זה. פנה למנהל הארגון שלך.",
+    "source_hash": "32049ff0"
+  },
+  "web.domains.email.update_success": {
+    "text": "תצורת הדואר האלקטרוני נשמרה בהצלחה",
+    "source_hash": "dd3607fc"
+  },
+  "web.domains.email.delete_success": {
+    "text": "תצורת הדואר האלקטרוני הוסרה בהצלחה",
+    "source_hash": "2ba99a91"
+  },
+  "web.domains.email.default_sender_notice": {
+    "text": "הודעות הדואר האלקטרוני עבור דומיין זה נשלחות כעת מהשולח הגלובלי. השלם את תצורת הדואר האלקטרוני כדי להשתמש בזהות השולח שלך.",
+    "source_hash": "ffcf39fb"
+  },
+  "web.domains.email.disabled_notice": {
+    "text": "שליחת דואר אלקטרוני מותאם אישית מושבתת כעת. הודעות הדואר האלקטרוני יישלחו מהשולח הגלובלי. הפעל את התכונה למטה כדי להשתמש בזהות השולח המותאמת אישית שלך.",
+    "source_hash": "60a26f5b"
+  },
+  "web.domains.email.test_email_title": {
+    "text": "בדיקת מסירת דואר אלקטרוני",
+    "source_hash": "c1b3dee2"
+  },
+  "web.domains.email.test_email_hint": {
+    "text": "שלח לעצמך הודעת דואר אלקטרוני לבדיקה באמצעות התצורה השמורה. פועל גם כאשר התכונה עדיין אינה מופעלת.",
+    "source_hash": "33e876ad"
+  },
+  "web.domains.email.send_test": {
+    "text": "שלח בדיקה",
+    "source_hash": "22d7b11d"
+  },
+  "web.domains.email.test_email_sent": {
+    "text": "הודעת הבדיקה נשלחה בהצלחה",
+    "source_hash": "561617fd"
+  },
+  "web.domains.email.test_email_failed": {
+    "text": "שליחת הודעת הבדיקה נכשלה",
+    "source_hash": "95ce63bc"
+  },
+  "web.domains.email.test_email_rate_limited": {
+    "text": "נשלחו יותר מדי הודעות בדיקה לאחרונה. נסה שוב מאוחר יותר.",
+    "source_hash": "90b8ca17"
+  },
+  "web.domains.email.test_email_rate_limited_retry": {
+    "text": "נשלחו יותר מדי הודעות בדיקה לאחרונה. נסה שוב בעוד כ-{minutes} דקות.",
+    "source_hash": "218146cc"
+  },
+  "web.domains.email.test_email_sent_to": {
+    "text": "נשלח אל {email}",
+    "source_hash": "8ceb9588"
+  },
+  "web.domains.email.delivered_via": {
+    "text": "נמסר באמצעות {provider}",
+    "source_hash": "f741959b"
+  },
+  "web.domains.email.badge_not_configured": {
+    "text": "לא מוגדר",
+    "source_hash": "dd1841d2"
+  },
+  "web.domains.email.badge_default_sender": {
+    "text": "משתמש בשולח ברירת המחדל",
+    "source_hash": "e1afb18f"
+  },
+  "web.domains.email.badge_verified": {
+    "text": "אומת",
+    "source_hash": "4f783840"
+  },
+  "web.domains.email.badge_pending": {
+    "text": "ממתין לאימות",
+    "source_hash": "417a6b7e"
+  },
+  "web.domains.email.badge_disabled": {
+    "text": "מושבת",
+    "source_hash": "75081b59"
+  },
+  "web.domains.email.tooltip_not_configured": {
+    "text": "לא הוגדר שולח דואר אלקטרוני — ההודעות משתמשות בשולח ברירת המחדל של הפלטפורמה",
+    "source_hash": "360083bb"
+  },
+  "web.domains.email.tooltip_pending": {
+    "text": "תצורת שולח הדואר האלקטרוני ממתינה לאימות — ההודעות משתמשות בשולח ברירת המחדל של הפלטפורמה",
+    "source_hash": "c8c2449c"
+  },
+  "web.domains.email.tooltip_disabled": {
+    "text": "שולח הדואר האלקטרוני מושבת — ההודעות משתמשות בשולח ברירת המחדל של הפלטפורמה",
+    "source_hash": "64e84955"
+  },
+  "web.domains.email.tooltip_verified": {
+    "text": "שולח הדואר האלקטרוני אומת — ההודעות נשלחות מדומיין זה",
+    "source_hash": "0e9a005c"
+  },
+  "web.domains.incoming.title": {
+    "text": "סודות נכנסים",
+    "source_hash": "883dbca9"
+  },
+  "web.domains.incoming.config_title": {
+    "text": "תצורת סודות נכנסים",
+    "source_hash": "b3fef15b"
+  },
+  "web.domains.incoming.config_description": {
+    "text": "אפשר למשתמשים חיצוניים לשלוח סודות ישירות לנמענים ייעודיים בדומיין זה",
+    "source_hash": "452ab4fe"
+  },
+  "web.domains.incoming.feature_disabled": {
+    "text": "סודות נכנסים אינם זמינים",
+    "source_hash": "0f96c5ec"
+  },
+  "web.domains.incoming.feature_disabled_description": {
+    "text": "סודות נכנסים אינם מופעלים במופע זה. פנה למנהל שלך.",
+    "source_hash": "dce981e0"
+  },
+  "web.domains.incoming.access_denied": {
+    "text": "הגישה נדחתה",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.incoming.access_denied_description": {
+    "text": "אין לך הרשאה לנהל את הגדרות הסודות הנכנסים עבור דומיין זה. פנה למנהל הארגון שלך.",
+    "source_hash": "3e9d8adc"
+  },
+  "web.domains.incoming.upgrade_to_configure": {
+    "text": "שדרג את התוכנית שלך כדי להגדיר סודות נכנסים עבור דומיין זה.",
+    "source_hash": "9dfdfeb5"
+  },
+  "web.domains.incoming.configure_incoming": {
+    "text": "הגדר סודות נכנסים",
+    "source_hash": "eab52939"
+  },
+  "web.domains.incoming.not_configured_notice": {
+    "text": "סודות נכנסים אינם מוגדרים עבור דומיין זה. הוסף נמענים כדי לאפשר למשתמשים חיצוניים לשלוח סודות לצוות שלך.",
+    "source_hash": "dbc443a6"
+  },
+  "web.domains.incoming.disabled_notice": {
+    "text": "סודות נכנסים מושבתים כעת. משתמשים חיצוניים אינם יכולים לשלוח סודות לנמענים בדומיין זה. הפעל את התכונה למטה כדי לאפשר סודות נכנסים.",
+    "source_hash": "d1f8dafb"
+  },
+  "web.domains.incoming.recipients_title": {
+    "text": "נמענים",
+    "source_hash": "1e8568a8"
+  },
+  "web.domains.incoming.recipients_description": {
+    "text": "הגדר מי יכול לקבל סודות נכנסים בדומיין זה. הנמענים יקבלו התראות בדואר אלקטרוני כאשר נשלח אליהם סוד.",
+    "source_hash": "026f9d9d"
+  },
+  "web.domains.incoming.add_recipient": {
+    "text": "הוסף נמען",
+    "source_hash": "25f93c13"
+  },
+  "web.domains.incoming.remove_recipient": {
+    "text": "הסר",
+    "source_hash": "c3812fc4"
+  },
+  "web.domains.incoming.email_label": {
+    "text": "כתובת דואר אלקטרוני",
+    "source_hash": "09bf25ef"
+  },
+  "web.domains.incoming.email_placeholder": {
+    "text": "recipient{'@'}example.com",
+    "source_hash": "55d1508e"
+  },
+  "web.domains.incoming.name_label": {
+    "text": "שם תצוגה",
+    "source_hash": "18d67c99"
+  },
+  "web.domains.incoming.name_placeholder": {
+    "text": "לדוגמה Security Team",
+    "source_hash": "0c52400c"
+  },
+  "web.domains.incoming.empty_state": {
+    "text": "לא הוגדרו נמענים",
+    "source_hash": "bc8c2058"
+  },
+  "web.domains.incoming.empty_state_description": {
+    "text": "הוסף נמענים כדי לאפשר למשתמשים חיצוניים לשלוח סודות לצוות שלך.",
+    "source_hash": "2a647a40"
+  },
+  "web.domains.incoming.validation_invalid_email": {
+    "text": "כתובת דואר אלקטרוני לא תקינה",
+    "source_hash": "4eaf1d80"
+  },
+  "web.domains.incoming.validation_duplicate_email": {
+    "text": "כתובת דואר אלקטרוני זו כבר נוספה",
+    "source_hash": "f89de141"
+  },
+  "web.domains.incoming.validation_max_recipients": {
+    "text": "מותר עד {max} נמענים",
+    "source_hash": "e2585847"
+  },
+  "web.domains.incoming.validation_name_required": {
+    "text": "שם תצוגה הוא שדה חובה",
+    "source_hash": "c6892c89"
+  },
+  "web.domains.incoming.validation_email_required": {
+    "text": "כתובת דואר אלקטרוני היא שדה חובה",
+    "source_hash": "41381ba2"
+  },
+  "web.domains.incoming.save_changes": {
+    "text": "שמור שינויים",
+    "source_hash": "35322b5b"
+  },
+  "web.domains.incoming.discard_changes": {
+    "text": "בטל שינויים",
+    "source_hash": "e07e053c"
+  },
+  "web.domains.incoming.update_success": {
+    "text": "תצורת הסודות הנכנסים נשמרה בהצלחה",
+    "source_hash": "9317e02d"
+  },
+  "web.domains.incoming.delete_success": {
+    "text": "תצורת הסודות הנכנסים הוסרה בהצלחה",
+    "source_hash": "4c4a33ae"
+  },
+  "web.domains.incoming.recipient_count": {
+    "text": "נמען {count} | {count} נמענים",
+    "source_hash": "0e4f5985"
+  },
+  "web.domains.incoming.badge_not_configured": {
+    "text": "לא מוגדר",
+    "source_hash": "dd1841d2"
+  },
+  "web.domains.incoming.badge_configured": {
+    "text": "מוגדר",
+    "source_hash": "84aebc69"
+  },
+  "web.domains.incoming.badge_disabled": {
+    "text": "מושבת",
+    "source_hash": "75081b59"
+  },
+  "web.domains.incoming.tooltip_not_configured": {
+    "text": "סודות נכנסים אינם מוגדרים - משתמשים חיצוניים אינם יכולים לשלוח סודות לדומיין זה",
+    "source_hash": "79786d5c"
+  },
+  "web.domains.incoming.tooltip_configured": {
+    "text": "סודות נכנסים מופעלים עם {count} נמענים",
+    "source_hash": "c205cc54"
+  },
+  "web.domains.incoming.tooltip_disabled": {
+    "text": "תכונת הסודות הנכנסים מושבתת עבור דומיין זה",
+    "source_hash": "0413f96b"
+  },
+  "web.domains.incoming.enabled_label": {
+    "text": "הפעל סודות נכנסים",
+    "source_hash": "c0b25980"
+  },
+  "web.domains.incoming.enabled_hint": {
+    "text": "אפשר למשתמשים חיצוניים לשלוח סודות לנמענים בדומיין זה",
+    "source_hash": "24aadd31"
+  },
+  "web.domains.incoming.public_url_label": {
+    "text": "כתובת URL ציבורית",
+    "source_hash": "f7b60b04"
+  },
+  "web.domains.incoming.public_url_description": {
+    "text": "שתף כתובת URL זו עם משתמשים חיצוניים כדי לאפשר להם לשלוח סודות",
+    "source_hash": "df47a894"
+  },
+  "web.domains.incoming.copy_url": {
+    "text": "העתק כתובת URL",
+    "source_hash": "b26d1037"
+  },
+  "web.domains.incoming.url_copied": {
+    "text": "כתובת ה-URL הועתקה ללוח",
+    "source_hash": "2f396c3e"
+  },
+  "web.domains.incoming.remove_all_confirmation": {
+    "text": "האם אתה בטוח שברצונך להסיר את כל הנמענים? משתמשים חיצוניים לא יוכלו עוד לשלוח סודות לדומיין זה.",
+    "source_hash": "06f9e551"
+  },
+  "web.domains.incoming.max_recipients_reached": {
+    "text": "הגעת למספר המרבי של נמענים",
+    "source_hash": "ba659e54"
+  },
+  "web.domains.incoming.duplicate_recipient": {
+    "text": "כתובת דואר אלקטרוני זו כבר נוספה",
+    "source_hash": "ca598f6d"
+  },
+  "web.domains.incoming.save_will_replace_confirmation": {
+    "text": "השמירה תחליף את כל הנמענים הקיימים בשינויים הממתינים שלך. האם אתה בטוח?",
+    "source_hash": "f497862e"
+  },
+  "web.domains.incoming.delete_all_recipients": {
+    "text": "מחק את כל הנמענים",
+    "source_hash": "207d0dbe"
+  },
+  "web.domains.signin.title": {
+    "text": "תצורת כניסה",
+    "source_hash": "2da38c03"
+  },
+  "web.domains.signin.configure_signin": {
+    "text": "הגדר כניסה",
+    "source_hash": "f72b58b5"
+  },
+  "web.domains.signin.config_description": {
+    "text": "הגדר שיטות אימות כניסה עבור דומיין זה",
+    "source_hash": "8efce428"
+  },
+  "web.domains.signin.access_denied": {
+    "text": "הגישה נדחתה",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.signin.upgrade_to_configure": {
+    "text": "שדרג את התוכנית שלך כדי להגדיר שיטות כניסה עבור דומיין זה.",
+    "source_hash": "e242bb74"
+  },
+  "web.domains.signin.not_configured_notice": {
+    "text": "תצורת הכניסה עדיין לא הוגדרה עבור דומיין זה. הגדר עקיפות כדי לשלוט אילו שיטות אימות זמינות בדף הכניסה של דומיין זה.",
+    "source_hash": "cb788a2d"
+  },
+  "web.domains.signin.signin_enabled_label": {
+    "text": "כניסה מופעלת",
+    "source_hash": "cabe4898"
+  },
+  "web.domains.signin.header_toggle_label": {
+    "text": "כניסה",
+    "source_hash": "5bbbe531"
+  },
+  "web.domains.signin.signin_enabled_hint": {
+    "text": "האם משתמשים יכולים להיכנס בדומיין זה",
+    "source_hash": "57a92aee"
+  },
+  "web.domains.signin.restrict_to_label": {
+    "text": "הגבל שיטת כניסה",
+    "source_hash": "edbec83f"
+  },
+  "web.domains.signin.restrict_to_hint": {
+    "text": "הגבל דומיין זה לשיטת אימות אחת. כאשר מוגדר, רק השיטה הנבחרת מוצגת בדף הכניסה.",
+    "source_hash": "682bc4c5"
+  },
+  "web.domains.signin.all_methods": {
+    "text": "כל השיטות",
+    "source_hash": "e601c19e"
+  },
+  "web.domains.signin.all_methods_description": {
+    "text": "הצג את כל שיטות האימות המופעלות בדף הכניסה",
+    "source_hash": "62723340"
+  },
+  "web.domains.signin.method_password": {
+    "text": "סיסמה",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.domains.signin.method_email_auth": {
+    "text": "אימות בדואר אלקטרוני",
+    "source_hash": "68c38f94"
+  },
+  "web.domains.signin.method_webauthn": {
+    "text": "WebAuthn / מפתחות גישה",
+    "source_hash": "c40224ce"
+  },
+  "web.domains.signin.method_sso": {
+    "text": "כניסה יחידה (SSO)",
+    "source_hash": "cf7cd744"
+  },
+  "web.domains.signin.method_overrides_label": {
+    "text": "עקיפות שיטה",
+    "source_hash": "5496cba6"
+  },
+  "web.domains.signin.method_overrides_hint": {
+    "text": "הפעל או השבת שיטות אימות בודדות עבור דומיין זה",
+    "source_hash": "394e3878"
+  },
+  "web.domains.signin.mode_question": {
+    "text": "כיצד משתמשים יכולים להיכנס?",
+    "source_hash": "3694eb23"
+  },
+  "web.domains.signin.mode_any": {
+    "text": "כל שיטה זמינה",
+    "source_hash": "23665425"
+  },
+  "web.domains.signin.mode_any_hint": {
+    "text": "הצג כל שיטה הזמינה בדומיין זה. צמצם שיטות בודדות למטה.",
+    "source_hash": "2f3dcba6"
+  },
+  "web.domains.signin.mode_one": {
+    "text": "שיטה ספציפית אחת",
+    "source_hash": "601f5768"
+  },
+  "web.domains.signin.mode_one_hint": {
+    "text": "הגבל את דף הכניסה לשיטה אחת. רק שיטות הזמינות בדומיין זה מוצגות.",
+    "source_hash": "58bde6d5"
+  },
+  "web.domains.signin.mode_disabled": {
+    "text": "כניסה מושבתת",
+    "source_hash": "bb807607"
+  },
+  "web.domains.signin.mode_disabled_hint": {
+    "text": "משתמשים אינם יכולים להיכנס בדומיין זה.",
+    "source_hash": "8938f098"
+  },
+  "web.domains.signin.mode_disabled_notice": {
+    "text": "מבקרים בדף הכניסה של דומיין זה רואים הודעה שהכניסה אינה זמינה, עם קישור חזרה לדף הבית. הגדרות השיטה הקודמות שלך נשמרות ומשוחזרות כאשר תפעיל מחדש את הכניסה.",
+    "source_hash": "1a04de18"
+  },
+  "web.domains.signin.methods_list_label": {
+    "text": "שיטות המוצגות בדף הכניסה",
+    "source_hash": "66fd133b"
+  },
+  "web.domains.signin.restrict_picker_hint": {
+    "text": "רק שיטות הזמינות בדומיין זה מוצגות.",
+    "source_hash": "c7a56f44"
+  },
+  "web.domains.signin.availability_always": {
+    "text": "זמין תמיד",
+    "source_hash": "0fda3772"
+  },
+  "web.domains.signin.availability_global_on": {
+    "text": "עוקב אחר מדיניות גלובלית · מופעל",
+    "source_hash": "3844e6f7"
+  },
+  "web.domains.signin.availability_global_off": {
+    "text": "לא זמין",
+    "source_hash": "67a926f7"
+  },
+  "web.domains.signin.availability_unavailable": {
+    "text": "לא זמין בכל האתר",
+    "source_hash": "da29c1be"
+  },
+  "web.domains.signin.allow_on_domain": {
+    "text": "אפשר בדומיין זה",
+    "source_hash": "760b578e"
+  },
+  "web.domains.signin.method_password_blurb": {
+    "text": "סיסמה בלבד",
+    "source_hash": "ed1a02fd"
+  },
+  "web.domains.signin.method_email_auth_blurb": {
+    "text": "כניסה ללא סיסמה באמצעות קישור קסם",
+    "source_hash": "7f776a85"
+  },
+  "web.domains.signin.method_webauthn_blurb": {
+    "text": "אמצעים ביומטריים ומפתחות אבטחה",
+    "source_hash": "7d6a7bd5"
+  },
+  "web.domains.signin.method_sso_blurb": {
+    "text": "ספק זהויות חיצוני",
+    "source_hash": "a3442088"
+  },
+  "web.domains.signin.email_auth_label": {
+    "text": "אימות בדואר אלקטרוני",
+    "source_hash": "68c38f94"
+  },
+  "web.domains.signin.email_auth_hint": {
+    "text": "אפשר אימות בדואר אלקטרוני ללא סיסמה בדומיין זה",
+    "source_hash": "6ad82127"
+  },
+  "web.domains.signin.sso_enabled_label": {
+    "text": "כניסה יחידה (SSO)",
+    "source_hash": "cf7cd744"
+  },
+  "web.domains.signin.sso_enabled_hint": {
+    "text": "אפשר אימות SSO בדומיין זה",
+    "source_hash": "22d78ad5"
+  },
+  "web.domains.signin.enabled_label": {
+    "text": "הפעל תצורת כניסה",
+    "source_hash": "dbd8e11c"
+  },
+  "web.domains.signin.enabled_hint": {
+    "text": "כאשר מופעל, דומיין זה משתמש בהגדרות הכניסה שהוגדרו למעלה",
+    "source_hash": "6259f8a2"
+  },
+  "web.domains.signin.save_config": {
+    "text": "שמור תצורה",
+    "source_hash": "b2b158f2"
+  },
+  "web.domains.signin.update_success": {
+    "text": "תצורת הכניסה עודכנה בהצלחה",
+    "source_hash": "10ea50d8"
+  },
+  "web.domains.signin.reset_to_defaults": {
+    "text": "אפס לברירות המחדל",
+    "source_hash": "e240e635"
+  },
+  "web.domains.signin.reset_confirm": {
+    "text": "לאפס את הכניסה לברירות המחדל הגלובליות?",
+    "source_hash": "2c6bbc32"
+  },
+  "web.domains.signin.reset_keeps_sso": {
+    "text": "פרטי הכניסה של SSO שלך נשמרים. הסר אותם בנפרד במסך תצורת SSO.",
+    "source_hash": "edc0c756"
+  },
+  "web.domains.signin.reset_action": {
+    "text": "כן, אפס",
+    "source_hash": "4bb21d8b"
+  },
+  "web.domains.signin.reset_success": {
+    "text": "הגדרות הכניסה אופסו לברירות המחדל הגלובליות",
+    "source_hash": "0c364d89"
+  },
+  "web.domains.signup.title": {
+    "text": "אימות הרשמה",
+    "source_hash": "2c34ac0a"
+  },
+  "web.domains.signup.config_description": {
+    "text": "הגדר אימות הרשמה עבור דומיין זה",
+    "source_hash": "e9c81e8a"
+  },
+  "web.domains.signup.access_denied": {
+    "text": "הגישה נדחתה",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.signup.upgrade_to_configure": {
+    "text": "שדרג את התוכנית שלך כדי להגדיר אימות הרשמה לכל דומיין.",
+    "source_hash": "d87d6614"
+  },
+  "web.domains.signup.configure_signup": {
+    "text": "הגדר הרשמה",
+    "source_hash": "e2697662"
+  },
+  "web.domains.signup.not_configured_notice": {
+    "text": "אימות הרשמה עדיין לא הוגדר עבור דומיין זה. הגדר אסטרטגיה כדי לשלוט מי יכול להירשם דרך דומיין זה.",
+    "source_hash": "fc6c6eb8"
+  },
+  "web.domains.signup.site_signups_disabled_warning": {
+    "text": "ההרשמות מושבתות כעת ברמת האתר. מדיניות זו לכל דומיין מוגדרת אך לא תסנן תעבורה כלשהי עד שההרשמות באתר יופעלו.",
+    "source_hash": "c0e59f86"
+  },
+  "web.domains.signup.strategy_label": {
+    "text": "אסטרטגיית אימות",
+    "source_hash": "a2e95531"
+  },
+  "web.domains.signup.strategy_description": {
+    "text": "בחר כיצד מאומתות כתובות דואר אלקטרוני כאשר משתמשים נרשמים בדומיין זה.",
+    "source_hash": "8e232b03"
+  },
+  "web.domains.signup.network_validation_warning": {
+    "text": "אסטרטגיה זו מבצעת קריאות רשת במהלך ההרשמה, מה שעלול להוסיף השהיה או להיחסם על ידי ספקים מסוימים.",
+    "source_hash": "53d4c266"
+  },
+  "web.domains.signup.allowed_domains_label": {
+    "text": "דומיינים מורשים להרשמה",
+    "source_hash": "9b5bb5b1"
+  },
+  "web.domains.signup.allowed_domains_hint": {
+    "text": "רק דומייני הדואר האלקטרוני האלה יורשו להירשם. הוסף דומיין אחד לכל ערך.",
+    "source_hash": "c082414d"
+  },
+  "web.domains.signup.domain_placeholder": {
+    "text": "example.com",
+    "source_hash": "a379a6f6"
+  },
+  "web.domains.signup.invalid_domain": {
+    "text": "הזן דומיין תקין (לדוגמה example.com)",
+    "source_hash": "16807983"
+  },
+  "web.domains.signup.domain_exists": {
+    "text": "דומיין זה כבר נמצא ברשימה",
+    "source_hash": "3fccb721"
+  },
+  "web.domains.signup.remove_domain": {
+    "text": "הסר את {domain}",
+    "source_hash": "ae708a1d"
+  },
+  "web.domains.signup.enabled_label": {
+    "text": "הפעל אימות לכל דומיין",
+    "source_hash": "db103925"
+  },
+  "web.domains.signup.enabled_hint": {
+    "text": "כאשר מופעל, הרשמות בדומיין זה משתמשות באסטרטגיה שלמעלה במקום במדיניות הגלובלית.",
+    "source_hash": "99de2008"
+  },
+  "web.domains.signup.delete_config": {
+    "text": "מחק תצורה",
+    "source_hash": "a9a30c7f"
+  },
+  "web.domains.signup.delete_confirm": {
+    "text": "למחוק את תצורת אימות ההרשמה? ההרשמות יחזרו למדיניות הגלובלית.",
+    "source_hash": "a8c9086e"
+  },
+  "web.domains.signup.save_config": {
+    "text": "שמור תצורה",
+    "source_hash": "b2b158f2"
+  },
+  "web.domains.signup.update_success": {
+    "text": "אימות ההרשמה עודכן בהצלחה",
+    "source_hash": "57a529ac"
+  },
+  "web.domains.signup.delete_success": {
+    "text": "תצורת אימות ההרשמה הוסרה בהצלחה",
+    "source_hash": "eb6add4d"
+  },
+  "web.domains.signup.domain_overrides_label": {
+    "text": "עקיפות דומיין",
+    "source_hash": "d25da3cd"
+  },
+  "web.domains.signup.domain_overrides_hint": {
+    "text": "עקוף את הגדרות ההרשמה הגלובליות עבור דומיין זה",
+    "source_hash": "53101057"
+  },
+  "web.domains.signup.signup_enabled_label": {
+    "text": "הרשמה מופעלת",
+    "source_hash": "296ac66d"
+  },
+  "web.domains.signup.signup_enabled_hint": {
+    "text": "עקוף האם ההרשמה מופעלת עבור דומיין זה",
+    "source_hash": "2ee146b6"
+  },
+  "web.domains.signup.autoverify_label": {
+    "text": "אמת חשבונות אוטומטית",
+    "source_hash": "4b103cd5"
+  },
+  "web.domains.signup.autoverify_hint": {
+    "text": "עקוף האם חשבונות חדשים מאומתים אוטומטית בדומיין זה",
+    "source_hash": "63866ecd"
+  },
+  "web.domains.sso.title": {
+    "text": "כניסה יחידה (SSO)",
+    "source_hash": "cf7cd744"
+  },
+  "web.domains.sso.config_title": {
+    "text": "תצורת SSO",
+    "source_hash": "afd5751e"
+  },
+  "web.domains.sso.config_description": {
+    "text": "הגדר אימות כניסה יחידה עבור דומיין זה",
+    "source_hash": "f37a0b47"
+  },
+  "web.domains.sso.access_denied": {
+    "text": "הגישה נדחתה",
+    "source_hash": "d134ca02"
+  },
+  "web.domains.sso.access_denied_description": {
+    "text": "אין לך הרשאה לנהל את הגדרות ה-SSO עבור דומיין זה. פנה למנהל הארגון שלך.",
+    "source_hash": "db7fcfeb"
+  },
+  "web.domains.sso.upgrade_to_configure": {
+    "text": "שדרג את התוכנית שלך כדי להגדיר כניסה יחידה עבור דומיין זה.",
+    "source_hash": "71fc0069"
+  },
+  "web.domains.sso.create_success": {
+    "text": "תצורת ה-SSO נוצרה בהצלחה",
+    "source_hash": "531c7d92"
+  },
+  "web.domains.sso.update_success": {
+    "text": "תצורת ה-SSO עודכנה בהצלחה",
+    "source_hash": "d98d8e83"
+  },
+  "web.domains.sso.delete_success": {
+    "text": "תצורת ה-SSO הוסרה בהצלחה",
+    "source_hash": "2e924798"
+  },
+  "web.domains.sso.test_success": {
+    "text": "בדיקת החיבור הצליחה — הספק הגיב כראוי",
+    "source_hash": "1570ddb0"
+  },
+  "web.domains.sso.test_failed": {
+    "text": "בדיקת החיבור נכשלה",
+    "source_hash": "a45a37dd"
+  },
+  "web.domains.sso.configure_sso": {
+    "text": "הגדר SSO",
+    "source_hash": "80d3a144"
+  },
+  "web.domains.sso.not_configured_notice": {
+    "text": "SSO עדיין לא הוגדר עבור דומיין זה. הפעל כניסה יחידה כדי לאפשר לחברי הצוות לבצע אימות באמצעות ספק הזהויות של הארגון שלך.",
+    "source_hash": "c439214b"
+  },
+  "web.domains.sso.edit_credentials": {
+    "text": "ערוך פרטי כניסה",
+    "source_hash": "5a6622b6"
+  },
+  "web.domains.sso.configure_button": {
+    "text": "הגדר",
+    "source_hash": "6defafa2"
+  },
+  "web.domains.sso.upgrade_required": {
+    "text": "שדרג כדי להגדיר",
+    "source_hash": "571cfa98"
+  },
+  "web.domains.add.field_label": {
+    "text": "דומיין מותאם אישית",
+    "source_hash": "d7d4c1e4"
+  },
+  "web.domains.add.field_help": {
+    "text": "שם המארח המדויק שהצוות שלך ישתמש בו, כמו {example}.",
+    "source_hash": "3ba71f78"
+  },
+  "web.domains.add.echo_label": {
+    "text": "הקישורים לסודות שלך ימוקמו בכתובת",
+    "source_hash": "ad60b17d"
+  },
+  "web.domains.add.apex_question": {
+    "text": "זהו כל הדומיין שלך — היכן צריכים למקם את הקישורים לסודות?",
+    "source_hash": "efacad1b"
+  },
+  "web.domains.add.apex_help": {
+    "text": "תת-דומיין משאיר את שאר {domain} ללא שינוי.",
+    "source_hash": "0f7e6181"
+  },
+  "web.domains.add.recommended": {
+    "text": "מומלץ",
+    "source_hash": "d70604e8"
+  },
+  "web.domains.add.no_wrong_answer": {
+    "text": "אין בחירה שגויה — בחר את זו שהצוות שלך יזהה.",
+    "source_hash": "a04f0086"
+  },
+  "web.domains.add.subdomains_label": {
+    "text": "תת-דומיינים פופולריים",
+    "source_hash": "d6ee8eac"
+  },
+  "web.domains.add.root_group_label": {
+    "text": "או השתמש בכל הדומיין שלך",
+    "source_hash": "5c23c007"
+  },
+  "web.domains.add.root_domain_label": {
+    "text": "השתמש בדומיין השורש שלי",
+    "source_hash": "9fbbe253"
+  },
+  "web.domains.add.root_domain_description": {
+    "text": "פעולה זו מפנה את כל {domain} אלינו — האתר שם מפסיק להיפתר — ודורשת רשומת A / ALIAS.",
+    "source_hash": "fae93847"
+  },
+  "web.domains.add.error_unrecognized_suffix": {
+    "text": "“.{0}” אינה סיומת דומיין מוכרת — בדוק אם יש שגיאת הקלדה (לדוגמה, {1}).",
+    "source_hash": "4b90033d"
+  },
+  "web.domains.add.error_invalid_hostname": {
+    "text": "הזן שם מארח תקין — אותיות, מספרים, נקודות בודדות ומקפים (לדוגמה, {0}).",
+    "source_hash": "c4ceabc1"
+  },
+  "web.domains.add.error_empty": {
+    "text": "אנא הזן שם דומיין.",
+    "source_hash": "d8e2c1e4"
+  },
+  "web.domains.add.continue_with": {
+    "text": "המשך עם {0}",
+    "source_hash": "73f8ab40"
+  },
+  "web.domains.auth_override.workspace_default_badge": {
+    "text": "ברירת מחדל של סביבת העבודה",
+    "source_hash": "da3706ee"
+  },
+  "web.domains.detail.dns_title": {
+    "text": "הגדרת DNS",
+    "source_hash": "6c63df31"
+  },
+  "web.domains.detail.dns_description": {
+    "text": "הפנה את הדומיין שלך לשרת זה באמצעות רשומת CNAME",
+    "source_hash": "080f84f0"
+  },
+  "web.domains.dns.title": {
+    "text": "תצורת DNS",
+    "source_hash": "da78c35d"
+  },
+  "web.domains.dns.point_domain_intro": {
+    "text": "הפנה את",
+    "source_hash": "2fc0c524"
+  },
+  "web.domains.dns.point_domain_outro": {
+    "text": "לשרת זה על ידי הוספת רשומת ה-DNS הבאה אצל הספק שלך.",
+    "source_hash": "8d260c05"
+  },
+  "web.domains.dns.cname_heading": {
+    "text": "צור רשומת CNAME",
+    "source_hash": "11aeef5a"
+  },
+  "web.domains.dns.apex_heading": {
+    "text": "צור רשומת ALIAS או ANAME",
+    "source_hash": "41135375"
+  },
+  "web.domains.dns.apex_notice": {
+    "text": "דומיינים ברמת השורש (apex) אינם יכולים להשתמש ברשומת CNAME. במקום זאת, השתמש ברשומת ALIAS או ANAME של ספק ה-DNS שלך, או הפנה רשומת A לכתובת ה-IP של השרת שלך.",
+    "source_hash": "2d1c3298"
+  },
+  "web.domains.email.from_address_local_placeholder": {
+    "text": "no-reply",
+    "source_hash": "510d274d"
+  },
+  "web.domains.homepage.title": {
+    "text": "דף בית",
+    "source_hash": "9e3391e9"
+  },
+  "web.domains.homepage.description": {
+    "text": "מה מבקרים יכולים לעשות בדף הבית של הדומיין שלך",
+    "source_hash": "974d159e"
+  },
+  "web.domains.homepage.option_private_title": {
+    "text": "דף נחיתה פרטי",
+    "source_hash": "dfd5bd1c"
+  },
+  "web.domains.homepage.option_private_description": {
+    "text": "מבקרים רואים דף נחיתה פרטי ללא טופס אינטראקטיבי",
+    "source_hash": "4d9aaf6f"
+  },
+  "web.domains.homepage.option_create_title": {
+    "text": "טופס יצירת סוד",
+    "source_hash": "6539dfc1"
+  },
+  "web.domains.homepage.option_create_description": {
+    "text": "מבקרים יכולים ליצור קישורים לסודות משלהם",
+    "source_hash": "884310f4"
+  },
+  "web.domains.homepage.option_incoming_title": {
+    "text": "טופס סודות נכנסים",
+    "source_hash": "882997bf"
+  },
+  "web.domains.homepage.option_incoming_description": {
+    "text": "מבקרים יכולים לשלוח סודות לנמענים שהגדרת",
+    "source_hash": "86bdaedb"
+  },
+  "web.domains.homepage.incoming_requires_recipients": {
+    "text": "מחייב הפעלת סודות נכנסים עם נמען אחד לפחות",
+    "source_hash": "0462611d"
+  },
+  "web.domains.homepage.configure_recipients": {
+    "text": "הגדר נמענים",
+    "source_hash": "1c3df8b4"
+  },
+  "web.domains.homepage.status_private": {
+    "text": "דף נחיתה פרטי",
+    "source_hash": "dfd5bd1c"
+  },
+  "web.domains.homepage.status_create": {
+    "text": "ציבורי: מבקרים יוצרים סודות",
+    "source_hash": "251cfb95"
+  },
+  "web.domains.homepage.status_incoming": {
+    "text": "ציבורי: מבקרים שולחים לך סודות",
+    "source_hash": "baa926b8"
+  },
+  "web.domains.homepage.status_incoming_unready": {
+    "text": "סודות נכנסים אינם מוכנים — מוצג דף נחיתה פרטי",
+    "source_hash": "a5cc237c"
+  },
+  "web.domains.homepage.badge_incoming": {
+    "text": "נכנס",
+    "source_hash": "e301820a"
+  },
+  "web.domains.homepage.update_success": {
+    "text": "הגדרות דף הבית נשמרו",
+    "source_hash": "4eac9f45"
+  },
+  "web.domains.homepage.homepage_uses_incoming_warning": {
+    "text": "דף הבית של דומיין זה מציג כעת את טופס הסודות הנכנסים. השבתת סודות נכנסים או הסרת כל הנמענים תחליף את דף הבית לדף נחיתה פרטי עד שהסודות הנכנסים יהיו מוכנים שוב.",
+    "source_hash": "cc0d4997"
+  },
+  "web.domains.signin.effective_status_label": {
+    "text": "התחברות בדומיין זה",
+    "source_hash": "d8b884c3"
+  },
+  "web.domains.signin.dormant_notice": {
+    "text": "ההתחברות מושבתת בכל סביבת העבודה, ולכן אינה זמינה בכל דומיין. ההגדרות שלך כאן נשמרות ונכנסות לתוקף כאשר ההתחברות לסביבת העבודה תופעל שוב.",
+    "source_hash": "723d35dc"
+  },
+  "web.domains.signup.effective_status_label": {
+    "text": "הרשמות בדומיין זה",
+    "source_hash": "115ab21b"
+  },
+  "web.domains.signup.dormant_notice": {
+    "text": "ההרשמות מושבתות בכל סביבת העבודה, ולכן אינן זמינות בכל דומיין. ההגדרות שלך כאן נשמרות ונכנסות לתוקף כאשר ההרשמות לסביבת העבודה יופעלו שוב.",
+    "source_hash": "49faefe4"
+  },
+  "web.domains.link_domain_no_settings": {
+    "text": "לדומיין זה אין דף הגדרות",
+    "source_hash": "8a8430fe"
+  },
+  "web.domains.signin.sso_restrict_warning_title": {
+    "text": "הגבלה ל-SSO תסגור את הכניסה בדומיין זה",
+    "source_hash": "3476cb5c"
+  },
+  "web.domains.signin.sso_restrict_warning_body": {
+    "text": "SSO אינו זמין בדומיין זה, והגבלה שלא ניתן לקיים חוסמת את הכניסה לחלוטין. איש לא יוכל להיכנס כאן עד ש-SSO יפעל. תקן תחילה את SSO, או הגבל בכל זאת והשלם את ההגדרה.",
+    "source_hash": "086e3247"
+  },
+  "web.domains.signin.sso_restrict_warning_confirm": {
+    "text": "הגבל בכל זאת",
+    "source_hash": "4674e3cf"
+  },
+  "web.domains.signin.restriction_unavailable_notice": {
+    "text": "הכניסה אינה זמינה בדומיין זה: הוא מוגבל ל-{method}, שאינה יכולה לפעול כאן. בחר שיטה אחרת, או הפוך את {method} לזמינה.",
+    "source_hash": "ca1b7f69"
+  },
+  "web.domains.signin.restriction_unavailable_unknown_notice": {
+    "text": "הכניסה אינה זמינה בדומיין זה: הוא מוגבל לשיטה שאינה יכולה לפעול כאן. בחר שיטה אחרת, או אפס דומיין זה לברירות המחדל.",
+    "source_hash": "8c2cce6b"
+  },
+  "web.domains.signin.restriction_conflict_notice": {
+    "text": "דומיין זה מגביל את הכניסה לשיטה שונה מההגבלה החלה על סביבת העבודה כולה ({method}), ולכן אף אחת מהן אינה יכולה לחול והכניסה אינה זמינה כאן. התאם לשיטה של סביבת העבודה, או אפס דומיין זה לברירות המחדל.",
+    "source_hash": "15398362"
+  },
+  "web.domains.signin.method_webauthn_unavailable": {
+    "text": "מפתחות גישה קשורים לדומיין הכניסה הראשי ואינם זמינים עדיין בדומיינים מותאמים אישית",
+    "source_hash": "88833e0f"
+  },
+  "web.domains.sso.connection_disabled_badge": {
+    "text": "החיבור מושבת",
+    "source_hash": "99d6092c"
+  },
+  "web.domains.sso.connection_disabled_hint": {
+    "text": "פרטי הכניסה של SSO שמורים, אך החיבור כבוי. הפעל אותו תחת ערוך פרטי כניסה.",
+    "source_hash": "90180d6c"
+  },
+  "web.domains.sso.status_active_badge": {
+    "text": "פעיל",
+    "source_hash": "92340695"
+  },
+  "web.domains.sso.status_active_hint": {
+    "text": "חברים יכולים להיכנס באמצעות חיבור SSO זה בדומיין זה.",
+    "source_hash": "313ec61e"
+  },
+  "web.domains.sso.status_not_configured_badge": {
+    "text": "לא הוגדר",
+    "source_hash": "dd1841d2"
+  },
+  "web.domains.sso.status_not_configured_hint": {
+    "text": "עדיין לא נשמרו פרטי כניסה של SSO עבור דומיין זה.",
+    "source_hash": "d817ad9c"
+  },
+  "web.domains.sso.status_not_permitted_badge": {
+    "text": "אינו מותר בדומיין זה",
+    "source_hash": "afbd20ba"
+  },
+  "web.domains.sso.status_not_permitted_hint": {
+    "text": "SSO כבוי בדומיין זה, ולכן דף הכניסה אינו מציע אותו.",
+    "source_hash": "ef092481"
+  },
+  "web.domains.sso.status_auth_disabled_badge": {
+    "text": "הכניסה מושבתת",
+    "source_hash": "bb807607"
+  },
+  "web.domains.sso.status_auth_disabled_hint": {
+    "text": "הכניסה כבויה בדומיין זה, ולכן לא מוצעת אף שיטה — כולל SSO.",
+    "source_hash": "3a98964b"
+  },
+  "web.domains.sso.status_unsupported_provider_badge": {
+    "text": "ספק לא נתמך",
+    "source_hash": "1609d5fb"
+  },
+  "web.domains.sso.status_unsupported_provider_hint": {
+    "text": "לא ניתן להשתמש בספק השמור עבור SSO ברמת הדומיין. ערוך את פרטי הכניסה ובחר Microsoft Entra ID או OIDC גנרי.",
+    "source_hash": "72ea0a2e"
+  },
+  "web.domains.sso.status_unavailable_badge": {
+    "text": "לא זמין",
+    "source_hash": "ca184496"
+  },
+  "web.domains.sso.status_unavailable_hint": {
+    "text": "לא ניתן להציע SSO בדומיין זה כרגע. בדוק את פרטי הכניסה של SSO ואת הגדרות הכניסה של דומיין זה.",
+    "source_hash": "b03b14f4"
+  },
+  "web.domains.status_tooltip_pending_ssl": {
+    "text": "הדומיין אומת — ממתין לתעודה שלו",
+    "source_hash": "541bd705"
+  },
+  "web.domains.2_create_the_alias_record": {
+    "text": "2. צור רשומת ALIAS או ANAME",
+    "source_hash": "17b04e6a"
+  },
+  "web.domains.sso.status_saml_disabled_badge": {
+    "text": "SAML כבוי",
+    "source_hash": "4e2eab51"
+  },
+  "web.domains.sso.status_saml_disabled_hint": {
+    "text": "מפעיל האתר כיבה את SAML בהתקנה זו. התצורה שלך נשמרת ותחזור לפעול כאשר SAML יופעל מחדש; עד אז דומיין זה אינו מציע כניסה באמצעות SAML.",
+    "source_hash": "5ba9624c"
+  },
+  "web.domains.sso.status_domain_unverified_badge": {
+    "text": "ממתין לאימות הדומיין",
+    "source_hash": "ea7459c2"
+  },
+  "web.domains.sso.status_domain_unverified_hint": {
+    "text": "אימות דומיין זה טרם הושלם, ולכן חיבור ה-SSO שלו עדיין אינו פעיל בדף הכניסה שלו. SSO יופעל לאחר שהדומיין יאומת ו-SSO יותר עבורו כאן.",
+    "source_hash": "57ee0066"
+  },
+  "web.domains.verify_outcome.indeterminate": {
+    "text": "לא הצלחנו להשלים את בדיקת ה-DNS כרגע. אין פירוש הדבר שהרשומות שלך שגויות. נסה שוב בעוד מספר דקות.",
+    "source_hash": "4e76a9ef"
+  },
+  "web.domains.verify_outcome.record_not_found": {
+    "text": "לא מצאנו את רשומת ה-TXT הצפויה. ודא שהיא קיימת ושהערך שלה תואם בדיוק. רשומות DNS חדשות עשויות להופיע רק לאחר מספר דקות.",
+    "source_hash": "6c847d46"
+  },
+  "web.domains.sso.diagnostics_passed": {
+    "text": "בדיקת התצורה השמורה עברה בהצלחה",
+    "source_hash": "91fc2d97"
+  },
+  "web.domains.sso.diagnostics_failed": {
+    "text": "בדיקת התצורה השמורה מצאה בעיה",
+    "source_hash": "18ca7a0e"
+  },
+  "web.domains.sso.diagnostics_inconclusive": {
+    "text": "בדיקת התצורה השמורה לא הגיעה להכרעה",
+    "source_hash": "2be86c66"
+  },
+  "web.domains.sso.diagnostics_error": {
+    "text": "בדיקת התצורה השמורה נכשלה",
+    "source_hash": "e1fe6a59"
+  },
+  "web.domains.sso.diagnostics_rate_limited": {
+    "text": "תצורה זו נבדקה יותר מדי פעמים לאחרונה. נסה שוב מאוחר יותר.",
+    "source_hash": "4b8d53b8"
+  },
+  "web.domains.sso.diagnostics_rate_limited_retry": {
+    "text": "תצורה זו נבדקה יותר מדי פעמים לאחרונה. נסה שוב בעוד כ-{minutes} דקות.",
+    "source_hash": "fdbdeaf6"
+  }
+}

@@ -1,0 +1,15 @@
+<%= t('email.new_login_alert.title') %>
+
+<%= t('email.new_login_alert.body', product_name: product_name, date: login_at_date, time: login_at_time) %>
+
+<%= t('email.new_login_alert.device_label') %> <%= device_info %>
+<%# Location is the only sign-in origin shown: a country code, a masked IP, or
+    'Unknown location'. The alert intentionally has no IP line. -%>
+<%= t('email.new_login_alert.location_label') %> <%= location %>
+
+<%= t('email.new_login_alert.secure_account_button') %>:
+<%= baseuri %><%= security_settings_path %>
+
+<%= t('email.new_login_alert.not_you_notice') %>
+
+<%= signature_name || t('email.new_login_alert.signature') %>

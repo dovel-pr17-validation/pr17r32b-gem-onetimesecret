@@ -1,0 +1,62 @@
+# .github/workflows/housekeeping-github-issues.yml
+---
+# Onetime Secret Ops
+#
+# This workflow notifies and closes issues and PRs that have had no activity
+# for a specified amount of time.
+#
+# Documentation:
+# https://github.com/actions/stale
+#
+# ## Workflow Guidance
+#
+# - Use existing tags, don't create new tags, but suggestions always welcome.
+# - Keep any Issue or PR templates minimal.
+# - Use separate github workflows for triggers that are not copacetic: for
+#   example, something that runs when an issue created shouldn't run when a
+#   PR is created as well; or workflows that are meant to run on different
+#   schedules.
+#
+# ## Future Considerations
+#
+# - Consider adding a `needs-triage` label and auto-labeling workflow to
+#   automatically tag new issues for review. This helps ensure nothing falls
+#   through the cracks and provides visibility into the inbound issue queue.
+#
+
+name: Github Issues - Housekeeping
+
+on:
+  schedule:
+    - cron: '27 4 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  stale:
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
+        with:
+          stale-issue-message: 'Just a heads up -- this issue is being marked stale (open 90 days with no activity). It will close automatically in a few weeks. You can comment or remove the stale label to restart the clock. If you need help or have questions, check our [contribution guide](https://github.com/onetimesecret/onetimesecret/blob/main/CONTRIBUTING.md).'
+          close-issue-message: 'This issue is now closed. 🌻 Feel free to reopen if you have new information or want to continue the discussion.'
+          stale-pr-message: 'Just a heads up -- this PR is being marked stale (open 45 days with no activity). It will close automatically in a couple weeks. You can comment or remove the stale label to restart the clock. Need help getting this merged? Let us know!'
+          close-pr-message: 'This PR is now closed. Thank you for your contribution! Feel free to open a new PR when you are ready to continue.'
+          days-before-issue-stale: 90
+          days-before-issue-close: 28
+          days-before-pr-stale: 45
+          days-before-pr-close: 14
+          exempt-pr-labels: auto-update,dependencies,security
+          exempt-issue-labels: security,improvement,bug,wontfix,privacy
+          exempt-draft-pr: true
+          stale-issue-label: Stale Boetticher
+          stale-pr-label: Stale Boetticher
+          # Increased from 30 to handle longtail backlog cleanup more efficiently
+          operations-per-run: 100

@@ -1,0 +1,38 @@
+{
+  "web.dashboard.title_received": {
+    "text": "수신됨",
+    "source_hash": "49f19bee"
+  },
+  "web.dashboard.title_not_received": {
+    "text": "수신되지 않음",
+    "source_hash": "a4cf12ca"
+  },
+  "web.dashboard.title_no_recent_secrets": {
+    "text": "최근 비밀 메시지 없음",
+    "source_hash": "02b7b86b"
+  },
+  "web.dashboard.get_started_by_creating_your_first_secret": {
+    "text": "첫 번째 비밀 메시지를 생성하여 시작하세요.",
+    "source_hash": "e96db24d"
+  },
+  "web.dashboard.fetch_error_title": {
+    "text": "데이터를 로드할 수 없음",
+    "source_hash": "ba7df1be"
+  },
+  "web.dashboard.fetch_error_description": {
+    "text": "데이터를 로드하는 데 문제가 발생했습니다. 다시 시도해 주세요.",
+    "source_hash": "ff0d904e"
+  },
+  "web.teams.create_first_team_title": {
+    "text": "첫 번째 팀 만들기",
+    "source_hash": "54693f14"
+  },
+  "web.teams.create_first_team_description": {
+    "text": "팀을 통해 공유 워크스페이스에서 다른 사람들과 협업할 수 있습니다.",
+    "source_hash": "d61b86b5"
+  },
+  "web.teams.create_team": {
+    "text": "팀 만들기",
+    "source_hash": "284ff194"
+  }
+}

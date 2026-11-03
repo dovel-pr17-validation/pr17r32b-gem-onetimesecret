@@ -1,0 +1,878 @@
+// src/utils/features.ts
+
+import {
+  featuresSchema,
+  type AuthenticationSettings,
+  type Features,
+} from '@/schemas/contracts/bootstrap';
+import { getBootstrapValue } from '@/services/bootstrap.service';
+import { debugLog } from '@/utils/debug';
+
+/**
+ * Feature detection utilities for checking enabled authentication methods
+ * Features are configured on the backend via environment variables and
+ * exposed through window.__BOOTSTRAP_ME__, accessed via bootstrap.service.ts
+ *
+ * Two predicate flavours:
+ *
+ * - Pure `*Of(state)` helpers operate on a bootstrap-shape input and are the
+ *   single source of truth for predicate semantics. Use these from reactive
+ *   contexts (Vue computeds reading the bootstrap Pinia store) so visibility
+ *   updates without a page reload.
+ *
+ * - Snapshot-reading wrappers (`hasPassword()`, `isSsoOnlyMode()`, etc.) call
+ *   the `*Of` helpers against the bootstrap snapshot. Use these from non-Vue
+ *   callers (route guards, pre-Pinia consumers); they stay current because
+ *   `bootstrapStore.update()` syncs the snapshot via `updateBootstrapSnapshot`.
+ */
+
+// Cached validated features object - parsed once, reused thereafter
+let validatedFeaturesCache: Features | null = null;
+
+/**
+ * Returns validated features with schema enforcement.
+ * Parses once and caches the result. Falls back to defaults on validation failure.
+ */
+function getValidatedFeatures(): Features {
+  if (validatedFeaturesCache) return validatedFeaturesCache;
+
+  if (typeof window === 'undefined') {
+    return featuresSchema.parse({});
+  }
+
+  const features = getBootstrapValue('features');
+  try {
+    validatedFeaturesCache = featuresSchema.parse(features);
+  } catch (error) {
+    console.error('[Features] Bootstrap validation failed:', error);
+    validatedFeaturesCache = featuresSchema.parse({});
+  }
+
+  return validatedFeaturesCache;
+}
+
+/**
+ * Valid values for the restrict_to single-auth-method override.
+ */
+export type RestrictTo = 'password' | 'email_auth' | 'webauthn' | 'sso';
+
+export interface AuthFeatures {
+  magicLinksEnabled: boolean;
+  webauthnEnabled: boolean;
+  ssoEnabled: boolean;
+  restrictTo: RestrictTo | null;
+}
+
+/**
+ * Checks if magic link authentication is enabled.
+ *
+ * The backend currently exposes two related flags:
+ * - `magic_links`: preferred flag for magic link authentication.
+ * - `email_auth`: legacy/compatibility flag used by older configurations.
+ *
+ * To remain backwards compatible, magic links are considered enabled if either
+ * flag is explicitly set to `true`. Once all backends use a single flag, this
+ * logic can be simplified.
+ */
+export function isMagicLinksEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  return features?.magic_links === true || features?.email_auth === true;
+}
+
+/**
+ * Pure predicate: MFA (TOTP + recovery codes) enabled in the given state.
+ */
+export function isMfaEnabledOf(state: { features?: Features }): boolean {
+  return state.features?.mfa === true;
+}
+
+/**
+ * Checks if MFA (TOTP + recovery codes) is enabled
+ */
+export function isMfaEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  return isMfaEnabledOf({ features: getBootstrapValue('features') });
+}
+
+/**
+ * Pure predicate: WebAuthn enabled in the given state.
+ */
+export function isWebAuthnEnabledOf(state: { features?: Features }): boolean {
+  return state.features?.webauthn === true;
+}
+
+/**
+ * Checks if WebAuthn authentication is enabled
+ */
+export function isWebAuthnEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  return isWebAuthnEnabledOf({ features: getBootstrapValue('features') });
+}
+
+/**
+ * Pure predicate: active sessions (view + revoke per-device sessions) enabled
+ * in the given state. Mirrors AUTH_ACTIVE_SESSIONS_ENABLED on the backend.
+ */
+export function isActiveSessionsEnabledOf(state: { features?: Features }): boolean {
+  return state.features?.active_sessions === true;
+}
+
+/**
+ * Checks if the active sessions feature is enabled
+ */
+export function isActiveSessionsEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  return isActiveSessionsEnabledOf({ features: getBootstrapValue('features') });
+}
+
+/**
+ * Checks if account lockout (after failed login attempts) is enabled
+ */
+export function isLockoutEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  return features?.lockout === true;
+}
+
+/**
+ * Checks if password complexity requirements are enabled
+ */
+export function isPasswordRequirementsEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  return features?.password_requirements === true;
+}
+
+/**
+ * Pure predicate: SSO authentication enabled in the given state.
+ *
+ * `sso` can be a boolean (false) or an object with an `enabled` property.
+ */
+export function isSsoEnabledOf(state: { features?: Features }): boolean {
+  const sso = state.features?.sso;
+  if (typeof sso === 'boolean') return sso;
+  return sso?.enabled === true;
+}
+
+/**
+ * Checks if SSO authentication is enabled
+ */
+export function isSsoEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  return isSsoEnabledOf({ features: getBootstrapValue('features') });
+}
+
+/**
+ * Provider entry from bootstrap state
+ */
+export interface SsoProvider {
+  route_name: string;
+  display_name: string;
+}
+
+/**
+ * Returns the list of configured SSO providers from bootstrap state.
+ * Each provider has a route_name (for constructing /auth/sso/{route_name})
+ * and a display_name (for "Sign in with X" button text).
+ *
+ * Used by AuthMethodSelector and available for any component needing the
+ * configured provider list (e.g., account settings, admin views).
+ */
+export function getSsoProviders(): SsoProvider[] {
+  if (typeof window === 'undefined') return [];
+
+  const features = getBootstrapValue('features');
+  const sso = features?.sso;
+
+  // Disabled or not configured
+  if (!sso || typeof sso === 'boolean') return [];
+  if (!sso.enabled) return [];
+
+  // Return providers array, or empty if not configured
+  if (Array.isArray(sso.providers)) {
+    return sso.providers;
+  }
+
+  return [];
+}
+
+/**
+ * Returns SSO providers the server permits for authenticated identity Connect.
+ *
+ * This is intentionally separate from getSsoProviders(): a custom domain can
+ * offer platform-fallback SSO for sign-in while its callback must refuse a
+ * platform Connect intent on that tenant surface.
+ */
+export function getSsoConnectProviders(): SsoProvider[] {
+  if (typeof window === 'undefined') return [];
+
+  const sso = getBootstrapValue('features')?.sso;
+  if (!sso || typeof sso === 'boolean' || !sso.enabled) return [];
+
+  return Array.isArray(sso.connect_providers) ? sso.connect_providers : [];
+}
+
+/**
+ * Built-in friendly labels for the omniauth strategies shipped with the app.
+ *
+ * Keyed on the omniauth ROUTE NAME ('entra'), NOT the domain-SSO strategy id
+ * ('entra_id') — that is a separate surface with its own label list (see
+ * DomainSsoConfigForm.vue).
+ */
+const PROVIDER_LABELS: Record<string, string> = {
+  oidc: 'OpenID Connect',
+  entra: 'Microsoft Entra',
+  github: 'GitHub',
+  gitlab: 'GitLab',
+  google: 'Google',
+  apple: 'Apple',
+  // Without an entry the capitalized-route fallback would render 'Saml'.
+  saml: 'SAML',
+};
+
+/**
+ * Canonical display label for an omniauth route name ('entra' → 'Microsoft Entra').
+ *
+ * Resolution order:
+ * 1. The built-in label above.
+ * 2. The capitalized route name, so a backend that adds a strategy still renders
+ *    sensibly.
+ *
+ * DELIBERATELY does NOT consult the bootstrap `display_name`. The backend always
+ * populates that field with a generic default — lib/onetime/auth_config.rb
+ * resolves it to `sso_display_name || 'SSO'`, so a stock OIDC install (no
+ * OIDC_DISPLAY_NAME set) ships display_name: 'SSO' and entra ships 'Microsoft'.
+ * Preferring it here would make this map unreachable in production and silently
+ * downgrade prose like "You signed in with OpenID Connect" to "…with SSO".
+ *
+ * Use this wherever the provider is named in prose or in a linked-identity row:
+ * ConnectedIdentities linked rows, LinkSso, SsoLinkConfirm.
+ * Use configuredProviderLabel() — NOT this — for the Connect buttons, where the
+ * operator's chosen name is what should win. Do not collapse the two into one
+ * helper: the precedence difference is intentional and user-visible.
+ */
+export function providerLabel(routeName: string): string {
+  if (!routeName) return '';
+
+  return PROVIDER_LABELS[routeName] ?? routeName.charAt(0).toUpperCase() + routeName.slice(1);
+}
+
+/**
+ * Display label for a CONFIGURED provider, operator `display_name` first.
+ *
+ * The inverse precedence of providerLabel(): an operator who sets
+ * OIDC_DISPLAY_NAME='Acme SSO' expects the Connect button to read
+ * "Connect Acme SSO" with no frontend change. Falls back to providerLabel()
+ * (built-in map, then capitalized route name) when display_name is blank.
+ *
+ * Only the ConnectedIdentities connect buttons use this — see providerLabel()
+ * for why the other label sites must not.
+ */
+export function configuredProviderLabel(provider: SsoProvider): string {
+  const name = provider.display_name?.trim();
+  return name ? name : providerLabel(provider.route_name);
+}
+
+/**
+ * Checks if SSO-only authentication is enforced for this domain.
+ * When true, password-based authentication is disabled and users
+ * must sign in via the configured SSO provider.
+ *
+ * This is a per-domain setting configured by domain administrators,
+ * distinct from the app-level restrict_to='sso' mode.
+ */
+export function isSsoEnforcedForDomain(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getValidatedFeatures();
+  const sso = features.sso;
+
+  if (!sso || typeof sso === 'boolean') return false;
+
+  return sso.enforce_sso_only === true;
+}
+
+// ── Single-auth-method restriction ──────────────────────────────────
+
+const VALID_RESTRICT_TO: readonly string[] = ['password', 'email_auth', 'webauthn', 'sso'];
+
+/**
+ * Returns the active single-auth-method restriction, or null when all
+ * enabled authentication methods are shown.
+ *
+ * Possible values: 'password', 'email_auth', 'webauthn', 'sso'.
+ */
+export function getRestrictTo(): RestrictTo | null {
+  if (typeof window === 'undefined') return null;
+
+  const features = getBootstrapValue('features');
+  const value = features?.restrict_to;
+  if (typeof value === 'string' && VALID_RESTRICT_TO.includes(value)) {
+    return value as RestrictTo;
+  }
+  return null;
+}
+
+/**
+ * Pure predicate: SSO-only mode active in the given state.
+ */
+export function isSsoOnlyModeOf(state: { features?: Features }): boolean {
+  return state.features?.restrict_to === 'sso';
+}
+
+/**
+ * Checks if SSO-only mode is active.
+ * When true, password-based auth routes are disabled and the sign-in page
+ * shows only SSO provider buttons.
+ *
+ * The scalar only carries 'sso' when the server's resolver could honor it:
+ * an unavailable restriction is nulled and reported through
+ * features.effective_restrict_to as state 'unavailable', never widened back
+ * to standard mode. So no extra frontend availability guard is needed — but
+ * see AuthMethodSelector: display code must fail closed on
+ * effective_restrict_to, not on this scalar.
+ */
+export function isSsoOnlyMode(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const result = isSsoOnlyModeOf({ features: getBootstrapValue('features') });
+  debugLog.features('features.isSsoOnlyMode', { restrict_to: getRestrictTo(), result });
+  return result;
+}
+
+/**
+ * Checks if password-only mode is active.
+ * When true, only the password form is shown on the login page;
+ * other enabled auth methods (SSO, WebAuthn, magic links) are hidden.
+ */
+export function isPasswordOnlyMode(): boolean {
+  return getRestrictTo() === 'password';
+}
+
+/**
+ * Whether the password form is offered at all in this context.
+ *
+ * A single-method restriction other than 'password' withholds the password
+ * form entirely (see AuthMethodSelector's restrictedMethod, which passes
+ * password-enabled=false for 'email_auth' / 'webauthn' and renders SSO-only
+ * for 'sso'). Callers that want to preselect the password tab as a contextual
+ * default must check this first: a 'password' default handed to a branch with
+ * no password tab resolves to whatever tab happens to be first, which is a
+ * silent, arbitrary choice rather than the intended one.
+ */
+export function isPasswordSignInOffered(): boolean {
+  const restrictTo = getRestrictTo();
+  return restrictTo === null || restrictTo === 'password';
+}
+
+/**
+ * Checks if email-auth-only (magic links) mode is active.
+ * When true, only the email link form is shown on the login page.
+ */
+export function isEmailAuthOnlyMode(): boolean {
+  return getRestrictTo() === 'email_auth';
+}
+
+/**
+ * Checks if WebAuthn-only mode is active.
+ * When true, only biometric/security-key authentication is shown.
+ */
+export function isWebAuthnOnlyMode(): boolean {
+  return getRestrictTo() === 'webauthn';
+}
+
+/**
+ * Pure predicate: full auth mode (Rodauth with SQL db) in the given state.
+ */
+export function isFullAuthModeOf(state: { authentication?: AuthenticationSettings }): boolean {
+  return state.authentication?.mode === 'full';
+}
+
+/**
+ * Checks if authentication mode is 'full' (Rodauth with SQL db).
+ * When mode is 'simple' (or undefined), security features like
+ * password change, MFA, sessions, and passkeys are not available.
+ */
+export function isFullAuthMode(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const authentication = getBootstrapValue('authentication');
+  const result = isFullAuthModeOf({ authentication });
+  debugLog.features('features.isFullAuthMode', { mode: authentication?.mode, result });
+  return result;
+}
+
+/**
+ * Pure predicate: user has a password set in the given state.
+ *
+ * Accepts an optional `has_password` so the snapshot wrapper can pass through
+ * `getBootstrapValue('has_password')` (typed `boolean | null | undefined`;
+ * null is the server's "unknown" signal) without a coercion at every call
+ * site. Anything other than a definitive true stays conservative.
+ */
+export function hasPasswordOf(state: { has_password?: boolean | null }): boolean {
+  return state.has_password === true;
+}
+
+/**
+ * Checks if the current authenticated user has a password set.
+ * SSO-only accounts (Entra, Google, GitHub) return false.
+ * Used to hide password-based security settings for SSO-only users.
+ */
+export function hasPassword(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  return hasPasswordOf({ has_password: getBootstrapValue('has_password') });
+}
+
+/**
+ * Pure predicate: policy permits this account to hold a local password in the
+ * given state (#3886).
+ *
+ * Independent of credential presence (hasPasswordOf): `has_password` says what
+ * exists, this says what policy allows. The backend emits false only when SSO
+ * is enforced (app-level restrict_to='sso' or per-domain enforce_sso_only) or
+ * auth mode is not 'full'. Missing/undefined defaults to true (permissive) so
+ * consumer accounts keep the Set-password affordance.
+ */
+export function isPasswordAuthPermittedOf(state: { password_auth_permitted?: boolean }): boolean {
+  return state.password_auth_permitted !== false;
+}
+
+/**
+ * Checks if the current account is permitted to hold a local password.
+ * Combined with hasPassword() to pick a screen: password present => Change
+ * password; absent but permitted => Set password (mailbox-proof); absent and
+ * not permitted => password management hidden (SSO-managed).
+ */
+export function isPasswordAuthPermitted(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  return isPasswordAuthPermittedOf({
+    password_auth_permitted: getBootstrapValue('password_auth_permitted'),
+  });
+}
+
+/**
+ * Pure predicate: current user is owner in the given state.
+ */
+export function isOwnerOf(state: {
+  organization?: { current_user_role?: string | null } | null;
+}): boolean {
+  return state.organization?.current_user_role === 'owner';
+}
+
+/**
+ * Checks if the current authenticated user is an owner of their org.
+ */
+export function isOwner(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const org = getBootstrapValue('organization');
+  return isOwnerOf({ organization: org });
+}
+
+/**
+ * Pure predicate: current user is owner or admin in the given state.
+ *
+ * Reads `organization.current_user_role` directly from the bootstrap shape,
+ * matching the `*Of` pattern used by all other feature predicates. Do NOT
+ * route through useOrgPermissions here — that reads organizationStore
+ * (one reactive hop later) and would cause tab flash on load.
+ */
+export function isOwnerOrAdminOf(state: {
+  organization?: { current_user_role?: string | null } | null;
+}): boolean {
+  const role = state.organization?.current_user_role;
+  return role === 'owner' || role === 'admin';
+}
+
+/**
+ * Checks if the current authenticated user is an owner or admin in their org.
+ * Used to gate account settings sections that are managed by org owners,
+ * not individual members.
+ */
+export function isOwnerOrAdmin(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const org = getBootstrapValue('organization');
+  return isOwnerOrAdminOf({ organization: org });
+}
+
+/**
+ * What the frontend needs to know about each custom-domain validation
+ * strategy. Mirrors the capability predicates the backend strategies declare
+ * (lib/onetime/domain_validation/base_strategy.rb):
+ *
+ * - `checksOwnership` — BaseStrategy#proves_ownership?. The backend requires
+ *   the TXT challenge record before a domain becomes verified, and it writes a
+ *   per-domain status (the vhost blob) the badge can render.
+ * - `usesApproximatedProxy` — the DNS targets are Approximated's proxy
+ *   (`cluster.proxy_ip` / `proxy_host`) and the Approximated DNS widget applies.
+ *
+ * This table is the only place a strategy name is interpreted. Components,
+ * route guards and composables go through the predicates below; do not compare
+ * `validation_strategy` to a literal anywhere else. A strategy that is not
+ * listed (older backend, unknown value) gets no capabilities, which is the
+ * 'passthrough' behaviour.
+ *
+ * Only canonical names are listed. The config accepts aliases and any letter
+ * case ('caddy', 'external'); the backend resolves those to the canonical name
+ * before sending it (DomainValidation::Features.effective_strategy_name), so
+ * do not add alias strings here or in components.
+ */
+interface DomainValidationCapabilities {
+  checksOwnership: boolean;
+  usesApproximatedProxy: boolean;
+}
+
+const NO_DOMAIN_VALIDATION_CAPABILITIES: DomainValidationCapabilities = {
+  checksOwnership: false,
+  usesApproximatedProxy: false,
+};
+
+const DOMAIN_VALIDATION_CAPABILITIES: ReadonlyMap<string, DomainValidationCapabilities> = new Map([
+  ['approximated', { checksOwnership: true, usesApproximatedProxy: true }],
+  ['caddy_on_demand', { checksOwnership: true, usesApproximatedProxy: false }],
+  ['passthrough', NO_DOMAIN_VALIDATION_CAPABILITIES],
+]);
+
+/**
+ * Bootstrap-shape input for the domain validation predicates. The domains API
+ * `details.cluster` object carries the same `validation_strategy` key, so a
+ * caller holding a cluster can pass `{ domains: cluster }`.
+ */
+interface DomainValidationState {
+  domains?: { validation_strategy?: string | null } | null;
+}
+
+function domainValidationCapabilitiesOf(
+  state: DomainValidationState
+): DomainValidationCapabilities {
+  const strategy = state.domains?.validation_strategy;
+  if (typeof strategy !== 'string') return NO_DOMAIN_VALIDATION_CAPABILITIES;
+  return DOMAIN_VALIDATION_CAPABILITIES.get(strategy) ?? NO_DOMAIN_VALIDATION_CAPABILITIES;
+}
+
+/**
+ * Pure predicate: the install's validation strategy checks domain ownership
+ * (the TXT challenge record) in the given state.
+ */
+export function isDomainOwnershipCheckedOf(state: DomainValidationState): boolean {
+  return domainValidationCapabilitiesOf(state).checksOwnership;
+}
+
+/**
+ * Checks whether the install's validation strategy checks domain ownership.
+ *
+ * True under 'approximated' and 'caddy_on_demand': the backend requires the
+ * TXT challenge record before a domain becomes verified, and it writes the
+ * per-domain vhost status that drives the active / DNS-incorrect / pending
+ * badges. Callers use this to show the verification status, the TXT record
+ * and the verify action, and to route to the DomainVerify screen.
+ *
+ * False under 'passthrough', which performs no ownership check (ADR-017) and
+ * never populates the status, so every domain would misleadingly read
+ * "Inactive". Those installs get the simpler DomainDns screen.
+ *
+ * Deliberately separate from isApproximatedDomainValidation(): which DNS
+ * target a customer is told to use is a different question from whether the
+ * TXT record is required. See the 2026-09-18 notes in docs/adr/adr-016.
+ *
+ * The strategy is install-level configuration
+ * (features.domains.validation_strategy), exposed on the bootstrap payload's
+ * top-level `domains` key.
+ */
+export function isDomainOwnershipChecked(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  return isDomainOwnershipCheckedOf({ domains: getBootstrapValue('domains') });
+}
+
+/**
+ * Pure predicate: install uses the 'approximated' custom-domain validation
+ * strategy in the given state.
+ */
+export function isApproximatedDomainValidationOf(state: DomainValidationState): boolean {
+  return domainValidationCapabilitiesOf(state).usesApproximatedProxy;
+}
+
+/**
+ * Checks whether the install uses Approximated for custom-domain validation.
+ *
+ * Approximated is a third-party proxy service (used by onetimesecret.com) that
+ * monitors DNS and provisions TLS certs. Customers point their domain at the
+ * Approximated proxy (`cluster.proxy_ip` / `proxy_host`), and the Approximated
+ * DNS widget can configure those records for them.
+ *
+ * Use this ONLY for those Approximated-specific concerns: the proxy targets
+ * and the DNS widget. Whether to show the verification status, the TXT record
+ * and the verify action is isDomainOwnershipChecked(), which is also true
+ * under 'caddy_on_demand'.
+ */
+export function isApproximatedDomainValidation(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  return isApproximatedDomainValidationOf({ domains: getBootstrapValue('domains') });
+}
+
+/**
+ * Gets all enabled authentication features
+ */
+export function getAuthFeatures(): AuthFeatures {
+  return {
+    magicLinksEnabled: isMagicLinksEnabled(),
+    webauthnEnabled: isWebAuthnEnabled(),
+    ssoEnabled: isSsoEnabled(),
+    restrictTo: getRestrictTo(),
+  };
+}
+
+/**
+ * Checks if any passwordless methods are enabled
+ */
+export function hasPasswordlessMethods(): boolean {
+  return isMagicLinksEnabled() || isWebAuthnEnabled();
+}
+
+/**
+ * Checks if the organization switcher UI is enabled.
+ * Organizations always exist (every customer has one for Stripe billing).
+ * This controls whether the multi-org switcher is visible in navigation.
+ * Default is OFF - requires explicit opt-in via ENABLE_ORGS=true.
+ */
+export function isOrganizationSwitcherEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  const result = features?.organizations?.enabled === true;
+  debugLog.features('features.isOrganizationSwitcherEnabled', {
+    enabled: features?.organizations?.enabled,
+    result,
+  });
+  return result;
+}
+
+/**
+ * Checks if organization-level SSO configuration is enabled.
+ * When true, organizations with manage_sso entitlement can configure
+ * SSO for their custom domains.
+ * Default is OFF - requires explicit opt-in via ORGS_SSO_ENABLED=true.
+ */
+export function isOrgsSsoEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  const result = features?.organizations?.sso_enabled === true;
+  debugLog.features('features.isOrgsSsoEnabled', {
+    sso_enabled: features?.organizations?.sso_enabled,
+    result,
+  });
+  return result;
+}
+
+/**
+ * Checks if SAML is switched on for this install (SAML_ENABLED, #4604).
+ * An install-wide switch, not a per-org one: while it is off no SAML route
+ * is registered, the domain SSO API refuses provider_type saml, and the
+ * per-domain SSO form must not offer it. Default is OFF.
+ */
+export function isSamlEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  const result = features?.organizations?.saml_enabled === true;
+  debugLog.features('features.isSamlEnabled', {
+    saml_enabled: features?.organizations?.saml_enabled,
+    result,
+  });
+  return result;
+}
+
+/**
+ * Checks if organization-level custom mail configuration is enabled.
+ * When true, organizations with custom_mail_sender entitlement can configure
+ * custom email sending for their domains.
+ * Default is OFF - requires explicit opt-in via ORGS_CUSTOM_MAIL_ENABLED=true.
+ */
+export function isOrgsCustomMailEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  const result = features?.organizations?.custom_mail_enabled === true;
+  debugLog.features('features.isOrgsCustomMailEnabled', {
+    custom_mail_enabled: features?.organizations?.custom_mail_enabled,
+    result,
+  });
+  return result;
+}
+
+/**
+ * Checks if the organization Secret Activity (audit trail) UI is enabled.
+ * When true (the default), the Activity tab renders in org settings and the
+ * panel content gates on the audit_logs entitlement + admin/owner role.
+ * Default is ON — only an explicit `false` (ORGS_AUDIT_LOGS_ENABLED=false)
+ * disables it; an absent key (older backend without the flag) keeps the
+ * feature on. This inverts the sibling helpers' `=== true` opt-in check.
+ *
+ * SSR/no-window guard returns true (not false like the default-OFF siblings):
+ * absent information means ON for this flag, matching featuresSchema.parse({})
+ * which yields audit_logs_enabled: true.
+ *
+ * Reads the bootstrap snapshot directly via getBootstrapValue, like the other
+ * organizations flag wrappers here, rather than through getValidatedFeatures()
+ * (used only by isSsoEnforcedForDomain). That helper memoizes the parsed
+ * features in a module-level cache that is never invalidated, so a flag read
+ * through it would freeze at the first parse instead of following
+ * bootstrapStore.update() -> updateBootstrapSnapshot. Schema validation buys
+ * nothing here either: the serializer normalizes this key to a real boolean,
+ * and `!== false` already implements the default-true contract.
+ */
+export function isOrgsAuditLogsEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+
+  const features = getBootstrapValue('features');
+  const result = features?.organizations?.audit_logs_enabled !== false;
+  debugLog.features('features.isOrgsAuditLogsEnabled', {
+    audit_logs_enabled: features?.organizations?.audit_logs_enabled,
+    result,
+  });
+  return result;
+}
+
+/** Fallback retention cap when the bootstrap value is absent or malformed. */
+const SECRET_ACTIVITY_MAX_EVENTS_DEFAULT = 10_000;
+
+/**
+ * Checks if secret-activity event COLLECTION is enabled (#3990) — the GDPR
+ * data-minimization axis, distinct from isOrgsAuditLogsEnabled (UI exposure).
+ * Default is ON — only an explicit `false` (SECRET_ACTIVITY_COLLECT=false)
+ * pauses collection; an absent key (older backend) keeps events recorded.
+ *
+ * SSR/no-window guard returns true, and the read goes through
+ * getBootstrapValue directly rather than the memoized getValidatedFeatures()
+ * cache, for the reasons documented on isOrgsAuditLogsEnabled: the cache
+ * never invalidates, and `!== false` already implements the default-true
+ * contract against serializer-normalized booleans.
+ */
+export function isSecretActivityCollectEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+
+  const features = getBootstrapValue('features');
+  const result = features?.secret_activity?.collect_enabled !== false;
+  debugLog.features('features.isSecretActivityCollectEnabled', {
+    collect_enabled: features?.secret_activity?.collect_enabled,
+    result,
+  });
+  return result;
+}
+
+/**
+ * Checks if the Secret Activity country column is enabled (#3989) — a
+ * legally-sensitive org-tier geo feature pending counsel review. Default is
+ * OFF — only an explicit `true` (SECRET_ACTIVITY_GEO_COUNTRY_ENABLED=true) enables
+ * the column; an absent key (the default, and all older backends) keeps it
+ * hidden. This is the inverse default of the isSecretActivityCollectEnabled
+ * sibling above (`!== false`, default-ON): this is an `=== true` opt-in
+ * check, so anything other than a definitive true stays off.
+ *
+ * SSR/no-window guard returns false, matching the default-off contract.
+ * Reads the bootstrap snapshot directly rather than the memoized
+ * getValidatedFeatures() cache, for the reasons documented on
+ * isSecretActivityCollectEnabled.
+ */
+export function isSecretActivityGeoCountryEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  const result = features?.secret_activity?.geo_country_enabled === true;
+  debugLog.features('features.isSecretActivityGeoCountryEnabled', {
+    geo_country_enabled: features?.secret_activity?.geo_country_enabled,
+    result,
+  });
+  return result;
+}
+
+/**
+ * Returns the operator-configured secret-activity retention cap (#3990) —
+ * features.secret_activity.max_events, the Familia max_length applied to the
+ * per-org trail. Anything non-numeric or non-positive falls back to the
+ * 10,000 default so the isCapped math never divides by garbage. Reads the
+ * bootstrap snapshot directly (see isSecretActivityCollectEnabled).
+ */
+export function getSecretActivityMaxEvents(): number {
+  if (typeof window === 'undefined') return SECRET_ACTIVITY_MAX_EVENTS_DEFAULT;
+
+  const features = getBootstrapValue('features');
+  const raw: unknown = features?.secret_activity?.max_events;
+  const result =
+    typeof raw === 'number' && Number.isInteger(raw) && raw > 0
+      ? raw
+      : SECRET_ACTIVITY_MAX_EVENTS_DEFAULT;
+  debugLog.features('features.getSecretActivityMaxEvents', { max_events: raw, result });
+  return result;
+}
+
+/**
+ * Checks if organizations can admit their custom domain's own base domain to
+ * its sign-up allowlist automatically (allow_base_domain).
+ * When true, organizations with the base_domain_signup entitlement can turn
+ * it on in a domain's sign-up settings.
+ * Default is OFF - requires explicit opt-in via ORGS_BASE_DOMAIN_SIGNUP_ENABLED=true.
+ */
+export function isOrgsBaseDomainSignupEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  const result = features?.organizations?.base_domain_signup_enabled === true;
+  debugLog.features('features.isOrgsBaseDomainSignupEnabled', {
+    base_domain_signup_enabled: features?.organizations?.base_domain_signup_enabled,
+    result,
+  });
+  return result;
+}
+
+/**
+ * Checks if organization-level incoming secrets configuration is enabled.
+ * When true, organizations with incoming_secrets entitlement can configure
+ * incoming secret receiving for their domains.
+ * Default is OFF - requires explicit opt-in via ORGS_INCOMING_SECRETS_ENABLED=true.
+ */
+export function isOrgsIncomingSecretsEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  const result = features?.organizations?.incoming_secrets_enabled === true;
+  debugLog.features('features.isOrgsIncomingSecretsEnabled', {
+    incoming_secrets_enabled: features?.organizations?.incoming_secrets_enabled,
+    result,
+  });
+  return result;
+}
+
+/**
+ * Checks if organizations may edit their custom domains' homepage network
+ * rules (allowed/denied CIDRs). Pairs with the homepage_network_rules
+ * entitlement. Default is OFF - requires explicit opt-in via
+ * ORGS_HOMEPAGE_NETWORK_RULES_UI_ENABLED=true. Off stops edits only: rules
+ * already stored stay enforced, so the editor still shows them read-only.
+ */
+export function isOrgsHomepageNetworkRulesUiEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const features = getBootstrapValue('features');
+  const result = features?.organizations?.homepage_network_rules_ui_enabled === true;
+  debugLog.features('features.isOrgsHomepageNetworkRulesUiEnabled', {
+    homepage_network_rules_ui_enabled: features?.organizations?.homepage_network_rules_ui_enabled,
+    result,
+  });
+  return result;
+}

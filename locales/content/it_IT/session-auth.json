@@ -1,0 +1,551 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "Non hai un account?",
+    "source_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "Registrati.",
+    "source_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "Hai dimenticato la password?",
+    "source_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "Accedi",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "Inserisci le tue credenziali",
+    "source_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "Ricordami",
+    "source_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "Invia link di accesso",
+    "source_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "Un link sicuro verrà inviato alla tua casella email.",
+    "source_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "oppure",
+    "source_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "Accedi con password",
+    "source_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "Usa accesso senza password",
+    "source_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "Crea account",
+    "source_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "Torna alla home",
+    "source_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "Password",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "Link magico",
+    "source_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "Passkey",
+    "source_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "Hai bisogno di aiuto?",
+    "source_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "Oppure continua con",
+    "source_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "Accedi con SSO",
+    "source_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "Accedi con {provider}",
+    "source_hash": "b8794f11"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "Reindirizzamento al provider di identità...",
+    "source_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "Accesso SSO fallito. Riprova.",
+    "source_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "Autenticazione SSO non riuscita. Riprova o accedi con la password.",
+    "source_hash": "13a2210a"
+  },
+  "web.login.errors.token_missing": {
+    "text": "Il link di autenticazione è incompleto. Richiedi un nuovo link di accesso.",
+    "source_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "Questo link di accesso è scaduto. Richiedine uno nuovo.",
+    "source_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "Questo link di accesso non è valido. Richiedine uno nuovo.",
+    "source_hash": "270c6401"
+  },
+  "web.signup.create_your_account": {
+    "text": "Crea il tuo account",
+    "source_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "Hai già un account?",
+    "source_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "Accedi.",
+    "source_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "Errore creazione account",
+    "source_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "Password",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "Email",
+    "source_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": "Email verification flow after signup"
+  },
+  "web.auth.verify.title": {
+    "text": "Verifica il tuo account",
+    "source_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "Il tuo account è stato verificato con successo",
+    "source_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "Chiave di verifica non valida o scaduta",
+    "source_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "Questo link di verifica è scaduto. Richiedine uno nuovo.",
+    "source_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "Questo account è già stato verificato. Puoi accedere adesso.",
+    "source_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "Impossibile verificare l'account. Riprova o contatta il supporto.",
+    "source_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "Controlla la tua email per un link di verifica",
+    "source_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "Verifica account fallita. Controlla il link di verifica o richiedine uno nuovo.",
+    "source_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "Verifica fallita",
+    "source_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "Cosa devo fare?",
+    "source_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "Controlla la tua email per il link di verifica più recente",
+    "source_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "Controlla la cartella spam se non riesci a trovare l'email",
+    "source_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "Contatta il supporto se continui ad avere problemi",
+    "source_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "Link di verifica richiesto",
+    "source_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "Usa il link di verifica inviato al tuo indirizzo email per verificare il tuo account.",
+    "source_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "Crea nuovo account",
+    "source_hash": "0e24ec84"
+  },
+  "web.auth.change_password.title": {
+    "text": "Cambia password",
+    "source_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "Password attuale",
+    "source_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "Nuova password",
+    "source_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "Conferma nuova password",
+    "source_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "La tua password è stata cambiata con successo",
+    "source_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "Cambio password fallito. Verifica la password attuale e riprova.",
+    "source_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "Chiudi account",
+    "source_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "Questa azione non può essere annullata. Tutti i tuoi segreti verranno eliminati permanentemente.",
+    "source_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "Capisco che questa azione è permanente",
+    "source_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "Inserisci la password per confermare",
+    "source_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "Chiudi account permanentemente",
+    "source_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "Annulla",
+    "source_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "Richiedi reimpostazione password",
+    "source_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "Inserisci il tuo indirizzo email qui sotto e ti invieremo un link per reimpostare la password",
+    "source_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "Invia link di reimpostazione",
+    "source_hash": "7d5f16d4"
+  },
+  "web.auth.password_reset.title": {
+    "text": "Scegli una nuova password",
+    "context": "Password reset request flow - user requests a reset link",
+    "source_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "Inserisci la tua nuova password qui sotto. Assicurati che sia forte e unica per proteggere il tuo account.",
+    "source_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "Ti è stata inviata un'email con un link per reimpostare la password del tuo account",
+    "source_hash": "63a6af45"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "Accetto i",
+    "source_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "Informazioni account",
+    "context": "User account overview/dashboard section",
+    "source_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "Indirizzo email",
+    "source_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "Account creato",
+    "source_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "Email verificata",
+    "source_hash": "bc512ab0"
+  },
+  "web.auth.account.region": {
+    "text": "Regione",
+    "source_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "Email non verificata",
+    "source_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "Verifica indirizzo email",
+    "source_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "Autenticazione a due fattori",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "Abilitata",
+    "source_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "Disabilitata",
+    "source_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "Sessioni attive",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "{count} sessione/i attiva/e",
+    "source_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "Azioni rapide",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "Gestisci autenticazione a due fattori",
+    "source_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "Gestisci sessioni attive",
+    "source_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "Cambia password",
+    "source_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "Chiudi account",
+    "source_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "Aiuto e supporto",
+    "source_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "Risoluzione problemi di accesso",
+    "source_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "Il magic link non arriva?",
+    "source_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "Controlla la cartella spam o posta indesiderata",
+    "source_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "Verifica di aver inserito correttamente il tuo indirizzo email",
+    "source_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "Attendi qualche minuto - le email a volte possono subire ritardi",
+    "source_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "Prova a richiedere un nuovo link se sono passati più di 10 minuti",
+    "source_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "Hai dimenticato la password?",
+    "source_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "Puoi richiedere un link per reimpostare la password e crearne una nuova.",
+    "source_hash": "3c3eabad"
+  },
+  "web.help.account_locked": {
+    "text": "Account temporaneamente bloccato?",
+    "source_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "Dopo più tentativi di accesso falliti, gli account vengono temporaneamente bloccati per sicurezza. Attendi 15 minuti e riprova, oppure usa il Magic Link per accedere.",
+    "source_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "Hai ancora bisogno di aiuto?",
+    "source_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "Se hai ancora problemi, siamo qui per aiutarti. Inviaci un messaggio e ti risponderemo il prima possibile.",
+    "source_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "Contatta il supporto",
+    "source_hash": "f8d47b82"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "Account SSO",
+    "source_hash": "b8f4c728"
+  },
+  "web.help.reset_password_link": {
+    "text": "Reimposta password",
+    "source_hash": "e0edfeb3"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "Single Sign-On è disponibile per questo dominio",
+    "source_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "L'amministratore dell'organizzazione può abilitare l'SSO per consentire ai membri del team di accedere qui. Contatta l'amministratore per l'accesso.",
+    "source_hash": "f3726509"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "L'accesso non è disponibile",
+    "source_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "Al momento l'accesso non è disponibile su questo dominio.",
+    "source_hash": "b681c35d"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "Single Sign-On non è configurato per questo dominio. Contatta il tuo amministratore.",
+    "source_hash": "b39ef93e"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "L'indirizzo email del tuo provider di identità non è valido. Contatta il tuo amministratore.",
+    "source_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "Il tuo dominio email non è autorizzato per la registrazione tramite SSO. Contatta il tuo amministratore.",
+    "source_hash": "87603782"
+  },
+  "web.auth.check_email.title": {
+    "text": "Controlla la tua email",
+    "source_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "Abbiamo inviato un link di verifica a",
+    "source_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "Abbiamo inviato un link di verifica al tuo indirizzo email.",
+    "source_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "Clicca sul link nell'email per attivare il tuo account.",
+    "source_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "Non lo trovi? Controlla la cartella dello spam.",
+    "source_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "Hai inserito l'indirizzo sbagliato?",
+    "source_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "Ricomincia",
+    "source_hash": "5eed7e9f"
+  },
+  "web.auth.field-errors.password": {
+    "text": "Password",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "Non hai ricevuto l'email di verifica? Inserisci la tua email per inviarla di nuovo.",
+    "source_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "Invia di nuovo l'email di verifica",
+    "source_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "Se un account necessita di verifica, è stata inviata una nuova email. Controlla la tua casella di posta e la cartella dello spam.",
+    "source_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "Impossibile inviare l'email di verifica. Controlla la tua connessione e riprova.",
+    "source_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "Invia di nuovo l'email",
+    "source_hash": "4f44603e"
+  },
+  "web.login.verified_notice": {
+    "text": "La tua email è stata verificata — ora puoi accedere.",
+    "source_hash": "c8d4b5a8"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "Imposta una password",
+    "source_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "Il tuo account non ha ancora una password. Ti invieremo via email un link sicuro per impostarne una, così potrai accedere anche direttamente.",
+    "source_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "Invia il link di configurazione",
+    "source_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "Ti è stata inviata un'email con un link per impostare una password per il tuo account",
+    "source_hash": "82b686c7"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "Esiste già un account con questo indirizzo email, ma non è collegato a questo metodo di accesso. Accedi con il tuo metodo esistente, poi collega questo provider in Impostazioni di sicurezza → Identità collegate.",
+    "source_hash": "7fbbb7e7"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "Non è stato possibile collegare questa identità. Potrebbe appartenere già a un altro account.",
+    "source_hash": "d8b71cf8"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "Non è stato possibile completare la tua aggiunta all'organizzazione. Contatta il tuo amministratore.",
+    "source_hash": "155e71bb"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "Non è stato possibile collegare quel metodo di accesso. Accedi con la tua password esistente, poi collega questo provider in Impostazioni di sicurezza → Identità collegate.",
+    "source_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "Controlla la tua casella di posta: ti abbiamo inviato via email un link per confermare il collegamento del tuo account. Aprilo per completare l'accesso.",
+    "source_hash": "b251c8f3"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "L'accesso è stato annullato. Puoi riprovare quando vuoi.",
+    "source_hash": "b5f3d3ec"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "L'accesso con questo provider non è configurato correttamente. Contatta il tuo amministratore.",
+    "source_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "Il Single Sign-On per questo dominio è configurato ma al momento non è utilizzabile. Contatta l'amministratore della tua organizzazione.",
+    "source_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "Il Single Sign-On per questo dominio non è ancora attivo perché la verifica del dominio non è stata completata. Contatta il tuo amministratore.",
+    "source_hash": "bd981480"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "Questa identità non è collegata a un account su questo dominio. Se puoi accedere su questo dominio con un account che appartiene a questa organizzazione, collegala da Identità collegate. Altrimenti, chiedi a un proprietario dell'organizzazione di invitare questa identità SSO oppure contatta il supporto.",
+    "source_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "Non è stato possibile collegare questa identità su questo dominio. Avvia il collegamento dal sito a cui hai effettuato l'accesso; sul dominio di un'organizzazione, il tuo account deve già appartenere a quell'organizzazione.",
+    "source_hash": "d967c761"
+  }
+}

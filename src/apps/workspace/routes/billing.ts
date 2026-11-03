@@ -1,0 +1,144 @@
+// src/apps/workspace/routes/billing.ts
+
+import WorkspaceLayout from '@/apps/workspace/layouts/WorkspaceLayout.vue';
+import { loggingService } from '@/services/logging.service';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import { useOrganizationStore } from '@/shared/stores/organizationStore';
+import type { RouteLocationNormalized, RouteRecordRaw } from 'vue-router';
+
+const standardLayoutProps = {
+  displayMasthead: true,
+  displayNavigation: true,
+  displayFooterLinks: true,
+  displayFeedback: false,
+  displayPoweredBy: false,
+  displayVersion: true,
+  showSidebar: false,
+} as const;
+
+/**
+ * Guard to check if billing is enabled before accessing billing routes.
+ * Redirects to dashboard if billing is disabled.
+ */
+function checkBillingEnabled() {
+  const bootstrapStore = useBootstrapStore();
+  const billingEnabled = bootstrapStore.billing_enabled;
+
+  if (!billingEnabled) {
+    return { name: 'Dashboard' };
+  }
+
+  return true;
+}
+
+/**
+ * Creates a guard to redirect to /billing/:extid/:targetPage using the current org.
+ *
+ * The incoming query is forwarded verbatim: returning `{ path }` alone would
+ * silently drop it, and the post-signup plan intent depends on
+ * /billing/plans?product=…&interval=… (and ?change=true) surviving this
+ * rewrite (#4306). vue-router treats `path` as a bare path, so the query must
+ * be carried explicitly.
+ */
+function createBillingRedirect(targetPage: string) {
+  return async (to: RouteLocationNormalized) => {
+    const organizationStore = useOrganizationStore();
+
+    if (organizationStore.organizations.length === 0) {
+      try {
+        await organizationStore.fetchOrganizations();
+      } catch (error) {
+        // A failed lookup (network or malformed body) must not abort the
+        // navigation with an unhandled guard error. Land on the dashboard the
+        // same way the no-org path does; the billing pages fetch again.
+        loggingService.warn('[billing] Organization lookup failed, redirecting to Dashboard', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return { name: 'Dashboard' };
+      }
+    }
+
+    const org = organizationStore.currentOrganization || organizationStore.organizations[0];
+    if (!org) {
+      return { name: 'Dashboard' };
+    }
+    return { path: `/billing/${org.extid}/${targetPage}`, query: to.query };
+  };
+}
+
+const routes: Array<RouteRecordRaw> = [
+  // Redirect /billing to default org's billing page
+  {
+    path: '/billing',
+    beforeEnter: [checkBillingEnabled, createBillingRedirect('overview')],
+    component: () => import('@/apps/workspace/billing/BillingOverview.vue'),
+    meta: {
+      sentryScrubParams: false,
+    },
+  },
+  // Redirect /billing/plans to default org's plans page
+  {
+    path: '/billing/plans',
+    beforeEnter: [checkBillingEnabled, createBillingRedirect('plans')],
+    component: () => import('@/apps/workspace/billing/PlanSelector.vue'),
+    meta: {
+      sentryScrubParams: false,
+    },
+  },
+  {
+    path: '/billing/:extid/overview',
+    name: 'Billing Overview',
+    beforeEnter: checkBillingEnabled,
+    component: () => import('@/apps/workspace/billing/BillingOverview.vue'),
+    meta: {
+      title: 'web.billing.overview.title',
+      requiresAuth: true,
+      layout: WorkspaceLayout,
+      layoutProps: standardLayoutProps,
+      scopesAvailable: {
+        organization: 'show',
+        domain: 'hide',
+        onOrgSwitch: 'same',
+      },
+      sentryScrubParams: false,
+    },
+  },
+  {
+    path: '/billing/:extid/plans',
+    name: 'Billing Plans',
+    beforeEnter: checkBillingEnabled,
+    component: () => import('@/apps/workspace/billing/PlanSelector.vue'),
+    meta: {
+      title: 'web.billing.plans.title',
+      requiresAuth: true,
+      layout: WorkspaceLayout,
+      layoutProps: standardLayoutProps,
+      scopesAvailable: {
+        organization: 'show',
+        domain: 'hide',
+        onOrgSwitch: 'same',
+      },
+      sentryScrubParams: false,
+    },
+  },
+  {
+    path: '/billing/:extid/invoices',
+    name: 'Billing Invoices',
+    beforeEnter: checkBillingEnabled,
+    component: () => import('@/apps/workspace/billing/InvoiceList.vue'),
+    meta: {
+      title: 'web.billing.invoices.title',
+      requiresAuth: true,
+      layout: WorkspaceLayout,
+      layoutProps: standardLayoutProps,
+      scopesAvailable: {
+        organization: 'show',
+        domain: 'hide',
+        onOrgSwitch: 'same',
+      },
+      sentryScrubParams: false,
+    },
+  },
+];
+
+export default routes;

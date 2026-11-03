@@ -1,0 +1,259 @@
+<!-- src/apps/secret/components/support/FeedbackForm.vue -->
+
+<script setup lang="ts">
+  import { loggingService } from '@/services/logging.service';
+  import { useI18n } from 'vue-i18n';
+  import { useFormSubmission } from '@/shared/composables/useFormSubmission';
+  import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+  import { useCsrfStore } from '@/shared/stores/csrfStore';
+  import { storeToRefs } from 'pinia';
+  import { computed, onMounted, ref } from 'vue';
+
+  const { t } = useI18n();
+
+  const csrfStore = useCsrfStore();
+
+  export interface Props {
+    enabled?: boolean;
+    showRedButton: boolean | null;
+    reason?: string;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    enabled: true,
+    showRedButton: false,
+    reason: '',
+  });
+
+  const REASON_I18N_KEYS: Record<string, string> = {
+    email_change_unauthorized:
+      'web.feedback.reason_email_change_unauthorized',
+  };
+
+  const reasonMessage = computed(() => {
+    const key = REASON_I18N_KEYS[props.reason];
+    return key ? t(key) : '';
+  });
+
+  const userTimezone = ref('');
+  const feedbackMessage = ref('');
+
+  // Mirror of V3::Logic::ReceiveFeedback::MAX_MSG_LENGTH in
+  // apps/api/v3/logic/feedback.rb. Keep these in sync — the server silently
+  // truncates anything beyond this length.
+  const MAX_MSG_LENGTH = 200_000;
+  const CHAR_WARNING_THRESHOLD = Math.floor(MAX_MSG_LENGTH * 0.9);
+
+  const charactersRemaining = computed(() => MAX_MSG_LENGTH - feedbackMessage.value.length);
+  const showCharacterCounter = computed(() => feedbackMessage.value.length >= CHAR_WARNING_THRESHOLD);
+  const atCharacterLimit = computed(() => feedbackMessage.value.length >= MAX_MSG_LENGTH);
+
+  // Reset in form reset function
+  const resetForm = () => {
+    feedbackMessage.value = '';
+  };
+
+  onMounted(() => {
+    userTimezone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  });
+
+  // Get customer and version info for feedback form
+  const bootstrapStore = useBootstrapStore();
+  const { cust, ot_version_long } = storeToRefs(bootstrapStore);
+
+  const emit = defineEmits<{
+    'feedback-sent': [message: string];
+  }>();
+
+  const submitWithCheck = async (event?: Event) => {
+    loggingService.debug('Submitting exception form');
+
+    await submitForm(event);
+  };
+
+  const { isSubmitting, error, success, submitForm } = useFormSubmission({
+    url: '/api/v3/feedback',
+    successMessage: t('web.LABELS.feedback_received'),
+    onSuccess: () => {
+      emit('feedback-sent', feedbackMessage.value);
+      resetForm();
+    },
+    onError: (data: unknown) => {
+      console.error('Error sending feedback:', data);
+    },
+  });
+</script>
+
+<template>
+  <div class="space-y-8">
+    <!-- Feedback Form -->
+    <div class="overflow-hidden rounded-lg bg-white shadow-md dark:bg-gray-800">
+      <div class="p-6">
+        <form
+          @submit.prevent="submitWithCheck"
+          class="space-y-4">
+          <input
+            type="hidden"
+            name="utf8"
+            value="✓" />
+          <input
+            type="hidden"
+            name="shrimp"
+            :value="csrfStore.shrimp" />
+          <input
+            v-if="reason"
+            type="hidden"
+            name="reason"
+            :value="reason" />
+
+          <!-- Reason-specific context banner -->
+          <div
+            v-if="reasonMessage"
+            class="rounded-lg border border-amber-200 bg-amber-50
+              p-4 dark:border-amber-800 dark:bg-amber-900/20"
+            role="status">
+            <p
+              class="text-sm text-amber-800
+                dark:text-amber-300">
+              {{ reasonMessage }}
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-4">
+            <div class="grow">
+              <label
+                for="feedback-message"
+                class="sr-only">{{ t('web.feedback.your_feedback') }}</label>
+              <textarea
+                id="feedback-message"
+                v-model="feedbackMessage"
+                name="msg"
+                rows="7"
+                required
+                :maxlength="MAX_MSG_LENGTH"
+                class="w-full resize-y rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                :placeholder="t('web.COMMON.feedback_text')"></textarea>
+              <div
+                v-if="showCharacterCounter"
+                class="mt-1 text-right text-xs"
+                :class="atCharacterLimit
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-amber-600 dark:text-amber-400'"
+                role="status"
+                aria-live="polite">
+                {{ atCharacterLimit
+                  ? t('web.feedback.character_limit_reached')
+                  : t('web.feedback.characters_remaining', { count: charactersRemaining }) }}
+              </div>
+              <input
+                type="hidden"
+                name="tz"
+                :value="userTimezone" />
+            </div>
+
+            <!-- Reply-availability notice: heads-up for anonymous submitters -->
+            <div
+              v-if="!cust?.objid"
+              class="rounded-md border border-blue-200 bg-blue-50
+                p-3 text-sm text-blue-800
+                dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
+              role="note">
+              {{ t('web.feedback.anonymous_no_reply') }}
+            </div>
+
+            <div class="flex justify-end">
+              <button
+                type="submit"
+                :disabled="isSubmitting"
+                :class="[
+                  'w-full rounded-md px-6 py-2 font-medium text-white transition duration-150 ease-in-out sm:w-auto',
+                  showRedButton
+                    ? 'bg-brand-600 hover:bg-brand-700 focus:ring-brand-500'
+                    : 'bg-gray-500 hover:bg-gray-600 focus:ring-gray-400',
+                  isSubmitting ? 'cursor-not-allowed opacity-50' : '',
+                ]"
+                :aria-label="t('web.feedback.send_feedback')">
+                {{
+                  isSubmitting
+                    ? t('web.feedback.sending_ellipses')
+                    : t('web.COMMON.button_send_feedback')
+                }}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div
+          v-if="error"
+          role="alert"
+          aria-live="polite"
+          class="mt-4 text-red-600 dark:text-red-400">
+          {{ error }}
+        </div>
+        <div
+          v-if="success"
+          class="mt-4 text-green-600 dark:text-green-400">
+          {{ success }}
+        </div>
+      </div>
+
+      <div class="bg-gray-50 px-6 py-4 dark:bg-gray-700">
+        <h2 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          {{ t('web.feedback.when_you_submit_feedback_well_see') }}
+        </h2>
+        <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+          <!-- Authentication check: cust is null for anonymous users (via AuthenticationSerializer),
+               cust.objid confirms a fully hydrated customer object -->
+          <li
+            v-if="cust?.objid"
+            class="flex items-center">
+            <svg
+              class="mr-2 size-4 text-brand-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            {{ t('web.account.customer_id') }}: {{ cust?.email }}
+          </li>
+          <li class="flex items-center">
+            <svg
+              class="mr-2 size-4 text-brand-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ t('web.account.timezone') }}: {{ userTimezone }}
+          </li>
+          <!-- Version is stamped server-side; only listed when this client
+               actually knows it (authenticated sessions). -->
+          <li
+            v-if="ot_version_long"
+            class="flex items-center">
+            <svg
+              class="mr-2 size-4 text-brand-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            {{ t('web.site.website_version') }}: v{{ ot_version_long }}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</template>

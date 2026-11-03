@@ -1,0 +1,303 @@
+# try/system/logger_methods_try.rb
+#
+# frozen_string_literal: true
+
+# Tryouts for the structured logging system with strategic categories.
+# Tests SemanticLogger integration, backward compatibility, and the Logging module.
+
+require_relative '../support/test_helpers'
+require 'semantic_logger'
+
+# The appenders come from the boot below (the `destinations` block of the
+# logging config), not from this file: an appender added here would be one
+# SetupLoggers does not own, so a console threshold or a disabled console
+# (tests/lanes/run --log-console) would not apply to it, for this file or
+# for the files that share its process afterwards.
+SemanticLogger.default_level = :info
+
+OT.boot! :test, true
+
+# Onetime Logging System Tests
+#
+# Tests for the structured logging system with strategic categories.
+# Categories: Auth, Ents, Session, HTTP, Familia, Org, Otto, Rhales, Secret, App
+
+## Configuration Loading - Effective config loaded at boot
+OT.logging_conf.class
+#=> Hash
+
+## Configuration Loading - Config file structure
+OT.logging_conf.key?('default_level')
+#=> true
+
+## Configuration Loading - Loggers configuration exists
+OT.logging_conf.key?('loggers')
+#=> true
+
+## Configuration Loading - Auth logger configured
+OT.logging_conf['loggers'].key?('Auth')
+#=> true
+
+## Configuration Loading - HTTP config exists
+OT.logging_conf.key?('http')
+#=> true
+
+## SemanticLogger Integration - Auth logger exists
+SemanticLogger['Auth']
+#=:> SemanticLogger::Logger
+
+## SemanticLogger Integration - Session logger exists
+SemanticLogger['Session']
+#=:> SemanticLogger::Logger
+
+## SemanticLogger Integration - HTTP logger exists
+SemanticLogger['HTTP']
+#=:> SemanticLogger::Logger
+
+## SemanticLogger Integration - Ents logger exists
+SemanticLogger['Ents']
+#=:> SemanticLogger::Logger
+
+## SemanticLogger Integration - Familia logger exists
+SemanticLogger['Familia']
+#=:> SemanticLogger::Logger
+
+## SemanticLogger Integration - Org logger exists
+SemanticLogger['Org']
+#=:> SemanticLogger::Logger
+
+## SemanticLogger Integration - Otto logger exists
+SemanticLogger['Otto']
+#=:> SemanticLogger::Logger
+
+## SemanticLogger Integration - Rhales logger exists
+SemanticLogger['Rhales']
+#=:> SemanticLogger::Logger
+
+## SemanticLogger Integration - Secret logger exists
+SemanticLogger['Secret']
+#=:> SemanticLogger::Logger
+
+## SemanticLogger Integration - App logger exists (default)
+SemanticLogger['App']
+#=:> SemanticLogger::Logger
+
+## Logging Module - Include in test class
+class TestLoggingClass
+  include Onetime::LoggerMethods
+end
+test_instance = TestLoggingClass.new
+test_instance.respond_to?(:logger)
+#=> true
+
+## Logging Module - Auth logger accessor
+test_instance = TestLoggingClass.new
+test_instance.auth_logger
+#=:> SemanticLogger::Logger
+
+## Logging Module - Session logger accessor
+test_instance = TestLoggingClass.new
+test_instance.session_logger
+#=:> SemanticLogger::Logger
+
+## Logging Module - HTTP logger accessor
+test_instance = TestLoggingClass.new
+test_instance.http_logger
+#=:> SemanticLogger::Logger
+
+## Logging Module - Secret logger accessor
+test_instance = TestLoggingClass.new
+test_instance.secret_logger
+#=:> SemanticLogger::Logger
+
+## Logging Module - App logger accessor (default)
+test_instance = TestLoggingClass.new
+test_instance.app_logger
+#=:> SemanticLogger::Logger
+
+## Logging Module - Ents logger accessor
+test_instance = TestLoggingClass.new
+test_instance.ents_logger
+#=:> SemanticLogger::Logger
+
+## Logging Module - Org logger accessor
+test_instance = TestLoggingClass.new
+test_instance.org_logger
+#=:> SemanticLogger::Logger
+
+## Category Inference - Auth pattern detection
+class TestAuthClass
+  include Onetime::LoggerMethods
+end
+test_auth = TestAuthClass.new
+test_auth.send(:infer_category)
+#=> "Auth"
+
+## Category Inference - Session pattern detection
+class TestSessionClass
+  include Onetime::LoggerMethods
+end
+test_session = TestSessionClass.new
+test_session.send(:infer_category)
+#=> "Session"
+
+## Category Inference - Secret pattern detection
+class TestSecretClass
+  include Onetime::LoggerMethods
+end
+test_secret = TestSecretClass.new
+test_secret.send(:infer_category)
+#=> "Secret"
+
+## Category Inference - HTTP/Controller pattern detection
+class TestController
+  include Onetime::LoggerMethods
+end
+test_controller = TestController.new
+test_controller.send(:infer_category)
+#=> "HTTP"
+
+## Category Inference - Entitlement pattern detection
+class TestEntitlementClass
+  include Onetime::LoggerMethods
+end
+test_ents = TestEntitlementClass.new
+test_ents.send(:infer_category)
+#=> "Ents"
+
+## Category Inference - Organization pattern detection
+class TestOrganizationClass
+  include Onetime::LoggerMethods
+end
+test_org = TestOrganizationClass.new
+test_org.send(:infer_category)
+#=> "Org"
+
+## Category Inference - Membership pattern detection
+class TestMembershipClass
+  include Onetime::LoggerMethods
+end
+test_membership = TestMembershipClass.new
+test_membership.send(:infer_category)
+#=> "Org"
+
+## Category Inference - Default fallback
+class TestRandomClass
+  include Onetime::LoggerMethods
+end
+test_random = TestRandomClass.new
+test_random.send(:infer_category)
+#=> "App"
+
+## Thread-Local Category - Set and use custom category
+test_instance = TestLoggingClass.new
+Thread.current[:log_category] = 'Auth'
+category = Thread.current[:log_category]
+Thread.current[:log_category] = nil
+category
+#=> "Auth"
+
+## Thread-Local Category - with_log_category helper
+test_instance = TestLoggingClass.new
+result = nil
+test_instance.with_log_category('Session') do
+  result = Thread.current[:log_category]
+end
+result
+#=> "Session"
+
+## Thread-Local Category - Cleanup after with_log_category
+test_instance = TestLoggingClass.new
+Thread.current[:log_category] = 'Initial'
+test_instance.with_log_category('Temporary') do
+  # Inside block
+end
+Thread.current[:log_category]
+#=> "Initial"
+
+## Structured Logging - li with payload (uses SemanticLogger)
+class TestStructuredLogging
+  include Onetime::LoggerMethods
+  def test_li_structured
+    # Capture would require SemanticLogger appender configuration
+    # For now, verify the method accepts keyword arguments
+    Onetime.li "Test", user_id: 123
+    true
+  end
+end
+TestStructuredLogging.new.test_li_structured
+#=> true
+
+## Structured Logging - le with payload (uses SemanticLogger)
+class TestStructuredLogging
+  include Onetime::LoggerMethods
+  def test_le_structured
+    Onetime.le "Error", code: 500
+    true
+  end
+end
+TestStructuredLogging.new.test_le_structured
+#=> true
+
+## Structured Logging - lw with payload (uses SemanticLogger)
+class TestStructuredLogging
+  include Onetime::LoggerMethods
+  def test_lw_structured
+    Onetime.lw "Warning", threshold: 100
+    true
+  end
+end
+TestStructuredLogging.new.test_lw_structured
+#=> true
+
+## Structured Logging - ld with payload (uses SemanticLogger)
+ENV['ONETIME_DEBUG'] = '1'
+class TestStructuredLogging
+  include Onetime::LoggerMethods
+  def test_ld_structured
+    Onetime.ld "Debug", step: 1
+    true
+  end
+end
+result = TestStructuredLogging.new.test_ld_structured
+ENV['ONETIME_DEBUG'] = nil
+result
+#=> true
+
+## Logger Method - Returns SemanticLogger instance
+class TestLoggerMethod
+  include Onetime::LoggerMethods
+end
+test_logger = TestLoggerMethod.new.logger
+test_logger
+#=:> SemanticLogger::Logger
+
+## Logger Method - Respects thread-local category
+class TestLoggerMethod
+  include Onetime::LoggerMethods
+end
+test_instance = TestLoggerMethod.new
+Thread.current[:log_category] = 'Secret'
+logger_name = test_instance.logger.name.to_s
+Thread.current[:log_category] = nil
+logger_name
+#=> "Secret"
+
+## Configuration Loading - Config path resolves for this environment
+config_path = Onetime::Utils::ConfigResolver.resolve('logging') ||
+              Onetime::Utils::ConfigResolver.defaults_path('logging')
+File.exist?(config_path)
+#=> true
+
+## Configuration Loading - Config loads successfully
+!OT.logging_conf.nil?
+#=> true
+
+## Configuration Loading - Config has required keys
+conf = OT.logging_conf
+conf.key?('default_level') && conf.key?('loggers') && conf.key?('http')
+#=> true
+
+## Configuration Loading - Auth logger is configured
+OT.logging_conf['loggers'].key?('Auth')
+#=> true

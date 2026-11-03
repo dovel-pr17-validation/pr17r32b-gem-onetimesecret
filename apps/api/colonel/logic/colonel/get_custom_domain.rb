@@ -1,0 +1,89 @@
+# apps/api/colonel/logic/colonel/get_custom_domain.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/domain_validation/features'
+require_relative '../base'
+require_relative 'domain_resolver'
+
+module ColonelAPI
+  module Logic
+    module Colonel
+      # Get Custom Domain detail (Colonel)
+      #
+      # @api Full read-out for a single custom domain, resolved globally by its
+      #   PUBLIC id (extid) or internal objid (domain_id) — see DomainResolver.
+      #   Backs the admin DNS-details panel and the refresh
+      #   after a colonel re-verify. Same response shape as CreateCustomDomain:
+      #   { record: safe_dump (+ DNS fields), details: { cluster } }.
+      #   Requires the colonel role.
+      #
+      # Colonel access is cross-organization: like VerifyCustomDomain / ProbeDomain,
+      # any domain resolves by extid with NO ownership/membership gate.
+      #
+      # READ-ONLY: emits NO ColonelAuditEvent (CONTRACT 4 — audit is for mutations),
+      # matching ProbeDomain / GetSessionDetail.
+      #
+      # Security invariant (epic #20): BOTH the router (role=colonel) AND this
+      # logic (verify_one_of_roles!(colonel: true)) enforce the colonel role.
+      class GetCustomDomain < ColonelAPI::Logic::Base
+        include DomainResolver
+
+        attr_reader :extid, :custom_domain
+
+        def process_params
+          @extid = sanitize_identifier(params['extid'])
+        end
+
+        def raise_concerns
+          verify_one_of_roles!(colonel: true)
+
+          raise_form_error('Domain ID is required', field: :extid) if extid.to_s.empty?
+
+          @custom_domain = resolve_custom_domain(extid)
+          raise_not_found('Domain not found') unless custom_domain
+        end
+
+        def process
+          success_data
+        end
+
+        def success_data
+          { record: domain_record, details: domain_details }
+        end
+
+        private
+
+        # safe_dump omits verification_state / resolving / ready — merge them in,
+        # typed to match VerifyCustomDomain / CreateCustomDomain so the frontend
+        # shares one Zod schema across all three colonel domain responses.
+        #
+        # domain_id overrides safe_dump's own `domainid` (no underscore) key —
+        # every other colonel domain response (VerifyCustomDomain, ListCustomDomains,
+        # RepairDomain, TransferDomain) uses `domain_id`, and the frontend Zod
+        # schema (colonelDomainDetailRecordSchema) requires it.
+        #
+        # The owner fields mirror the ListCustomDomains row, so a cold deep link
+        # to the detail page still knows the owning org. The console links to
+        # it by `org_extid`, never by the internal `org_id`.
+        def domain_record
+          org = custom_domain.primary_organization
+          custom_domain.safe_dump.merge(
+            domain_id: custom_domain.domainid,
+            verification_state: custom_domain.verification_state.to_s,
+            verified_by_override: custom_domain.verified_by_override == true,
+            resolving: custom_domain.resolving.to_s == 'true',
+            ready: custom_domain.ready?,
+            org_id: custom_domain.org_id,
+            org_extid: org&.extid,
+            org_name: org&.display_name,
+          )
+        end
+
+        def domain_details
+          { cluster: Onetime::DomainValidation::Features.safe_dump }
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,365 @@
+// src/shared/composables/useBranding.ts
+
+import { createI18nInstance } from '@/i18n';
+import { ApplicationError } from '@/schemas';
+import { type BrandSettings, type ImageProps } from '@/schemas/shapes/v3';
+import { loggingService } from '@/services/logging.service';
+import { DEFAULT_BUTTON_TEXT_LIGHT } from '@/shared/constants/brand';
+import { useNotificationsStore } from '@/shared/stores';
+import { useBrandStore } from '@/shared/stores/brandStore';
+import { useDomainsStore } from '@/shared/stores/domainsStore';
+import { shouldUseLightText } from '@/utils';
+import { AxiosError } from 'axios';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+
+import { AsyncHandlerOptions, useAsyncHandler, createError } from './useAsyncHandler';
+
+/**
+ * Composable for displaying domain-specific branding settings
+ *
+ * Separate from useDomainsManager which handles full domain CRUD. This one
+ * focuses on the expression of brand settings and UI styling based on domain.
+ *
+ * Features:
+ * - Computed access to brand settings with fallback to defaults
+ * - Type-safe brand property getters
+ * - UI helper methods for brand-specific styling
+ *
+ * @param domainId Optional domain ID to fetch specific branding
+ * @returns Brand settings and computed helpers
+ *
+ */
+/* eslint max-lines-per-function: off */
+export function useBranding(domainId?: string) {
+  const store = useBrandStore();
+  const domainsStore = useDomainsStore();
+  const notifications = useNotificationsStore();
+  const { t } = useI18n();
+  const router = useRouter(); // Must be called at setup time, not in callbacks
+  const isLoading = ref(false);
+  const isInitialized = ref(false);
+  const error = ref<ApplicationError | null>(null);
+
+  const { composer, setLocale } = createI18nInstance();
+
+  /**
+   * Switches the preview instance's language. Its messages load into the
+   * preview's own composer. A locale that fails to load leaves the preview in
+   * its previous language and must not fail loading the brand settings.
+   */
+  const setPreviewLocale = async (locale: string) => {
+    try {
+      await setLocale(locale);
+    } catch (err) {
+      loggingService.warn('[useBranding] Preview locale did not load', {
+        locale,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+  const brandSettings = ref<BrandSettings>(store.getSettings(domainId || ''));
+  const originalSettings = ref<BrandSettings | null>(null);
+  const logoImage = ref<ImageProps | null>(null);
+  const faviconImage = ref<ImageProps | null>(null);
+
+  /**
+   * Resolve extid from either an extid or display_domain.
+   * API endpoints require extid (e.g., "cd1234abc") not display_domain
+   * (e.g., "custom.example.com").
+   * This function handles both cases for flexibility.
+   * @param domainIdentifier - Either an extid or display_domain to look up
+   * @returns The extid for API calls, or undefined if not found
+   */
+  const resolveExtid = (domainIdentifier: string): string | undefined => {
+    if (!domainIdentifier) return undefined;
+
+    // First, check if the identifier IS already an extid
+    const byExtid = domainsStore.domains?.find((d) => d.extid === domainIdentifier);
+    if (byExtid) {
+      return byExtid.extid;
+    }
+
+    // Fall back to looking up by display_domain
+    const byDisplayDomain = domainsStore.domains?.find(
+      (d) => d.display_domain === domainIdentifier
+    );
+    return byDisplayDomain?.extid;
+  };
+
+  const defaultAsyncHandlerOptions: AsyncHandlerOptions = {
+    notify: (message, severity) => notifications.show(message, severity, 'top'),
+    setLoading: (loading) => (isLoading.value = loading),
+    onError: (err) => {
+      // 404 → domain not found, redirect to NotFound page
+      if (err.code === 404) {
+        return router.push({ name: 'NotFound' });
+      }
+
+      // 403 → entitlement missing (e.g., custom_branding). Set error state
+      // so the component can render its upgrade banner instead of redirecting.
+      // 422 → validation error, also set error state and let component handle it.
+      error.value = err;
+    },
+  };
+
+  const { wrap } = useAsyncHandler(defaultAsyncHandlerOptions);
+
+  const initialize = () => {
+    wrap(async () => {
+      if (!domainId) return;
+
+      // Ensure domains are loaded before resolving
+      if (!domainsStore.domains?.length) {
+        await domainsStore.fetchList();
+      }
+
+      // Resolve extid from display_domain or extid for API calls
+      const extid = resolveExtid(domainId);
+      if (!extid) {
+        console.warn('[useBranding] Could not resolve extid for domain:', domainId);
+        return;
+      }
+
+      const settings = await store.fetchSettings(extid);
+
+      if (!settings) {
+        // Redirect to 404 if settings not found
+        return router.push('NotFound');
+      }
+
+      // Set locale immediately after getting settings
+      if (settings.locale) {
+        loggingService.debug('[useBranding] Setting locale', { locale: settings.locale, settings });
+        await setPreviewLocale(settings.locale);
+      }
+
+      // Quietly handle 404/403 errors for logo fetch
+      // 404 = no logo uploaded yet, 403 = entitlement missing
+      try {
+        const logo = await store.fetchLogo(extid);
+        logoImage.value = logo;
+      } catch (err) {
+        const status = (err as AxiosError).status;
+        if (status !== 404 && status !== 403) {
+          throw err;
+        }
+      }
+
+      // Same quiet 404/403 handling for the favicon (#3780). The icon endpoint
+      // serves whatever is stored — an auto-fetched or a user-uploaded icon —
+      // so the upload field can preview and replace the current one.
+      // 404 = no icon stored yet, 403 = entitlement missing.
+      try {
+        const favicon = await domainsStore.fetchIcon(extid);
+        faviconImage.value = favicon;
+      } catch (err) {
+        const status = (err as AxiosError).status;
+        if (status !== 404 && status !== 403) {
+          throw err;
+        }
+      }
+
+      brandSettings.value = settings;
+      originalSettings.value = { ...settings };
+      isInitialized.value = true;
+    });
+  };
+  const displayLocale = computed(() => brandSettings.value.locale);
+  const primaryColor = computed(() =>
+    isInitialized.value ? brandSettings.value.primary_color : undefined
+  );
+  const hasUnsavedChanges = computed(() => {
+    if (!originalSettings.value) return false;
+    return !Object.entries(brandSettings.value).every(
+      ([key, value]) => originalSettings.value?.[key as keyof BrandSettings] === value
+    );
+  });
+
+  watch(
+    () => primaryColor.value,
+    (newColor) => {
+      // Recompute on every change, including clears: when the color is removed
+      // (null/empty), fall back to the default so a stale contrast decision from
+      // a previous color doesn't linger.
+      brandSettings.value.button_text_light = newColor
+        ? shouldUseLightText(newColor)
+        : DEFAULT_BUTTON_TEXT_LIGHT;
+    }
+  );
+
+  watch(
+    () => brandSettings.value?.locale,
+    async (newLocale) => {
+      if (!newLocale) return;
+      await setPreviewLocale(newLocale); // This updates the preview i18n instance
+    },
+    { immediate: true } // Add immediate to handle initial locale
+  );
+
+  /**
+   * Save branding updates for a domain.
+   * @param updates - Partial brand settings to update
+   * @param targetDomain - Optional display domain override (for use when composable
+   *                       is called at setup time but needs to save to different domains)
+   */
+  const saveBranding = (updates: Partial<BrandSettings>, targetDomain?: string) =>
+    wrap(async () => {
+      const effectiveDomain = targetDomain || domainId;
+      if (!effectiveDomain) return;
+
+      // Ensure domains are loaded before resolving
+      if (!domainsStore.domains?.length) {
+        await domainsStore.fetchList();
+      }
+
+      // Resolve extid from display_domain or extid for API calls
+      const extid = resolveExtid(effectiveDomain);
+      if (!extid) {
+        console.warn('[useBranding] Could not resolve extid for domain:', effectiveDomain);
+        return;
+      }
+
+      const isLocalDomain = !targetDomain || targetDomain === domainId;
+      try {
+        const updated = await store.updateSettings(extid, updates);
+        // Only update local state if we're saving to the composable's domain
+        if (isLocalDomain) {
+          brandSettings.value = updated;
+          originalSettings.value = { ...brandSettings.value };
+        }
+        notifications.show(t('web.branding.saved_successfully'), 'success', 'top');
+      } catch (err) {
+        // Save failed: roll the live preview (and the bound form controls) back
+        // to the last-saved snapshot so a failed save can't masquerade as a
+        // successful one — otherwise the preview keeps showing the attempted
+        // change and the error toast is easy to miss. The async handler (wrap)
+        // still classifies + notifies. Trade-off: the rejected edits are
+        // discarded; the user re-applies and retries.
+        if (isLocalDomain && originalSettings.value) {
+          brandSettings.value = { ...originalSettings.value };
+        }
+        throw err;
+      }
+    });
+
+  const handleLogoUpload = async (file: File) =>
+    wrap(async () => {
+      if (!domainId) throw createError('Domain is required to upload logo', 'human', 'error');
+      // Ensure domains are loaded before resolving
+      if (!domainsStore.domains?.length) {
+        await domainsStore.fetchList();
+      }
+      const extid = resolveExtid(domainId);
+      if (!extid) throw createError('Could not resolve domain for logo upload', 'human', 'error');
+      const uploadedLogo = await store.uploadLogo(extid, file);
+      // Update local state with new logo
+      logoImage.value = uploadedLogo;
+      // Return the persisted logo as a success signal. wrap() is an error
+      // boundary (it toasts + resolves undefined on failure, never rejects), so
+      // ImageUploadModal reads a truthy result here as "committed, close" and a
+      // falsy one as "failed, stay open for retry".
+      return uploadedLogo;
+    });
+
+  const removeLogo = async () =>
+    wrap(async () => {
+      if (!domainId) throw createError('Domain is required to remove logo', 'human', 'error');
+      // Ensure domains are loaded before resolving
+      if (!domainsStore.domains?.length) {
+        await domainsStore.fetchList();
+      }
+      const extid = resolveExtid(domainId);
+      if (!extid) throw createError('Could not resolve domain for logo removal', 'human', 'error');
+      await store.removeLogo(extid);
+      // Clear local logo state
+      logoImage.value = null;
+      // Truthy success signal for ImageUploadModal — see handleLogoUpload.
+      return true;
+    });
+
+  // Enqueue a forced favicon re-fetch from the domain (#3780). Mirrors
+  // removeLogo. The store POST returns a queued success immediately; the new
+  // icon lands later via the background worker, so we toast the queued state
+  // and let a later reload surface the fetched icon. wrap() toasts + resolves
+  // undefined on failure, so a truthy return is the success signal.
+  const refreshFavicon = async () =>
+    wrap(async () => {
+      if (!domainId) throw createError('Domain is required to refresh favicon', 'human', 'error');
+      // Ensure domains are loaded before resolving
+      if (!domainsStore.domains?.length) {
+        await domainsStore.fetchList();
+      }
+      const extid = resolveExtid(domainId);
+      if (!extid) throw createError('Could not resolve domain for favicon refresh', 'human', 'error');
+      await domainsStore.refreshFavicon(extid);
+      notifications.show(t('web.branding.refresh_favicon_queued'), 'success', 'top');
+      return true;
+    });
+
+  // Upload a custom favicon (#3780). Mirrors handleLogoUpload but targets the
+  // icon endpoint (domainsStore, where the favicon lifecycle lives). The upload
+  // stamps favicon_source='user_upload' server-side, which disables the forced
+  // refresh button. wrap() toasts + resolves undefined on failure, so a truthy
+  // return is ImageUploadModal's "committed, close" signal.
+  const handleFaviconUpload = async (file: File) =>
+    wrap(async () => {
+      if (!domainId) throw createError('Domain is required to upload favicon', 'human', 'error');
+      // Ensure domains are loaded before resolving
+      if (!domainsStore.domains?.length) {
+        await domainsStore.fetchList();
+      }
+      const extid = resolveExtid(domainId);
+      if (!extid) throw createError('Could not resolve domain for favicon upload', 'human', 'error');
+      const uploadedIcon = await domainsStore.uploadIcon(extid, file);
+      // Update local state with new favicon
+      faviconImage.value = uploadedIcon;
+      // Truthy success signal for ImageUploadModal — see handleLogoUpload.
+      return uploadedIcon;
+    });
+
+  // Remove the stored favicon, then re-enqueue an auto-fetch (#3780). Removing a
+  // user-uploaded icon clears its 'user_upload' provenance, so we kick off a
+  // fresh fetch rather than leaving the domain iconless — the forced refresh's
+  // queued toast covers the "coming shortly" state. refreshFavicon is itself
+  // wrapped (toasts + never rejects), so a failed re-enqueue can't undo the
+  // successful removal. Mirrors removeLogo otherwise.
+  const removeFavicon = async () =>
+    wrap(async () => {
+      if (!domainId) throw createError('Domain is required to remove favicon', 'human', 'error');
+      // Ensure domains are loaded before resolving
+      if (!domainsStore.domains?.length) {
+        await domainsStore.fetchList();
+      }
+      const extid = resolveExtid(domainId);
+      if (!extid) throw createError('Could not resolve domain for favicon removal', 'human', 'error');
+      await domainsStore.removeIcon(extid);
+      // Clear local favicon state
+      faviconImage.value = null;
+      // Re-enqueue an auto-fetch so the domain gets an icon again.
+      await refreshFavicon();
+      // Truthy success signal for ImageUploadModal — see removeLogo.
+      return true;
+    });
+
+  return {
+    isLoading,
+    error,
+    brandSettings,
+    logoImage,
+    faviconImage,
+    previewI18n: composer,
+    displayLocale,
+    primaryColor,
+    hasUnsavedChanges,
+    isInitialized,
+    initialize,
+    saveBranding,
+    handleLogoUpload,
+    removeLogo,
+    refreshFavicon,
+    handleFaviconUpload,
+    removeFavicon,
+  };
+}

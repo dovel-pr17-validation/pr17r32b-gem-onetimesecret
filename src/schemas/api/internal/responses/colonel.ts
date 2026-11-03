@@ -1,0 +1,1109 @@
+// src/schemas/api/internal/responses/colonel.ts
+
+/**
+ * Colonel (Admin) API Endpoint Schemas
+ *
+ * This file contains schemas for the colonel/admin API endpoints.
+ * Config-related schemas are imported from @/schemas/contracts/config/config.ts
+ */
+
+import { createApiResponseSchema } from '@/schemas/api/base';
+import {
+  systemSettingsDetailsSchema,
+  systemSettingsSchema,
+} from '@/schemas/contracts/config/config';
+import { feedbackSchema } from '@/schemas/shapes/v3/feedback';
+import { transforms } from '@/schemas/transforms';
+import { z } from 'zod';
+
+// Import system settings schemas from config
+
+// Re-export for backward compatibility
+export { systemSettingsDetailsSchema, systemSettingsSchema };
+// SystemSettingsDetails type already exported from config/config.ts
+
+// ============================================================================
+// Colonel API Response Schemas
+// ============================================================================
+
+/**
+ * An abridged customer record used in the recent list.
+ */
+export const recentCustomerSchema = z.object({
+  // Server-internal objid (GetColonelInfo#process_customers emits `user_id`,
+  // never an email address; e.g. GLOBAL for new installs).
+  user_id: z.string(),
+  colonel: z.boolean(),
+  secrets_created: z.number(),
+  secrets_shared: z.number(),
+  emails_sent: z.number(),
+  verified: z.boolean(),
+  // Familia `created` timestamp (Unix-epoch number), transformed to Date to
+  // match every other timestamp in this file.
+  created: transforms.fromNumber.toDate,
+});
+
+/**
+ * Full user record from /api/colonel/users endpoint
+ */
+export const colonelUserSchema = z.object({
+  user_id: z.string(),
+  extid: z.string(),
+  /** Outbound Rodauth Admin link (null unless full auth mode + RODAUTH_ADMIN_URL). */
+  rodauth_admin_account_url: z.string().nullable().optional(),
+  email: z.string(),
+  role: z.string(),
+  verified: z.boolean(),
+  // Reversible trust & safety pause (customer-support features). Optional
+  // with a default so pre-suspension payloads/fixtures keep parsing.
+  suspended: z.boolean().optional().default(false),
+  created: transforms.fromNumber.toDate,
+  last_login: transforms.fromNumber.toDateNullable,
+  planid: z.string().nullable(),
+  /**
+   * Whose plan `planid` is: 'organization' — the plan of the organization
+   * this customer OWNS and is billed for (named by `billing_organization`);
+   * 'customer' — the legacy Customer#planid field, shown when they own no
+   * organization. A joined organization's plan is never shown as the
+   * customer's. Optional so pre-labelling payloads/fixtures keep parsing.
+   */
+  plan_source: z.enum(['organization', 'customer']).optional(),
+  billing_organization: z
+    .object({
+      extid: z.string(),
+      display_name: z.string(),
+    })
+    .nullable()
+    .optional(),
+  secrets_count: z.number(),
+  secrets_created: z.number(),
+  secrets_shared: z.number(),
+});
+
+/**
+ * Pagination metadata for list endpoints
+ */
+export const paginationSchema = z.object({
+  page: z.number(),
+  per_page: z.number(),
+  total_count: z.number(),
+  total_pages: z.number(),
+  /** True when a role/search scan hit its request-path cap, so total_count
+   *  understates the population — more rows exist beyond what was scanned. */
+  capped: z.boolean().optional(),
+  /** Index entries on THIS page whose backing object no longer loads and were
+   *  pruned; the rendered row list can therefore be short of `per_page`. */
+  stale_count: z.number().optional(),
+  role_filter: z.string().nullable().optional(),
+  /** Server echo of the email search term (users list). */
+  search: z.string().nullable().optional(),
+});
+
+/**
+ * An auth-database accounts row that maps to NO customer record (full auth
+ * mode only). Reported by the users list for an address-shaped search so the
+ * operator sees the person exists (and can log in) even though the customer
+ * index has nothing for them. Timestamps stay numeric: the entry is rendered
+ * inline in a notice, never sorted or compared.
+ */
+export const colonelOrphanedAccountSchema = z.object({
+  email: z.string(),
+  account_id: z.number(),
+  external_id: z.string().nullable(),
+  status: z.enum(['unverified', 'verified', 'closed', 'unknown']),
+  created_at: z.number().nullable(),
+});
+
+/**
+ * Users list response details
+ */
+export const colonelUsersDetailsSchema = z.object({
+  users: z.array(colonelUserSchema),
+  pagination: paginationSchema,
+  // Absent on servers that predate the orphan lookup, and only populated for
+  // address-shaped searches, so default to empty rather than failing the parse.
+  orphaned_accounts: z.array(colonelOrphanedAccountSchema).optional().default([]),
+});
+
+/**
+ * Secret record from /api/colonel/secrets endpoint
+ */
+export const colonelSecretSchema = z.object({
+  secret_id: z.string(),
+  shortid: z.string(),
+  owner_id: z.string().nullable(),
+  state: z.string(),
+  created: transforms.fromNumber.toDate,
+  expiration: transforms.fromNumber.toDateNullable,
+  lifespan: z.number().nullable(),
+  receipt_id: z.string().nullable(),
+  age: z.number(),
+  has_ciphertext: z.boolean(),
+});
+
+/**
+ * Secrets list response details
+ */
+export const colonelSecretsDetailsSchema = z.object({
+  secrets: z.array(colonelSecretSchema),
+  pagination: paginationSchema,
+});
+
+/**
+ * Database metrics response details
+ */
+export const databaseMetricsDetailsSchema = z.object({
+  redis_info: z.object({
+    redis_version: z.string(),
+    valkey_version: z.string().nullish(),
+    server_name: z.string().nullish(),
+    redis_mode: z.string().nullable(),
+    os: z.string(),
+    uptime_in_seconds: z.number(),
+    uptime_in_days: z.number(),
+    connected_clients: z.number(),
+    total_commands_processed: z.number(),
+    instantaneous_ops_per_sec: z.number(),
+  }),
+  database_sizes: z.record(
+    z.string(),
+    z.union([
+      z.object({
+        keys: z.number(),
+        expires: z.number(),
+        avg_ttl: z.number(),
+      }),
+      z.string(), // Sometimes Redis INFO returns string format
+    ])
+  ),
+  total_keys: z.number(),
+  memory_stats: z.object({
+    used_memory: z.number(),
+    used_memory_human: z.string(),
+    used_memory_rss: z.number(),
+    used_memory_rss_human: z.string(),
+    used_memory_peak: z.number(),
+    used_memory_peak_human: z.string(),
+    mem_fragmentation_ratio: z.number(),
+  }),
+  model_counts: z.object({
+    customers: z.number(),
+    secrets: z.number(),
+    receipts: z.number(),
+  }),
+});
+
+/**
+ * One ots-backup status hash, normalized at the API boundary. Invalid external
+ * values become null; empty strings retain their contract meaning of "not
+ * applicable". Timestamps stay numeric so the System screen can compare them
+ * against the response's server-side `timestamp` without a client clock skew.
+ */
+export const backupStatusRecordSchema = z.object({
+  event: z.enum(['start', 'ok', 'fail']).nullable(),
+  ts: z.number().int().nonnegative().nullable(),
+  host: z.string().nullable(),
+  unit: z.string().nullable(),
+  job: z.enum(['pg', 'valkey', 'prune', 'ship']).nullable(),
+  file: z.string().nullable(),
+  bytes: z.string().nullable(),
+  sha256: z.string().nullable(),
+  mode: z.enum(['report', 'delete', '']).nullable(),
+  removed: z.string().nullable(),
+  candidates: z.string().nullable(),
+  shipped: z.string().nullable(),
+  remote: z.string().nullable(),
+  duration_secs: z.string().nullable(),
+  error: z.string().nullable(),
+  version: z.string().nullable(),
+  scheduled: z.enum(['enabled', 'disabled', 'unknown']).nullable(),
+});
+
+/** GET /api/colonel/system/backups — fixed known jobs, read-only status. */
+export const backupStatusDetailsSchema = z.object({
+  timestamp: z.number().int().nonnegative(),
+  jobs: z.array(
+    z.object({
+      job: z.enum(['pg', 'valkey', 'prune', 'ship']),
+      configured: z.boolean(),
+      latest: backupStatusRecordSchema.nullable(),
+      last_ok: backupStatusRecordSchema.nullable(),
+    })
+  ),
+});
+
+/**
+ * Brand-pack diagnostics response details (#3822).
+ *
+ * Read-only diagnostic for the running instance's brand-pack resolution, so ops
+ * can see why one region serves neutral branding (the v0.26.0 UK incident:
+ * identical files on disk, divergent render). The two boolean DANGER flags ARE
+ * the point of the tool and the reason it renders them first:
+ *   - `fell_back_to_default`  — resolution missed the pack and fell back to the
+ *                               neutral default (broken checkout / bad mount).
+ *   - `boot_vs_live_mismatch` — the boot-time snapshot disagrees with the live
+ *                               resolution (a mount race — the container booted
+ *                               before the brand volume was ready).
+ *
+ * Nullable fields track the failure shapes the tool exists to surface:
+ *   - `resolved_dir` / `manifest.path` are null on a broken checkout (nothing
+ *     resolved / no manifest on disk) — render "(none)", never a blank.
+ *   - the env/config brand strings are null when ENV isn't reaching the
+ *     container or the config never set them. The backend always emits these
+ *     keys (value may be null but the key is never absent), so they use
+ *     `.nullable()` — not `.nullish()`. Requiring the key present keeps the
+ *     drift tripwire intact: a missing key is a contract break, not "unset".
+ */
+export const brandDiagnosticsDetailsSchema = z.object({
+  home: z.string(),
+  // Raw ENV as the process sees it now — catches "env not reaching container".
+  env: z.object({
+    brand_pack: z.string().nullable(),
+    brand_assets_dir: z.string().nullable(),
+  }),
+  // Boot-time config snapshot — catches config divergence from ENV. The two
+  // key lists are PROVENANCE as boot recorded it (conf['brand_manifest']):
+  // brand_absorbed = keys filled FROM the pack manifest, brand_operator_keys =
+  // keys the operator set in brand: config. Env/legacy-filled keys appear in
+  // neither list.
+  config: z.object({
+    brand_pack: z.string().nullable(),
+    brand_assets_dir: z.string().nullable(),
+    brand_absorbed: z.array(z.string()),
+    brand_operator_keys: z.array(z.string()),
+  }),
+  // Search roots probed in order, each flagged for on-disk existence.
+  roots: z.array(
+    z.object({
+      path: z.string(),
+      exists: z.boolean(),
+    })
+  ),
+  // NULLABLE: null when nothing resolved (broken checkout).
+  resolved_dir: z.string().nullable(),
+  // DANGER flag: true = fell back to the neutral default pack.
+  fell_back_to_default: z.boolean(),
+  manifest: z.object({
+    // NULLABLE: null when no manifest is present on disk.
+    path: z.string().nullable(),
+    exists: z.boolean(),
+    keys_on_disk: z.array(z.string()),
+  }),
+  // DANGER flag: true = boot snapshot ≠ live resolution (mount race).
+  boot_vs_live_mismatch: z.boolean(),
+  overlay_assets: z.array(z.string()),
+});
+
+/**
+ * Redis metrics response details (full Redis INFO)
+ */
+export const redisMetricsDetailsSchema = z.object({
+  redis_info: z.record(z.string(), z.string()),
+  timestamp: transforms.fromNumber.toDate,
+});
+
+/**
+ * Usage export response details
+ */
+export const usageExportDetailsSchema = z.object({
+  date_range: z.object({
+    start_date: transforms.fromNumber.toDate,
+    end_date: transforms.fromNumber.toDate,
+    days: z.number(),
+  }),
+  usage_data: z.object({
+    total_secrets: z.number(),
+    total_new_users: z.number(),
+    secrets_by_state: z.record(z.string(), z.number()),
+    avg_secrets_per_day: z.number(),
+    avg_users_per_day: z.number(),
+  }),
+  secrets_by_day: z.record(z.string(), z.number()),
+  users_by_day: z.record(z.string(), z.number()),
+});
+
+/**
+ * Custom domain schema for colonel/admin API
+ * (Different from models/domain customDomainSchema - this is the admin list view)
+ */
+export const colonelCustomDomainSchema = z.object({
+  domain_id: z.string(),
+  extid: z.string(),
+  display_domain: z.string(),
+  base_domain: z.string(),
+  subdomain: z.string(),
+  status: z.string().nullable(),
+  verified: z.boolean(),
+  resolving: z.boolean(),
+  verification_state: z.string(),
+  ready: z.boolean(),
+  created: transforms.fromNumber.toDate,
+  updated: transforms.fromNumber.toDateNullable,
+  org_id: z.string(),
+  /** Owning org's PUBLIC id — what the console links by (null when the org is gone). */
+  org_extid: z.string().nullable().optional(),
+  org_name: z.string(),
+  brand: z.object({
+    name: z.string().nullable(),
+    tagline: z.string().nullable(),
+    homepage_url: z.string().nullable(),
+  }),
+  // Per-domain feature toggles emitted as their own blocks (#3026); both are
+  // nullable so the admin list can still render when a HomepageConfig /
+  // ApiConfig record is missing (data drift surfaces as a null block rather
+  // than a crashed list).
+  homepage_config: z
+    .object({
+      domain_id: z.string(),
+      enabled: z.boolean(),
+      /** Which experience the enabled homepage presents ('create' | 'incoming'). */
+      secrets_mode: z.string().optional(),
+      created_at: z.number().nullable(),
+      updated_at: z.number().nullable(),
+    })
+    .nullable(),
+  api_config: z
+    .object({
+      domain_id: z.string(),
+      enabled: z.boolean(),
+      created_at: z.number().nullable(),
+      updated_at: z.number().nullable(),
+    })
+    .nullable(),
+  has_logo: z.boolean(),
+  has_icon: z.boolean(),
+  logo_url: z.string().nullable(),
+  icon_url: z.string().nullable(),
+});
+
+export const colonelCustomDomainsDetailsSchema = z.object({
+  domains: z.array(colonelCustomDomainSchema),
+  pagination: paginationSchema,
+});
+
+/**
+ * Lightweight stats schema for dashboard display
+ */
+export const colonelStatsDetailsSchema = z.object({
+  counts: z.object({
+    customer_count: z.number(),
+    emails_sent: z.number(),
+    receipt_count: z.number(),
+    secret_count: z.number(),
+    secrets_created: z.number(),
+    secrets_shared: z.number(),
+    session_count: z.number(),
+  }),
+});
+
+export const colonelInfoDetailsSchema = z.object({
+  recent_customers: z.array(recentCustomerSchema).default([]),
+  today_feedback: z.array(feedbackSchema).default([]),
+  yesterday_feedback: z.array(feedbackSchema).default([]),
+  older_feedback: z.array(feedbackSchema).nullable().default(null),
+  dbclient_info: z.string().optional().default(''),
+  billing_enabled: z.boolean().optional().default(false),
+  counts: z.object({
+    customer_count: z.number(),
+    emails_sent: z.number(),
+    feedback_count: z.number(),
+    receipt_count: z.number(),
+    older_feedback_count: z.number(),
+    recent_customer_count: z.number(),
+    secret_count: z.number(),
+    secrets_created: z.number(),
+    secrets_shared: z.number(),
+    session_count: z.number(),
+    today_feedback_count: z.number(),
+    yesterday_feedback_count: z.number(),
+  }),
+});
+
+// ============================================================================
+// Type Exports
+// ============================================================================
+
+export type ColonelStatsDetails = z.infer<typeof colonelStatsDetailsSchema>;
+export type ColonelInfoDetails = z.infer<typeof colonelInfoDetailsSchema>;
+export type RecentCustomer = z.infer<typeof recentCustomerSchema>;
+export type ColonelUser = z.infer<typeof colonelUserSchema>;
+export type ColonelUsersDetails = z.infer<typeof colonelUsersDetailsSchema>;
+export type ColonelOrphanedAccount = z.infer<typeof colonelOrphanedAccountSchema>;
+export type Pagination = z.infer<typeof paginationSchema>;
+export type ColonelSecret = z.infer<typeof colonelSecretSchema>;
+export type ColonelSecretsDetails = z.infer<typeof colonelSecretsDetailsSchema>;
+export type DatabaseMetricsDetails = z.infer<typeof databaseMetricsDetailsSchema>;
+export type RedisMetricsDetails = z.infer<typeof redisMetricsDetailsSchema>;
+export type UsageExportDetails = z.infer<typeof usageExportDetailsSchema>;
+export type ColonelCustomDomain = z.infer<typeof colonelCustomDomainSchema>;
+export type ColonelCustomDomainsDetails = z.infer<typeof colonelCustomDomainsDetailsSchema>;
+
+/**
+ * Queue metrics schema
+ */
+export const queueMetricSchema = z.object({
+  name: z.string(),
+  pending_messages: z.number(),
+  consumers: z.number(),
+  rate: z.number().optional(),
+});
+
+export const queueMetricsDetailsSchema = z.object({
+  connection: z.object({
+    connected: z.boolean(),
+    host: z.string().optional(),
+  }),
+  worker_health: z.object({
+    status: z.enum(['healthy', 'degraded', 'unhealthy', 'unknown']),
+    active_workers: z.number().optional(),
+  }),
+  queues: z.array(queueMetricSchema),
+});
+
+export type QueueMetric = z.infer<typeof queueMetricSchema>;
+export type QueueMetrics = z.infer<typeof queueMetricsDetailsSchema>;
+
+/**
+ * Organization schema for colonel/admin API
+ * Includes billing sync health detection for admin monitoring
+ */
+export const colonelOrganizationSchema = z.object({
+  org_id: z.string(),
+  extid: z.string(),
+  display_name: z.string().nullable(),
+  contact_email: z.string().nullable(),
+  owner_id: z.string().nullable(),
+  owner_email: z.string().nullable(),
+  member_count: z.number(),
+  domain_count: z.number(),
+  is_default: z.boolean(),
+  created: transforms.fromNumber.toDate,
+  updated: transforms.fromNumber.toDateNullable,
+  // Billing fields
+  planid: z.string().nullable(),
+  stripe_customer_id: z.string().nullable(),
+  stripe_subscription_id: z.string().nullable(),
+  subscription_status: z.string().nullable(),
+  // Unix epoch seconds. New records are JSON numbers; legacy records may
+  // still carry a string.
+  subscription_period_end: z.union([z.number(), z.string()]).nullable(),
+  billing_email: z.string().nullable(),
+  // Sync health detection
+  sync_status: z.enum(['synced', 'potentially_stale', 'unknown']),
+  sync_status_reason: z.string().nullable(),
+});
+
+/**
+ * Organizations filters schema
+ */
+export const colonelOrganizationsFiltersSchema = z.object({
+  status: z.string().nullable(),
+  sync_status: z.string().nullable(),
+  // The server echoes the active search term back; it went undeclared while the
+  // search box was switched off, so non-strict Zod silently stripped it.
+  // Optional, not required: fixtures and any older payload omit the key, and a
+  // required field here would fail the parse for the whole list response.
+  search: z.string().nullable().optional(),
+});
+
+/**
+ * Organizations list response details
+ */
+export const colonelOrganizationsDetailsSchema = z.object({
+  organizations: z.array(colonelOrganizationSchema),
+  pagination: paginationSchema,
+  filters: colonelOrganizationsFiltersSchema,
+  // The endpoint's candidate set is bounded (index scans + a newest-first
+  // window); `pagination.capped` reports when it stopped short. There is no
+  // roster cache and therefore no cache block any more; an older server that
+  // still sends one is tolerated by the non-strict parse.
+});
+
+export type ColonelOrganization = z.infer<typeof colonelOrganizationSchema>;
+export type ColonelOrganizationsDetails = z.infer<typeof colonelOrganizationsDetailsSchema>;
+export type ColonelOrganizationsFilters = z.infer<typeof colonelOrganizationsFiltersSchema>;
+
+/**
+ * Organization billing investigation - local state
+ */
+export const investigateLocalStateSchema = z.object({
+  planid: z.string().nullable(),
+  stripe_customer_id: z.string().nullable(),
+  stripe_subscription_id: z.string().nullable(),
+  subscription_status: z.string().nullable(),
+  subscription_period_end: z.union([z.number(), z.string()]).nullable(),
+});
+
+/**
+ * Organization billing investigation - Stripe subscription data
+ */
+export const investigateStripeSubscriptionSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  current_period_end: z.number().nullable(),
+  price_id: z.string().nullable(),
+  price_nickname: z.string().nullable(),
+  product_id: z.string().nullable(),
+  product_name: z.string().nullable(),
+  subscription_metadata_plan_id: z.string().nullable(),
+  price_metadata_plan_id: z.string().nullable(),
+  resolved_plan_id: z.string().nullable(),
+});
+
+/**
+ * Organization billing investigation - Stripe state
+ */
+export const investigateStripeStateSchema = z.object({
+  available: z.boolean(),
+  reason: z.string().nullable(),
+  subscription: investigateStripeSubscriptionSchema.nullable(),
+});
+
+/**
+ * Organization billing investigation - comparison issue
+ */
+export const investigateIssueSchema = z.object({
+  field: z.string(),
+  local: z.string(),
+  stripe: z.string(),
+  severity: z.enum(['critical', 'high', 'medium', 'low']),
+});
+
+/**
+ * Organization billing investigation - comparison result
+ */
+export const investigateComparisonSchema = z.object({
+  match: z.boolean().nullable(),
+  verdict: z.enum(['synced', 'mismatch_detected', 'unable_to_compare']),
+  details: z.string().optional(),
+  issues: z.array(investigateIssueSchema).optional(),
+});
+
+/**
+ * Organization billing investigation result
+ */
+export const investigateOrganizationResultSchema = z.object({
+  org_id: z.string(),
+  extid: z.string(),
+  investigated_at: z.string(),
+  local: investigateLocalStateSchema,
+  stripe: investigateStripeStateSchema,
+  comparison: investigateComparisonSchema,
+});
+
+export type InvestigateLocalState = z.infer<typeof investigateLocalStateSchema>;
+export type InvestigateStripeSubscription = z.infer<typeof investigateStripeSubscriptionSchema>;
+export type InvestigateStripeState = z.infer<typeof investigateStripeStateSchema>;
+export type InvestigateIssue = z.infer<typeof investigateIssueSchema>;
+export type InvestigateComparison = z.infer<typeof investigateComparisonSchema>;
+export type InvestigateOrganizationResult = z.infer<typeof investigateOrganizationResultSchema>;
+
+// ============================================================================
+// Colonel customer DETAIL + mutation schemas (ticket #22)
+//
+// New schemas only — the existing colonel contracts above are frozen (the Zod
+// tripwire, epic non-goal). These describe the SHAPE the Slice-2 endpoints
+// already return; verified against the live logic classes:
+//   - GetUserDetails         → GET    /api/colonel/users/:user_id
+//   - SetUserRole            → POST   /api/colonel/users/:user_id/role
+//   - Verify / UnverifyUser  → POST   /api/colonel/users/:user_id/{,un}verify
+//   - PurgeUser              → DELETE /api/colonel/users/:user_id
+// ============================================================================
+
+/**
+ * The core customer record on the detail page (GetUserDetails `record`).
+ * `email` is the FULL raw address (colonel-only, scope=internal); the UI
+ * obscures it client-side and reveals on interaction (RevealEmail.vue), and it
+ * doubles as the typed-confirmation token for the guarded purge. Only the
+ * mutation acks ({@link colonelUserMutationRecordSchema}) carry the obscured
+ * `obscure_email` form.
+ * Timestamps arrive as Unix-epoch numbers (seconds, sometimes fractional) and
+ * are transformed to Date, mirroring {@link colonelUserSchema}.
+ */
+export const colonelUserDetailRecordSchema = z.object({
+  extid: z.string(),
+  email: z.string(),
+  role: z.string(),
+  verified: z.boolean(),
+  // Reversible trust & safety pause. All four fields are optional so
+  // pre-suspension payloads keep parsing; the *_at/_by/_reason trio is
+  // nil server-side whenever the account is not suspended.
+  suspended: z.boolean().optional().default(false),
+  suspended_at: transforms.fromNumber.toDateNullable.optional(),
+  suspended_by: z.string().nullable().optional(),
+  suspended_reason: z.string().nullable().optional(),
+  created: transforms.fromNumber.toDate,
+  updated: transforms.fromNumber.toDateNullable,
+  last_login: transforms.fromNumber.toDateNullable,
+  planid: z.string().nullable(),
+  locale: z.string().nullable(),
+});
+
+/** One secret owned by the customer (GetUserDetails `details.secrets.items`). */
+export const colonelUserDetailSecretSchema = z.object({
+  secret_id: z.string(),
+  shortid: z.string(),
+  state: z.string(),
+  created: transforms.fromNumber.toDate,
+  expiration: transforms.fromNumber.toDateNullable,
+});
+
+/** One receipt owned by the customer (GetUserDetails `details.receipts.items`). */
+export const colonelUserDetailReceiptSchema = z.object({
+  receipt_id: z.string(),
+  shortid: z.string(),
+  state: z.string(),
+  created: transforms.fromNumber.toDate,
+});
+
+/** One organization the customer participates in. */
+export const colonelUserDetailOrganizationSchema = z.object({
+  organization_id: z.string(),
+  extid: z.string(),
+  display_name: z.string().nullable(),
+  /** The org is its OWNER's auto-created workspace (not necessarily this customer's). */
+  is_default: z.boolean(),
+  /**
+   * The org is THIS customer's default organization. Optional, defaulting to
+   * false, for deploy skew with a backend that does not send it yet.
+   */
+  is_customer_default: z.boolean().optional().default(false),
+});
+
+/** Lifetime counters coerced to Integer server-side (never opaque Counters). */
+export const colonelUserDetailStatsSchema = z.object({
+  secrets_created: z.number(),
+  secrets_shared: z.number(),
+  emails_sent: z.number(),
+});
+
+/**
+ * Live Stripe read-out on the customer detail page. `available: false` is the
+ * graceful-degradation shape (billing disabled, no Stripe identity, or Stripe
+ * unreachable) — the server NEVER fails the detail page over Stripe; it
+ * degrades to this with a human-readable `reason`.
+ */
+export const colonelUserBillingStripeSchema = z.object({
+  available: z.boolean(),
+  reason: z.string().nullable(),
+  customer_id: z.string().nullable(),
+  /** Deep link to the customer in the Stripe dashboard (mode-aware). */
+  dashboard_url: z.string().nullable(),
+  subscription: z
+    .object({
+      id: z.string(),
+      status: z.string(),
+      current_period_end: z.number().nullable(),
+    })
+    .nullable(),
+  latest_invoice: z
+    .object({
+      id: z.string().nullable(),
+      number: z.string().nullable(),
+      status: z.string().nullable(),
+      currency: z.string().nullable(),
+      /** Smallest currency unit (e.g. cents). */
+      total: z.number().nullable(),
+      created: transforms.fromNumber.toDateNullable,
+      hosted_invoice_url: z.string().nullable(),
+    })
+    .nullable(),
+});
+
+/**
+ * Billing summary on the customer detail page ("why was I charged" support).
+ * `plan_id` comes from the billing org, else the customer model, so the card
+ * renders even when every Stripe path degrades; `organization` is the org the
+ * customer owns and is billed for (Stripe identifiers live on Organization,
+ * not Customer). A joined organization's billing is never shown here.
+ */
+export const colonelUserBillingSchema = z.object({
+  enabled: z.boolean(),
+  plan_id: z.string().nullable(),
+  /**
+   * Whose plan `plan_id` is: 'organization' — the org this customer OWNS and
+   * is billed for (the `organization` block); 'customer' — the legacy
+   * Customer#planid field, when they own no organization. Optional so
+   * pre-labelling payloads keep parsing.
+   */
+  plan_source: z.enum(['organization', 'customer']).optional(),
+  organization: z
+    .object({
+      extid: z.string(),
+      display_name: z.string().nullable(),
+      planid: z.string().nullable(),
+      subscription_status: z.string().nullable(),
+      /** Unix epoch seconds; new records are numbers, legacy records may hold a string. */
+      subscription_period_end: z.union([z.number(), z.string()]).nullable(),
+    })
+    .nullable(),
+  stripe: colonelUserBillingStripeSchema,
+});
+
+/**
+ * The `details` payload of GetUserDetails: everything a support agent needs to
+ * read out a customer without SSH — secrets (count + items), receipts, orgs,
+ * billing and lifetime stats. `count` is authoritative and equals
+ * `items.length` (the endpoint sources it from the per-owner index page it just
+ * rendered, not from the drifting counter). `billing` is optional so
+ * pre-billing payloads keep parsing.
+ *
+ * `truncated` says the list is a PARTIAL view — more exist than are shown
+ * (another index page, pre-index historical data, a bounded fallback scan that
+ * hit its deadline, or a section that failed to load). The UI must surface it:
+ * a short list that reads as complete is worse than an honest partial one. It
+ * is optional + defaulted so payloads from a server predating the flag parse as
+ * "not truncated" rather than failing validation.
+ */
+export const colonelUserDetailsSchema = z.object({
+  secrets: z.object({
+    count: z.number(),
+    items: z.array(colonelUserDetailSecretSchema),
+    truncated: z.boolean().optional().default(false),
+  }),
+  receipts: z.object({
+    count: z.number(),
+    items: z.array(colonelUserDetailReceiptSchema),
+    truncated: z.boolean().optional().default(false),
+  }),
+  organizations: z.array(colonelUserDetailOrganizationSchema),
+  billing: colonelUserBillingSchema.optional(),
+  stats: colonelUserDetailStatsSchema,
+  /**
+   * Outbound deep link to this customer's account in the standalone Rodauth
+   * Admin (the read-only `accounts.external_id == extid` join). Null when
+   * RODAUTH_ADMIN_URL is unset or auth mode is not full, in which case the
+   * page shows the public id as plain text; optional for deploy skew.
+   */
+  rodauth_admin_account_url: z.string().nullable().optional(),
+});
+
+/**
+ * Shared mutation-ack record for the guarded customer actions. The endpoints
+ * return structurally different records, so the fields that only SOME emit are
+ * optional — this one schema validates every ack:
+ *   - set-role  → old_role, new_role, email, updated
+ *   - set-plan  → old_planid, new_planid, email, updated
+ *   - verify/unverify → verified, email, updated
+ *   - suspend/unsuspend → suspended, email, updated
+ *   - purge     → deleted (email/updated omitted)
+ *
+ * `email`, when present, is the OBSCURED form (`obscure_email`) — unlike the
+ * detail record ({@link colonelUserDetailRecordSchema}), which carries the raw
+ * address for RevealEmail and the purge confirmation token.
+ *
+ * `user_id` here is the customer's OBJID (server-internal); the UI keys off
+ * `extid` (the public id) and refreshes the resource rather than trusting the
+ * ack, so the differing `user_id` semantics never leak into routing.
+ */
+export const colonelUserMutationRecordSchema = z.object({
+  user_id: z.string(),
+  extid: z.string(),
+  email: z.string().optional(),
+  old_role: z.string().optional(),
+  new_role: z.string().optional(),
+  old_planid: z.string().nullable().optional(),
+  new_planid: z.string().nullable().optional(),
+  verified: z.boolean().optional(),
+  suspended: z.boolean().optional(),
+  deleted: z.boolean().optional(),
+  updated: transforms.fromNumber.toDateNullable.optional(),
+});
+
+/** Shared `details` ack: `changed` present on toggles, absent on purge. */
+export const colonelUserMutationDetailsSchema = z.object({
+  changed: z.boolean().optional(),
+  /** Suspend only: how many readable sessions the sweep revoked. */
+  sessions_revoked: z.number().optional(),
+  message: z.string(),
+});
+
+/**
+ * One structured customer-purge blocker or cleanup action.
+ *
+ * The lifecycle operation intentionally returns machine-readable hashes whose
+ * detail varies by blocker/action code (organization id, blocked stage,
+ * remediation, operation status, and so on). Keep the known routing fields
+ * typed while preserving additional operator-facing details supplied by newer
+ * backends.
+ */
+export const colonelUserPurgeLifecycleItemSchema = z
+  .object({
+    code: z.string().optional(),
+    type: z.string().optional(),
+    org_id: z.string().optional(),
+    role: z.string().optional(),
+    status: z.string().optional(),
+    message: z.string().optional(),
+    remediation: z.union([z.string(), z.array(z.string())]).optional(),
+    blocked_stage: z.string().optional(),
+    operation_status: z.string().optional(),
+  })
+  .passthrough();
+
+const colonelUserPurgeLifecycleFields = {
+  status: z.string().optional(),
+  deleted: z.boolean().optional(),
+  extid: z.string().optional(),
+  custid: z.string().optional(),
+  blockers: z.array(colonelUserPurgeLifecycleItemSchema).optional(),
+  actions: z.array(colonelUserPurgeLifecycleItemSchema).optional(),
+  planned_actions: z.array(colonelUserPurgeLifecycleItemSchema).optional(),
+  stage: z.string().nullable().optional(),
+  completed_stages: z.array(z.string()).optional(),
+};
+
+/** Standalone lifecycle payload used inside structured purge error details. */
+export const colonelUserPurgeLifecycleResultSchema = z
+  .object(colonelUserPurgeLifecycleFields)
+  .passthrough();
+
+/**
+ * Purge has a richer result than the other customer mutations. Lifecycle fields
+ * are accepted in both `record` (the preferred resource/result location) and
+ * `details` during API-adapter rollout. The UI reads `record` first and falls
+ * back to `details`, while the legacy `{ user_id, extid, deleted? }` success ack
+ * remains valid for version-skew compatibility.
+ */
+export const colonelUserPurgeRecordSchema = colonelUserMutationRecordSchema.extend(
+  colonelUserPurgeLifecycleFields
+);
+export const colonelUserPurgeDetailsSchema = colonelUserMutationDetailsSchema.extend(
+  colonelUserPurgeLifecycleFields
+);
+
+/** An organization reference in the default-organization ack. Public ids only. */
+export const colonelOrganizationRefSchema = z.object({
+  extid: z.string(),
+  display_name: z.string().nullable(),
+});
+
+/**
+ * Default-organization ack
+ * (`POST /api/colonel/users/:user_id/default-organization`): the customer's
+ * public id plus the organization that is now their default. The server
+ * refuses (4xx) an organization the customer is not an active member of, so a
+ * 2xx always names one of their own organizations.
+ */
+export const colonelUserDefaultOrganizationRecordSchema = z.object({
+  extid: z.string(),
+  default_organization: colonelOrganizationRefSchema,
+});
+
+/** `previous_default_organization` is null when the customer had no default. */
+export const colonelUserDefaultOrganizationDetailsSchema = z.object({
+  previous_default_organization: colonelOrganizationRefSchema.nullable(),
+});
+
+/**
+ * Checkout-link ack record (POST /api/colonel/users/:user_id/checkout-link).
+ *
+ * A colonel-created Stripe Checkout session for the customer: the record IS
+ * the product (the URL the operator hands to the customer), so unlike the
+ * shared mutation ack every field here is required — a 2xx without a
+ * `checkout_url` is a contract break, not a tolerable drift. `expires_at` is a
+ * bare Unix-epoch number (seconds), left untransformed so the UI can compute
+ * "expires in ~Nh" against `Date.now()` without double-converting.
+ */
+export const colonelCheckoutLinkRecordSchema = z.object({
+  checkout_url: z.string(),
+  session_id: z.string(),
+  plan_id: z.string(),
+  price_id: z.string(),
+  expires_at: z.number(),
+});
+
+/**
+ * Checkout-link ack details: which region config produced the session.
+ *
+ * `region` is always a displayable, non-null string. A deployment that is not
+ * region-scoped has no billing region at the config layer (nil), and the
+ * backend maps that to `'global'` at the API boundary
+ * (ColonelAPI::Logic::Colonel::CreateCheckoutLink::UNSCOPED_REGION) — a null
+ * here would fail this strict parse and hide the checkout URL of a session
+ * that is already live and chargeable. Keep this non-nullable so that
+ * contract break stays loud.
+ */
+export const colonelCheckoutLinkDetailsSchema = z.object({
+  region: z.string(),
+});
+
+/**
+ * Ack for POST /api/colonel/users/:user_id/impersonate.
+ *
+ * NOT a {@link colonelUserMutationRecordSchema} ack: starting an impersonation
+ * hands back the marker the SESSION now carries, plus the path the console
+ * must leave for. `expires_at` is epoch SECONDS (the same unit as the bootstrap
+ * `impersonation` block) and is a server-fixed lifetime — there is no
+ * caller-supplied TTL to echo.
+ *
+ * `redirect` is server-supplied and therefore validated at the point of use
+ * (see hardNavigate / isValidInternalPath) rather than trusted as a URL here.
+ */
+export const colonelImpersonateRecordSchema = z.object({
+  impersonation_id: z.string(),
+  target_extid: z.string(),
+  target_email: z.string(),
+  expires_at: z.number(),
+  redirect: z.string().nullish(),
+});
+
+export type ColonelUserDetailRecord = z.infer<typeof colonelUserDetailRecordSchema>;
+export type ColonelUserDetailSecret = z.infer<typeof colonelUserDetailSecretSchema>;
+export type ColonelUserDetailReceipt = z.infer<typeof colonelUserDetailReceiptSchema>;
+export type ColonelUserDetailOrganization = z.infer<typeof colonelUserDetailOrganizationSchema>;
+export type ColonelUserDetailStats = z.infer<typeof colonelUserDetailStatsSchema>;
+export type ColonelUserBillingStripe = z.infer<typeof colonelUserBillingStripeSchema>;
+export type ColonelUserBilling = z.infer<typeof colonelUserBillingSchema>;
+export type ColonelUserDetails = z.infer<typeof colonelUserDetailsSchema>;
+export type ColonelUserMutationRecord = z.infer<typeof colonelUserMutationRecordSchema>;
+export type ColonelUserMutationDetails = z.infer<typeof colonelUserMutationDetailsSchema>;
+
+// ---- Available plans (GET /api/colonel/available-plans) --------------------
+// NOTE: this endpoint (ColonelAPI::Logic::Colonel::GetAvailablePlans) returns a
+// BARE `{ plans, source }` body — it overrides `process` directly instead of
+// `success_data`, so there is NO `{ record, details }` envelope. Do NOT wrap
+// this in createApiResponseSchema. The customer-detail plan selector and the
+// entitlement-preview modal both read `response.data.plans` / `.source`.
+
+/** One selectable plan. Only the fields the admin UI consumes are required. */
+export const colonelAvailablePlanSchema = z.object({
+  planid: z.string(),
+  name: z.string(),
+  tier: z.string().nullable().optional(),
+  display_order: z.number().optional(),
+  show_on_plans_page: z.boolean().optional(),
+});
+
+/**
+ * Bare available-plans payload. `source` flags whether plans came from the
+ * Stripe-synced cache or the local billing.yaml fallback (dev / no Stripe) —
+ * the UI warns on `local_config` per the endpoint's own guidance.
+ */
+export const colonelAvailablePlansResponseSchema = z.object({
+  plans: z.array(colonelAvailablePlanSchema),
+  source: z.enum(['stripe', 'local_config']),
+});
+
+export type ColonelAvailablePlan = z.infer<typeof colonelAvailablePlanSchema>;
+export type ColonelAvailablePlansResponse = z.infer<typeof colonelAvailablePlansResponseSchema>;
+
+// ============================================================================
+// Wrapped response envelopes ({ record, details } across the API envelope).
+// Registry keys for OpenAPI/JSON-Schema generation live in ./registry.ts.
+// ============================================================================
+
+export const colonelInfoResponseSchema = createApiResponseSchema(
+  z.object({}),
+  colonelInfoDetailsSchema
+);
+export const colonelStatsResponseSchema = createApiResponseSchema(
+  z.object({}),
+  colonelStatsDetailsSchema
+);
+export const colonelUsersResponseSchema = createApiResponseSchema(
+  z.object({}),
+  colonelUsersDetailsSchema
+);
+export const colonelSecretsResponseSchema = createApiResponseSchema(
+  z.object({}),
+  colonelSecretsDetailsSchema
+);
+export const colonelCustomDomainsResponseSchema = createApiResponseSchema(
+  z.object({}),
+  colonelCustomDomainsDetailsSchema
+);
+export const colonelOrganizationsResponseSchema = createApiResponseSchema(
+  z.object({}),
+  colonelOrganizationsDetailsSchema
+);
+export const investigateOrganizationResponseSchema = createApiResponseSchema(
+  investigateOrganizationResultSchema
+);
+export const databaseMetricsResponseSchema = createApiResponseSchema(
+  z.object({}),
+  databaseMetricsDetailsSchema
+);
+export const backupStatusResponseSchema = createApiResponseSchema(
+  z.object({}),
+  backupStatusDetailsSchema
+);
+export const brandDiagnosticsResponseSchema = createApiResponseSchema(
+  z.object({}),
+  brandDiagnosticsDetailsSchema
+);
+export const redisMetricsResponseSchema = createApiResponseSchema(
+  z.object({}),
+  redisMetricsDetailsSchema
+);
+export const usageExportResponseSchema = createApiResponseSchema(
+  z.object({}),
+  usageExportDetailsSchema
+);
+export const queueMetricsResponseSchema = createApiResponseSchema(
+  z.object({}),
+  queueMetricsDetailsSchema
+);
+export const systemSettingsResponseSchema = createApiResponseSchema(
+  z.object({}),
+  systemSettingsDetailsSchema
+);
+
+// Customer detail + guarded-mutation acks (ticket #22). Single-record envelopes
+// (`{ record, details }`) — the customers detail view + guarded action buttons.
+export const colonelUserDetailResponseSchema = createApiResponseSchema(
+  colonelUserDetailRecordSchema,
+  colonelUserDetailsSchema
+);
+export const colonelImpersonateResponseSchema = createApiResponseSchema(
+  colonelImpersonateRecordSchema
+);
+export const colonelUserMutationResponseSchema = createApiResponseSchema(
+  colonelUserMutationRecordSchema,
+  colonelUserMutationDetailsSchema
+);
+
+// DELETE /api/colonel/users/:user_id → PurgeUser lifecycle result
+export const colonelUserPurgeResponseSchema = createApiResponseSchema(
+  colonelUserPurgeRecordSchema,
+  colonelUserPurgeDetailsSchema
+);
+
+// POST /api/colonel/users/:user_id/default-organization
+export const colonelUserDefaultOrganizationResponseSchema = createApiResponseSchema(
+  colonelUserDefaultOrganizationRecordSchema,
+  colonelUserDefaultOrganizationDetailsSchema
+);
+export const colonelCheckoutLinkResponseSchema = createApiResponseSchema(
+  colonelCheckoutLinkRecordSchema,
+  colonelCheckoutLinkDetailsSchema
+);
+
+export type ColonelInfoResponse = z.infer<typeof colonelInfoResponseSchema>;
+export type ColonelStatsResponse = z.infer<typeof colonelStatsResponseSchema>;
+export type ColonelUsersResponse = z.infer<typeof colonelUsersResponseSchema>;
+export type ColonelSecretsResponse = z.infer<typeof colonelSecretsResponseSchema>;
+export type CustomDomainsResponse = z.infer<typeof colonelCustomDomainsResponseSchema>;
+export type ColonelOrganizationsResponse = z.infer<typeof colonelOrganizationsResponseSchema>;
+export type InvestigateOrganizationResponse = z.infer<typeof investigateOrganizationResponseSchema>;
+export type DatabaseMetricsResponse = z.infer<typeof databaseMetricsResponseSchema>;
+export type BackupStatusRecord = z.infer<typeof backupStatusRecordSchema>;
+export type BackupStatusResponse = z.infer<typeof backupStatusResponseSchema>;
+export type BrandDiagnosticsResponse = z.infer<typeof brandDiagnosticsResponseSchema>;
+export type RedisMetricsResponse = z.infer<typeof redisMetricsResponseSchema>;
+export type UsageExportResponse = z.infer<typeof usageExportResponseSchema>;
+export type QueueMetricsResponse = z.infer<typeof queueMetricsResponseSchema>;
+export type SystemSettingsResponse = z.infer<typeof systemSettingsResponseSchema>;
+export type ColonelUserDetailResponse = z.infer<typeof colonelUserDetailResponseSchema>;
+export type ColonelUserMutationResponse = z.infer<typeof colonelUserMutationResponseSchema>;
+export type ColonelUserPurgeResponse = z.infer<typeof colonelUserPurgeResponseSchema>;
+export type ColonelUserDefaultOrganizationResponse = z.infer<
+  typeof colonelUserDefaultOrganizationResponseSchema
+>;
+export type ColonelUserPurgeLifecycleResult = z.infer<typeof colonelUserPurgeLifecycleResultSchema>;
+export type ColonelUserPurgeLifecycleItem = z.infer<typeof colonelUserPurgeLifecycleItemSchema>;
+export type ColonelCheckoutLinkRecord = z.infer<typeof colonelCheckoutLinkRecordSchema>;
+export type ColonelCheckoutLinkDetails = z.infer<typeof colonelCheckoutLinkDetailsSchema>;
+export type ColonelCheckoutLinkResponse = z.infer<typeof colonelCheckoutLinkResponseSchema>;
+export type ColonelImpersonateRecord = z.infer<typeof colonelImpersonateRecordSchema>;
+export type ColonelImpersonateResponse = z.infer<typeof colonelImpersonateResponseSchema>;

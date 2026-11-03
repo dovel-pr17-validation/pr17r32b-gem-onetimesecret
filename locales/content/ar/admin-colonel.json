@@ -1,0 +1,814 @@
+{
+  "web.colonel.configEditorTitle": {
+    "text": "الإعدادات",
+    "source_hash": "74a883a0"
+  },
+  "web.colonel.configEditorDescription": {
+    "text": "تعديل إعدادات تكوين النظام. تُطبق التغييرات فور الحفظ.",
+    "source_hash": "6025d269"
+  },
+  "web.colonel.invalidJson": {
+    "text": "JSON غير صالح في قسم {section}",
+    "source_hash": "a75ac7a3"
+  },
+  "web.colonel.validationError": {
+    "text": "خطأ في التحقق",
+    "source_hash": "2aa2d0b4"
+  },
+  "web.colonel.errorFetchingConfig": {
+    "text": "خطأ في تحميل الإعدادات",
+    "source_hash": "08baf6d2"
+  },
+  "web.colonel.errorSavingConfig": {
+    "text": "خطأ في حفظ الإعدادات",
+    "source_hash": "48df54c7"
+  },
+  "web.colonel.configSaved": {
+    "text": "تم حفظ الإعدادات بنجاح",
+    "source_hash": "93b3d3e4"
+  },
+  "web.colonel.mustBeObject": {
+    "text": "يجب أن تكون الإعدادات كائن JSON",
+    "source_hash": "74e8897e"
+  },
+  "web.colonel.multipleSectionsInvalid": {
+    "text": "عدة أقسام تحتوي على أخطاء تحقق: {sections}",
+    "source_hash": "71fdaea1"
+  },
+  "web.colonel.sectionHasError": {
+    "text": "{section} يحتوي على أخطاء تحقق: {error}",
+    "source_hash": "e5e01aa0"
+  },
+  "web.colonel.sectionSaved": {
+    "text": "تم حفظ {section} بنجاح",
+    "source_hash": "7be1d5d2"
+  },
+  "web.colonel.saveSection": {
+    "text": "حفظ {section}",
+    "source_hash": "4a379f10"
+  },
+  "web.colonel.saveAll": {
+    "text": "حفظ الكل",
+    "source_hash": "d3c54e39"
+  },
+  "web.colonel.unsavedChanges": {
+    "text": "تغييرات غير محفوظة",
+    "source_hash": "a710c2b9"
+  },
+  "web.colonel.schemaValidationError": {
+    "text": "خطأ في التحقق من المخطط: {message} ({path})",
+    "source_hash": "5f838cb2"
+  },
+  "web.colonel.unknownValidationError": {
+    "text": "خطأ تحقق غير معروف: {error}",
+    "source_hash": "b6cf56ca"
+  },
+  "web.colonel.sectionEffectivelyEmpty": {
+    "text": "قسم {section} لا يحتوي على قيم مُعدَّة",
+    "source_hash": "efb63b77"
+  },
+  "web.colonel.dashboard": {
+    "text": "لوحة التحكم",
+    "source_hash": "67b69646"
+  },
+  "web.colonel.admin": {
+    "text": "المسؤول",
+    "source_hash": "c1c224b0"
+  },
+  "web.colonel.activity": {
+    "text": "النشاط",
+    "source_hash": "38da1505"
+  },
+  "web.colonel.accounts": {
+    "text": "الحسابات",
+    "source_hash": "8a7c8b67"
+  },
+  "web.colonel.users": {
+    "text": "المستخدمون",
+    "source_hash": "6b0cc904"
+  },
+  "web.colonel.usersDescription": {
+    "text": "إدارة حسابات المستخدمين والصلاحيات",
+    "source_hash": "6cfc012c"
+  },
+  "web.colonel.domains": {
+    "text": "النطاقات",
+    "source_hash": "ced67718"
+  },
+  "web.colonel.settings": {
+    "text": "الإعدادات",
+    "source_hash": "74a883a0"
+  },
+  "web.colonel.system": {
+    "text": "النظام",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.welcome": {
+    "text": "مرحباً في Colonel",
+    "source_hash": "7881ca9e"
+  },
+  "web.colonel.welcomeDesc": {
+    "text": "لوحة التحكم الإدارية لـ OneTimeSecret",
+    "source_hash": "57c1e752"
+  },
+  "web.colonel.quickActions": {
+    "text": "إجراءات سريعة",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.colonel.recentActivity": {
+    "text": "النشاط الأخير",
+    "source_hash": "9ef7d438"
+  },
+  "web.colonel.viewAll": {
+    "text": "عرض الكل",
+    "source_hash": "ff5573a6"
+  },
+  "web.colonel.activityPlaceholder": {
+    "text": "سيتم عرض بيانات النشاط هنا",
+    "source_hash": "aaf9e948"
+  },
+  "web.colonel.stats.totalSecrets": {
+    "text": "إجمالي الأسرار",
+    "source_hash": "e17a5459"
+  },
+  "web.colonel.stats.activeUsers": {
+    "text": "المستخدمون النشطون",
+    "source_hash": "5639b9f1"
+  },
+  "web.colonel.stats.secretsToday": {
+    "text": "أسرار اليوم",
+    "source_hash": "aefbd2db"
+  },
+  "web.colonel.stats.secretsCreated": {
+    "text": "الأسرار المنشأة",
+    "source_hash": "a97ee479"
+  },
+  "web.colonel.stats.secretsShared": {
+    "text": "الأسرار المشاركة",
+    "source_hash": "5deb082c"
+  },
+  "web.colonel.stats.totalCustomers": {
+    "text": "إجمالي المستخدمين",
+    "source_hash": "0ca3aa44"
+  },
+  "web.colonel.stats.emailsSent": {
+    "text": "الرسائل المرسلة",
+    "source_hash": "87cfb3ab"
+  },
+  "web.colonel.stats.systemHealth": {
+    "text": "صحة النظام",
+    "source_hash": "c3d66242"
+  },
+  "web.colonel.stats.healthy": {
+    "text": "سليم",
+    "source_hash": "7f1e323b"
+  },
+  "web.colonel.actions.viewActivity": {
+    "text": "عرض النشاط",
+    "source_hash": "9c28f55c"
+  },
+  "web.colonel.actions.viewActivityDesc": {
+    "text": "مراقبة نشاط واستخدام النظام",
+    "source_hash": "f88e9eda"
+  },
+  "web.colonel.actions.manageAccounts": {
+    "text": "إدارة الحسابات",
+    "source_hash": "9d114268"
+  },
+  "web.colonel.actions.manageAccountsDesc": {
+    "text": "إدارة حسابات المستخدمين",
+    "source_hash": "d73af927"
+  },
+  "web.colonel.actions.configureDomains": {
+    "text": "تكوين النطاقات",
+    "source_hash": "74402af9"
+  },
+  "web.colonel.actions.configureDomainsDesc": {
+    "text": "إعدادات النطاق و DNS",
+    "source_hash": "1f712094"
+  },
+  "web.colonel.actions.systemSettings": {
+    "text": "إعدادات النظام",
+    "source_hash": "1f87f883"
+  },
+  "web.colonel.actions.systemSettingsDesc": {
+    "text": "تكوين التطبيق",
+    "source_hash": "923dc672"
+  },
+  "web.colonel.backgroundJobs": {
+    "text": "المهام في الخلفية",
+    "source_hash": "48937049"
+  },
+  "web.colonel.queueStatus": {
+    "text": "حالة قائمة الانتظار",
+    "source_hash": "3421ffa8"
+  },
+  "web.colonel.queueName": {
+    "text": "قائمة الانتظار",
+    "source_hash": "3b2fe03e"
+  },
+  "web.colonel.pendingMessages": {
+    "text": "قيد الانتظار",
+    "source_hash": "331551b0"
+  },
+  "web.colonel.consumers": {
+    "text": "المستهلكون",
+    "source_hash": "212b350d"
+  },
+  "web.colonel.processingRate": {
+    "text": "المعدل/ثانية",
+    "source_hash": "cfde439c"
+  },
+  "web.colonel.connectionStatus": {
+    "text": "حالة الاتصال",
+    "source_hash": "3693e288"
+  },
+  "web.colonel.workerHealth": {
+    "text": "صحة العامل",
+    "source_hash": "52be3ac1"
+  },
+  "web.colonel.activeWorkers": {
+    "text": "عمال نشطون",
+    "source_hash": "ea68cfee"
+  },
+  "web.colonel.noQueueData": {
+    "text": "لا توجد بيانات قائمة انتظار متاحة",
+    "source_hash": "331ffa6b"
+  },
+  "web.colonel.loadingQueueData": {
+    "text": "جاري تحميل بيانات قائمة الانتظار...",
+    "source_hash": "a3762a00"
+  },
+  "web.colonel.testPlanMode": {
+    "text": "وضع اختبار الخطة",
+    "source_hash": "eba59223"
+  },
+  "web.colonel.testingAsPlan": {
+    "text": "الاختبار كـ {planName}",
+    "source_hash": "b3032f1a"
+  },
+  "web.colonel.clickToReset": {
+    "text": "انقر لإعادة التعيين",
+    "source_hash": "4b25034d"
+  },
+  "web.colonel.selectTestPlan": {
+    "text": "اختر خطة للاختبار",
+    "source_hash": "9e6e12fe"
+  },
+  "web.colonel.resetToActual": {
+    "text": "إعادة التعيين للخطة الفعلية",
+    "source_hash": "2cea3f92"
+  },
+  "web.colonel.currentActualPlan": {
+    "text": "الخطة الحالية",
+    "source_hash": "37ca715f"
+  },
+  "web.colonel.availablePlans": {
+    "text": "الخطط المتاحة",
+    "source_hash": "20efa44d"
+  },
+  "web.colonel.activateTestMode": {
+    "text": "تفعيل وضع الاختبار",
+    "source_hash": "0f469baa"
+  },
+  "web.colonel.testModeActive": {
+    "text": "وضع الاختبار نشط",
+    "source_hash": "ae2c8dd9"
+  },
+  "web.colonel.testModeDescription": {
+    "text": "اختبر تطبيقك بصلاحيات خطط مختلفة. التغييرات مؤقتة وتؤثر على جلستك فقط.",
+    "source_hash": "be03a409"
+  },
+  "web.colonel.warningTestMode": {
+    "text": "أنت تختبر بصلاحيات {planName} (تجاوز مؤقت للجلسة).",
+    "source_hash": "1a8aecf1"
+  },
+  "web.colonel.organizations.title": {
+    "text": "المؤسسات",
+    "source_hash": "2730183d"
+  },
+  "web.colonel.organizations.description": {
+    "text": "مراقبة صحة مزامنة فوترة المؤسسات",
+    "source_hash": "d8f4398b"
+  },
+  "web.colonel.organizations.pageTitle": {
+    "text": "مراقب صحة الفوترة",
+    "source_hash": "9ef57da4"
+  },
+  "web.colonel.organizations.organizationsCount": {
+    "text": "{count} مؤسسات",
+    "source_hash": "bc2feb56"
+  },
+  "web.colonel.organizations.needAttention": {
+    "text": "{count} تحتاج انتباه",
+    "source_hash": "1c8e5840"
+  },
+  "web.colonel.organizations.unknownCount": {
+    "text": "{count} غير معروف",
+    "source_hash": "b7bf2cf1"
+  },
+  "web.colonel.organizations.noOrganizations": {
+    "text": "لم يتم العثور على مؤسسات",
+    "source_hash": "538995db"
+  },
+  "web.colonel.organizations.filters.syncStatus": {
+    "text": "حالة المزامنة",
+    "source_hash": "b3998276"
+  },
+  "web.colonel.organizations.filters.subscription": {
+    "text": "الاشتراك",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.filters.all": {
+    "text": "الكل",
+    "source_hash": "a52ace42"
+  },
+  "web.colonel.organizations.filters.potentiallyStale": {
+    "text": "قد يكون قديماً",
+    "source_hash": "40137b37"
+  },
+  "web.colonel.organizations.filters.unknown": {
+    "text": "غير معروف",
+    "source_hash": "b764cdc0"
+  },
+  "web.colonel.organizations.filters.synced": {
+    "text": "متزامن",
+    "source_hash": "5da22fe4"
+  },
+  "web.colonel.organizations.filters.active": {
+    "text": "نشط",
+    "source_hash": "92340695"
+  },
+  "web.colonel.organizations.filters.trialing": {
+    "text": "فترة تجريبية",
+    "source_hash": "3792573d"
+  },
+  "web.colonel.organizations.filters.pastDue": {
+    "text": "متأخر الدفع",
+    "source_hash": "2bda1c7b"
+  },
+  "web.colonel.organizations.filters.canceled": {
+    "text": "ملغى",
+    "source_hash": "13ca2ee2"
+  },
+  "web.colonel.organizations.columns.account": {
+    "text": "الحساب",
+    "source_hash": "7e1b0d56"
+  },
+  "web.colonel.organizations.columns.billing": {
+    "text": "الفوترة",
+    "source_hash": "3ac8bbca"
+  },
+  "web.colonel.organizations.columns.status": {
+    "text": "الحالة",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.organizations.columns.usage": {
+    "text": "الاستخدام",
+    "source_hash": "8d59829c"
+  },
+  "web.colonel.organizations.columns.created": {
+    "text": "تاريخ الإنشاء",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.organizations.columns.details": {
+    "text": "التفاصيل",
+    "source_hash": "45989de4"
+  },
+  "web.colonel.organizations.columns.owner": {
+    "text": "المالك",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.colonel.organizations.columns.plan": {
+    "text": "الخطة",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.colonel.organizations.columns.members": {
+    "text": "الأعضاء",
+    "source_hash": "1044a4c0"
+  },
+  "web.colonel.organizations.columns.domains": {
+    "text": "النطاقات",
+    "source_hash": "ced67718"
+  },
+  "web.colonel.organizations.columns.subscription": {
+    "text": "الاشتراك",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.columns.default_workspace": {
+    "text": "مساحة العمل الافتراضية",
+    "source_hash": "53aa279e"
+  },
+  "web.colonel.organizations.columns.has_billing": {
+    "text": "لديه فوترة",
+    "source_hash": "db0628ed"
+  },
+  "web.colonel.organizations.legacy.title": {
+    "text": "إدارة فوترة المؤسسات",
+    "source_hash": "5c7e07e7"
+  },
+  "web.colonel.organizations.legacy.description": {
+    "text": "إدارة المؤسسات ومراقبة صحة مزامنة الفوترة ({total} إجمالي)",
+    "source_hash": "996b446d"
+  },
+  "web.colonel.organizations.legacy.empty": {
+    "text": "لم يتم العثور على مؤسسات",
+    "source_hash": "538995db"
+  },
+  "web.colonel.organizations.legacy.potentially_stale": {
+    "text": "قد يكون قديماً",
+    "source_hash": "3ddfec45"
+  },
+  "web.colonel.organizations.status.stale": {
+    "text": "قديم",
+    "source_hash": "40c9e59c"
+  },
+  "web.colonel.organizations.status.unknown": {
+    "text": "غير معروف",
+    "source_hash": "b764cdc0"
+  },
+  "web.colonel.organizations.status.active": {
+    "text": "نشط",
+    "source_hash": "96879611"
+  },
+  "web.colonel.organizations.actions.investigate": {
+    "text": "التحقيق",
+    "source_hash": "e2641093"
+  },
+  "web.colonel.organizations.actions.checking": {
+    "text": "جاري التحقق...",
+    "source_hash": "2e5f79bb"
+  },
+  "web.colonel.organizations.expanded.customer": {
+    "text": "العميل",
+    "source_hash": "bf376338"
+  },
+  "web.colonel.organizations.expanded.subscription": {
+    "text": "الاشتراك",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.expanded.orgId": {
+    "text": "معرف المؤسسة",
+    "source_hash": "5e6b9932"
+  },
+  "web.colonel.organizations.investigation.failed": {
+    "text": "فشل التحقيق",
+    "source_hash": "193aa900"
+  },
+  "web.colonel.organizations.investigation.result": {
+    "text": "نتيجة التحقيق",
+    "source_hash": "2dbc5cc3"
+  },
+  "web.colonel.organizations.investigation.verifiedSynced": {
+    "text": "تم التحقق من المزامنة",
+    "source_hash": "d92625c2"
+  },
+  "web.colonel.organizations.investigation.mismatchFound": {
+    "text": "تم العثور على عدم تطابق",
+    "source_hash": "361d22f3"
+  },
+  "web.colonel.organizations.investigation.unableToCompare": {
+    "text": "تعذرت المقارنة",
+    "source_hash": "64c822ee"
+  },
+  "web.colonel.organizations.investigation.stripeDetails": {
+    "text": "تفاصيل اشتراك Stripe",
+    "source_hash": "53a7b0ea"
+  },
+  "web.colonel.organizations.investigation.statusLabel": {
+    "text": "الحالة",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.organizations.investigation.product": {
+    "text": "المنتج",
+    "source_hash": "fb9ef894"
+  },
+  "web.colonel.organizations.investigation.resolvedPlan": {
+    "text": "الخطة المحددة",
+    "source_hash": "17c5b37a"
+  },
+  "web.colonel.organizations.investigation.priceId": {
+    "text": "معرف السعر",
+    "source_hash": "b39a8f3e"
+  },
+  "web.colonel.organizations.investigation.local": {
+    "text": "محلي",
+    "source_hash": "8c31e6e7"
+  },
+  "web.colonel.organizations.investigation.stripe": {
+    "text": "Stripe",
+    "source_hash": "961a6062"
+  },
+  "web.colonel.organizations.usage.members": {
+    "text": "{count} أعضاء",
+    "source_hash": "201eb3d9"
+  },
+  "web.colonel.organizations.usage.domains": {
+    "text": "{count} نطاقات",
+    "source_hash": "cf548c8c"
+  },
+  "web.colonel.secrets.title": {
+    "text": "الأسرار",
+    "source_hash": "d8707d41"
+  },
+  "web.colonel.secrets.description": {
+    "text": "عرض وإدارة جميع الأسرار",
+    "source_hash": "48f8052e"
+  },
+  "web.colonel.usageExport.title": {
+    "text": "تصدير الاستخدام",
+    "source_hash": "10a0cb94"
+  },
+  "web.colonel.usageExport.description": {
+    "text": "تصدير بيانات وإحصائيات الاستخدام",
+    "source_hash": "2fd0a2e2"
+  },
+  "web.colonel.systemSettings.title": {
+    "text": "النظام",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.systemSettings.description": {
+    "text": "إعدادات النظام وقواعد البيانات والتكوين",
+    "source_hash": "7690b296"
+  },
+  "web.colonel.customDomains.title": {
+    "text": "النطاقات المخصصة",
+    "source_hash": "6170ab94"
+  },
+  "web.colonel.customDomains.description": {
+    "text": "إدارة النطاقات المخصصة والعلامة التجارية",
+    "source_hash": "808ee2cb"
+  },
+  "web.colonel.feedback.send_feedback": {
+    "text": "إرسال ملاحظات",
+    "source_hash": "8235980b"
+  },
+  "web.colonel.feedback.sending_ellipses": {
+    "text": "جاري الإرسال...",
+    "source_hash": "286a3af7"
+  },
+  "web.colonel.titles.index": {
+    "text": "الإدارة",
+    "source_hash": "4b42c669"
+  },
+  "web.colonel.titles.users": {
+    "text": "إدارة المستخدمين",
+    "source_hash": "fe45f3a1"
+  },
+  "web.colonel.titles.domains": {
+    "text": "النطاقات المخصصة",
+    "source_hash": "6170ab94"
+  },
+  "web.colonel.titles.system": {
+    "text": "النظام",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.titles.maindb": {
+    "text": "قاعدة البيانات الرئيسية",
+    "source_hash": "c4545e98"
+  },
+  "web.colonel.titles.authdb": {
+    "text": "قاعدة بيانات المصادقة",
+    "source_hash": "c683c9a6"
+  },
+  "web.colonel.titles.usage": {
+    "text": "تصدير الاستخدام",
+    "source_hash": "10a0cb94"
+  },
+  "web.colonel.titles.info": {
+    "text": "معلومات النظام",
+    "source_hash": "8ad54ec1"
+  },
+  "web.colonel.titles.organizations": {
+    "text": "المؤسسات",
+    "source_hash": "2730183d"
+  },
+  "web.colonel.titles.redis": {
+    "text": "Redis",
+    "source_hash": "a7f64157"
+  },
+  "web.colonel.feedback.when_you_submit_feedback_well_see": {
+    "text": "عند إرسال ملاحظاتك، سنرى:",
+    "source_hash": "fe77172e"
+  },
+  "web.colonel.previewPlanMode": {
+    "text": "وضع معاينة الخطة",
+    "source_hash": "cf53f19d"
+  },
+  "web.colonel.previewModeDescription": {
+    "text": "عاين التطبيق كما يظهر للعملاء على خطة مختلفة. يؤثر هذا على طريقة عرضك فقط ولا يغيّر الخطة الفعلية لأي مؤسسة.",
+    "source_hash": "6fe23f23"
+  },
+  "web.colonel.previewModeActive": {
+    "text": "المعاينة نشطة",
+    "source_hash": "a558d603"
+  },
+  "web.colonel.customDomains.empty": {
+    "text": "لم يتم إعداد أي نطاقات مخصّصة",
+    "source_hash": "e10b39f7"
+  },
+  "web.colonel.customDomains.noLogo": {
+    "text": "بدون شعار",
+    "source_hash": "ee5e36ff"
+  },
+  "web.colonel.customDomains.labels.organization": {
+    "text": "المؤسسة",
+    "source_hash": "d764d425"
+  },
+  "web.colonel.customDomains.labels.externalId": {
+    "text": "المعرّف الخارجي",
+    "source_hash": "69da56ba"
+  },
+  "web.colonel.customDomains.labels.created": {
+    "text": "تاريخ الإنشاء",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.customDomains.labels.updated": {
+    "text": "تاريخ التحديث",
+    "source_hash": "3a5ecca1"
+  },
+  "web.colonel.customDomains.labels.favicon": {
+    "text": "Favicon",
+    "source_hash": "42955289"
+  },
+  "web.colonel.customDomains.status.verified": {
+    "text": "تم التحقق",
+    "source_hash": "4f783840"
+  },
+  "web.colonel.customDomains.status.resolving": {
+    "text": "قيد التحليل",
+    "source_hash": "3287a034"
+  },
+  "web.colonel.customDomains.status.ready": {
+    "text": "جاهز",
+    "source_hash": "5fa7aac5"
+  },
+  "web.colonel.customDomains.status.publicHomepage": {
+    "text": "الصفحة الرئيسية العامة",
+    "source_hash": "2ae3ccba"
+  },
+  "web.colonel.customDomains.status.publicApi": {
+    "text": "API عام",
+    "source_hash": "ab3aa426"
+  },
+  "web.colonel.customDomains.status.pending": {
+    "text": "معلّق",
+    "source_hash": "331551b0"
+  },
+  "web.colonel.pagination.showing": {
+    "text": "عرض {start}–{end} من {total}",
+    "source_hash": "64af6de2"
+  },
+  "web.colonel.pagination.itemsPerPage": {
+    "text": "العناصر في كل صفحة",
+    "source_hash": "766a02e0"
+  },
+  "web.colonel.pagination.perPage": {
+    "text": "{count} في كل صفحة",
+    "source_hash": "34671d42"
+  },
+  "web.colonel.pagination.pageOf": {
+    "text": "الصفحة {current} من {total}",
+    "source_hash": "f0df6412"
+  },
+  "web.colonel.secrets.empty": {
+    "text": "لم يتم العثور على أسرار",
+    "source_hash": "28647b3b"
+  },
+  "web.colonel.secrets.never": {
+    "text": "أبداً",
+    "source_hash": "6300ef80"
+  },
+  "web.colonel.secrets.columns.shortId": {
+    "text": "المعرّف المختصر",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.colonel.secrets.columns.state": {
+    "text": "الحالة",
+    "source_hash": "a3b50c47"
+  },
+  "web.colonel.secrets.columns.created": {
+    "text": "تاريخ الإنشاء",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.secrets.columns.expiration": {
+    "text": "انتهاء الصلاحية",
+    "source_hash": "f38d6e0e"
+  },
+  "web.colonel.secrets.columns.age": {
+    "text": "العمر (بالأيام)",
+    "source_hash": "52ae64c6"
+  },
+  "web.colonel.secrets.state.new": {
+    "text": "جديد",
+    "source_hash": "18fdd549"
+  },
+  "web.colonel.secrets.state.received": {
+    "text": "تم الاستلام",
+    "source_hash": "49f19bee"
+  },
+  "web.colonel.secrets.state.viewed": {
+    "text": "تمت المشاهدة",
+    "source_hash": "1b28d178"
+  },
+  "web.colonel.backToSite": {
+    "text": "العودة إلى الموقع",
+    "source_hash": "4ee0f819"
+  },
+  "web.colonel.customDomains.labels.domain": {
+    "text": "النطاق",
+    "source_hash": "79fa3361"
+  },
+  "web.colonel.customDomains.labels.status": {
+    "text": "الحالة",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.customDomains.labels.actions": {
+    "text": "الإجراءات",
+    "source_hash": "ff8059dc"
+  },
+  "web.colonel.nav.consoleTag": {
+    "text": "وحدة التحكم",
+    "source_hash": "29a40861"
+  },
+  "web.colonel.nav.groups.identity": {
+    "text": "الهوية",
+    "source_hash": "999f23fc"
+  },
+  "web.colonel.nav.groups.security": {
+    "text": "الوصول والأمان",
+    "source_hash": "abb29a3f"
+  },
+  "web.colonel.nav.groups.platform": {
+    "text": "المنصة",
+    "source_hash": "c78ffe19"
+  },
+  "web.colonel.nav.groups.billing": {
+    "text": "الفوترة",
+    "source_hash": "3ac8bbca"
+  },
+  "web.colonel.nav.groups.communications": {
+    "text": "الاتصالات",
+    "source_hash": "919a9253"
+  },
+  "web.colonel.organizations.sameAsContact": {
+    "text": "نفس جهة الاتصال",
+    "source_hash": "ed18ff43"
+  },
+  "web.colonel.organizations.refresh": {
+    "text": "تحديث",
+    "source_hash": "0e916101"
+  },
+  "web.colonel.organizations.columns.name": {
+    "text": "الاسم",
+    "source_hash": "dcd1d522"
+  },
+  "web.colonel.organizations.columns.contactEmail": {
+    "text": "البريد الإلكتروني للتواصل",
+    "source_hash": "6d7fce11"
+  },
+  "web.colonel.organizations.columns.billingEmail": {
+    "text": "البريد الإلكتروني للفوترة",
+    "source_hash": "8805b928"
+  },
+  "web.colonel.organizations.columns.planSubscription": {
+    "text": "الخطة والاشتراك",
+    "source_hash": "b396caac"
+  },
+  "web.colonel.organizations.filters.searchPlaceholder": {
+    "text": "البحث بالمعرف أو الاسم أو البريد الإلكتروني",
+    "source_hash": "6fe16473"
+  },
+  "web.colonel.organizations.capped": {
+    "text": "النتائج محدودة: العدد المعروض حد أدنى وليس العدد الإجمالي. تشمل عوامل التصفية كل مؤسسة مرتبطة باشتراك بالإضافة إلى المؤسسات التي تم تحديثها مؤخراً؛ ابحث باستخدام معرّف دقيق أو بريد إلكتروني للوصول إلى أي مؤسسة أخرى.",
+    "source_hash": "0743238d"
+  },
+  "web.impersonation.banner.label": {
+    "text": "انتحال الهوية نشط",
+    "source_hash": "d96f0e8d"
+  },
+  "web.impersonation.banner.viewingAs": {
+    "text": "العرض بصفة {email}",
+    "source_hash": "cf2dd9c6"
+  },
+  "web.impersonation.banner.readOnly": {
+    "text": "للقراءة فقط: التغييرات محظورة أثناء انتحال الهوية.",
+    "source_hash": "46ed3b68"
+  },
+  "web.impersonation.banner.expiresIn": {
+    "text": "ينتهي خلال {time}",
+    "source_hash": "b4999fd8"
+  },
+  "web.impersonation.banner.stop": {
+    "text": "إيقاف انتحال الهوية",
+    "source_hash": "5cf74e38"
+  },
+  "web.impersonation.banner.stopping": {
+    "text": "جاري الإيقاف…",
+    "source_hash": "bbe85741"
+  },
+  "web.impersonation.banner.stopFailed": {
+    "text": "تعذّر إيقاف انتحال الهوية. يرجى المحاولة مرة أخرى.",
+    "source_hash": "5aa72353"
+  }
+}

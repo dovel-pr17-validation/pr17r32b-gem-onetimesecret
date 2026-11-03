@@ -1,0 +1,150 @@
+// src/schemas/shapes/domains/sso-config.ts
+//
+// CustomDomain::SsoConfig shapes with runtime transforms.
+// Derives from contracts, adding timestamp transforms and null normalization.
+//
+// Architecture: contract → shape → API
+// - contracts/sso-config.ts: Canonical schema (pure fields, nullable types)
+// - This file: Shapes with transforms for API responses
+//
+// Null handling strategy:
+// - Contract layer declares nullability to match wire format
+// - Shape layer transforms null → safe defaults for frontend consumption
+// - Required form fields (client_id, display_name) → empty string
+// - Optional form fields (tenant_id, issuer, SAML trio, idp_metadata_url,
+//   SP identifiers) → null
+//   (form uses undefined / empty string)
+// - unreadable_fields → [] when absent (older API), so a missing key never
+//   reads as "every field is fine" by accident — but a listed field's null
+//   is an ERROR STATE the form must surface (#4450)
+
+import {
+  customDomainSsoConfigCanonical,
+  ssoLastSignInSchema,
+  ssoProviderTypeSchema,
+  tokenEndpointAuthMethodSchema,
+} from '@/schemas/contracts/custom-domain/sso-config';
+import { transforms } from '@/schemas/transforms';
+import { z } from 'zod';
+
+// Re-export contracts for type access
+export * from '@/schemas/contracts/custom-domain/sso-config';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Timestamp transforms
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Timestamp field overrides.
+ * API sends timestamps as Unix epoch numbers; these transform to Date objects.
+ */
+const timestampOverrides = {
+  created_at: transforms.fromNumber.toDate,
+  updated_at: transforms.fromNumber.toDate,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CustomDomain::SsoConfig schema
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * CustomDomain::SsoConfig schema with transforms.
+ *
+ * Derives from customDomainSsoConfigCanonical contract, applies:
+ * - Timestamps: number (Unix epoch seconds) → Date
+ * - Required field normalization: null → empty string (client_id)
+ * - Optional field normalization: null preserved for tenant_id, issuer
+ * - Array normalization: null → empty array (allowed_domains)
+ *
+ * Form layer converts null → undefined for optional fields; this shape
+ * ensures required fields are never null.
+ *
+ * @example
+ * ```typescript
+ * const config = customDomainSsoConfigSchema.parse({
+ *   domain_id: 'domain123',
+ *   provider_type: 'entra_id',
+ *   enabled: true,
+ *   display_name: 'Acme Corp SSO',
+ *   client_id: null,  // → '' after transform
+ *   client_secret_masked: '••••5678',
+ *   tenant_id: null,  // → null (form converts to undefined)
+ *   issuer: null,
+ *   allowed_domains: null,  // → []
+ *   created_at: 1609459200,
+ *   updated_at: 1609545600,
+ * });
+ *
+ * console.log(config.client_id); // ''
+ * console.log(config.created_at instanceof Date); // true
+ * ```
+ */
+export const customDomainSsoConfigSchema = customDomainSsoConfigCanonical
+  .extend({
+    // Timestamp transforms
+    ...timestampOverrides,
+
+    // Required field normalization: null → empty string
+    // These fields are required for form submission; null breaks .trim() calls
+    client_id: z.string().nullable().transform((v) => v ?? ''),
+
+    // Optional field normalization: keep null (form layer converts to undefined)
+    tenant_id: z.string().nullish().transform((v) => v ?? null),
+    issuer: z.string().nullish().transform((v) => v ?? null),
+
+    // OIDC token endpoint auth method (#4764): null = gem default; nullish-
+    // tolerant for a record served by an API that predates the key. The
+    // form maps null → '' (the "Automatic" option).
+    token_endpoint_auth_method: tokenEndpointAuthMethodSchema.nullish().transform((v) => v ?? null),
+
+    // SAML (#4450): nullish-tolerant so a record served by an API that
+    // predates these keys (rolling deploy) still parses. A null here is
+    // "unset" ONLY when unreadable_fields does not name the field.
+    idp_sso_service_url: z.string().nullish().transform((v) => v ?? null),
+    idp_entity_id: z.string().nullish().transform((v) => v ?? null),
+    idp_cert: z.string().nullish().transform((v) => v ?? null),
+    // SAML metadata source (the URL the trio was imported from): nullish-
+    // tolerant so a record served by an API that predates the key (rolling
+    // deploy) still parses. A null here is "unset" ONLY when
+    // unreadable_fields does not name the field.
+    idp_metadata_url: z.string().nullish().transform((v) => v ?? null),
+    sp_entity_id: z.string().nullish().transform((v) => v ?? null),
+    acs_url: z.string().nullish().transform((v) => v ?? null),
+    unreadable_fields: z.array(z.string()).nullish().transform((v) => v ?? []),
+
+    // Array normalization: null → empty array
+    allowed_domains: z.array(z.string()).nullish().transform((v) => v ?? []),
+
+    // Boolean with default for resilience during rolling deploys
+    enforce_sso_only: z.boolean().default(false),
+    grant_org_scope: z.boolean().default(false),
+
+    // Last sign-in outcome: nullish-tolerant so a record served by an API
+    // that predates the key reads as "none recorded", never as an error.
+    last_sign_in: ssoLastSignInSchema.nullish().transform((v) => v ?? null),
+  });
+
+export type CustomDomainSsoConfig = z.infer<typeof customDomainSsoConfigSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Summary schema (for list views)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * CustomDomain::SsoConfig summary schema for list views.
+ *
+ * Contains only essential fields needed for displaying SSO configs in lists
+ * without exposing all configuration details.
+ */
+export const customDomainSsoConfigSummarySchema = z.object({
+  domain_id: z.string(),
+  provider_type: ssoProviderTypeSchema,
+  enabled: z.boolean(),
+  enforce_sso_only: z.boolean(),
+  grant_org_scope: z.boolean(),
+  display_name: z.string(),
+  created_at: transforms.fromNumber.toDate,
+  updated_at: transforms.fromNumber.toDate,
+});
+
+export type CustomDomainSsoConfigSummary = z.infer<typeof customDomainSsoConfigSummarySchema>;

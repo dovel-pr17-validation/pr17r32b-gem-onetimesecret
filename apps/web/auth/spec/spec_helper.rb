@@ -1,0 +1,702 @@
+# apps/web/auth/spec/spec_helper.rb
+#
+# frozen_string_literal: true
+
+# Start code coverage before any application code loads (see .simplecov).
+# Enabled only when COVERAGE=true.
+require 'simplecov' if ENV['COVERAGE'] == 'true'
+
+# Rodauth Feature Configuration Tests
+#
+# These tests verify that Rodauth features are correctly enabled/disabled
+# based on ENV variables after the configuration refactoring.
+#
+# Run all auth config tests:
+#   pnpm run test:rspec apps/web/auth/spec/
+#
+# Run specific feature tests:
+#   pnpm run test:rspec apps/web/auth/spec/config/features/mfa_spec.rb
+
+# =============================================================================
+# EARLY WEBMOCK SETUP
+# =============================================================================
+# WebMock stubs BEFORE any requires that might trigger config loading or
+# provider registration. The OmniAuth OIDC strategy fetches the discovery
+# document during provider registration (boot time), so the placeholder
+# issuer must be stubbed before the app boots.
+#
+# No OIDC env vars are injected here — all four SSO providers (OIDC, Entra,
+# GitHub, Google) register via placeholder credentials when
+# ORGS_SSO_ENABLED=true. The OmniAuthTenant hook injects real credentials
+# at request time.
+#
+# PROCESS-WIDE REACH. `||=` only fills a gap the caller left, but the gap it
+# fills belongs to the whole rspec process — not to the auth tree. Invisible
+# while `rake spec:fast` gives each app spec tree its own process; load-bearing
+# the moment the trees share one, where the first tree to load this file
+# decides the authentication mode for all of them.
+#
+# The lanes and CI both pin the mode (tests/lanes/unit/env sets
+# AUTHENTICATION_MODE=simple, .github/workflows/ci.yml does the same for the
+# ruby-unit job), so this default is inert there. A bare local
+# `bundle exec rake spec:fast` is the divergence: nothing pins the mode, so
+# this line flips the process to full mode.
+ENV['AUTHENTICATION_MODE'] ||= 'full'
+
+PLACEHOLDER_OIDC_ISSUER = 'https://placeholder.invalid'
+
+require 'webmock'
+WebMock.enable!
+WebMock.disable_net_connect!(allow_localhost: true)
+
+WebMock.stub_request(:get, "#{PLACEHOLDER_OIDC_ISSUER}/.well-known/openid-configuration")
+  .to_return(
+    status: 200,
+    body: {
+      issuer: PLACEHOLDER_OIDC_ISSUER,
+      authorization_endpoint: "#{PLACEHOLDER_OIDC_ISSUER}/authorize",
+      token_endpoint: "#{PLACEHOLDER_OIDC_ISSUER}/token",
+      userinfo_endpoint: "#{PLACEHOLDER_OIDC_ISSUER}/userinfo",
+      jwks_uri: "#{PLACEHOLDER_OIDC_ISSUER}/.well-known/jwks.json",
+      response_types_supported: %w[code],
+      subject_types_supported: %w[public],
+      id_token_signing_alg_values_supported: %w[RS256],
+      scopes_supported: %w[openid email profile],
+      token_endpoint_auth_methods_supported: %w[client_secret_basic client_secret_post],
+      claims_supported: %w[sub email email_verified name],
+      code_challenge_methods_supported: %w[S256],
+    }.to_json,
+    headers: { 'Content-Type' => 'application/json' },
+  )
+
+WebMock.stub_request(:get, "#{PLACEHOLDER_OIDC_ISSUER}/.well-known/jwks.json")
+  .to_return(
+    status: 200,
+    body: { keys: [] }.to_json,
+    headers: { 'Content-Type' => 'application/json' },
+  )
+
+require 'rspec'
+require 'sequel'
+require 'roda'
+require 'rodauth'
+require 'securerandom'
+require 'rack/test'
+
+# =============================================================================
+# HOOK SCOPE
+# =============================================================================
+#
+# Files the RSpec hooks registered by this helper (and by the support files it
+# loads) own. Every one of those hooks keys on `type: :integration`, which is
+# not auth's key — 17 spec files outside this tree declare it too (apps/api/v2,
+# apps/web/core, apps/api/invite, apps/web/billing). That is harmless while
+# `rake spec:fast` gives each app spec tree its own rspec process, and wrong the
+# moment the trees share one: flush_test_database/clear_auth_database would wipe
+# other trees' before(:all) fixtures out from under them, the Valkey preflight
+# would skip their examples, WebMock.allow_net_connect! would be flipped on
+# after each of them, and Rack::Test::Methods would define get/post/app on
+# groups that never asked for it. RSpec ANDs hook filters, so pairing each key
+# with this path filter keeps every hook on the examples it was written for.
+#
+# Filter on :file_path rather than a define_derived_metadata tag: RSpec sets
+# :file_path on every example from its own source location, so this holds no
+# matter when this helper loads, whereas a derived-metadata rule only reaches
+# groups defined after the rule is registered — and several files in this very
+# tree (config/base_normalize_login_spec.rb, config/hooks/*_spec.rb,
+# unit/hooks/billing_spec.rb) require only 'rspec', never this helper.
+#
+# Defined before the support requires below so those files can use it too.
+AUTH_SPEC_TREE = %r{/apps/web/auth/spec/}
+
+# Load OmniAuth test helper for additional helper methods
+require_relative 'support/omniauth_test_helper'
+require_relative 'support/auth_request_helper'
+require_relative 'support/account_seed_helper'
+require_relative 'support/auth_test_constants'
+require_relative 'support/mock_omniauth_strategy'
+require_relative 'support/config_recreator'
+require_relative 'support/domains_enabled_context'
+require_relative 'support/public_host_rewrite_context'
+require_relative '../database'
+
+# =============================================================================
+# TENANT VERIFYING MOCK REGISTRATION
+# =============================================================================
+#
+# Register TenantVerifyingMock as an OmniAuth provider for integration tests.
+#
+# This module prepends Auth::Config::Features::OmniAuth to register our mock
+# strategy alongside other OmniAuth providers. The registration happens during
+# Rodauth's configure phase, ensuring the mock is included in the OmniAuth
+# middleware stack built by post_configure.
+#
+# The TenantVerifyingMock strategy captures credentials injected via the setup
+# proc during the request phase, enabling tests to verify:
+#   - Tenant resolution from Host header
+#   - Credential injection into strategy options
+#   - Setup proc execution
+#
+# Routes created:
+#   POST /auth/sso/tenant_verify (request phase)
+#   GET  /auth/sso/tenant_verify/callback (callback phase)
+#
+# @see apps/web/auth/spec/support/mock_omniauth_strategy.rb
+#
+module TenantVerifyingMockRegistration
+  def self.register_with_rodauth(auth)
+    # Register TenantVerifyingMock strategy.
+    # Uses the strategy class from OmniAuth::Strategies namespace.
+    auth.omniauth_provider(
+      :tenant_verifying_mock,
+      name: :tenant_verify,
+    )
+  end
+end
+
+# Helper module for creating isolated Rodauth test environments
+module RodauthTestHelper
+  include AuthTestConstants
+
+  # Creates a fresh SQLite in-memory database with all Rodauth tables
+  #
+  # @return [Sequel::Database] configured database connection
+  def self.create_test_database
+    db = Sequel.sqlite # In-memory SQLite
+    db.extension :date_arithmetic
+
+    # SQLite stores DateTime values as bare strings with no zone marker.
+    # Without an explicit database timezone, Sequel writes a Time's own wall
+    # clock and re-parses it as LOCAL time on read, silently shifting every
+    # stored timestamp by the machine's UTC offset (e.g. +8h on PST hosts,
+    # identity on UTC CI). Pin the database timezone to UTC so timestamp
+    # round-trips are deterministic regardless of the host timezone. The two
+    # settings must move together: with timezone=:utc Sequel converts written
+    # Times to UTC, so Sequel::CURRENT_TIMESTAMP must stay raw (UTC in SQLite)
+    # rather than the adapter's default datetime(CURRENT_TIMESTAMP,'localtime')
+    # rewrite — otherwise DB-side comparisons (e.g. Rodauth's OTP replay guard
+    # in otp_update_last_use) mix UTC-stored values with local wall clocks.
+    db.timezone              = :utc
+    db.current_timestamp_utc = true
+
+    create_core_tables(db)
+    create_security_tables(db)
+    create_mfa_tables(db)
+    create_email_auth_tables(db)
+    create_omniauth_tables(db)
+    create_webauthn_tables(db)
+    create_audit_tables(db)
+    create_password_tables(db)
+
+    db
+  end
+
+  # Creates account-related tables
+  def self.create_core_tables(db)
+    db.create_table(:account_statuses) do
+      Integer :id, primary_key: true
+      String :name, null: false, unique: true
+    end
+    db[:account_statuses].import(
+      [:id, :name],
+      [[STATUS_UNVERIFIED, 'Unverified'], [STATUS_VERIFIED, 'Verified'], [STATUS_CLOSED, 'Closed']],
+    )
+
+    db.create_table(:accounts) do
+      primary_key :id, type: :Bignum
+      foreign_key :status_id, :account_statuses, null: false, default: STATUS_UNVERIFIED
+      String :email, null: false
+      String :external_id, null: true, unique: true
+      index :email, unique: true
+    end
+
+    db.create_table(:account_password_hashes) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :password_hash, null: false
+      DateTime :created_at, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
+
+    db.create_table(:account_verification_keys) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :key, null: false
+      DateTime :requested_at, null: false, default: Sequel::CURRENT_TIMESTAMP
+      DateTime :email_last_sent, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
+  end
+
+  # Creates tables for security features (lockout, active_sessions, remember)
+  def self.create_security_tables(db)
+    db.create_table(:account_login_failures) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      Integer :number, null: false, default: 1
+    end
+
+    db.create_table(:account_lockouts) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :key, null: false
+      DateTime :deadline, null: false
+      DateTime :email_last_sent
+    end
+
+    db.create_table(:account_active_session_keys) do
+      foreign_key :account_id, :accounts, type: :Bignum
+      String :session_id
+      Time :created_at, null: false, default: Sequel::CURRENT_TIMESTAMP
+      Time :last_use, null: false, default: Sequel::CURRENT_TIMESTAMP
+      Time :remember_until # migration 011
+      primary_key [:account_id, :session_id]
+    end
+
+    db.create_table(:account_remember_keys) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :key, null: false
+      DateTime :deadline, null: false
+    end
+  end
+
+  # Creates tables for MFA features (OTP, recovery codes)
+  def self.create_mfa_tables(db)
+    db.create_table(:account_otp_keys) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :key, null: false
+      Integer :num_failures, null: false, default: 0
+      Time :last_use, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
+
+    db.create_table(:account_recovery_codes) do
+      foreign_key :id, :accounts, type: :Bignum
+      String :code
+      primary_key [:id, :code]
+    end
+
+    db.create_table(:account_otp_unlocks) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      Integer :num_successes, null: false, default: 1
+      Time :next_auth_attempt_after, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
+  end
+
+  # Creates tables for email auth (magic links)
+  def self.create_email_auth_tables(db)
+    db.create_table(:account_email_auth_keys) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :key, null: false
+      DateTime :deadline, null: false
+      DateTime :email_last_sent, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
+  end
+
+  # Creates tables for OmniAuth (SSO identity linking)
+  #
+  # MUST mirror migrations/008_issuer_scoped_identities.rb — specs build the
+  # schema from HERE, not the migration. The identity is keyed on
+  # (provider, issuer, uid) to close the #3838 item-5 cross-tenant takeover;
+  # `issuer` is NOT NULL with the '' sentinel (never NULL — a NULL vs ''
+  # split would break the unique index).
+  def self.create_omniauth_tables(db)
+    db.create_table(:account_identities) do
+      primary_key :id, type: :Bignum
+      foreign_key :account_id, :accounts, type: :Bignum, null: false
+      String :provider, null: false
+      String :issuer, null: false, default: ''
+      String :uid, null: false
+      index [:provider, :issuer, :uid], unique: true
+    end
+  end
+
+  # Creates tables for WebAuthn
+  def self.create_webauthn_tables(db)
+    db.create_table(:account_webauthn_user_ids) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :webauthn_id, null: false
+    end
+
+    db.create_table(:account_webauthn_keys) do
+      foreign_key :account_id, :accounts, type: :Bignum
+      String :webauthn_id
+      String :public_key, null: false
+      Integer :sign_count, null: false
+      Time :last_use, null: false, default: Sequel::CURRENT_TIMESTAMP
+      primary_key [:account_id, :webauthn_id]
+    end
+  end
+
+  # Creates tables for audit logging
+  def self.create_audit_tables(db)
+    db.create_table(:account_authentication_audit_logs) do
+      primary_key :id, type: :Bignum
+      foreign_key :account_id, :accounts, type: :Bignum
+      DateTime :at, null: false, default: Sequel::CURRENT_TIMESTAMP
+      String :message, null: false
+      String :metadata # JSON stored as text in SQLite
+    end
+  end
+
+  # Creates tables for password management
+  def self.create_password_tables(db)
+    db.create_table(:account_password_reset_keys) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :key, null: false
+      DateTime :deadline, null: false
+      DateTime :email_last_sent, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
+
+    db.create_table(:account_password_change_times) do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      DateTime :changed_at, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
+  end
+
+  # Creates a minimal Roda app with Rodauth configured
+  #
+  # @param db [Sequel::Database] database connection
+  # @param features [Array<Symbol>] Rodauth features to enable
+  # @param config_block [Proc] additional Rodauth configuration
+  # @return [Class] Roda application class
+  def self.create_rodauth_app(db:, features: [:base, :login, :logout], &config_block)
+    app_db           = db
+    app_features     = features
+    app_config_block = config_block
+
+    Class.new(Roda) do
+      plugin :sessions, secret: SecureRandom.hex(64)
+      plugin :json
+      plugin :halt
+
+      plugin :rodauth do
+        db app_db
+
+        # Enable requested features
+        enable(*app_features)
+
+        # Login column
+        login_column :email
+
+        # HMAC secret (required for OTP features)
+        hmac_secret SecureRandom.hex(32)
+
+        # Apply custom configuration if provided
+        instance_eval(&app_config_block) if app_config_block
+      end
+
+      route do |r|
+        r.rodauth
+
+        r.root do
+          { status: 'ok' }
+        end
+      end
+    end
+  end
+
+  # Checks if a Rodauth method exists (verifies feature is enabled)
+  #
+  # @param app [Class] Roda application class
+  # @param method_name [Symbol] method to check
+  # @return [Boolean] true if method exists
+  def self.rodauth_responds_to?(app, method_name)
+    rodauth_class = app.rodauth
+    rodauth_class.method_defined?(method_name) ||
+      rodauth_class.private_method_defined?(method_name)
+  end
+end
+
+# Helper module for integration tests that need production config
+#
+# Integration tests require:
+# - Valkey running on port 2163 (pnpm run test:database:start)
+# - AUTH_DATABASE_URL set for SQLite auth database
+#
+# Tests using this helper should be tagged with `type: :integration`
+module ProductionConfigHelper
+  # Check if Valkey is available on test port
+  def valkey_available?
+    return @valkey_available if defined?(@valkey_available)
+
+    @valkey_available = begin
+      require 'redis'
+      redis = Redis.new(url: 'redis://127.0.0.1:2163/0')
+      redis.ping == 'PONG'
+    rescue StandardError
+      false
+    end
+  end
+
+  # Check if auth database is configured
+  def auth_database_configured?
+    !ENV['AUTH_DATABASE_URL'].to_s.strip.empty?
+  end
+
+  # Boot the full Onetime application for integration tests
+  # This is called once per test file in before(:all)
+  def boot_onetime_app
+    return if defined?(@@onetime_booted) && @@onetime_booted
+
+    ENV['AUTHENTICATION_MODE'] ||= 'full'
+
+    # Reset registries to clear state from previous test runs
+    require 'onetime'
+
+    # Config resolution is handled automatically by ConfigResolver when RACK_ENV=test
+    require 'onetime/application/registry'
+    require 'onetime/boot/initializer_registry'
+
+    Onetime::Application::Registry.reset! if Onetime::Application::Registry.respond_to?(:reset!)
+
+    # Reload auth config to pick up AUTHENTICATION_MODE env var
+    require 'onetime/auth_config'
+    Onetime.auth_config.reload! if Onetime.respond_to?(:auth_config) && Onetime.auth_config.respond_to?(:reload!)
+
+    # Install TenantVerifyingMock registration hook BEFORE boot.
+    # This prepends our registration method to the OmniAuth feature configure,
+    # ensuring the mock strategy is included in Rodauth's OmniAuth middleware.
+    install_tenant_verifying_mock_hook
+
+    # Boot application
+    Onetime.boot! :test unless Onetime.ready?
+
+    # Prepare the application registry
+    Onetime::Application::Registry.prepare_application_registry
+
+    @@onetime_booted = true
+  end
+
+  # Install a hook to register TenantVerifyingMock during OmniAuth configuration.
+  #
+  # This prepends a module to Auth::Config::Features::OmniAuth.configure that
+  # registers TenantVerifyingMock after other providers. The hook runs during
+  # Rodauth's configure phase, before post_configure builds the middleware stack.
+  #
+  # @see TenantVerifyingMockRegistration
+  def install_tenant_verifying_mock_hook
+    # Only install once
+    return if defined?(@@tenant_mock_hook_installed) && @@tenant_mock_hook_installed
+
+    # Load the Auth features module structure
+    require_relative '../config/features'
+
+    # Check if OmniAuth feature exists
+    return unless defined?(Auth::Config::Features::OmniAuth)
+
+    # Prepend our registration hook
+    original_configure = Auth::Config::Features::OmniAuth.method(:configure)
+
+    Auth::Config::Features::OmniAuth.define_singleton_method(:configure) do |auth|
+      # Call original configure first (registers OIDC, Entra, GitHub, Google)
+      original_configure.call(auth)
+
+      # Then register TenantVerifyingMock for testing
+      TenantVerifyingMockRegistration.register_with_rodauth(auth)
+    end
+
+    @@tenant_mock_hook_installed = true
+  end
+
+  # Build the full Rack URL map (all mounted apps)
+  def build_rack_app
+    boot_onetime_app
+    Onetime::Application::Registry.generate_rack_url_map
+  end
+
+  # Rack::Test app method - returns the full application stack
+  def app
+    @app ||= build_rack_app
+  end
+
+  # Helper method to send JSON requests
+  def json_post(path, params)
+    header 'Content-Type', 'application/json'
+    header 'Accept', 'application/json'
+    post path, JSON.generate(params)
+  end
+
+  def json_get(path)
+    # Clear headers that may have leaked from previous POST requests
+    # GET requests shouldn't have Content-Type or body-related headers
+    header 'Content-Type', nil
+    header 'Content-Length', nil
+    header 'Accept', 'application/json'
+    get path
+  end
+
+  # Clean up test data in Valkey
+  def flush_test_database
+    return unless valkey_available?
+
+    Familia.dbclient.flushdb
+  rescue StandardError => ex
+    OT.le "[flush_test_database] Failed to flush test database: #{ex.message}"
+  end
+
+  # Clean up SQL auth data between integration examples.
+  #
+  # The Valkey side is flushed every example, but Auth::Database.connection is
+  # memoized for the whole process, so accounts accumulate and desync from the
+  # flushed Redis customers (manifests as account_id climbing, then a JIT
+  # re-create colliding on the unique email index in SyncSession).
+  #
+  # DELETE rows rather than reconnect: the in-memory SQLite schema lives in the
+  # single shared connection, so disconnecting would drop the tables. Reset the
+  # autoincrement counter so account_id restarts at 1 (deterministic IDs).
+  #
+  # For PostgreSQL in CI, the application connection (onetime_user) lacks TRUNCATE
+  # privileges. Use AUTH_DATABASE_URL_MIGRATIONS (onetime_migrator) when available.
+  def clear_auth_database
+    db = Auth::Database.connection
+    # Simple mode has no SQL auth database (connection returns nil), but specs
+    # tagged type: :integration still run in that lane. Nothing to clear.
+    return if db.nil?
+
+    # Preserve schema bookkeeping and seed-once reference tables (PRESERVED_TABLES).
+    tables = db.tables - AuthTestConstants::PRESERVED_TABLES
+    return if tables.empty?
+
+    case db.database_type
+    when :postgres
+      # Fail closed: refuse to TRUNCATE unless the target is a test database.
+      # The dbname is the only thing separating the test PG (onetime_auth_test)
+      # from a leaked dev value (onetime_authdb); AUTH_DATABASE_URL is read from
+      # ENV, so a run outside the sanctioned :2154 PG lane must not wipe dev.
+      dbname = db.opts[:database].to_s
+      unless dbname =~ /test/i
+        raise '[auth spec_helper] Refusing to TRUNCATE non-test database: ' \
+              "#{dbname.empty? ? '<unknown>' : dbname.inspect}. Check AUTH_DATABASE_URL."
+      end
+
+      # Use elevated connection for TRUNCATE if available (CI privilege separation)
+      # Prefer existing PostgresModeSuiteDatabase connection to avoid per-test connect overhead
+      if defined?(PostgresModeSuiteDatabase) && PostgresModeSuiteDatabase.migration_database
+        PostgresModeSuiteDatabase.migration_database.run("TRUNCATE #{tables.join(', ')} RESTART IDENTITY CASCADE")
+      else
+        migration_url = ENV.fetch('AUTH_DATABASE_URL_MIGRATIONS', nil)
+        if migration_url && !migration_url.to_s.empty? && migration_url != ENV['AUTH_DATABASE_URL']
+          elevated_db = Sequel.connect(migration_url)
+          begin
+            elevated_db.run("TRUNCATE #{tables.join(', ')} RESTART IDENTITY CASCADE")
+          ensure
+            elevated_db.disconnect
+          end
+        else
+          db.run("TRUNCATE #{tables.join(', ')} RESTART IDENTITY CASCADE")
+        end
+      end
+    when :sqlite
+      db.run('PRAGMA foreign_keys = OFF')
+      tables.each { |t| db[t].delete }
+      db[:sqlite_sequence].delete if db.table_exists?(:sqlite_sequence)
+      db.run('PRAGMA foreign_keys = ON')
+    end
+  rescue StandardError => ex
+    OT.le "[clear_auth_database] Failed to clear auth database: #{ex.message}"
+  end
+
+  # Get the auth database connection for assertions
+  def auth_db
+    Auth::Database.connection
+  end
+end
+
+RSpec.configure do |config|
+  # AUTH_SPEC_TREE (defined above) scopes every hook and include below to this
+  # tree's own spec files. See the HOOK SCOPE block for why.
+  config.expect_with :rspec do |expectations|
+    # Use default expectations configuration
+  end
+
+  config.mock_with :rspec do |mocks|
+    mocks.verify_partial_doubles = true
+  end
+
+  config.filter_run_when_matching :focus
+  config.order = :random
+  Kernel.srand config.seed
+
+  # Helper methods available in all auth tests
+  config.include(
+    Module.new do
+        def create_test_database
+          RodauthTestHelper.create_test_database
+        end
+
+        def create_rodauth_app(db:, features: [:base, :login, :logout], &)
+          RodauthTestHelper.create_rodauth_app(db: db, features: features, &)
+        end
+
+        def rodauth_responds_to?(app, method_name)
+          RodauthTestHelper.rodauth_responds_to?(app, method_name)
+        end
+    end,
+    file_path: AUTH_SPEC_TREE,
+  )
+
+  # Integration test helpers (for tests requiring full app boot)
+  config.include Rack::Test::Methods, type: :integration, file_path: AUTH_SPEC_TREE
+  config.include ProductionConfigHelper, type: :integration, file_path: AUTH_SPEC_TREE
+
+  # CSRF-aware request plumbing (csrf_json_post, fetch_csrf_token, json_body,
+  # clear_body_headers). Distinct names from ProductionConfigHelper#json_post,
+  # which is CSRF-blind and stays for the non-Rodauth routes.
+  config.include AuthRequestHelper, type: :integration, file_path: AUTH_SPEC_TREE
+
+  # Subject seeding (seed_existing_account, seed_account_with_password).
+  config.include AccountSeedHelper, type: :integration, file_path: AUTH_SPEC_TREE
+
+  # Capture AUTH_* env vars before integration suite to prevent leakage
+  # between spec files that set different feature flags.
+  # See: apps/web/auth/docs/auth-config-one-shot.md (Pattern 2)
+  config.before(:all, type: :integration, file_path: AUTH_SPEC_TREE) do
+    @saved_auth_env = Auth::ConfigRecreator.capture_auth_env
+  end
+
+  config.after(:all, type: :integration, file_path: AUTH_SPEC_TREE) do
+    Auth::ConfigRecreator.restore_auth_env(@saved_auth_env) if @saved_auth_env
+  end
+
+  # Skip integration tests if Valkey not available
+  config.before(:each, type: :integration, file_path: AUTH_SPEC_TREE) do
+    unless valkey_available?
+      skip 'Valkey not available on port 2163 (run: pnpm run test:database:start)'
+    end
+  end
+
+  # Clean database before each integration test.
+  #
+  # Respect the same opt-outs as the top-level spec/spec_helper.rb flush:
+  # specs that build fixtures in before(:all) and read them across examples
+  # set shared_db_state: true; billing specs manage their own state. Without
+  # this guard, this hook flushes those specs' before(:all) data out from under
+  # them. The file_path filter keeps it off other trees entirely; these opt-outs
+  # are what remains for auth's own before(:all) specs.
+  config.before(:each, type: :integration, file_path: AUTH_SPEC_TREE) do |example|
+    next if example.metadata[:shared_db_state]
+    next if example.metadata[:billing]
+
+    flush_test_database if respond_to?(:flush_test_database)
+  end
+
+  # Clean database after each integration test (same opt-outs as above).
+  config.after(:each, type: :integration, file_path: AUTH_SPEC_TREE) do |example|
+    next if example.metadata[:shared_db_state]
+    next if example.metadata[:billing]
+
+    flush_test_database if respond_to?(:flush_test_database)
+    clear_auth_database if respond_to?(:clear_auth_database)
+  end
+
+  # Restore the OmniAuth request-method global after every example.
+  #
+  # OmniAuth.config is process-global mutable state. Many specs set
+  # allowed_request_methods = %i[get post] (to exercise GET callbacks) but
+  # never reset it, so :get leaks into subsequent strategy inits and triggers
+  # the CVE-2015-9284 GET-request CSRF warning mid-suite. Unguarded within this
+  # tree (no shared_db_state/billing opt-out) so it always runs — but scoped to
+  # this tree, because the specs that set the global all live here and a
+  # merged-process run would otherwise reset OmniAuth after every example in
+  # every app tree, including ones that never load OmniAuth on purpose.
+  config.after(file_path: AUTH_SPEC_TREE) do
+    next unless defined?(OmniAuth)
+
+    OmniAuth.config.allowed_request_methods = [:post]
+    OmniAuth.config.silence_get_warning     = false
+  end
+end

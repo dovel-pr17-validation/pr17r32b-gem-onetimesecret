@@ -1,0 +1,458 @@
+# apps/api/organizations/spec/logic/members/update_member_role_spec.rb
+#
+# frozen_string_literal: true
+
+require_relative File.join(Onetime::HOME, 'spec', 'spec_helper')
+require 'organizations/logic'
+
+RSpec.describe OrganizationAPI::Logic::Members::UpdateMemberRole do
+  let(:owner) do
+    instance_double(
+      Onetime::Customer,
+      objid: 'cust-owner-123',
+      custid: 'cust-owner-123',
+      extid: 'ext-cust-owner',
+      email: 'owner@example.com',
+      anonymous?: false,
+      verified?: true,
+      role: 'customer',
+      'role?': false
+    )
+  end
+
+  let(:target_member) do
+    instance_double(
+      Onetime::Customer,
+      objid: 'cust-target-456',
+      custid: 'cust-target-456',
+      extid: 'ext-cust-target',
+      email: 'member@example.com',
+      locale: 'en',
+      anonymous?: false,
+      verified?: true
+    )
+  end
+
+  let(:organization) do
+    instance_double(
+      Onetime::Organization,
+      objid: 'org-123',
+      extid: 'ext-org-123',
+      display_name: 'Test Organization'
+    )
+  end
+
+  let(:target_membership) do
+    instance_double(
+      Onetime::OrganizationMembership,
+      objid: 'membership-target-456',
+      role: 'member',
+      'role=': nil,
+      'updated_at=': nil,
+      active?: true,
+      owner?: false,
+      save: true,
+      change_role!: true,
+      joined_at: 1700000000.0
+    )
+  end
+
+  # ADR-012 Stage 4: owner's membership with entitlements for authorization
+  let(:owner_membership) do
+    instance_double(
+      Onetime::OrganizationMembership,
+      active?: true,
+      can?: true,  # Owner has all entitlements including manage_org
+      domain_scoped?: false
+    )
+  end
+
+  let(:session) { { 'csrf' => 'test-csrf-token' } }
+
+  let(:strategy_result) do
+    double('StrategyResult',
+      session: session,
+      user: owner,
+      authenticated?: true,
+      metadata: {}
+    )
+  end
+
+  let(:params) do
+    {
+      'extid' => 'ext-org-123',
+      'member_extid' => 'ext-cust-target',
+      'role' => 'admin'
+    }
+  end
+
+  subject(:logic) { described_class.new(strategy_result, params) }
+
+  before do
+    allow(OT).to receive(:info)
+    allow(OT).to receive(:ld)
+    allow(Familia).to receive(:now).and_return(Time.now.to_f)
+    # process fires a best-effort role_changed notification; stub the queue so
+    # specs don't reach RabbitMQ.
+    allow(Onetime::Jobs::Publisher).to receive(:enqueue_email)
+  end
+
+  describe '#process_params' do
+    it 'extracts role from params and downcases it' do
+      params['role'] = 'ADMIN'
+      new_logic = described_class.new(strategy_result, params)
+      expect(new_logic.new_role).to eq('admin')
+    end
+
+    it 'strips whitespace from role' do
+      params['role'] = '  member  '
+      new_logic = described_class.new(strategy_result, params)
+      expect(new_logic.new_role).to eq('member')
+    end
+  end
+
+  describe '#raise_concerns' do
+    before do
+      allow(Onetime::Organization).to receive(:find_by_extid)
+        .with('ext-org-123').and_return(organization)
+      allow(organization).to receive(:owner?).with(owner).and_return(true)
+      allow(Onetime::Customer).to receive(:find_by_extid)
+        .with('ext-cust-target').and_return(target_member)
+      # ADR-012 Stage 4: stub owner's membership for require_entitlement_in!
+      allow(Onetime::OrganizationMembership).to receive(:find_by_org_customer)
+        .with('org-123', 'cust-owner-123').and_return(owner_membership)
+      # Stub target membership (loaded after auth check passes)
+      allow(Onetime::OrganizationMembership).to receive(:find_by_org_customer)
+        .with('org-123', 'cust-target-456').and_return(target_membership)
+    end
+
+    context 'when customer is anonymous' do
+      let(:owner) do
+        instance_double(
+          Onetime::Customer,
+          objid: 'anon-123',
+          anonymous?: true
+        )
+      end
+
+      it 'raises unauthorized error' do
+        expect { logic.raise_concerns }.to raise_error(
+          Onetime::FormError, /Authentication required/
+        )
+      end
+    end
+
+    context 'when organization not found' do
+      before do
+        allow(Onetime::Organization).to receive(:find_by_extid).and_return(nil)
+      end
+
+      it 'raises not found error' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::RecordNotFound) do |error|
+          expect(error.error_key).to eq('api.organizations.errors.organization_not_found')
+        end
+      end
+    end
+
+    context 'when user lacks manage_org entitlement' do
+      let(:owner_membership) do
+        instance_double(
+          Onetime::OrganizationMembership,
+          active?: true,
+          can?: false,  # Member without manage_org entitlement
+          domain_scoped?: false
+        )
+      end
+
+      before do
+        allow(organization).to receive(:owner?).with(owner).and_return(false)
+        allow(organization).to receive(:planid).and_return('basic')
+      end
+
+      it 'raises entitlement required error' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::EntitlementRequired) do |error|
+          expect(error.entitlement).to eq('manage_org')
+        end
+      end
+    end
+
+    context 'when member not found' do
+      before do
+        allow(Onetime::Customer).to receive(:find_by_extid).and_return(nil)
+      end
+
+      it 'raises not found error' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::RecordNotFound) do |error|
+          expect(error.error_key).to eq('api.organizations.members.errors.member_not_found')
+        end
+      end
+    end
+
+    context 'when target membership not found' do
+      before do
+        # ADR-012 Stage 4: owner's membership must pass auth check
+        allow(Onetime::OrganizationMembership).to receive(:find_by_org_customer)
+          .with('org-123', 'cust-owner-123').and_return(owner_membership)
+        # Target membership not found
+        allow(Onetime::OrganizationMembership).to receive(:find_by_org_customer)
+          .with('org-123', 'cust-target-456').and_return(nil)
+      end
+
+      it 'raises not found error' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::RecordNotFound) do |error|
+          expect(error.error_key).to eq('api.organizations.members.errors.member_not_in_organization')
+        end
+      end
+    end
+
+    context 'when membership is not active' do
+      before do
+        allow(target_membership).to receive(:active?).and_return(false)
+      end
+
+      it 'raises form error' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError) do |error|
+          expect(error.error_key).to eq('api.organizations.members.errors.member_not_active')
+        end
+      end
+    end
+
+    context 'when role is invalid' do
+      let(:params) do
+        {
+          'extid' => 'ext-org-123',
+          'member_extid' => 'ext-cust-target',
+          'role' => 'superuser'
+        }
+      end
+
+      it 'raises form error for invalid role' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError) do |error|
+          expect(error.error_key).to eq('api.organizations.members.errors.invalid_role_value')
+        end
+      end
+    end
+
+    context 'when trying to change owner role' do
+      before do
+        allow(target_membership).to receive(:owner?).and_return(true)
+      end
+
+      it 'raises form error' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError) do |error|
+          expect(error.error_key).to eq('api.organizations.members.errors.cannot_change_owner_role')
+        end
+      end
+    end
+
+    context 'when member already has the role' do
+      before do
+        allow(target_membership).to receive(:role).and_return('admin')
+      end
+
+      it 'raises form error' do
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError) do |error|
+          expect(error.error_key).to eq('api.organizations.members.errors.member_already_has_role')
+        end
+      end
+    end
+
+    context 'when trying to set role to owner' do
+      let(:params) do
+        {
+          'extid' => 'ext-org-123',
+          'member_extid' => 'ext-cust-target',
+          'role' => 'owner'
+        }
+      end
+
+      it 'raises form error for invalid role' do
+        # 'owner' is not in VALID_ROLES, so it fails validation first
+        expect { logic.raise_concerns }.to raise_error(Onetime::FormError) do |error|
+          expect(error.error_key).to eq('api.organizations.members.errors.invalid_role_value')
+        end
+      end
+    end
+
+    context 'with valid params and owner permission' do
+      it 'does not raise any error' do
+        expect { logic.raise_concerns }.not_to raise_error
+      end
+    end
+  end
+
+  describe '#process' do
+    # Use a real-ish object to track role changes
+    let(:current_role) { 'member' }
+
+    before do
+      allow(Onetime::Organization).to receive(:find_by_extid).and_return(organization)
+      allow(organization).to receive(:owner?).with(owner).and_return(true)
+      allow(Onetime::Customer).to receive(:find_by_extid).and_return(target_member)
+      # ADR-012 Stage 4: stub owner's membership for require_entitlement_in!
+      allow(Onetime::OrganizationMembership).to receive(:find_by_org_customer)
+        .with('org-123', 'cust-owner-123').and_return(owner_membership)
+      # Stub target membership (loaded after auth check)
+      allow(Onetime::OrganizationMembership).to receive(:find_by_org_customer)
+        .with('org-123', 'cust-target-456').and_return(target_membership)
+
+      # Setup mutable role tracking - initially returns 'member'
+      role_value = current_role
+      allow(target_membership).to receive(:role) { role_value }
+      # change_role! updates the role value (simulating the real behavior)
+      allow(target_membership).to receive(:change_role!) do |new_val|
+        role_value = new_val
+        true
+      end
+      allow(target_membership).to receive(:updated_at=)
+
+      logic.raise_concerns
+    end
+
+    it 'calls change_role! which handles role update and materialization' do
+      expect(target_membership).to receive(:change_role!).with('admin').and_return(true)
+      logic.process
+    end
+
+    it 'updates membership timestamp' do
+      expect(target_membership).to receive(:updated_at=)
+      logic.process
+    end
+
+    it 'saves updated_at after change_role! succeeds' do
+      expect(target_membership).to receive(:save)
+      logic.process
+    end
+
+    it 'returns success data with role change' do
+      result = logic.process
+      expect(result).to have_key(:user_id)
+      expect(result).to have_key(:organization_id)
+      expect(result).to have_key(:record)
+      expect(result[:user_id]).to eq('ext-cust-owner')
+      expect(result[:organization_id]).to eq('ext-org-123')
+    end
+
+    it 'includes previous_role in response' do
+      result = logic.process
+      expect(result[:record]).to have_key(:previous_role)
+      expect(result[:record][:previous_role]).to eq('member')
+    end
+
+    it 'includes new role in response' do
+      result = logic.process
+      # Role should be updated to 'admin' after the save
+      expect(result[:record][:role]).to eq('admin')
+    end
+
+    it 'logs audit event with role change details' do
+      expect(OT).to receive(:info).with(/\[AUDIT\].*role_change.*old_role=member.*new_role=admin/)
+      logic.process
+    end
+
+    it 'captures old_role before updating' do
+      # Verify that @old_role is captured before the role is changed
+      result = logic.process
+      expect(result[:record][:previous_role]).to eq('member')
+      expect(result[:record][:role]).to eq('admin')
+    end
+
+    # #3812 regression: Customer locales load as "" from Redis, which is truthy
+    # and would slip past a bare `@target_member.locale || OT.default_locale`,
+    # queueing a :role_changed email with a locale I18n cannot resolve.
+    describe 'locale normalization on the :role_changed email' do
+      def enqueued_role_changed_locale
+        captured = []
+        allow(Onetime::Jobs::Publisher).to receive(:enqueue_email) do |template, payload, **_kwargs|
+          captured << payload[:locale] if template == :role_changed
+          nil
+        end
+
+        logic.process
+
+        expect(captured.size).to eq(1),
+          "Expected exactly one :role_changed email, got #{captured.size}"
+        captured.first
+      end
+
+      it 'falls back to the default locale when the member locale is blank' do
+        allow(target_member).to receive(:locale).and_return('')
+        expect(enqueued_role_changed_locale).to eq(OT.default_locale)
+      end
+
+      it 'falls back to the default locale when the member locale is whitespace-only' do
+        allow(target_member).to receive(:locale).and_return('   ')
+        expect(enqueued_role_changed_locale).to eq(OT.default_locale)
+      end
+
+      it 'carries a set member locale through to the payload' do
+        allow(target_member).to receive(:locale).and_return('fr')
+        expect(enqueued_role_changed_locale).to eq('fr')
+      end
+    end
+  end
+
+  describe '#success_data' do
+    before do
+      allow(Onetime::Organization).to receive(:find_by_extid).and_return(organization)
+      allow(organization).to receive(:owner?).with(owner).and_return(true)
+      allow(Onetime::Customer).to receive(:find_by_extid).and_return(target_member)
+      # ADR-012 Stage 4: stub owner's membership for require_entitlement_in!
+      allow(Onetime::OrganizationMembership).to receive(:find_by_org_customer)
+        .with('org-123', 'cust-owner-123').and_return(owner_membership)
+      # Stub target membership (loaded after auth check)
+      allow(Onetime::OrganizationMembership).to receive(:find_by_org_customer)
+        .with('org-123', 'cust-target-456').and_return(target_membership)
+
+      # Setup mutable role tracking
+      role_value = 'member'
+      allow(target_membership).to receive(:role) { role_value }
+      allow(target_membership).to receive(:change_role!) do |new_val|
+        role_value = new_val
+        true
+      end
+      allow(target_membership).to receive(:updated_at=)
+
+      logic.raise_concerns
+      logic.process
+    end
+
+    it 'returns hash with expected keys' do
+      # Access via instance variable after process is called
+      result = logic.send(:success_data)
+      expect(result.keys).to include(:user_id, :organization_id, :record)
+    end
+
+    it 'includes member extid in record' do
+      result = logic.send(:success_data)
+      expect(result[:record][:extid]).to eq('ext-cust-target')
+    end
+
+    it 'includes member email in record' do
+      result = logic.send(:success_data)
+      expect(result[:record][:email]).to eq('member@example.com')
+    end
+
+    it 'includes joined_at timestamp in record' do
+      result = logic.send(:success_data)
+      expect(result[:record][:joined_at]).to eq(1700000000.0)
+    end
+
+    it 'includes is_owner flag in record' do
+      result = logic.send(:success_data)
+      expect(result[:record][:is_owner]).to eq(false)
+    end
+
+    it 'includes is_current_user flag in record' do
+      result = logic.send(:success_data)
+      expect(result[:record][:is_current_user]).to eq(false)
+    end
+  end
+
+  describe '#form_fields' do
+    it 'returns hash with role' do
+      fields = logic.form_fields
+      expect(fields[:role]).to eq('admin')
+    end
+  end
+end

@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "Invia un segreto",
+    "source_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "Condividi informazioni sensibili in modo sicuro con il nostro team di supporto",
+    "source_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "Caricamento...",
+    "source_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "Impossibile caricare la configurazione",
+    "source_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "Funzionalità non disponibile",
+    "source_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "Questa funzionalità è attualmente disabilitata. Contatta il supporto per assistenza.",
+    "source_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "Promemoria",
+    "source_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "Breve descrizione (es. Richiesta reimpostazione password)",
+    "source_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "Aiutaci a indirizzare il tuo messaggio alla persona giusta",
+    "source_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "Invia a",
+    "source_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "Seleziona un destinatario",
+    "source_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "Seleziona un destinatario per questo segreto",
+    "source_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "Scegli chi riceverà questo messaggio sicuro",
+    "source_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "Nessun destinatario disponibile",
+    "source_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "Informazioni segrete",
+    "source_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "Incolla qui le informazioni sensibili (password, chiavi, ecc.)",
+    "source_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "Queste informazioni saranno crittografate e visualizzabili una sola volta",
+    "source_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "Invia segreto",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "Invia segreto",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "Invio...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "Invio...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "Cancella modulo",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "Cancella modulo",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "Inviato con successo",
+    "source_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "Il tuo messaggio sicuro è stato consegnato.",
+    "source_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "ID riferimento",
+    "source_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "Cosa succede dopo?",
+    "source_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "Il destinatario potrà visualizzare questo segreto una sola volta. Dopo la visualizzazione, il segreto verrà eliminato permanentemente.",
+    "source_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "Invia un altro segreto",
+    "source_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "Condividi informazioni sensibili in modo sicuro",
+    "source_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "Tieni password e dati privati fuori da email e log delle chat",
+    "source_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "Salva la tua {receipt} per i tuoi archivi.",
+    "source_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "ricevuta",
+    "source_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "Upgrade richiesto",
+    "source_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "Questa funzionalità richiede l'upgrade del piano. Contatta il proprietario dell'account per abilitare i segreti in arrivo.",
+    "source_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "La nota deve contenere al massimo {max} caratteri",
+    "source_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "Il contenuto del segreto è obbligatorio",
+    "source_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "Seleziona un destinatario",
+    "source_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "La funzionalità dei segreti in arrivo non è abilitata",
+    "source_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "Controlla il modulo per individuare gli errori",
+    "source_hash": "9056e064"
+  }
+}

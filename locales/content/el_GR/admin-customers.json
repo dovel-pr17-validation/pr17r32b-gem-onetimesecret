@@ -1,0 +1,842 @@
+{
+  "web.admin.customers.title": {
+    "text": "Πελάτες",
+    "source_hash": "aabe76f1"
+  },
+  "web.admin.customers.description": {
+    "text": "Βρείτε έναν πελάτη και επιλύστε ζητήματα υποστήριξης.",
+    "source_hash": "00961ea3"
+  },
+  "web.admin.customers.actions.plan.label": {
+    "text": "Πρόγραμμα",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.plan.apply": {
+    "text": "Εφαρμογή",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.plan.confirmTitle": {
+    "text": "Αλλαγή προγράμματος;",
+    "source_hash": "910a4de9"
+  },
+  "web.admin.customers.actions.plan.confirmDescription": {
+    "text": "Αλλαγή του {email} στο πρόγραμμα {plan}.",
+    "source_hash": "83fb4158"
+  },
+  "web.admin.customers.actions.plan.success": {
+    "text": "Το πρόγραμμα ενημερώθηκε.",
+    "source_hash": "ebe8d40c"
+  },
+  "web.admin.customers.actions.plan.localConfigWarning": {
+    "text": "Τα προγράμματα φορτώθηκαν από την τοπική διαμόρφωση — το Stripe δεν έχει διαμορφωθεί ή δεν είναι προσβάσιμο.",
+    "source_hash": "df83e326"
+  },
+  "web.admin.customers.actions.purge.button": {
+    "text": "Εκκαθάριση πελάτη",
+    "source_hash": "ff658f69"
+  },
+  "web.admin.customers.actions.purge.confirmTitle": {
+    "text": "Εκκαθάριση πελάτη;",
+    "source_hash": "9feed9f1"
+  },
+  "web.admin.customers.actions.purge.confirmDescription": {
+    "text": "Αυτό ζητά την οριστική διαγραφή του {email}. Πριν από την κατάργηση του λογαριασμού εκτελείται ένας προκαταρκτικός έλεγχος, ο οποίος απορρίπτει την εκκαθάριση όταν ένας χώρος εργασίας έχει τομείς, κατάσταση χρέωσης, άλλα μέλη, διατηρούμενα δεδομένα ή ασυνεπείς αναφορές. Ελέγξτε και επιλύστε τυχόν εμπόδια πριν δοκιμάσετε ξανά. Δεν είναι δυνατή η αναίρεση μετά την έναρξη της κατάργησης.",
+    "source_hash": "7b4e5e37"
+  },
+  "web.admin.customers.actions.purge.success": {
+    "text": "Ο πελάτης εκκαθαρίστηκε.",
+    "source_hash": "6145e5c8"
+  },
+  "web.admin.customers.actions.role.label": {
+    "text": "Ρόλος",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.actions.role.apply": {
+    "text": "Εφαρμογή",
+    "source_hash": "31e392d1"
+  },
+  "web.admin.customers.actions.role.confirmTitle": {
+    "text": "Αλλαγή ρόλου;",
+    "source_hash": "227f57d7"
+  },
+  "web.admin.customers.actions.role.confirmDescription": {
+    "text": "Αλλαγή του {email} στον ρόλο {role}. Ο ρόλος colonel παρέχει πλήρη διαχειριστική πρόσβαση σε κάθε λογαριασμό, μυστικό και οργανισμό σε αυτήν την εγκατάσταση. Πληκτρολογήστε παρακάτω τη διεύθυνση email του λογαριασμού για επιβεβαίωση.",
+    "source_hash": "0ed85b97"
+  },
+  "web.admin.customers.actions.role.success": {
+    "text": "Ο ρόλος ενημερώθηκε.",
+    "source_hash": "0c33aa24"
+  },
+  "web.admin.customers.actions.suspend.button": {
+    "text": "Αναστολή λογαριασμού",
+    "source_hash": "95a04f27"
+  },
+  "web.admin.customers.actions.suspend.reasonLabel": {
+    "text": "Αιτία (προαιρετικά)",
+    "source_hash": "0f7d4664"
+  },
+  "web.admin.customers.actions.suspend.reasonPlaceholder": {
+    "text": "Γιατί αναστέλλεται αυτός ο λογαριασμός;",
+    "source_hash": "8eca975e"
+  },
+  "web.admin.customers.actions.suspend.confirmTitle": {
+    "text": "Αναστολή λογαριασμού;",
+    "source_hash": "cbfa275b"
+  },
+  "web.admin.customers.actions.suspend.confirmDescription": {
+    "text": "Αποκλείει τη σύνδεση του {email} και ανακαλεί τις ενεργές συνεδρίες του. Δεν διαγράφονται δεδομένα — αυτό είναι αναστρέψιμο.",
+    "source_hash": "e5d046bc"
+  },
+  "web.admin.customers.actions.suspend.success": {
+    "text": "Ο λογαριασμός ανεστάλη.",
+    "source_hash": "04c5f996"
+  },
+  "web.admin.customers.actions.unsuspend.button": {
+    "text": "Άρση αναστολής λογαριασμού",
+    "source_hash": "35a10fb5"
+  },
+  "web.admin.customers.actions.unsuspend.confirmTitle": {
+    "text": "Άρση αναστολής λογαριασμού;",
+    "source_hash": "6fd78a72"
+  },
+  "web.admin.customers.actions.unsuspend.confirmDescription": {
+    "text": "Επαναφέρει τη σύνδεση για τον {email}.",
+    "source_hash": "cb2bb4e0"
+  },
+  "web.admin.customers.actions.unsuspend.success": {
+    "text": "Η αναστολή του λογαριασμού ήρθη.",
+    "source_hash": "c5b4377f"
+  },
+  "web.admin.customers.actions.unverify.button": {
+    "text": "Κατάργηση επαλήθευσης",
+    "source_hash": "b0dee41f"
+  },
+  "web.admin.customers.actions.unverify.confirmTitle": {
+    "text": "Κατάργηση επαλήθευσης πελάτη;",
+    "source_hash": "62ed2854"
+  },
+  "web.admin.customers.actions.unverify.confirmDescription": {
+    "text": "Επισήμανση του {email} ως μη επαληθευμένου. Ένας μη επαληθευμένος λογαριασμός δεν μπορεί να έχει τον ρόλο colonel, διαχειριστή ή προσωπικού, επομένως αφαιρείται επίσης κάθε αυξημένος ρόλος που έχει. Πληκτρολογήστε παρακάτω τη διεύθυνση email του λογαριασμού για επιβεβαίωση.",
+    "source_hash": "601f7382"
+  },
+  "web.admin.customers.actions.unverify.success": {
+    "text": "Η επαλήθευση του πελάτη καταργήθηκε.",
+    "source_hash": "a9b7bbac"
+  },
+  "web.admin.customers.actions.verify.button": {
+    "text": "Επαλήθευση",
+    "source_hash": "eea2745e"
+  },
+  "web.admin.customers.actions.verify.confirmTitle": {
+    "text": "Επαλήθευση πελάτη;",
+    "source_hash": "43037ce1"
+  },
+  "web.admin.customers.actions.verify.confirmDescription": {
+    "text": "Επισήμανση του {email} ως επαληθευμένου.",
+    "source_hash": "7052d79d"
+  },
+  "web.admin.customers.actions.verify.success": {
+    "text": "Ο πελάτης επαληθεύτηκε.",
+    "source_hash": "19e382dc"
+  },
+  "web.admin.customers.columns.email": {
+    "text": "Email",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.columns.role": {
+    "text": "Ρόλος",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.columns.verified": {
+    "text": "Επαληθευμένος",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.columns.plan": {
+    "text": "Πρόγραμμα",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.columns.secrets": {
+    "text": "Μυστικά",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.columns.created": {
+    "text": "Δημιουργήθηκε",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.columns.lastLogin": {
+    "text": "Τελευταία σύνδεση",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.backToList": {
+    "text": "Επιστροφή στους πελάτες",
+    "source_hash": "077807fb"
+  },
+  "web.admin.customers.detail.openFullPage": {
+    "text": "Άνοιγμα πλήρους σελίδας",
+    "source_hash": "a467911c"
+  },
+  "web.admin.customers.detail.notFound": {
+    "text": "Ο πελάτης δεν βρέθηκε",
+    "source_hash": "5e3f5824"
+  },
+  "web.admin.customers.detail.notFoundDescription": {
+    "text": "Κανένας πελάτης δεν αντιστοιχεί σε αυτό το αναγνωριστικό. Ενδέχεται να έχει εκκαθαριστεί.",
+    "source_hash": "82b04725"
+  },
+  "web.admin.customers.detail.loadError": {
+    "text": "Δεν ήταν δυνατή η φόρτωση αυτού του πελάτη.",
+    "source_hash": "cfd1bcca"
+  },
+  "web.admin.customers.detail.retry": {
+    "text": "Επανάληψη",
+    "source_hash": "942087cc"
+  },
+  "web.admin.customers.detail.yes": {
+    "text": "Ναι",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.customers.detail.no": {
+    "text": "Όχι",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.customers.detail.none": {
+    "text": "Κανένα",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.never": {
+    "text": "Ποτέ",
+    "source_hash": "6300ef80"
+  },
+  "web.admin.customers.detail.billing.plan": {
+    "text": "Πρόγραμμα",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.billing.organization": {
+    "text": "Οργανισμός χρέωσης",
+    "source_hash": "90c94ee1"
+  },
+  "web.admin.customers.detail.billing.subscriptionStatus": {
+    "text": "Κατάσταση συνδρομής",
+    "source_hash": "f0723c4e"
+  },
+  "web.admin.customers.detail.billing.periodEnd": {
+    "text": "Η τρέχουσα περίοδος λήγει",
+    "source_hash": "742b8229"
+  },
+  "web.admin.customers.detail.billing.latestInvoice": {
+    "text": "Τελευταίο τιμολόγιο",
+    "source_hash": "7a6133cc"
+  },
+  "web.admin.customers.detail.billing.noInvoices": {
+    "text": "Χωρίς τιμολόγια",
+    "source_hash": "e6b30f93"
+  },
+  "web.admin.customers.detail.billing.openStripe": {
+    "text": "Άνοιγμα στον πίνακα ελέγχου Stripe",
+    "source_hash": "dfa7c41d"
+  },
+  "web.admin.customers.detail.billing.unavailable": {
+    "text": "Τα δεδομένα Stripe δεν είναι διαθέσιμα: {reason}",
+    "source_hash": "9fe08e49"
+  },
+  "web.admin.customers.detail.billing.notConfigured": {
+    "text": "Η χρέωση δεν έχει διαμορφωθεί σε αυτήν την εγκατάσταση.",
+    "source_hash": "6e90375e"
+  },
+  "web.admin.customers.detail.fields.email": {
+    "text": "Email",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.customers.detail.fields.publicId": {
+    "text": "Δημόσιο ID",
+    "source_hash": "3705b64f"
+  },
+  "web.admin.customers.detail.fields.role": {
+    "text": "Ρόλος",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.detail.fields.verified": {
+    "text": "Επαληθευμένος",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.detail.fields.plan": {
+    "text": "Πρόγραμμα",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.detail.fields.locale": {
+    "text": "Τοπική ρύθμιση",
+    "source_hash": "ca3dc612"
+  },
+  "web.admin.customers.detail.fields.created": {
+    "text": "Δημιουργήθηκε",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.fields.updated": {
+    "text": "Ενημερώθηκε",
+    "source_hash": "3a5ecca1"
+  },
+  "web.admin.customers.detail.fields.lastLogin": {
+    "text": "Τελευταία σύνδεση",
+    "source_hash": "0d39602d"
+  },
+  "web.admin.customers.detail.fields.suspendedAt": {
+    "text": "Αναστολή στις",
+    "source_hash": "7227f219"
+  },
+  "web.admin.customers.detail.fields.suspendedBy": {
+    "text": "Αναστολή από",
+    "source_hash": "e0830524"
+  },
+  "web.admin.customers.detail.fields.suspendedReason": {
+    "text": "Αιτία αναστολής",
+    "source_hash": "d6b08d8e"
+  },
+  "web.admin.customers.detail.organizations.empty": {
+    "text": "Χωρίς οργανισμούς",
+    "source_hash": "c256efdc"
+  },
+  "web.admin.customers.detail.organizations.default": {
+    "text": "Προεπιλογή",
+    "source_hash": "21b111cb"
+  },
+  "web.admin.customers.detail.receiptColumns.shortId": {
+    "text": "Σύντομο ID",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.receiptColumns.state": {
+    "text": "Κατάσταση",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.receiptColumns.created": {
+    "text": "Δημιουργήθηκε",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.receipts.empty": {
+    "text": "Χωρίς αποδείξεις",
+    "source_hash": "fb425a68"
+  },
+  "web.admin.customers.detail.secretColumns.shortId": {
+    "text": "Σύντομο ID",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.admin.customers.detail.secretColumns.state": {
+    "text": "Κατάσταση",
+    "source_hash": "a3b50c47"
+  },
+  "web.admin.customers.detail.secretColumns.created": {
+    "text": "Δημιουργήθηκε",
+    "source_hash": "d70b9e24"
+  },
+  "web.admin.customers.detail.secretColumns.expiration": {
+    "text": "Λήξη",
+    "source_hash": "f38d6e0e"
+  },
+  "web.admin.customers.detail.secrets.empty": {
+    "text": "Χωρίς μυστικά",
+    "source_hash": "c37ab3f7"
+  },
+  "web.admin.customers.detail.sections.profile": {
+    "text": "Προφίλ",
+    "source_hash": "d696a35b"
+  },
+  "web.admin.customers.detail.sections.secrets": {
+    "text": "Μυστικά",
+    "source_hash": "d8707d41"
+  },
+  "web.admin.customers.detail.sections.receipts": {
+    "text": "Αποδείξεις",
+    "source_hash": "60a627df"
+  },
+  "web.admin.customers.detail.sections.organizations": {
+    "text": "Οργανισμοί",
+    "source_hash": "2730183d"
+  },
+  "web.admin.customers.detail.sections.actions": {
+    "text": "Ενέργειες",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sections.billing": {
+    "text": "Χρέωση",
+    "source_hash": "3ac8bbca"
+  },
+  "web.admin.customers.detail.sessions.title": {
+    "text": "Ενεργές συνεδρίες",
+    "source_hash": "b58fa4e0"
+  },
+  "web.admin.customers.detail.sessions.empty": {
+    "text": "Δεν υπάρχουν ενεργές συνεδρίες.",
+    "source_hash": "6f064eb9"
+  },
+  "web.admin.customers.detail.sessions.loadError": {
+    "text": "Δεν είναι δυνατή η φόρτωση των συνεδριών.",
+    "source_hash": "d2884313"
+  },
+  "web.admin.customers.detail.sessions.unknown": {
+    "text": "Άγνωστο",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.sessions.columns.lastActivity": {
+    "text": "Τελευταία δραστηριότητα",
+    "source_hash": "06475633"
+  },
+  "web.admin.customers.detail.sessions.columns.ipAddress": {
+    "text": "Διεύθυνση IP",
+    "source_hash": "0302a467"
+  },
+  "web.admin.customers.detail.sessions.columns.device": {
+    "text": "Συσκευή",
+    "source_hash": "6ba0bdec"
+  },
+  "web.admin.customers.detail.sessions.columns.authMethod": {
+    "text": "Μέθοδος ελέγχου ταυτότητας",
+    "source_hash": "bc4ea262"
+  },
+  "web.admin.customers.detail.sessions.columns.actions": {
+    "text": "Ενέργειες",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.sessions.revoke.button": {
+    "text": "Ανάκληση",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmTitle": {
+    "text": "Ανάκληση συνεδρίας;",
+    "source_hash": "7735d1ef"
+  },
+  "web.admin.customers.detail.sessions.revoke.confirmDescription": {
+    "text": "Αυτό αποσυνδέει αμέσως τον χρήστη από αυτήν τη συνεδρία. Θα χρειαστεί να συνδεθεί ξανά.",
+    "source_hash": "b4291af0"
+  },
+  "web.admin.customers.detail.sessions.revoke.success": {
+    "text": "Η συνεδρία ανακλήθηκε.",
+    "source_hash": "5e4762e5"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.button": {
+    "text": "Ανάκληση όλων",
+    "source_hash": "c6847a4b"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmTitle": {
+    "text": "Ανάκληση κάθε συνεδρίας;",
+    "source_hash": "a4fa4c65"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.confirmDescription": {
+    "text": "Αυτό αποσυνδέει τον χρήστη από κάθε συσκευή και πρόγραμμα περιήγησης — συμπεριλαμβανομένων των συνεδριών που δεν εμφανίζονται σε αυτήν τη λίστα — και κλειδώνει αμέσως τις διαδρομές που απαιτούν έλεγχο ταυτότητας. Χρησιμοποιήστε το για αποχώρηση ή για ύποπτη κατάληψη λογαριασμού. Πληκτρολογήστε το ID του χρήστη για επιβεβαίωση.",
+    "source_hash": "483cdd88"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.success": {
+    "text": "Ανακλήθηκαν όλες οι συνεδρίες ({count} τερματίστηκαν).",
+    "source_hash": "4e1cce55"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.capped": {
+    "text": "Τερματίστηκαν {count} συνεδρίες, αλλά η σάρωση των μη παρακολουθούμενων συνεδριών περικόπηκε — μια παλαιότερη συνεδρία ενδέχεται να παραμένει. Εκτελέστε ξανά για βεβαιότητα.",
+    "source_hash": "e3d295a6"
+  },
+  "web.admin.customers.detail.stats.secretsCreated": {
+    "text": "Μυστικά που δημιουργήθηκαν",
+    "source_hash": "7d17719e"
+  },
+  "web.admin.customers.detail.stats.secretsShared": {
+    "text": "Μυστικά που κοινοποιήθηκαν",
+    "source_hash": "ba85b265"
+  },
+  "web.admin.customers.detail.stats.emailsSent": {
+    "text": "Email που στάλθηκαν",
+    "source_hash": "be604792"
+  },
+  "web.admin.customers.list.roleFilter": {
+    "text": "Ρόλος",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.customers.list.empty": {
+    "text": "Δεν βρέθηκαν πελάτες",
+    "source_hash": "dc754ec0"
+  },
+  "web.admin.customers.list.loadError": {
+    "text": "Δεν ήταν δυνατή η φόρτωση των πελατών.",
+    "source_hash": "81783303"
+  },
+  "web.admin.customers.list.searchPlaceholder": {
+    "text": "Αναζήτηση κατά email, extid ή objid",
+    "source_hash": "c06d5a3b"
+  },
+  "web.admin.customers.list.emptySearch": {
+    "text": "Κανένας πελάτης δεν αντιστοιχεί σε αυτήν την αναζήτηση",
+    "source_hash": "ea7e7012"
+  },
+  "web.admin.customers.roles.colonel": {
+    "text": "Colonel",
+    "source_hash": "02577777"
+  },
+  "web.admin.customers.roles.admin": {
+    "text": "Διαχειριστής",
+    "source_hash": "c1c224b0"
+  },
+  "web.admin.customers.roles.staff": {
+    "text": "Προσωπικό",
+    "source_hash": "681927e3"
+  },
+  "web.admin.customers.roles.customer": {
+    "text": "Πελάτης",
+    "source_hash": "bf376338"
+  },
+  "web.admin.customers.suspended.badge": {
+    "text": "Σε αναστολή",
+    "source_hash": "e392a389"
+  },
+  "web.admin.customers.actions.checkoutLink.button": {
+    "text": "Δημιουργία συνδέσμου ολοκλήρωσης αγοράς",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.modalTitle": {
+    "text": "Δημιουργία συνδέσμου ολοκλήρωσης αγοράς",
+    "source_hash": "9c5082cb"
+  },
+  "web.admin.customers.actions.checkoutLink.planLabel": {
+    "text": "Πλάνο",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.admin.customers.actions.checkoutLink.planPlaceholder": {
+    "text": "Αναγνωριστικό οικογένειας πλάνου (π.χ. identity_plus_v1)",
+    "source_hash": "12eba027"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleLabel": {
+    "text": "Κύκλος χρέωσης",
+    "source_hash": "d69f731e"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleMonthly": {
+    "text": "Μηνιαίος",
+    "source_hash": "9b11f6b7"
+  },
+  "web.admin.customers.actions.checkoutLink.cycleYearly": {
+    "text": "Ετήσιος",
+    "source_hash": "6e69b59e"
+  },
+  "web.admin.customers.actions.checkoutLink.allowPromo": {
+    "text": "Επιτρέψτε κωδικούς προσφοράς",
+    "source_hash": "ebe7bc8b"
+  },
+  "web.admin.customers.actions.checkoutLink.submit": {
+    "text": "Δημιουργία συνδέσμου",
+    "source_hash": "e6b850cf"
+  },
+  "web.admin.customers.actions.checkoutLink.resultLead": {
+    "text": "Ο σύνδεσμος ολοκλήρωσης αγοράς δημιουργήθηκε. Μοιραστείτε τον με τον πελάτη — μπορεί να χρησιμοποιηθεί μία φορά και λήγει.",
+    "source_hash": "6ff1fb0e"
+  },
+  "web.admin.customers.actions.checkoutLink.copy": {
+    "text": "Αντιγραφή συνδέσμου ολοκλήρωσης αγοράς",
+    "source_hash": "f1e51ca7"
+  },
+  "web.admin.customers.actions.checkoutLink.expiry": {
+    "text": "Λήγει σε ~{hours}ω ({date}).",
+    "source_hash": "4c878a15"
+  },
+  "web.admin.customers.actions.checkoutLink.regionLabel": {
+    "text": "Περιοχή",
+    "source_hash": "d3a008ef"
+  },
+  "web.admin.customers.actions.checkoutLink.parseError": {
+    "text": "Ο διακομιστής αποδέχτηκε το αίτημα αλλά επέστρεψε μη αναγνώσιμη απάντηση, επομένως δεν είναι δυνατή η εμφάνιση συνδέσμου. Ελέγξτε το Stripe πριν προσπαθήσετε ξανά.",
+    "source_hash": "e7e08290"
+  },
+  "web.admin.customers.actions.checkoutLink.done": {
+    "text": "Ολοκληρώθηκε",
+    "source_hash": "11a6767d"
+  },
+  "web.admin.customers.actions.purge.typePrompt": {
+    "text": "Για επιβεβαίωση, πληκτρολογήστε τη διεύθυνση email του λογαριασμού {token} παρακάτω",
+    "source_hash": "8b2a1819"
+  },
+  "web.admin.customers.actions.purge.unavailable": {
+    "text": "Η εκκαθάριση δεν είναι διαθέσιμη: αυτός ο λογαριασμός δεν έχει διεύθυνση email για επαναπληκτρολόγηση ως επιβεβαίωση.",
+    "source_hash": "5f20f7e5"
+  },
+  "web.admin.customers.columns.actions": {
+    "text": "Ενέργειες",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.customers.detail.diagnostics.title": {
+    "text": "Διαγνωστικά λογαριασμού",
+    "source_hash": "5574ece8"
+  },
+  "web.admin.customers.detail.diagnostics.loading": {
+    "text": "Εκτέλεση διάγνωσης…",
+    "source_hash": "062c83d5"
+  },
+  "web.admin.customers.detail.diagnostics.loadError": {
+    "text": "Δεν είναι δυνατή η φόρτωση διαγνωστικών.",
+    "source_hash": "69e69f49"
+  },
+  "web.admin.customers.detail.diagnostics.healthy": {
+    "text": "Δεν βρέθηκε καμία συνθήκη αποκλεισμού. Τα στοιχεία ταυτοποίησης και πλαισίου οργανισμού φαίνονται υγιή — ελέγξτε για προβλήματα στην πλευρά του πελάτη (cookies, ρυθμίσεις σύνδεσης προσαρμοσμένου τομέα) ή λάθος περιοχή.",
+    "source_hash": "e0e8450e"
+  },
+  "web.admin.customers.detail.diagnostics.authUnavailable": {
+    "text": "Η βάση δεδομένων ταυτοποίησης δεν είναι διαθέσιμη (απλή λειτουργία ταυτοποίησης) — οι έλεγχοι SQL παραλείφθηκαν.",
+    "source_hash": "d668907c"
+  },
+  "web.admin.customers.detail.diagnostics.authFailed": {
+    "text": "Η βάση δεδομένων ταυτοποίησης δεν απάντησε, επομένως οι έλεγχοι SQL δεν μπόρεσαν να εκτελεστούν: {reason}",
+    "source_hash": "46d047c0"
+  },
+  "web.admin.customers.detail.diagnostics.unknown": {
+    "text": "Άγνωστο",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.title": {
+    "text": "Αρχείο καταγραφής ταυτοποίησης",
+    "source_hash": "48ad8ba8"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.empty": {
+    "text": "Δεν καταγράφηκαν συμβάντα ταυτοποίησης.",
+    "source_hash": "d2332558"
+  },
+  "web.admin.customers.detail.diagnostics.auditLog.unavailable": {
+    "text": "Δεν ήταν δυνατή η ανάγνωση του αρχείου καταγραφής ταυτοποίησης: {reason}",
+    "source_hash": "ab18af57"
+  },
+  "web.admin.customers.detail.diagnostics.facts.authStatus": {
+    "text": "Κατάσταση ταυτοποίησης",
+    "source_hash": "34def169"
+  },
+  "web.admin.customers.detail.diagnostics.facts.noAccount": {
+    "text": "Χωρίς λογαριασμό ταυτοποίησης",
+    "source_hash": "a9968e9e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.password": {
+    "text": "Κωδικός πρόσβασης",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordSet": {
+    "text": "Ορίστηκε",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.admin.customers.detail.diagnostics.facts.passwordNone": {
+    "text": "Κανένας",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfa": {
+    "text": "MFA",
+    "source_hash": "d39ce053"
+  },
+  "web.admin.customers.detail.diagnostics.facts.mfaNone": {
+    "text": "Κανένα",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.customers.detail.diagnostics.facts.loginFailures": {
+    "text": "Αποτυχημένες προσπάθειες",
+    "source_hash": "63e7f0a8"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lockedBadge": {
+    "text": "Κλειδωμένος",
+    "source_hash": "ace29f74"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiter": {
+    "text": "Περιοριστής ρυθμού",
+    "source_hash": "32892404"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterEngaged": {
+    "text": "Ενεργός",
+    "source_hash": "1b0d851e"
+  },
+  "web.admin.customers.detail.diagnostics.facts.rateLimiterClear": {
+    "text": "Ελεύθερος",
+    "source_hash": "83b12c22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verification": {
+    "text": "Email επαλήθευσης",
+    "source_hash": "23fac8fb"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationPending": {
+    "text": "Εκκρεμεί — τελευταία αποστολή {date}",
+    "source_hash": "9ab8d1b6"
+  },
+  "web.admin.customers.detail.diagnostics.facts.verificationNone": {
+    "text": "Καμία εκκρεμότητα",
+    "source_hash": "a4d4cc22"
+  },
+  "web.admin.customers.detail.diagnostics.facts.sessions": {
+    "text": "Ενεργές συνεδρίες",
+    "source_hash": "61ad9909"
+  },
+  "web.admin.customers.detail.diagnostics.facts.lastLogin": {
+    "text": "Τελευταία σύνδεση (ταυτοποίηση)",
+    "source_hash": "373e7fb1"
+  },
+  "web.admin.customers.detail.receipts.partial": {
+    "text": "Μερική λίστα — εμφανίζονται τα {count} πιο πρόσφατα. Αυτός ο πελάτης έχει περισσότερες αποδείξεις από αυτές που εμφανίζονται εδώ.",
+    "source_hash": "127fd4db"
+  },
+  "web.admin.customers.detail.secrets.partial": {
+    "text": "Μερική λίστα — εμφανίζονται τα {count} πιο πρόσφατα. Αυτός ο πελάτης κατέχει περισσότερα μυστικά από αυτά που εμφανίζονται εδώ.",
+    "source_hash": "a537c8f3"
+  },
+  "web.admin.customers.detail.sessions.columns.country": {
+    "text": "Χώρα",
+    "source_hash": "701d021d"
+  },
+  "web.admin.customers.detail.sessions.current.badge": {
+    "text": "Αυτή η συνεδρία",
+    "source_hash": "6da6530a"
+  },
+  "web.admin.customers.detail.sessions.current.tooltip": {
+    "text": "Η τρέχουσα συνεδρία διαχειριστή σας. Η ανάκλησή της εδώ δεν έχει αποτέλεσμα — αναδημιουργείται για το υπόλοιπο αυτού του αιτήματος.",
+    "source_hash": "ef097ab1"
+  },
+  "web.admin.customers.verification.verified": {
+    "text": "Επαληθευμένο",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.verification.unverified": {
+    "text": "Μη επαληθευμένο",
+    "source_hash": "15133907"
+  },
+  "web.admin.customers.actions.impersonate.button": {
+    "text": "Απομίμηση πελάτη",
+    "source_hash": "38a7cfbe"
+  },
+  "web.admin.customers.actions.impersonate.confirmTitle": {
+    "text": "Έναρξη απομίμησης;",
+    "source_hash": "c6e4fa74"
+  },
+  "web.admin.customers.actions.impersonate.confirmDescription": {
+    "text": "Ανοίγει μια χρονικά περιορισμένη συνεδρία μόνο για ανάγνωση ως {email}. Κάθε σελίδα εμφανίζει ένα πανό μέχρι να τη διακόψετε, οι αλλαγές αποκλείονται και η συνεδρία καταγράφεται στο αρχείο καταγραφής ελέγχου μαζί με την αιτία σας.",
+    "source_hash": "713c01b4"
+  },
+  "web.admin.customers.actions.impersonate.reasonLabel": {
+    "text": "Αιτία (υποχρεωτικά)",
+    "source_hash": "d976f5d9"
+  },
+  "web.admin.customers.actions.impersonate.reasonPlaceholder": {
+    "text": "Γιατί χρειάζεται αυτή η συνεδρία; Συμπεριλάβετε τον αριθμό του αιτήματος υποστήριξης.",
+    "source_hash": "89a4835d"
+  },
+  "web.admin.customers.actions.impersonate.success": {
+    "text": "Η απομίμηση ξεκίνησε.",
+    "source_hash": "b4662bcc"
+  },
+  "web.admin.customers.actions.impersonate.unavailable": {
+    "text": "Η απομίμηση δεν είναι διαθέσιμη για λογαριασμούς colonel, ανώνυμους λογαριασμούς και λογαριασμούς σε αναστολή.",
+    "source_hash": "fb6578b2"
+  },
+  "web.admin.customers.actions.purge.refused": {
+    "text": "Η εκκαθάριση απορρίφθηκε. Ο πελάτης διατηρήθηκε. Επιλύστε τα εμπόδια πριν δοκιμάσετε ξανά.",
+    "source_hash": "8e8a2ae1"
+  },
+  "web.admin.customers.actions.purge.partial": {
+    "text": "Η εκκαθάριση διακόπηκε αφού ολοκληρώθηκε μέρος του καθαρισμού. Μην αναφέρετε επιτυχία και μην δοκιμάσετε ξανά χωρίς έλεγχο. Εξετάστε τα ολοκληρωμένα στάδια και τα εμπόδια.",
+    "source_hash": "a88fd15b"
+  },
+  "web.admin.customers.actions.purge.incomplete": {
+    "text": "Η εκκαθάριση δεν ολοκληρώθηκε (κατάσταση: {status}). Εξετάστε τις λεπτομέρειες του κύκλου ζωής πριν δοκιμάσετε ξανά.",
+    "source_hash": "c0c3d287"
+  },
+  "web.admin.customers.actions.purge.unreadableResult": {
+    "text": "Ο διακομιστής επέστρεψε μη αναγνώσιμο αποτέλεσμα εκκαθάρισης. Δεν αναφέρθηκε επιτυχία. Επαληθεύστε την κατάσταση του πελάτη και του χώρου εργασίας πριν δοκιμάσετε ξανά.",
+    "source_hash": "cc837a77"
+  },
+  "web.admin.customers.actions.purge.resultStage": {
+    "text": "Διακόπηκε στο στάδιο: {stage}.",
+    "source_hash": "d0e313bf"
+  },
+  "web.admin.customers.actions.purge.resultBlockers": {
+    "text": "Εμπόδια: {blockers}.",
+    "source_hash": "00c1e196"
+  },
+  "web.admin.customers.actions.purge.resultPlannedActions": {
+    "text": "Προγραμματισμένος καθαρισμός: {actions}.",
+    "source_hash": "6915205d"
+  },
+  "web.admin.customers.actions.purge.resultActions": {
+    "text": "Ολοκληρωμένος καθαρισμός: {actions}.",
+    "source_hash": "d34121b3"
+  },
+  "web.admin.customers.actions.purge.resultCompletedStages": {
+    "text": "Ολοκληρωμένα στάδια: {stages}.",
+    "source_hash": "67f68860"
+  },
+  "web.admin.customers.actions.role.button": {
+    "text": "Αλλαγή ρόλου",
+    "source_hash": "a43a8d8c"
+  },
+  "web.admin.customers.actions.role.selfDemote": {
+    "text": "Δεν μπορείτε να υποβιβάσετε τον δικό σας λογαριασμό colonel. Ζητήστε από έναν άλλο colonel να το κάνει ή εκτελέστε `bin/ots customers role demote`.",
+    "source_hash": "3e75d01b"
+  },
+  "web.admin.customers.actions.role.lastColonel": {
+    "text": "Δεν μπορείτε να υποβιβάσετε τον τελευταίο εναπομείναντα colonel — η εγκατάσταση θα έμενε χωρίς διαχειριστή. Προάγετε και επαληθεύστε πρώτα έναν άλλο λογαριασμό.",
+    "source_hash": "9c59c731"
+  },
+  "web.admin.customers.actions.unverify.selfUnverify": {
+    "text": "Δεν μπορείτε να καταργήσετε την επαλήθευση του δικού σας λογαριασμού: απαιτείται επαληθευμένο email για τον ρόλο colonel.",
+    "source_hash": "8ab024fe"
+  },
+  "web.admin.customers.actions.unverify.lastColonel": {
+    "text": "Δεν μπορείτε να καταργήσετε την επαλήθευση του τελευταίου εναπομείναντος colonel — ένας μη επαληθευμένος λογαριασμός δεν μπορεί να έχει τον ρόλο colonel. Προάγετε και επαληθεύστε πρώτα έναν άλλο λογαριασμό.",
+    "source_hash": "fc404616"
+  },
+  "web.admin.customers.detail.diagnostics.organizationContextBlocked": {
+    "text": "Το πλαίσιο οργανισμού είναι αποκλεισμένο ή ελλιπές. Εξετάστε τον χώρο εργασίας στο ευρετήριο και διορθώστε τυχόν αποκλίσεις ευρετηρίου ιδιοκτησίας, συμμετοχής ή email επικοινωνίας πριν θεωρήσετε αυτόν τον λογαριασμό υγιή.",
+    "source_hash": "5c5c89be"
+  },
+  "web.admin.customers.detail.diagnostics.organization": {
+    "text": "Χώρος εργασίας: {id}",
+    "source_hash": "6ee50fe9"
+  },
+  "web.admin.customers.detail.diagnostics.remediation": {
+    "text": "Αποκατάσταση: {action}",
+    "source_hash": "83ddc7d7"
+  },
+  "web.admin.customers.detail.fields.internalId": {
+    "text": "Εσωτερικό ID",
+    "source_hash": "e468bb47"
+  },
+  "web.admin.customers.detail.organizations.open": {
+    "text": "Άνοιγμα",
+    "source_hash": "ed077f3d"
+  },
+  "web.admin.customers.detail.rodauthAdmin.open": {
+    "text": "Άνοιγμα στο Rodauth Admin",
+    "source_hash": "467173c8"
+  },
+  "web.admin.customers.detail.sessions.revokeAll.selfDescription": {
+    "text": "Αυτό σάς αποσυνδέει από κάθε άλλη συσκευή και πρόγραμμα περιήγησης, συμπεριλαμβανομένων των συνεδριών που δεν εμφανίζονται σε αυτήν τη λίστα. Η συνεδρία στην οποία εργάζεστε αυτήν τη στιγμή διατηρείται.",
+    "source_hash": "ae350040"
+  },
+  "web.admin.customers.list.capped": {
+    "text": "Τα αποτελέσματα είναι περιορισμένα: ο αριθμός που εμφανίζεται είναι κατώτατο όριο, όχι το σύνολο. Περιορίστε την αναζήτηση ή το φίλτρο για να δείτε τα πάντα.",
+    "source_hash": "27537844"
+  },
+  "web.admin.customers.list.orphanedAccounts.title": {
+    "text": "Λογαριασμός βάσης δεδομένων ταυτοποίησης χωρίς εγγραφή πελάτη",
+    "source_hash": "82cf7a27"
+  },
+  "web.admin.customers.list.orphanedAccounts.hint": {
+    "text": "Η βάση δεδομένων ταυτοποίησης περιέχει λογαριασμό για αυτήν τη διεύθυνση, αλλά καμία εγγραφή πελάτη δεν αντιστοιχεί σε αυτόν. Το άτομο μπορεί ακόμα να συνδεθεί, όμως το ευρετήριο πελατών δεν έχει τίποτα γι' αυτό. Ανοίξτε τη διεύθυνση για διαγνωστικά.",
+    "source_hash": "0f903f23"
+  },
+  "web.admin.customers.list.orphanedAccounts.diagnose": {
+    "text": "Άνοιγμα διαγνωστικών λογαριασμού",
+    "source_hash": "55b3e826"
+  },
+  "web.admin.customers.list.orphanedAccounts.accountId": {
+    "text": "Λογαριασμός #{id}",
+    "source_hash": "485dee3c"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unverified": {
+    "text": "Μη επαληθευμένος",
+    "source_hash": "33c8e8de"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.verified": {
+    "text": "Επαληθευμένος",
+    "source_hash": "4f783840"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.closed": {
+    "text": "Κλειστός",
+    "source_hash": "c21ead06"
+  },
+  "web.admin.customers.list.orphanedAccounts.status.unknown": {
+    "text": "Άγνωστος",
+    "source_hash": "b764cdc0"
+  }
+}

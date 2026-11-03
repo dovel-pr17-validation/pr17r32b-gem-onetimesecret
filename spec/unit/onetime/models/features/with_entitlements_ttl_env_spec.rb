@@ -1,0 +1,546 @@
+# spec/unit/onetime/models/features/with_entitlements_ttl_env_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+require 'erb'
+require 'yaml'
+require_relative '../../../../../apps/web/billing/errors'
+
+# Unit tests for WithEntitlements TTL Environment Variable Support
+#
+# Tests the parse_ttl_env method and free_tier_limits dynamic computation
+# that allows Docker/self-hosted deployments to override TTL limits via
+# environment variables.
+#
+# This provides upgrade continuity with PR #2393 from main branch.
+# @see https://github.com/onetimesecret/onetimesecret/issues/2390
+# @see https://github.com/onetimesecret/onetimesecret/issues/3111
+#
+RSpec.describe Onetime::Models::Features::WithEntitlements do
+  # Test class that includes the feature, giving us access to ClassMethods
+  let(:test_class) do
+    Class.new do
+      include Onetime::Models::Features::WithEntitlements
+      include Onetime::Models::Features::WithMaterializedLimits
+      include Onetime::Models::Features::WithPlanEntitlements
+
+      attr_accessor :planid
+
+      def initialize(planid = nil)
+        @planid = planid
+      end
+
+      def billing_enabled?
+        true
+      end
+
+      def extid
+        'test-org-extid'
+      end
+    end
+  end
+
+  describe '.parse_ttl_env' do
+    let(:default_value) { 604_800 } # 7 days
+
+    after do
+      ENV.delete('TEST_TTL_VAR')
+    end
+
+    context 'when environment variable is not set' do
+      it 'returns the default value' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(default_value)
+      end
+    end
+
+    context 'when environment variable is empty string' do
+      before { ENV['TEST_TTL_VAR'] = '' }
+
+      it 'returns the default value' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(default_value)
+      end
+    end
+
+    context 'when environment variable is whitespace only' do
+      before { ENV['TEST_TTL_VAR'] = '   ' }
+
+      it 'returns the default value' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(default_value)
+      end
+    end
+
+    context 'when environment variable is a valid integer' do
+      before { ENV['TEST_TTL_VAR'] = '2592000' } # 30 days
+
+      it 'returns the parsed integer value' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(2_592_000)
+      end
+    end
+
+    context 'when environment variable has leading/trailing whitespace' do
+      before { ENV['TEST_TTL_VAR'] = '  1209600  ' } # 14 days with whitespace
+
+      it 'returns the parsed integer value after trimming' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(1_209_600)
+      end
+    end
+
+    context 'when environment variable exceeds MAX_TTL' do
+      before { ENV['TEST_TTL_VAR'] = '999999999' } # Way more than 365 days
+
+      it 'caps the value at MAX_TTL (365 days)' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(described_class::MAX_TTL)
+        expect(result).to eq(365 * 24 * 60 * 60)
+      end
+    end
+
+    context 'when environment variable is exactly MAX_TTL' do
+      before { ENV['TEST_TTL_VAR'] = (365 * 24 * 60 * 60).to_s }
+
+      it 'returns the MAX_TTL value' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(described_class::MAX_TTL)
+      end
+    end
+
+    context 'when environment variable is invalid (malformed string)' do
+      before { ENV['TEST_TTL_VAR'] = '123abc' }
+
+      it 'returns the default value' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(default_value)
+      end
+
+      it 'logs a warning with env var name' do
+        expect(OT).to receive(:lw).with(
+          '[WithPlanEntitlements] Invalid TEST_TTL_VAR value, using default',
+          hash_including(env_var: 'TEST_TTL_VAR', default: default_value)
+        )
+        test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+      end
+    end
+
+    context 'when environment variable is a float string' do
+      before { ENV['TEST_TTL_VAR'] = '604800.5' }
+
+      it 'returns the default value (strict integer parsing)' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(default_value)
+      end
+    end
+
+    context 'when environment variable is negative' do
+      before { ENV['TEST_TTL_VAR'] = '-100' }
+
+      it 'clamps to zero (lower bound)' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(0)
+      end
+    end
+
+    context 'when environment variable is zero' do
+      before { ENV['TEST_TTL_VAR'] = '0' }
+
+      it 'returns zero' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(0)
+      end
+    end
+
+    context 'when environment variable is hexadecimal' do
+      before { ENV['TEST_TTL_VAR'] = '0x1234' }
+
+      it 'returns the default value (base 10 only rejects hex)' do
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(default_value)
+      end
+    end
+
+    context 'when environment variable has leading zero' do
+      before { ENV['TEST_TTL_VAR'] = '0777' }
+
+      it 'parses as base 10 (leading zero ignored)' do
+        # Integer('0777', 10) parses as 777 in base 10, not octal
+        result = test_class.parse_ttl_env('TEST_TTL_VAR', default_value)
+        expect(result).to eq(777)
+      end
+    end
+  end
+
+  describe '.free_tier_limits' do
+    before do
+      # Reset memoization before each test
+      test_class.reset_free_tier_limits!
+    end
+
+    after do
+      ENV.delete('TTL_MAX_ANONYMOUS')
+      test_class.reset_free_tier_limits!
+    end
+
+    context 'when TTL_MAX_ANONYMOUS is not set' do
+      it 'returns default secret_lifetime.max of 14 days (matches free_v1 plan)' do
+        # See #3111: the constant must match `free_v1.limits.secret_lifetime`
+        # in etc/billing.yaml (1_209_600) so that empty-planid orgs get the
+        # same 14-day ceiling as the canonical free_v1 plan.
+        limits = test_class.free_tier_limits
+        expect(limits['secret_lifetime.max']).to eq(1_209_600)
+        expect(limits['secret_lifetime.max']).to eq(14 * 24 * 60 * 60)
+      end
+
+      it 'returns default organization limits' do
+        limits = test_class.free_tier_limits
+        expect(limits['organizations.max']).to eq(5)
+        expect(limits['teams.max']).to eq(0)
+        expect(limits['total_members_per_org.max']).to eq(0)
+      end
+
+      it 'returns default role-specific member limits' do
+        limits = test_class.free_tier_limits
+        expect(limits['role_owners_per_org.max']).to eq(1)
+        expect(limits['role_admins_per_org.max']).to eq(0)
+        expect(limits['role_members_per_org.max']).to eq(0)
+      end
+    end
+
+    context 'when TTL_MAX_ANONYMOUS is set to 30 days' do
+      before { ENV['TTL_MAX_ANONYMOUS'] = '2592000' }
+
+      it 'returns overridden secret_lifetime.max' do
+        limits = test_class.free_tier_limits
+        expect(limits['secret_lifetime.max']).to eq(2_592_000)
+      end
+
+      it 'does not affect other limits' do
+        limits = test_class.free_tier_limits
+        expect(limits['organizations.max']).to eq(5)
+        expect(limits['teams.max']).to eq(0)
+      end
+    end
+
+    context 'when TTL_MAX_ANONYMOUS exceeds MAX_TTL' do
+      before { ENV['TTL_MAX_ANONYMOUS'] = '999999999' }
+
+      it 'caps secret_lifetime.max at MAX_TTL' do
+        limits = test_class.free_tier_limits
+        expect(limits['secret_lifetime.max']).to eq(described_class::MAX_TTL)
+      end
+    end
+
+    context 'when TTL_MAX_ANONYMOUS is invalid' do
+      before { ENV['TTL_MAX_ANONYMOUS'] = 'invalid' }
+
+      it 'falls back to DEFAULT_FREE_TTL (14 days)' do
+        limits = test_class.free_tier_limits
+        expect(limits['secret_lifetime.max']).to eq(described_class::DEFAULT_FREE_TTL)
+        expect(limits['secret_lifetime.max']).to eq(1_209_600)
+      end
+    end
+
+    context 'memoization behavior' do
+      it 'returns the same frozen hash on subsequent calls' do
+        first_call = test_class.free_tier_limits
+        second_call = test_class.free_tier_limits
+        expect(first_call).to be(second_call)
+        expect(first_call).to be_frozen
+      end
+
+      it 'can be reset for testing' do
+        ENV['TTL_MAX_ANONYMOUS'] = '1000'
+        first_limits = test_class.free_tier_limits
+        expect(first_limits['secret_lifetime.max']).to eq(1000)
+
+        ENV['TTL_MAX_ANONYMOUS'] = '2000'
+        # Without reset, should return memoized value
+        expect(test_class.free_tier_limits['secret_lifetime.max']).to eq(1000)
+
+        # After reset, should pick up new value
+        test_class.reset_free_tier_limits!
+        expect(test_class.free_tier_limits['secret_lifetime.max']).to eq(2000)
+      end
+    end
+  end
+
+  describe 'MAX_TTL constant' do
+    it 'equals 365 days in seconds' do
+      expect(described_class::MAX_TTL).to eq(365 * 24 * 60 * 60)
+      expect(described_class::MAX_TTL).to eq(31_536_000)
+    end
+  end
+
+  describe 'DEFAULT_FREE_TTL constant' do
+    it 'equals 14 days in seconds (matches free_v1 plan)' do
+      # Regression test for #3111. The constant must match
+      # `free_v1.limits.secret_lifetime` in etc/billing.yaml so that the
+      # free_tier_limits fallback (used when planid is empty or cache miss)
+      # does not silently impose a stricter ceiling than the canonical
+      # free_v1 plan documented in the catalog.
+      expect(described_class::DEFAULT_FREE_TTL).to eq(14 * 24 * 60 * 60)
+      expect(described_class::DEFAULT_FREE_TTL).to eq(1_209_600)
+    end
+
+    it 'is positive' do
+      expect(described_class::DEFAULT_FREE_TTL).to be > 0
+    end
+
+    it 'is less than MAX_TTL (365 days)' do
+      expect(described_class::DEFAULT_FREE_TTL).to be < described_class::MAX_TTL
+    end
+
+    it 'is not the legacy 7-day value (regression guard for #3111)' do
+      # If this assertion ever fails, someone has reverted DEFAULT_FREE_TTL
+      # back to 604_800. That value drifts from `free_v1` in etc/billing.yaml
+      # and silently caps free-tier users at 7 days instead of 14.
+      expect(described_class::DEFAULT_FREE_TTL).not_to eq(604_800)
+    end
+
+    it 'matches the secret_lifetime declared by free_v1 in billing.example.yaml' do
+      # The example billing YAML is the documentation source-of-truth for
+      # the free tier ceiling. If this drifts, free_tier_limits will silently
+      # disagree with what operators read in the catalog file.
+      yaml_path = File.expand_path('../../../../../etc/examples/billing.example.yaml', __dir__)
+      raw = File.read(yaml_path)
+      processed = ERB.new(raw).result
+      config = YAML.safe_load(processed, aliases: true)
+      free_v1_lifetime = config.dig('plans', 'free_v1', 'limits', 'secret_lifetime')
+
+      expect(free_v1_lifetime).to be_a(Integer)
+      expect(described_class::DEFAULT_FREE_TTL).to eq(free_v1_lifetime)
+    end
+  end
+
+  describe 'integration with limit_for' do
+    let(:org) { test_class.new(nil) } # No plan = free tier
+
+    before do
+      test_class.reset_free_tier_limits!
+    end
+
+    after do
+      ENV.delete('TTL_MAX_ANONYMOUS')
+      test_class.reset_free_tier_limits!
+    end
+
+    context 'when TTL_MAX_ANONYMOUS is not set' do
+      it 'limit_for returns default 14 days for secret_lifetime (#3111)' do
+        expect(org.limit_for('secret_lifetime')).to eq(1_209_600)
+        expect(org.limit_for('secret_lifetime')).to eq(described_class::DEFAULT_FREE_TTL)
+      end
+
+      it 'limit_for does NOT return the legacy 7-day cap' do
+        # Customer-annoyance regression test: a billing-enabled empty-planid
+        # org must not get the buggy 7-day cap from before #3111.
+        expect(org.limit_for('secret_lifetime')).not_to eq(604_800)
+      end
+    end
+
+    context 'when TTL_MAX_ANONYMOUS is set to 30 days' do
+      before { ENV['TTL_MAX_ANONYMOUS'] = '2592000' }
+
+      it 'limit_for returns overridden value' do
+        expect(org.limit_for('secret_lifetime')).to eq(2_592_000)
+      end
+    end
+
+    context 'when TTL_MAX_ANONYMOUS is negative' do
+      before { ENV['TTL_MAX_ANONYMOUS'] = '-500' }
+
+      it 'limit_for clamps to zero' do
+        expect(org.limit_for('secret_lifetime')).to eq(0)
+      end
+    end
+
+    context 'when TTL_MAX_ANONYMOUS explicitly downgrades to legacy 7 days' do
+      # Operators who want the old 7-day cap can still opt in via env var.
+      # This protects deployments that intentionally relied on the legacy
+      # constant value before #3111 was filed.
+      before { ENV['TTL_MAX_ANONYMOUS'] = '604800' }
+
+      it 'limit_for honors the operator override' do
+        expect(org.limit_for('secret_lifetime')).to eq(604_800)
+      end
+    end
+
+    context 'when TTL_MAX_ANONYMOUS matches the new default exactly' do
+      before { ENV['TTL_MAX_ANONYMOUS'] = '1209600' }
+
+      it 'limit_for returns 14 days (idempotent override)' do
+        expect(org.limit_for('secret_lifetime')).to eq(1_209_600)
+        expect(org.limit_for('secret_lifetime')).to eq(described_class::DEFAULT_FREE_TTL)
+      end
+    end
+
+    context 'symbol vs string resource keys (#3111 edge case)' do
+      # The limit_for path flattens both symbol and string resource names
+      # to "secret_lifetime.max". Both forms must agree for callers like
+      # BaseSecretAction (string) and colonel test mode (symbol).
+      it 'returns 14 days for the string form' do
+        expect(org.limit_for('secret_lifetime')).to eq(1_209_600)
+      end
+
+      it 'returns 14 days for the symbol form' do
+        expect(org.limit_for(:secret_lifetime)).to eq(1_209_600)
+      end
+
+      it 'returns the same value regardless of key form' do
+        expect(org.limit_for(:secret_lifetime)).to eq(org.limit_for('secret_lifetime'))
+      end
+    end
+  end
+
+  # Regression suite for #3111: DEFAULT_FREE_TTL drifted from the canonical
+  # `free_v1` plan in etc/billing.yaml, so a billing-enabled org with no
+  # planid (or a cache-miss planid) was getting a stricter 7-day ceiling
+  # than the published free_v1 14-day limit. These tests pin down the
+  # contract so the drift cannot silently return.
+  describe '#3111 regression: free tier TTL parity with free_v1', billing: true do
+    before do
+      test_class.reset_free_tier_limits!
+    end
+
+    after do
+      ENV.delete('TTL_MAX_ANONYMOUS')
+      test_class.reset_free_tier_limits!
+    end
+
+    context 'when planid is empty string (billing enabled, no plan assigned)' do
+      let(:org) { test_class.new('') }
+
+      it 'limit_for returns 14 days, not the legacy 7 days' do
+        expect(org.limit_for('secret_lifetime')).to eq(1_209_600)
+      end
+    end
+
+    context 'when planid is nil (billing enabled, unset)' do
+      let(:org) { test_class.new(nil) }
+
+      it 'limit_for returns 14 days, not the legacy 7 days' do
+        expect(org.limit_for('secret_lifetime')).to eq(1_209_600)
+      end
+    end
+
+    context 'when planid points to a missing plan (cache miss)' do
+      let(:org) { test_class.new('definitely_not_a_real_plan_id') }
+
+      it 'raises PlanCacheMissError (fail-closed)' do
+        # With #3089 fix, unknown plan IDs raise rather than silently
+        # degrading to free tier. This is an ops problem that should
+        # surface immediately, not be masked by fallback behavior.
+        expect { org.limit_for('secret_lifetime') }.to raise_error(
+          Billing::PlanCacheMissError,
+          /Plan not found in cache or config/
+        )
+      end
+    end
+
+    describe 'boundary semantics around the 14-day ceiling' do
+      let(:org) { test_class.new(nil) }
+
+      it 'returns exactly 1_209_600 at the boundary' do
+        expect(org.limit_for('secret_lifetime')).to eq(1_209_600)
+      end
+
+      it 'is strictly greater than the old 7-day value (no off-by-one)' do
+        expect(org.limit_for('secret_lifetime')).to be > 604_800
+      end
+
+      it 'is exactly twice the old 7-day value' do
+        # Documents the intent: free_v1 is "2 weeks" — twice 1 week.
+        expect(org.limit_for('secret_lifetime')).to eq(2 * 604_800)
+      end
+    end
+  end
+
+  # The anonymous ceiling is deliberately NOT a plan derivation. It reads
+  # site.secret_options.ttl_max_anonymous (env TTL_MAX_ANONYMOUS, or the
+  # deprecated PLAN_TTL_ANONYMOUS alias, resolved in config.defaults.yaml) so it
+  # applies on deployments with billing disabled, where plan state does not
+  # exist. 2026-07-29 API audit, item 4.
+  describe '.configured_anonymous_max_ttl' do
+    let(:described_module) { Onetime::Models::Features::WithEntitlements }
+
+    def stub_conf(value)
+      conf = { 'site' => { 'secret_options' => { 'ttl_max_anonymous' => value } } }
+      allow(OT).to receive(:conf).and_return(conf)
+    end
+
+    it 'defaults to 7 days when the key is unset' do
+      stub_conf(nil)
+
+      expect(described_module.configured_anonymous_max_ttl)
+        .to eq(described_module::ANONYMOUS_MAX_TTL)
+    end
+
+    it 'honours an operator value below the default' do
+      stub_conf(86_400)
+
+      expect(described_module.configured_anonymous_max_ttl).to eq(86_400)
+    end
+
+    # The self-hosted case this key exists for: raising is supported, because
+    # the 7-day rule is hosted-service policy rather than a safety invariant.
+    it 'honours an operator value above the default' do
+      stub_conf(2_592_000)
+
+      expect(described_module.configured_anonymous_max_ttl).to eq(2_592_000)
+    end
+
+    it 'coerces a String, as ERB delivers when the env var is set' do
+      stub_conf('2592000')
+
+      expect(described_module.configured_anonymous_max_ttl).to eq(2_592_000)
+    end
+
+    it 'bounds the value at MAX_TTL' do
+      stub_conf(999_999_999)
+
+      expect(described_module.configured_anonymous_max_ttl).to eq(described_module::MAX_TTL)
+    end
+
+    # "0" reads as "unset me", not "anonymous secrets expire immediately".
+    it 'falls back to the default for a non-positive value' do
+      stub_conf(0)
+
+      expect(described_module.configured_anonymous_max_ttl)
+        .to eq(described_module::ANONYMOUS_MAX_TTL)
+    end
+
+    it 'falls back to the default for a negative value' do
+      stub_conf(-500)
+
+      expect(described_module.configured_anonymous_max_ttl)
+        .to eq(described_module::ANONYMOUS_MAX_TTL)
+    end
+
+    it 'falls back to the default and warns for a malformed value' do
+      stub_conf('not-a-number')
+      allow(OT).to receive(:lw)
+
+      expect(described_module.configured_anonymous_max_ttl)
+        .to eq(described_module::ANONYMOUS_MAX_TTL)
+      expect(OT).to have_received(:lw).with(
+        a_string_matching(/Invalid site\.secret_options\.ttl_max_anonymous/), hash_including(:default)
+      )
+    end
+
+    # Stub the dig, not OT.conf itself — spec_helper's teardown reads OT.conf
+    # and a raising stub would take the whole example group down with it.
+    it 'falls back to the default when the config read raises' do
+      faulty = instance_double(Hash)
+      allow(faulty).to receive(:dig).and_raise(StandardError, 'config unreadable')
+      allow(OT).to receive(:conf).and_return(faulty)
+      allow(OT).to receive(:le)
+
+      expect(described_module.configured_anonymous_max_ttl)
+        .to eq(described_module::ANONYMOUS_MAX_TTL)
+      expect(OT).to have_received(:le).with(a_string_matching(/ttl_max_anonymous unreadable/))
+    end
+  end
+end

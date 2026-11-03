@@ -1,0 +1,551 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "需要账户？",
+    "source_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "注册。",
+    "source_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "忘记密码？",
+    "source_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "登录",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "输入您的凭据",
+    "source_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "记住我",
+    "source_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "发送登录链接",
+    "source_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "安全链接将发送到您的邮箱。",
+    "source_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "或",
+    "source_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "使用密码登录",
+    "source_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "使用无密码登录",
+    "source_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "创建账户",
+    "source_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "返回首页",
+    "source_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "密码",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "魔法链接",
+    "source_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "通行密钥",
+    "source_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "需要帮助？",
+    "source_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "或继续使用",
+    "source_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "使用 SSO 登录",
+    "source_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "使用 {provider} 登录",
+    "source_hash": "b8794f11"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "正在跳转到身份提供商...",
+    "source_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "SSO 登录失败。请重试。",
+    "source_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "SSO 认证失败。请重试或使用密码登录。",
+    "source_hash": "13a2210a"
+  },
+  "web.login.errors.token_missing": {
+    "text": "认证链接不完整。请重新获取登录链接。",
+    "source_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "此登录链接已过期。请重新获取。",
+    "source_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "此登录链接无效。请重新获取。",
+    "source_hash": "270c6401"
+  },
+  "web.signup.create_your_account": {
+    "text": "创建您的账户",
+    "source_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "已有账户？",
+    "source_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "登录。",
+    "source_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "账户创建错误",
+    "source_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "密码",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "邮箱",
+    "source_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": "Email verification flow after signup"
+  },
+  "web.auth.verify.title": {
+    "text": "验证您的账户",
+    "source_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "您的账户已成功验证",
+    "source_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "验证密钥无效或已过期",
+    "source_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "此验证链接已过期。请申请新的链接。",
+    "source_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "此账户已验证。您现在可以登录。",
+    "source_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "无法验证账户。请重试或联系支持团队。",
+    "source_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "请查收邮件中的验证链接",
+    "source_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "账户验证失败。请检查您的验证链接或申请新的链接。",
+    "source_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "验证失败",
+    "source_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "我应该怎么做？",
+    "source_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "请查收邮件中的最新验证链接",
+    "source_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "如果找不到邮件，请检查垃圾邮件文件夹",
+    "source_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "如果问题持续，请联系支持团队",
+    "source_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "需要验证链接",
+    "source_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "请使用发送到您邮箱的验证链接来验证您的账户。",
+    "source_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "创建新账户",
+    "source_hash": "0e24ec84"
+  },
+  "web.auth.change_password.title": {
+    "text": "更改密码",
+    "source_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "当前密码",
+    "source_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "新密码",
+    "source_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "确认新密码",
+    "source_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "您的密码已成功更改",
+    "source_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "更改密码失败，请确认您的当前密码并重试。",
+    "source_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "关闭账户",
+    "source_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "此操作无法撤销。您的所有内容将被永久删除。",
+    "source_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "我了解此操作是永久性的",
+    "source_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "输入您的密码以确认",
+    "source_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "永久关闭账户",
+    "source_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "取消",
+    "source_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "请求重置密码",
+    "source_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "在下方输入您的邮箱地址，我们将向您发送重置密码的链接",
+    "source_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "发送重置链接",
+    "source_hash": "7d5f16d4"
+  },
+  "web.auth.password_reset.title": {
+    "text": "设置新密码",
+    "context": "Password reset request flow - user requests a reset link",
+    "source_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "请在下方输入您的新密码。确保它足够强且唯一，以保护您的账户。",
+    "source_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "已向您发送一封包含密码重置链接的邮件",
+    "source_hash": "63a6af45"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "我同意",
+    "source_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "账户信息",
+    "context": "User account overview/dashboard section",
+    "source_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "邮箱地址",
+    "source_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "账户创建时间",
+    "source_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "邮箱已验证",
+    "source_hash": "bc512ab0"
+  },
+  "web.auth.account.region": {
+    "text": "区域",
+    "source_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "邮箱未验证",
+    "source_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "验证邮箱地址",
+    "source_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "双因素认证",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "已启用",
+    "source_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "已禁用",
+    "source_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "活跃会话",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "{count} 个活跃会话",
+    "source_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "快捷操作",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "管理双因素认证",
+    "source_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "管理活跃会话",
+    "source_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "更改密码",
+    "source_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "关闭账户",
+    "source_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "帮助与支持",
+    "source_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "登录问题排查",
+    "source_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "魔法链接没有收到？",
+    "source_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "检查您的垃圾邮件文件夹",
+    "source_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "确认您输入的邮箱地址正确",
+    "source_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "等待几分钟 - 邮件有时会延迟",
+    "source_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "如果超过 10 分钟，请尝试申请新链接",
+    "source_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "忘记密码？",
+    "source_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "您可以请求一个密码重置链接来创建新密码。",
+    "source_hash": "3c3eabad"
+  },
+  "web.help.account_locked": {
+    "text": "账户被临时锁定？",
+    "source_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "多次登录失败后，账户将被临时锁定以确保安全。请等待 15 分钟后重试，或使用魔法链接登录。",
+    "source_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "仍需帮助？",
+    "source_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "如果您仍有问题，我们随时为您提供帮助。给我们发送消息，我们会尽快回复。",
+    "source_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "联系支持",
+    "source_hash": "f8d47b82"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "SSO 账户",
+    "source_hash": "b8f4c728"
+  },
+  "web.help.reset_password_link": {
+    "text": "重置密码",
+    "source_hash": "e0edfeb3"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "此域名可使用单点登录",
+    "source_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "组织管理员可启用 SSO，以允许团队成员在此登录。请联系管理员获取访问权限。",
+    "source_hash": "f3726509"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "登录不可用",
+    "source_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "此域名当前不可登录。",
+    "source_hash": "b681c35d"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "此域名尚未配置单点登录。请联系您的管理员。",
+    "source_hash": "b39ef93e"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "来自您身份提供商的邮箱地址无效。请联系您的管理员。",
+    "source_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "您的邮箱域名未获授权使用 SSO 注册。请联系您的管理员。",
+    "source_hash": "87603782"
+  },
+  "web.auth.check_email.title": {
+    "text": "查收您的邮箱",
+    "source_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "验证链接已发送至：",
+    "source_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "我们已向您的邮箱地址发送了一个验证链接。",
+    "source_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "请点击邮件中的链接以激活您的账户。",
+    "source_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "找不到？请检查您的垃圾邮件文件夹。",
+    "source_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "输入的地址有误？",
+    "source_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "重新开始",
+    "source_hash": "5eed7e9f"
+  },
+  "web.auth.field-errors.password": {
+    "text": "密码",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "没有收到验证邮件？请输入您的邮箱以重新发送。",
+    "source_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "重新发送验证邮件",
+    "source_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "如果某个账户需要验证，则已发送一封新邮件。请检查您的收件箱和垃圾邮件文件夹。",
+    "source_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "无法发送验证邮件。请检查您的网络连接后重试。",
+    "source_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "重新发送邮件",
+    "source_hash": "4f44603e"
+  },
+  "web.login.verified_notice": {
+    "text": "您的邮箱已验证——现在您可以登录了。",
+    "source_hash": "c8d4b5a8"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "设置密码",
+    "source_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "您的账户尚未设置密码。我们会向您发送一个安全链接以便设置密码，之后您也可以直接登录。",
+    "source_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "发送设置链接",
+    "source_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "已向您发送邮件，其中包含用于为您的账户设置密码的链接",
+    "source_hash": "82b686c7"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "使用此邮箱地址的账户已存在，但尚未关联此登录方式。请使用您现有的方式登录，然后在「安全设置 → 已关联的身份」中关联此提供商。",
+    "source_hash": "7fbbb7e7"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "无法关联此身份。它可能已属于另一个账户。",
+    "source_hash": "d8b71cf8"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "我们无法完成将您加入组织的操作。请联系您的管理员。",
+    "source_hash": "155e71bb"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "我们无法关联该登录方式。请使用您的现有密码登录，然后在「安全设置 → 已关联的身份」中关联此提供商。",
+    "source_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "请查收邮箱——我们已向您发送用于确认关联账户的链接。打开该链接即可完成登录。",
+    "source_hash": "b251c8f3"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "登录已取消。您可以在准备好后随时重试。",
+    "source_hash": "b5f3d3ec"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "此提供商的登录配置有误。请联系您的管理员。",
+    "source_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "此域名的单点登录已配置，但目前无法使用。请联系您所在组织的管理员。",
+    "source_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "此域名尚未完成验证，因此其单点登录尚未启用。请联系您的管理员。",
+    "source_hash": "bd981480"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "此身份未关联到此域名上的任何账户。如果您可以在此域名上使用属于该组织的账户登录，请在「已关联的身份」中关联此身份。否则，请让组织所有者邀请此 SSO 身份，或联系支持团队。",
+    "source_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "无法在此域名上关联此身份。请从您当前登录的站点发起关联。在组织的域名上，您的账户必须已属于该组织。",
+    "source_hash": "d967c761"
+  }
+}

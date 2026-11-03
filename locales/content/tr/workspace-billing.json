@@ -1,0 +1,1064 @@
+{
+  "web.billing.subscription_synced_title": {
+    "text": "Abonelik Senkronize Edildi",
+    "source_hash": "3086ef43"
+  },
+  "web.billing.subscription_synced_description": {
+    "text": "Abonelik avantajlarınız başka bir bölgeden senkronize edildi.",
+    "source_hash": "a99b7a98"
+  },
+  "web.billing.upgrade.required": {
+    "text": "Yükseltme Gerekli",
+    "source_hash": "16487236"
+  },
+  "web.billing.upgrade.viewPlans": {
+    "text": "Planları Görüntüle",
+    "source_hash": "a865d424"
+  },
+  "web.billing.upgrade.needTeams": {
+    "text": "Takım yönetimi Identity Plus veya üstü gerektirir",
+    "source_hash": "95bdda65"
+  },
+  "web.billing.upgrade.needCustomDomains": {
+    "text": "Özel alan adları Identity Plus veya üstü gerektirir",
+    "source_hash": "e8af8484"
+  },
+  "web.billing.upgrade.needApiAccess": {
+    "text": "API erişimi Identity Plus veya üstü gerektirir",
+    "source_hash": "ab8be865"
+  },
+  "web.billing.upgrade.needAuditLogs": {
+    "text": "Denetim günlükleri Çoklu Takım planı veya üstü gerektirir",
+    "source_hash": "91df96b0"
+  },
+  "web.billing.manage_subscription_and_billing": {
+    "text": "Aboneliğinizi, kuruluşlarınızı ve faturalandırma ayarlarınızı yönetin",
+    "source_hash": "3995095c"
+  },
+  "web.billing.overview.title": {
+    "text": "Faturalandırma Genel Bakış",
+    "source_hash": "479a3c4c"
+  },
+  "web.billing.overview.description": {
+    "text": "Aboneliğinizi ve ödeme ayrıntılarınızı görüntüleyin ve yönetin",
+    "source_hash": "60e5a00e"
+  },
+  "web.billing.overview.billing_for_organization": {
+    "text": "Bu kuruluş için faturalandırma",
+    "source_hash": "21806992"
+  },
+  "web.billing.overview.current_plan": {
+    "text": "Mevcut Plan",
+    "source_hash": "5d856320"
+  },
+  "web.billing.overview.plan_features": {
+    "text": "Plan Özellikleri",
+    "source_hash": "fbab9086"
+  },
+  "web.billing.overview.payment_method": {
+    "text": "Ödeme Yöntemi",
+    "source_hash": "f89a4e17"
+  },
+  "web.billing.overview.next_billing_date": {
+    "text": "Sonraki Fatura Tarihi",
+    "source_hash": "3d1df54e"
+  },
+  "web.billing.overview.quick_actions": {
+    "text": "Hızlı İşlemler",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.billing.overview.manage_billing": {
+    "text": "Faturalandırmayı Yönet",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.view_invoices": {
+    "text": "Faturaları Görüntüle",
+    "source_hash": "cfc0404e"
+  },
+  "web.billing.overview.upgrade_plan": {
+    "text": "Plan Yükselt",
+    "source_hash": "17787ab7"
+  },
+  "web.billing.overview.change_plan": {
+    "text": "Plan Değiştir",
+    "source_hash": "2d0b195b"
+  },
+  "web.billing.overview.manage_subscription": {
+    "text": "Aboneliği Yönet",
+    "source_hash": "cbc4ef92"
+  },
+  "web.billing.plans.legacy_plan_info": {
+    "text": "Özel fiyatlandırmalı eski bir plandayken kazanılmış haklarınız korunmaktadır.",
+    "source_hash": "e9aa8bf0"
+  },
+  "web.billing.plans.early_supporter_plan": {
+    "text": "Identity Plus (Erken Destekçi)",
+    "source_hash": "f37cd0d9"
+  },
+  "web.billing.plans.legacy_plan_warning": {
+    "text": "Plan değiştirmek, mevcut özel fiyatlandırmanızı kaybetmenize neden olur. Bu işlem geri alınamaz.",
+    "source_hash": "eda13d64"
+  },
+  "web.billing.overview.no_payment_method": {
+    "text": "Kayıtlı ödeme yöntemi yok",
+    "source_hash": "77f71037"
+  },
+  "web.billing.overview.no_upcoming_billing": {
+    "text": "Yaklaşan fatura yok",
+    "source_hash": "746314de"
+  },
+  "web.billing.overview.days_remaining": {
+    "text": "gün kaldı",
+    "source_hash": "385438a3"
+  },
+  "web.billing.overview.billing_on": {
+    "text": "{date} tarihinde faturalandırma",
+    "source_hash": "40dcb7cf"
+  },
+  "web.billing.overview.view_plans_action": {
+    "text": "Planları Görüntüle",
+    "source_hash": "a865d424"
+  },
+  "web.billing.overview.view_plans_description": {
+    "text": "Karşılaştır ve yükselt",
+    "source_hash": "40e02bff"
+  },
+  "web.billing.overview.view_invoices_action": {
+    "text": "Faturaları Görüntüle",
+    "source_hash": "cfc0404e"
+  },
+  "web.billing.overview.view_invoices_description": {
+    "text": "Geçmişi indir",
+    "source_hash": "b8ff5cac"
+  },
+  "web.billing.overview.manage_billing_action": {
+    "text": "Faturalandırmayı Yönet",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.manage_billing_description": {
+    "text": "Ödeme bilgilerini güncelle",
+    "source_hash": "1f981aaf"
+  },
+  "web.billing.overview.no_organizations_title": {
+    "text": "Çalışma Alanı Yok",
+    "source_hash": "c7f70723"
+  },
+  "web.billing.overview.no_organizations_description": {
+    "text": "Faturalandırmanızı ve aboneliğinizi yönetmek için bir çalışma alanı oluşturun",
+    "source_hash": "e0fd27a5"
+  },
+  "web.billing.overview.load_error": {
+    "text": "Fatura bilgileri yüklenemedi",
+    "source_hash": "3bc44882"
+  },
+  "web.billing.overview.upgrade_success": {
+    "text": "Planınız başarıyla yükseltildi",
+    "source_hash": "00ac43f8"
+  },
+  "web.billing.overview.upgrade_success_description": {
+    "text": "Yeni planınız artık aktif. Satın aldığınız için teşekkür ederiz.",
+    "source_hash": "fd1caeb1"
+  },
+  "web.billing.overview.billing_contact": {
+    "text": "Faturalandırma İletişimi",
+    "source_hash": "8f782ad8"
+  },
+  "web.billing.overview.entitlements.create_secrets": {
+    "text": "Gizli Mesaj Oluştur",
+    "source_hash": "0320541d"
+  },
+  "web.billing.overview.entitlements.view_receipt": {
+    "text": "Makbuzları Görüntüle",
+    "source_hash": "6c664c31"
+  },
+  "web.billing.overview.entitlements.api_access": {
+    "text": "API Erişimi",
+    "source_hash": "5f31cc2f"
+  },
+  "web.billing.overview.entitlements.custom_domains": {
+    "text": "Özel Alan Adları",
+    "source_hash": "6170ab94"
+  },
+  "web.billing.overview.entitlements.custom_privacy_defaults": {
+    "text": "Özel Gizlilik Varsayılanları",
+    "source_hash": "e677e27d"
+  },
+  "web.billing.overview.entitlements.extended_default_expiration": {
+    "text": "Uzatılmış Varsayılan Sona Erme Süresi",
+    "source_hash": "19b19637"
+  },
+  "web.billing.overview.entitlements.custom_mail_sender": {
+    "text": "Özel E-posta Varsayılanları",
+    "source_hash": "95aebfb9"
+  },
+  "web.billing.overview.entitlements.custom_branding": {
+    "text": "Özel Markalama",
+    "source_hash": "237dabec"
+  },
+  "web.billing.overview.entitlements.homepage_secrets": {
+    "text": "Ana Sayfa Gizli Mesajları",
+    "source_hash": "6360f7ec"
+  },
+  "web.billing.overview.entitlements.incoming_secrets": {
+    "text": "Gelen Gizli Mesajlar",
+    "source_hash": "883dbca9"
+  },
+  "web.billing.overview.entitlements.manage_org": {
+    "text": "Kuruluşu Yönet",
+    "source_hash": "f03a4985"
+  },
+  "web.billing.overview.entitlements.manage_teams": {
+    "text": "Takımları Yönet",
+    "source_hash": "2a52d5b4"
+  },
+  "web.billing.overview.entitlements.manage_members": {
+    "text": "Üyeleri Yönet",
+    "source_hash": "af812b01"
+  },
+  "web.billing.overview.entitlements.audit_logs": {
+    "text": "Denetim Günlükleri",
+    "source_hash": "5428d7fe"
+  },
+  "web.billing.overview.entitlements.sso": {
+    "text": "Tek Oturum Açma (SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.billing.overview.entitlements.priority_support": {
+    "text": "Öncelikli Destek",
+    "source_hash": "ed8a65c8"
+  },
+  "web.billing.overview.entitlements.sla": {
+    "text": "Hizmet Düzeyi Sözleşmesi",
+    "source_hash": "436f2550"
+  },
+  "web.billing.overview.entitlements_load_error": {
+    "text": "Özellik ayrıntıları yüklenemedi",
+    "source_hash": "c350973c"
+  },
+  "web.billing.overview.no_entitlements": {
+    "text": "Kullanılabilir özellik yok",
+    "source_hash": "03d195e8"
+  },
+  "web.billing.features.create_secrets": {
+    "text": "Gizli Mesaj Oluştur ve Paylaş",
+    "source_hash": "303f9386"
+  },
+  "web.billing.features.api_access": {
+    "text": "API Erişimi",
+    "source_hash": "5f31cc2f"
+  },
+  "web.billing.features.custom_domains": {
+    "text": "Özel Alan Adları",
+    "source_hash": "6170ab94"
+  },
+  "web.billing.features.custom_domain": {
+    "text": "1 Özel Alan Adı",
+    "source_hash": "6a6be744"
+  },
+  "web.billing.features.unlimited_custom_domains": {
+    "text": "Sınırsız Özel Alan Adı",
+    "source_hash": "53eb7521"
+  },
+  "web.billing.features.custom_branding": {
+    "text": "Özel Markalama",
+    "source_hash": "237dabec"
+  },
+  "web.billing.features.homepage_secrets": {
+    "text": "Ana Sayfa Gizli Mesajları",
+    "source_hash": "6360f7ec"
+  },
+  "web.billing.features.manage_teams": {
+    "text": "Takım Yönetimi",
+    "source_hash": "6bcbac8f"
+  },
+  "web.billing.features.manage_members": {
+    "text": "Üye Yönetimi",
+    "source_hash": "b38b89db"
+  },
+  "web.billing.features.audit_logs": {
+    "text": "Denetim Günlükleri",
+    "source_hash": "5428d7fe"
+  },
+  "web.billing.features.sso": {
+    "text": "Tek Oturum Açma (SSO)",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.billing.features.priority_support": {
+    "text": "Öncelikli Destek",
+    "source_hash": "ed8a65c8"
+  },
+  "web.billing.features.sla": {
+    "text": "Hizmet Düzeyi Sözleşmesi",
+    "source_hash": "436f2550"
+  },
+  "web.billing.features.centralized_billing": {
+    "text": "Merkezi Faturalandırma",
+    "source_hash": "62042d3b"
+  },
+  "web.billing.features.audit_trail": {
+    "text": "Denetim İzi",
+    "source_hash": "d52b4039"
+  },
+  "web.billing.features.activity_stream": {
+    "text": "Etkinlik Akışı",
+    "source_hash": "b9c6cba7"
+  },
+  "web.billing.features.handoff_workflows": {
+    "text": "Devir İş Akışları",
+    "source_hash": "07202af3"
+  },
+  "web.billing.plans.title": {
+    "text": "Plan Seçin",
+    "source_hash": "79506c82"
+  },
+  "web.billing.plans.choose_plan": {
+    "text": "İhtiyaçlarınıza uygun planı seçin",
+    "source_hash": "5f039cb9"
+  },
+  "web.billing.plans.subtitle": {
+    "text": "Kuruluşunuz için mükemmel planı seçin",
+    "source_hash": "308076f2"
+  },
+  "web.billing.plans.current": {
+    "text": "Mevcut Plan",
+    "source_hash": "5d856320"
+  },
+  "web.billing.plans.current_badge": {
+    "text": "Mevcut",
+    "source_hash": "e0d1b682"
+  },
+  "web.billing.plans.upgrade": {
+    "text": "Yükselt",
+    "source_hash": "7ec0261b"
+  },
+  "web.billing.plans.downgrade": {
+    "text": "Düşür",
+    "source_hash": "d955b7e8"
+  },
+  "web.billing.plans.cancel_to_downgrade": {
+    "text": "Değiştirmek için iptal edin",
+    "source_hash": "1c4cda89"
+  },
+  "web.billing.plans.monthly": {
+    "text": "Aylık",
+    "source_hash": "9b11f6b7"
+  },
+  "web.billing.plans.yearly": {
+    "text": "Yıllık",
+    "source_hash": "6e69b59e"
+  },
+  "web.billing.plans.per_month": {
+    "text": "/ay",
+    "source_hash": "eec5d08b"
+  },
+  "web.billing.plans.save_yearly": {
+    "text": "Yıllık faturalandırma ile {percent}% tasarruf edin",
+    "source_hash": "88c451f2"
+  },
+  "web.billing.plans.free_plan": {
+    "text": "Ücretsiz",
+    "source_hash": "f411a1fb"
+  },
+  "web.billing.plans.single_team_plan": {
+    "text": "Tek Takım",
+    "source_hash": "267ad4cf"
+  },
+  "web.billing.plans.multi_team_plan": {
+    "text": "Çoklu Takım",
+    "source_hash": "ffc73d2c"
+  },
+  "web.billing.plans.individual_account": {
+    "text": "Bireysel Hesap",
+    "source_hash": "324221e2"
+  },
+  "web.billing.plans.team_account": {
+    "text": "Takım Hesabı",
+    "source_hash": "44e90aad"
+  },
+  "web.billing.plans.multi_team_account": {
+    "text": "Kuruluş Hesabı",
+    "source_hash": "86e3a165"
+  },
+  "web.billing.plans.features": {
+    "text": "Özellikler",
+    "source_hash": "5697d03d"
+  },
+  "web.billing.plans.unlimited_secrets": {
+    "text": "Sınırsız gizli mesaj",
+    "source_hash": "0f077568"
+  },
+  "web.billing.plans.api_access": {
+    "text": "API erişimi",
+    "source_hash": "923fd434"
+  },
+  "web.billing.plans.priority_support": {
+    "text": "Öncelikli destek",
+    "source_hash": "acea4b40"
+  },
+  "web.billing.plans.select_plan": {
+    "text": "Plan Seç",
+    "source_hash": "8709f894"
+  },
+  "web.billing.plans.contact_sales": {
+    "text": "Satışla İletişime Geçin",
+    "source_hash": "484aa053"
+  },
+  "web.billing.plans.custom_needs_title": {
+    "text": "Sorularınız mı var veya özel bir şeye mi ihtiyacınız var?",
+    "source_hash": "2f68484c"
+  },
+  "web.billing.plans.custom_needs_description": {
+    "text": "Sizden haber almaktan mutluluk duyarız. Ne aradığınızı bize bildirin.",
+    "source_hash": "a6b7f407"
+  },
+  "web.billing.plans.teams_limit": {
+    "text": "{count} takım | {count} takım",
+    "source_hash": "a83641bc"
+  },
+  "web.billing.plans.members_limit": {
+    "text": "Takım başına {count} üye | Takım başına {count} üye",
+    "source_hash": "54fb2b4b"
+  },
+  "web.billing.plans.unlimited_teams": {
+    "text": "Sınırsız takım",
+    "source_hash": "6d9fde65"
+  },
+  "web.billing.plans.unlimited_members": {
+    "text": "Takım başına sınırsız üye",
+    "source_hash": "728ecef0"
+  },
+  "web.billing.plans.most_popular": {
+    "text": "En Popüler",
+    "source_hash": "9e1006a4"
+  },
+  "web.billing.plans.suggested": {
+    "text": "Önerilen",
+    "source_hash": "93b63bab"
+  },
+  "web.billing.plans.everything_in": {
+    "text": "{plan} planındaki her şeyi içerir",
+    "source_hash": "1c73c298"
+  },
+  "web.billing.plans.no_plans_available": {
+    "text": "Şu anda kullanılabilir {interval} planı yok.",
+    "source_hash": "d8454436"
+  },
+  "web.billing.plans.load_error": {
+    "text": "Planlar yüklenemedi",
+    "source_hash": "a37d4d9a"
+  },
+  "web.billing.plans.change_immediate": {
+    "text": "Planınız hemen değişecektir.",
+    "source_hash": "889d13be"
+  },
+  "web.billing.plans.current_plan_label": {
+    "text": "Mevcut plan:",
+    "source_hash": "648a0ab2"
+  },
+  "web.billing.plans.new_plan_label": {
+    "text": "Yeni plan:",
+    "source_hash": "edb868c4"
+  },
+  "web.billing.plans.credit_label": {
+    "text": "Kullanılmayan süre kredisi:",
+    "source_hash": "001e4901"
+  },
+  "web.billing.plans.due_today": {
+    "text": "Bugün ödenmesi gereken:",
+    "source_hash": "e370e3aa"
+  },
+  "web.billing.plans.next_billing": {
+    "text": "Sonraki fatura ({date}):",
+    "source_hash": "a6846a85"
+  },
+  "web.billing.plans.next_invoice": {
+    "text": "Sonraki fatura",
+    "source_hash": "5670e027"
+  },
+  "web.billing.plans.limits_update_notice": {
+    "text": "Özellik limitleriniz plan değişikliğinden hemen sonra güncellenecektir.",
+    "source_hash": "9cb09f73"
+  },
+  "web.billing.plans.change_failed": {
+    "text": "Plan değişikliği başarısız. Lütfen tekrar deneyin.",
+    "source_hash": "a4e86372"
+  },
+  "web.billing.plans.confirm_upgrade": {
+    "text": "Yükseltmeyi Onayla",
+    "source_hash": "71a4ab02"
+  },
+  "web.billing.plans.confirm_downgrade": {
+    "text": "Düşürmeyi Onayla",
+    "source_hash": "deaf8189"
+  },
+  "web.billing.plans.upgrade_to": {
+    "text": "{plan} planına yükseltilsin mi?",
+    "source_hash": "b1e4e88c"
+  },
+  "web.billing.plans.downgrade_to": {
+    "text": "{plan} planına düşürülsün mü?",
+    "source_hash": "8eb8ea81"
+  },
+  "web.billing.plans.credit_applies_heading": {
+    "text": "Krediniz nasıl uygulanır:",
+    "source_hash": "a0943c3b"
+  },
+  "web.billing.plans.next_bill_amount": {
+    "text": "Sonraki fatura tutarı:",
+    "source_hash": "526ad28f"
+  },
+  "web.billing.plans.credit_applied_to_bill": {
+    "text": "Uygulanan kredi:",
+    "source_hash": "e5f2e81a"
+  },
+  "web.billing.plans.amount_due_next_billing": {
+    "text": "Sonraki faturada ödenecek tutar:",
+    "source_hash": "22ee868a"
+  },
+  "web.billing.plans.remaining_account_credit": {
+    "text": "Kalan hesap kredisi:",
+    "source_hash": "eedd0c0a"
+  },
+  "web.billing.plans.credit_future_note": {
+    "text": "Gelecek faturalara uygulanır",
+    "source_hash": "5007add6"
+  },
+  "web.billing.invoices.title": {
+    "text": "Faturalandırma Geçmişi",
+    "source_hash": "5ade0861"
+  },
+  "web.billing.invoices.view_history": {
+    "text": "Faturalandırma geçmişinizi görüntüleyin ve faturaları indirin",
+    "source_hash": "eb72573c"
+  },
+  "web.billing.invoices.invoice_date": {
+    "text": "Tarih",
+    "source_hash": "99c40ab4"
+  },
+  "web.billing.invoices.invoice_amount": {
+    "text": "Tutar",
+    "source_hash": "49e96d7c"
+  },
+  "web.billing.invoices.invoice_status": {
+    "text": "Durum",
+    "source_hash": "920e413c"
+  },
+  "web.billing.invoices.invoice_download": {
+    "text": "İndir",
+    "source_hash": "d6eafe82"
+  },
+  "web.billing.invoices.invoice_number": {
+    "text": "Fatura No",
+    "source_hash": "48a67cac"
+  },
+  "web.billing.invoices.no_invoices": {
+    "text": "Henüz fatura yok",
+    "source_hash": "92d2d0ce"
+  },
+  "web.billing.invoices.no_invoices_description": {
+    "text": "Ücretli bir plana yükselttiğinizde faturalarınız burada görünecektir",
+    "source_hash": "7f16be70"
+  },
+  "web.billing.invoices.view_plans": {
+    "text": "Planları Görüntüle",
+    "source_hash": "a865d424"
+  },
+  "web.billing.invoices.paid": {
+    "text": "Ödendi",
+    "source_hash": "fb81b961"
+  },
+  "web.billing.invoices.pending": {
+    "text": "Beklemede",
+    "source_hash": "331551b0"
+  },
+  "web.billing.invoices.failed": {
+    "text": "Başarısız",
+    "source_hash": "031a8f0f"
+  },
+  "web.billing.invoices.draft": {
+    "text": "Taslak",
+    "source_hash": "ebf12ef4"
+  },
+  "web.billing.invoices.open": {
+    "text": "Açık",
+    "source_hash": "ed077f3d"
+  },
+  "web.billing.invoices.uncollectible": {
+    "text": "Tahsil edilemez",
+    "source_hash": "c8d3b241"
+  },
+  "web.billing.invoices.void": {
+    "text": "Geçersiz",
+    "source_hash": "4e7ba403"
+  },
+  "web.billing.invoices.load_error": {
+    "text": "Faturalar yüklenemedi",
+    "source_hash": "0b0cb3f7"
+  },
+  "web.billing.notices.org_managed": {
+    "text": "Faturalandırma {orgName} tarafından yönetiliyor",
+    "source_hash": "6cfe0fb4"
+  },
+  "web.billing.notices.view_org_billing": {
+    "text": "Kuruluş faturalandırmasını görüntüle",
+    "source_hash": "2ae16262"
+  },
+  "web.billing.limits.members_reached": {
+    "text": "Bu takım için üye sınırına ulaştınız",
+    "source_hash": "ce8f2a24"
+  },
+  "web.billing.limits.members_upgrade": {
+    "text": "Daha fazla üye eklemek için yükseltin",
+    "source_hash": "602bdef4"
+  },
+  "web.billing.subscription.title": {
+    "text": "Abonelik",
+    "source_hash": "4999c6c6"
+  },
+  "web.billing.subscription.status": {
+    "text": "Abonelik Durumu",
+    "source_hash": "c7a08e1d"
+  },
+  "web.billing.subscription.active": {
+    "text": "Aktif",
+    "source_hash": "92340695"
+  },
+  "web.billing.subscription.inactive": {
+    "text": "Pasif",
+    "source_hash": "ac7c949f"
+  },
+  "web.billing.subscription.past_due": {
+    "text": "Vadesi Geçmiş",
+    "source_hash": "2bda1c7b"
+  },
+  "web.billing.subscription.canceled": {
+    "text": "İptal Edildi",
+    "source_hash": "13ca2ee2"
+  },
+  "web.billing.subscription.catalog_name": {
+    "text": "Plan",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.billing.subscription.team_usage": {
+    "text": "Takım Kullanımı",
+    "source_hash": "f9989642"
+  },
+  "web.billing.subscription.teams_used": {
+    "text": "{limit} takımdan {used} tanesi kullanıldı",
+    "source_hash": "1db6b53c"
+  },
+  "web.billing.portal.title": {
+    "text": "Faturalandırma Portalı",
+    "source_hash": "9baaf69e"
+  },
+  "web.billing.portal.description": {
+    "text": "Aboneliğinizi, ödeme yöntemlerinizi ve faturalandırma geçmişinizi yönetin",
+    "source_hash": "1a8f3c19"
+  },
+  "web.billing.portal.open_portal": {
+    "text": "Faturalandırma Portalını Aç",
+    "source_hash": "23fbfa2b"
+  },
+  "web.billing.portal.redirecting": {
+    "text": "Faturalandırma portalına yönlendiriliyor...",
+    "source_hash": "b6f47df3"
+  },
+  "web.billing.start_today": {
+    "text": "Bugün başlayın",
+    "source_hash": "80e73fc7"
+  },
+  "web.billing.start_today_with_identity_plus": {
+    "text": "Bugün Identity Plus ile başlayın",
+    "source_hash": "cce4c7d7"
+  },
+  "web.billing.per_month": {
+    "text": "aylık",
+    "source_hash": "88b1d1a6"
+  },
+  "web.billing.full_api_access": {
+    "text": "Tam API erişimi",
+    "source_hash": "f5bedf1c"
+  },
+  "web.billing.privacy_first_design": {
+    "text": "Gizlilik odaklı tasarım",
+    "source_hash": "587d738c"
+  },
+  "web.billing.identity_plus": {
+    "text": "Identity Plus",
+    "source_hash": "bb273516"
+  },
+  "web.billing.click_this_lightning_bolt_to_upgrade_for_custom_domains": {
+    "text": "Özel alan adları için yükseltmek üzere bu şimşek simgesine tıklayın",
+    "source_hash": "84cb4258"
+  },
+  "web.billing.maybe_later": {
+    "text": "Belki Daha Sonra",
+    "source_hash": "166b26ab"
+  },
+  "web.billing.upgrade_account": {
+    "text": "Hesabı yükselt",
+    "source_hash": "4799b02e"
+  },
+  "web.billing.upgrade_to_identity_plus": {
+    "text": "Identity Plus'a Yükseltin",
+    "source_hash": "272d3c80"
+  },
+  "web.billing.upgrade_for_teams": {
+    "text": "Takımlar İçin Yükselt",
+    "source_hash": "90dfb533"
+  },
+  "web.billing.benefits_of": {
+    "text": "Faydaları:",
+    "source_hash": "75403743"
+  },
+  "web.billing.t_benefits_of_identity_plus": {
+    "text": "{0}: Identity Plus",
+    "source_hash": "f13e5f3e"
+  },
+  "web.billing.upgrade_to": {
+    "text": "Yükselt:",
+    "source_hash": "2ecdd437"
+  },
+  "web.billing.upgrade_for_yourdomain": {
+    "text": "secrets.sizinalanadi.com için yükseltin",
+    "source_hash": "8e4d766a"
+  },
+  "web.billing.includes_all_features_and_unlimited_sharing_capa": {
+    "text": "Tüm planlar gizlilik özelliklerini ve sınırsız paylaşım kapasitesini içerir",
+    "source_hash": "e728e4e1"
+  },
+  "web.billing.includes_all_data_locality_options": {
+    "text": "Tüm planlar veri yerelliği seçeneğini içerir: {0} bölge",
+    "source_hash": "22a60b49"
+  },
+  "web.billing.get_started": {
+    "text": "Başlayın",
+    "source_hash": "61e8d44a"
+  },
+  "web.billing.frequency_value_annually_annual_monthly_subscrip": {
+    "text": "{0} abonelik",
+    "source_hash": "eaf5e2ef"
+  },
+  "web.billing.elevate_your_secure_sharing_with_custom_domains_": {
+    "text": "Özel alan adları, sınırsız kapasite ve kurumsal düzeyde özelliklerle güvenli paylaşımınızı yükseltin.",
+    "source_hash": "db458d30"
+  },
+  "web.billing.payment_frequency": {
+    "text": "Ödeme sıklığı",
+    "source_hash": "b2c87e39"
+  },
+  "web.billing.secure_your_brand_and_build_customer_trust_with_": {
+    "text": "Alan adınızdan bağlantılarla markanızı güvence altına alın ve müşteri güveni oluşturun. Gizliliğe ve profesyonelliğe değer veren işletmeler için mükemmeldir.",
+    "source_hash": "c07cd25c"
+  },
+  "web.billing.secure_links_stronger_connections": {
+    "text": "Güvenli Bağlantılar, Daha Güçlü Bağlar",
+    "source_hash": "dd8dae5d"
+  },
+  "web.billing.identity_tier_not_found_in_product_tiers": {
+    "text": "Kimlik katmanı ürün katmanlarında bulunamadı",
+    "source_hash": "d0204fc4"
+  },
+  "web.billing.cancel.link_text": {
+    "text": "Aboneliği iptal et",
+    "context": "Link text shown below the plan selector for paid users",
+    "source_hash": "3f85967f"
+  },
+  "web.billing.cancel.title": {
+    "text": "Aboneliği İptal Et",
+    "context": "Modal dialog heading/title",
+    "source_hash": "882e0c83"
+  },
+  "web.billing.cancel.confirmation": {
+    "text": "{plan} aboneliğinizi iptal etmek istediğinizden emin misiniz?",
+    "source_hash": "f4d1b6ee"
+  },
+  "web.billing.cancel.what_happens": {
+    "text": "İptal ettiğinizde ne olur:",
+    "source_hash": "4d8f5751"
+  },
+  "web.billing.cancel.access_until": {
+    "text": "{date} tarihine kadar tüm özelliklere erişiminiz devam edecek",
+    "source_hash": "eab1efe3"
+  },
+  "web.billing.cancel.access_until_period_end": {
+    "text": "Mevcut fatura döneminiz sona erene kadar erişiminiz devam edecek",
+    "source_hash": "1b07a54a"
+  },
+  "web.billing.cancel.no_future_charges": {
+    "text": "Tekrar ücretlendirilmeyeceksiniz",
+    "source_hash": "a01cdc16"
+  },
+  "web.billing.cancel.downgrade_to_free": {
+    "text": "Hesabınız ücretsiz plana dönecektir",
+    "source_hash": "e01b3fc3"
+  },
+  "web.billing.cancel.keep_subscription": {
+    "text": "Aboneliği Koru",
+    "context": "Secondary button in modal - keeps subscription active",
+    "source_hash": "31e80c41"
+  },
+  "web.billing.cancel.confirm_cancel": {
+    "text": "Aboneliği İptal Et",
+    "context": "Primary action button in modal - confirms the cancellation",
+    "source_hash": "882e0c83"
+  },
+  "web.billing.cancel.success": {
+    "text": "Aboneliğiniz iptal edildi. Fatura döneminizin sonuna kadar erişiminiz devam edecek.",
+    "source_hash": "e18fd9d5"
+  },
+  "web.billing.cancel.error": {
+    "text": "Abonelik iptal edilemedi. Lütfen tekrar deneyin.",
+    "source_hash": "68e8bdde"
+  },
+  "web.billing.cancel.scheduled_title": {
+    "text": "Abonelik İptali Planlandı",
+    "context": "Alert banner heading shown when cancellation is pending",
+    "source_hash": "1427d139"
+  },
+  "web.billing.cancel.scheduled_description": {
+    "text": "Aboneliğiniz {date} tarihine kadar aktif kalacaktır. O zamana kadar tüm özelliklere tam erişiminiz devam edecek.",
+    "context": "Alert banner description explaining continued access",
+    "source_hash": "aab4b1dc"
+  },
+  "web.billing.cancel.scheduled_note": {
+    "text": "Fikrinizi mi değiştirdiniz? İptal tarihinden önce istediğiniz zaman aboneliğinizi yeniden etkinleştirebilirsiniz.",
+    "context": "Alert banner note encouraging reactivation",
+    "source_hash": "c94d5527"
+  },
+  "web.billing.overview.entitlements.notifications": {
+    "text": "E-posta Bildirimleri",
+    "source_hash": "04e0f1e9"
+  },
+  "web.billing.overview.entitlements.ip_access_rules": {
+    "text": "IP Erişim Kuralları",
+    "source_hash": "db966d47"
+  },
+  "web.billing.overview.entitlements.workspace_branding": {
+    "text": "Çalışma Alanı Markalaması",
+    "source_hash": "e7acbf6f"
+  },
+  "web.billing.features.extended_retention": {
+    "text": "30 Günlük Gizli Mesaj Saklama",
+    "source_hash": "21d6d514"
+  },
+  "web.billing.features.incoming_secrets": {
+    "text": "Gelen Gizli Mesajlar",
+    "source_hash": "883dbca9"
+  },
+  "web.billing.features.team_members_5": {
+    "text": "5 takım üyesine kadar",
+    "source_hash": "e7518d07"
+  },
+  "web.billing.features.team_members_10": {
+    "text": "10 takım üyesine kadar",
+    "source_hash": "0c64c064"
+  },
+  "web.billing.features.team_members_25": {
+    "text": "25 takım üyesine kadar",
+    "source_hash": "bf3b84c8"
+  },
+  "web.billing.features.team_members_50": {
+    "text": "50 takım üyesine kadar",
+    "source_hash": "3c2d9a14"
+  },
+  "web.billing.features.unlimited_members": {
+    "text": "Sınırsız takım üyesi",
+    "source_hash": "b7491ee9"
+  },
+  "web.billing.features.notifications": {
+    "text": "E-posta Bildirimleri",
+    "source_hash": "04e0f1e9"
+  },
+  "web.billing.features.ip_access_rules": {
+    "text": "IP Erişim Kuralları",
+    "source_hash": "db966d47"
+  },
+  "web.billing.features.workspace_branding": {
+    "text": "Çalışma Alanı Markalaması",
+    "source_hash": "e7acbf6f"
+  },
+  "web.billing.features.dedicated_infrastructure": {
+    "text": "Özel Altyapı",
+    "source_hash": "0c10aea7"
+  },
+  "web.billing.features.shared_workflows": {
+    "text": "Paylaşılan İş Akışları",
+    "source_hash": "158f558e"
+  },
+  "web.billing.currency_migration.title": {
+    "text": "Para Birimi Değişikliği Gerekli",
+    "context": "Modal title when plan requires different currency than current subscription",
+    "source_hash": "2cd800c5"
+  },
+  "web.billing.currency_migration.description": {
+    "text": "Mevcut aboneliğiniz {from} kullanmaktadır. Seçilen plan {to} olarak faturalandırılır. Bu, aboneliğinizin yeni para birimine taşınmasını gerektirir.",
+    "source_hash": "f0cdf727"
+  },
+  "web.billing.currency_migration.current_plan": {
+    "text": "Mevcut plan:",
+    "source_hash": "648a0ab2"
+  },
+  "web.billing.currency_migration.new_plan": {
+    "text": "Yeni plan:",
+    "source_hash": "edb868c4"
+  },
+  "web.billing.currency_migration.current_period_ends": {
+    "text": "Mevcut dönem bitiş tarihi:",
+    "source_hash": "2e20e596"
+  },
+  "web.billing.currency_migration.choose_timing": {
+    "text": "Değişiklik ne zaman yapılsın?",
+    "source_hash": "f4aabb13"
+  },
+  "web.billing.currency_migration.graceful_title": {
+    "text": "Fatura dönemi sonunda değiştir",
+    "source_hash": "55cd980b"
+  },
+  "web.billing.currency_migration.graceful_description": {
+    "text": "Mevcut planınız {date} tarihine kadar aktif kalır. Bundan sonra yeni planınız için ödeme işlemini tamamlarsınız.",
+    "source_hash": "b8661418"
+  },
+  "web.billing.currency_migration.immediate_title": {
+    "text": "Hemen değiştir",
+    "source_hash": "e9d0ba59"
+  },
+  "web.billing.currency_migration.immediate_description": {
+    "text": "Mevcut planınız şimdi iptal edilir. Kullanılmayan süreniz için geri ödeme alırsınız ve yeni plan için ödeme işlemini tamamlarsınız.",
+    "source_hash": "b08de0ca"
+  },
+  "web.billing.currency_migration.confirm": {
+    "text": "Para Birimi Değişikliğini Onaylayın",
+    "source_hash": "1edc1c78"
+  },
+  "web.billing.currency_migration.error": {
+    "text": "Para birimi taşıma işlemi başarısız oldu. Lütfen tekrar deneyin.",
+    "source_hash": "4a6e1ced"
+  },
+  "web.billing.currency_migration.success": {
+    "text": "Abonelik para biriminiz başarıyla güncellendi.",
+    "source_hash": "a8bf437e"
+  },
+  "web.billing.currency_migration.graceful_success": {
+    "text": "Mevcut planınız fatura dönemi sonuna kadar aktif kalacaktır. Bundan sonra yeni planınız için ödeme işlemini tamamlamanız istenecektir.",
+    "source_hash": "15d41483"
+  },
+  "web.billing.currency_migration.warning_credit_balance": {
+    "text": "Yeni para birimine aktarılamayan {currency} cinsinden kredi bakiyeniz bulunmaktadır.",
+    "source_hash": "aa15be91"
+  },
+  "web.billing.currency_migration.warning_pending_items": {
+    "text": "Taşıma işleminden önce çözülmesi gereken bekleyen fatura kalemleriniz bulunmaktadır.",
+    "source_hash": "7b4c5e10"
+  },
+  "web.billing.currency_migration.warning_coupons": {
+    "text": "Hesabınızdaki aktif kuponlar yeni para birimiyle uyumlu olmayabilir.",
+    "source_hash": "f572ee81"
+  },
+  "web.billing.currency_migration.pending_title": {
+    "text": "Para Birimi Taşıma İşlemi Bekliyor",
+    "context": "Banner heading when graceful migration is scheduled",
+    "source_hash": "018ae653"
+  },
+  "web.billing.currency_migration.pending_description": {
+    "text": "Mevcut planınız {date} tarihinde sona erer. {plan} ({currency}) planına geçişinizi tamamlayın.",
+    "source_hash": "998ba4ab"
+  },
+  "web.billing.currency_migration.complete_migration": {
+    "text": "Taşıma İşlemini Tamamla",
+    "context": "Button to start checkout for the new currency plan",
+    "source_hash": "fa794e0c"
+  },
+  "web.billing.checkout_session_failed": {
+    "text": "Ödeme oturumu oluşturulamadı",
+    "context": "Error when Stripe checkout session creation returns no URL",
+    "source_hash": "a53f6fa3"
+  },
+  "web.billing.checkout_initiate_failed": {
+    "text": "Ödeme işlemi başlatılamadı",
+    "context": "Fallback error for checkout failures",
+    "source_hash": "3ff06e41"
+  },
+  "web.billing.plan_switch_success": {
+    "text": "{plan} planına başarıyla geçildi",
+    "context": "Success message after plan change",
+    "source_hash": "ab7c715c"
+  },
+  "web.billing.plan_unavailable_region_mismatch": {
+    "text": "Yalnızca orijinal abonelik bölgenizde kullanılabilir",
+    "context": "Hint shown on plan cards when currency does not match active subscription",
+    "source_hash": "10de32e5"
+  },
+  "web.billing.already_subscribed": {
+    "text": "Bu plana zaten abonesiniz.",
+    "source_hash": "2b02438b"
+  },
+  "web.billing.cancel.reactivate_button": {
+    "text": "Aboneliği yeniden etkinleştir",
+    "source_hash": "aa036442"
+  },
+  "web.billing.cancel.reactivate_success": {
+    "text": "Aboneliğiniz yeniden etkinleştirildi. Normal şekilde ücretlendirilmeye devam edeceksiniz.",
+    "source_hash": "523bf7bf"
+  },
+  "web.billing.cancel.reactivate_error": {
+    "text": "Abonelik yeniden etkinleştirilemedi. Lütfen tekrar deneyin veya destek ekibiyle iletişime geçin.",
+    "source_hash": "d0c79bd4"
+  },
+  "web.billing.features.manage_orgs": {
+    "text": "Kuruluş Yönetimi",
+    "source_hash": "780ad17c"
+  },
+  "web.billing.features.flexible_from_domain": {
+    "text": "Esnek E-posta Gönderen Alan Adı",
+    "source_hash": "607572c3"
+  },
+  "web.billing.features.unlimited_admins": {
+    "text": "Sınırsız Yönetici",
+    "source_hash": "5871a536"
+  },
+  "web.billing.features.manage_sso": {
+    "text": "SSO",
+    "source_hash": "5ba3ac9f"
+  },
+  "web.billing.overview.entitlements.flexible_from_domain": {
+    "text": "Esnek E-posta Gönderen Alan Adı",
+    "source_hash": "607572c3"
+  },
+  "web.billing.overview.entitlements.manage_orgs": {
+    "text": "Kuruluşları Yönet",
+    "source_hash": "be0fe4c3"
+  },
+  "web.billing.overview.entitlements.manage_sso": {
+    "text": "Tek Oturum Açma (SSO)",
+    "source_hash": "5db5c812"
+  },
+  "web.billing.overview.entitlements.manage_billing": {
+    "text": "Faturalandırmayı Yönet",
+    "source_hash": "6d3a16f5"
+  },
+  "web.billing.overview.entitlements.custom_signup_validation": {
+    "text": "Özel Kayıt Doğrulaması",
+    "source_hash": "0ff55bfa"
+  },
+  "web.billing.plans.reactivate": {
+    "text": "Yeniden etkinleştir",
+    "source_hash": "2dc7478f"
+  },
+  "web.billing.currency_migration.refund_failed_warning": {
+    "text": "Önceki planınız iptal edildi, ancak kullanılmayan süreniz için otomatik olarak iade işleyemedik. İadenizi almak için lütfen destekle iletişime geçin. Yeni planınızı etkinleştirmek için hâlâ ödemeyi tamamlamanız gerekiyor.",
+    "source_hash": "a390c498"
+  },
+  "web.billing.currency_migration.refund_failed_continue": {
+    "text": "Ödemeye Devam Et",
+    "source_hash": "eccdb8aa"
+  },
+  "web.billing.plans.per_year": {
+    "text": "/yıl",
+    "source_hash": "a2d5f1bc"
+  },
+  "web.billing.plans.billing_interval": {
+    "text": "Faturalandırma aralığı",
+    "source_hash": "3ce28209"
+  }
+}

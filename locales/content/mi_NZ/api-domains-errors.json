@@ -1,0 +1,62 @@
+{
+  "api.domains.errors.domain_id_required": {
+    "text": "E hiahiatia ana te ID rohe",
+    "source_hash": "6837426b"
+  },
+  "api.domains.errors.domain_not_found": {
+    "text": "Kāore i kitea te rohe: %{extid}",
+    "source_hash": "a0fd1025"
+  },
+  "api.domains.errors.organization_not_found": {
+    "text": "Kāore i kitea te whakahaere mō te rohe: %{domain}",
+    "source_hash": "632afc93"
+  },
+  "api.domains.errors.incoming_secrets_disabled": {
+    "text": "Kāore ngā karere huna taemai i te whakahohea i runga i tēnei taupānga",
+    "source_hash": "45c0b5c4"
+  },
+  "api.domains.errors.incoming_secrets_entitlement_required": {
+    "text": "Me whai i te whakaaetanga incoming_secrets te whakahaere i ngā karere huna taemai. Tēnā whakapikihia tō mahere.",
+    "source_hash": "1af54ec2"
+  },
+  "api.domains.errors.incoming_config_not_found": {
+    "text": "Kāore i kitea te whirihoranga taemai mō te rohe: %{extid}",
+    "source_hash": "491644a8"
+  },
+  "api.domains.errors.recipients_max_exceeded": {
+    "text": "%{max} kaiwhiwhi te mōrahi e whakaaetia ana",
+    "source_hash": "159842ad"
+  },
+  "api.domains.errors.recipients_invalid_email": {
+    "text": "Īmēra muhu: %{email}",
+    "source_hash": "e9c729c7"
+  },
+  "api.domains.errors.recipients_duplicate": {
+    "text": "Kāore e whakaaetia ngā īmēra kaiwhiwhi tārua",
+    "source_hash": "6de22182"
+  },
+  "api.domains.errors.homepage_secrets_mode_invalid": {
+    "text": "secrets_mode muhu: %{secrets_mode}",
+    "source_hash": "cf093a04"
+  },
+  "api.domains.errors.homepage_incoming_entitlement_required": {
+    "text": "Me whai te aratau karere huna tae mai i te whaimana incoming_secrets. Tēnā, whakapikihia tō mahere.",
+    "source_hash": "d68b13d8"
+  },
+  "api.domains.errors.homepage_incoming_not_ready": {
+    "text": "Me whakahohe te karere huna tae mai me te kaiwhiwhi kotahi neke atu i mua i te whakamahi hei whārangi kāinga.",
+    "source_hash": "556da6e2"
+  },
+  "api.domains.errors.related_origins_invalid": {
+    "text": "Ehara i te taketake tika: %{origins}. Whakaurua te kaupapa URL me te kaihautū, hei tauira https://vault.example.com",
+    "source_hash": "5acb92ca"
+  },
+  "api.domains.errors.related_origins_foreign_organization": {
+    "text": "Nō tētahi atu whakahaere ēnei taketake, ā, kāore e taea te tāpiri: %{origins}",
+    "source_hash": "ac21c1e7"
+  },
+  "api.domains.errors.allowed_signup_domains_invalid": {
+    "text": "Ehara i te rohe tika: %{domains}. Whakaurua he ingoa rohe ka taea te rēhita, hei tauira example.com",
+    "source_hash": "2d93472c"
+  }
+}

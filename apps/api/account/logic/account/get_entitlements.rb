@@ -1,0 +1,176 @@
+# apps/api/account/logic/account/get_entitlements.rb
+#
+# frozen_string_literal: true
+
+require_relative '../base'
+
+module AccountAPI::Logic
+  module Account
+    # Get Entitlements API
+    #
+    # @api Returns entitlement definitions and plan-to-entitlement mappings.
+    #   Includes a list of all entitlements with display names and categories,
+    #   plan mappings with their associated entitlements, and a source indicator
+    #   ("stripe" or "local_config") showing where plan data was loaded from.
+    #
+    # Returns entitlement definitions and plan-to-entitlement mappings for the frontend.
+    # Uses Stripe-synced plan cache with fallback to billing.yaml config.
+    #
+    # ## Request
+    #
+    # GET /api/account/entitlements
+    #
+    # ## Response
+    #
+    # {
+    #   entitlements: [
+    #     {
+    #       key: "api_access",
+    #       display_name: "web.billing.overview.entitlements.api_access",
+    #       category: "infrastructure",
+    #       description: "Can use REST API endpoints"
+    #     },
+    #     ...
+    #   ],
+    #   plans: [
+    #     {
+    #       plan_id: "free_v1",
+    #       name: "Free",
+    #       entitlements: ["create_secrets", "view_receipt", "api_access"]
+    #     },
+    #     ...
+    #   ],
+    #   source: "stripe" | "local_config"
+    # }
+    #
+    # ## Source Indicator
+    #
+    # - "stripe": Plans loaded from Stripe-synced Redis cache (production)
+    # - "local_config": Plans loaded from billing.yaml (dev/standalone)
+    #
+    # ## Caching
+    #
+    # Entitlement definitions are loaded from billing.yaml config (rarely changes).
+    # Plan data uses Billing::Plan cache with 12-hour TTL or config fallback.
+    #
+    # ## Security
+    #
+    # - Requires authentication (sessionauth or basicauth)
+    # - Returns only public entitlement metadata, no sensitive data
+    #
+    class GetEntitlements < AccountAPI::Logic::Base
+      include Onetime::LoggerMethods
+
+      SCHEMAS = { response: 'account' }.freeze
+
+      def raise_concerns
+        # Basic auth check - requires logged in user
+        verify_authenticated!
+      end
+
+      def process
+        entitlements_list = build_entitlements_list
+        plans_result      = build_plans_list
+
+        {
+          entitlements: entitlements_list,
+          plans: plans_result[:plans],
+          source: plans_result[:source],
+        }
+      end
+
+      private
+
+      # Build entitlements list from billing config
+      #
+      # @return [Array<Hash>] Array of entitlement definitions
+      def build_entitlements_list
+        return [] unless defined?(::Billing::Config)
+
+        entitlements_hash = ::Billing::Config.load_entitlements
+        return [] if entitlements_hash.empty?
+
+        entitlements_hash.map do |key, definition|
+          {
+            key: key,
+            display_name: definition['display_name'] || "web.billing.overview.entitlements.#{key}",
+            category: definition['category'] || 'uncategorized',
+            description: definition['description'],
+          }
+        end
+      end
+
+      # Build plans list with entitlement mappings
+      #
+      # Uses Billing::Plan cache (Stripe-synced) first, falls back to config.
+      # Deduplicates by tier, preferring monthly plans.
+      #
+      # @return [Hash] { plans: Array, source: String }
+      def build_plans_list
+        # Try loading from Billing::Plan cache (Stripe-synced) first
+        cached_plans = load_plans_from_stripe_cache
+
+        if cached_plans.any?
+          {
+            plans: cached_plans,
+            source: 'stripe',
+          }
+        else
+          # Fall back to billing.yaml config
+          config_plans = load_plans_from_config
+          {
+            plans: config_plans,
+            source: 'local_config',
+          }
+        end
+      end
+
+      # Load plans from Billing::Plan cache (Stripe-synced)
+      #
+      # Deduplicates by tier, preferring monthly plans over yearly.
+      #
+      # @return [Array<Hash>] Array of plan hashes with entitlements
+      def load_plans_from_stripe_cache
+        return [] unless defined?(::Billing::Plan)
+
+        plans = ::Billing::Plan.list_plans.compact
+
+        # Key by plan_id (the family identifier). Each Plan holds all interval
+        # variants (month/year) in its prices hashkey, so there are no per-
+        # interval duplicates to collapse; entitlements are family-level.
+        plans_by_id = {}
+
+        plans.each do |plan|
+          plans_by_id[plan.plan_id] = {
+            plan_id: plan.plan_id,
+            name: plan.name,
+            entitlements: plan.entitlements.to_a,
+          }
+        end
+
+        plans_by_id.values
+      rescue StandardError => ex
+        billing_logger.error '[GetEntitlements] Error loading plans from cache', exception: ex
+        []
+      end
+
+      # Load plans from billing.yaml config
+      #
+      # @return [Array<Hash>] Array of plan hashes with entitlements
+      def load_plans_from_config
+        return [] unless defined?(::Billing::Config)
+
+        plans_hash = ::Billing::Config.load_plans
+        return [] if plans_hash.empty?
+
+        plans_hash.map do |plan_id, plan_def|
+          {
+            plan_id: plan_id,
+            name: plan_def['name'],
+            entitlements: plan_def['entitlements'] || [],
+          }
+        end
+      end
+    end
+  end
+end

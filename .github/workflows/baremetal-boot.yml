@@ -1,0 +1,82 @@
+# ==============================================================================
+# Bare-metal boot lane (install-onboarding C7 residuals 1 + 4)
+# ==============================================================================
+# The only lane that boots the app OUTSIDE a container image, and the boot-time
+# guard for the POSIX-locale regression class (clean-room validation run 8):
+# installer.yml's posix lane covers `rake ots:secrets` under an empty locale,
+# but nothing guarded the BOOT leg — Ruby under LANG=C defaults external
+# encoding to US-ASCII, so any config/locale reader that fails to declare its
+# encoding crashes only here. Also closes residual 4: `pnpm run build` + the
+# proof-of-life asset probe as a lane (a real Vite build, not a container's
+# baked assets).
+#
+#   fresh runner -> bin/setup -> bin/testsuite-installer baremetal-boot
+#     (LANG=C: rake ots:secrets -> pnpm run build -> puma production boot
+#      -> proof-of-life: homepage + /dist/assets/*.js + v1 at-most-once)
+#
+# Same command locally and in CI: bin/testsuite-installer baremetal-boot.
+# ==============================================================================
+name: Bare-metal boot lane
+
+on:
+  pull_request:
+    paths:
+      - 'bin/testsuite-installer'
+      - 'tools/testsuite-installer/testsuite-installer.sh'
+      - 'tools/testsuite-installer/baremetal-boot.sh'
+      - 'tools/testsuite-installer/proof-of-life.sh'
+      - 'lib/tasks/init.rake'
+      - 'config.ru'
+      - 'etc/defaults/**'
+      - '.github/workflows/baremetal-boot.yml'
+  schedule:
+    # Weekly: app-code encoding regressions land without touching the paths
+    # above — the cron is the real guard (the scheduled-lane pattern shared
+    # by the other install lanes).
+    - cron: '29 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baremetal-boot:
+    name: rake ots:secrets + build + puma boot under LANG=C
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # The lane starts its own throwaway instance on :2130; the apt-started
+      # service on :6379 is harmless (same posture as fresh-clone).
+      - name: Install datastore (redis-server, Valkey-compatible)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-server
+
+      - name: Setup Ruby (.ruby-version)
+        uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          bundler-cache: false # bin/setup runs `bundle install` itself
+
+      - name: Setup Node (.node-version)
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: '.node-version'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Setup Python (locales:sync)
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
+      # bin/setup provides everything the lane's preflight demands: gems,
+      # node_modules, generated/locales, generated/schemas, seeded etc/ config.
+      - name: Run bin/setup
+        run: bin/setup
+
+      - name: Run bare-metal boot lane
+        run: bin/testsuite-installer baremetal-boot

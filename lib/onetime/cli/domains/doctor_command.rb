@@ -1,0 +1,1147 @@
+# lib/onetime/cli/domains/doctor_command.rb
+#
+# frozen_string_literal: true
+
+# Check and repair custom domain data integrity issues.
+#
+# Performs the following integrity checks:
+#   1. org_id points to an existing organization (CRITICAL)
+#   2. display_domain field is not empty (HIGH)
+#   3. display_domain_index entries point to valid domains (HIGH)
+#   4. Domain with org_id is in org.domains sorted set (MEDIUM)
+#   5. org.domains sorted set entries have valid domain objects (MEDIUM)
+#   6. verification_state fields are coherent (WARNING)
+#   7. txt_validation_value format is valid (LOW)
+#   8. domain has no org_id at all — ORPHANED (HIGH, report-only)
+#   9. org_id points to an ARCHIVED organization (HIGH, report-only)
+#  10. CustomDomain.owners agrees with the domain's org_id (MEDIUM)
+#  11. ascii_display_domain_index agrees with the records (report-only):
+#      missing entries, collisions, conflicts and unreadable records (HIGH),
+#      stale entries (MEDIUM). From Operations::Domains::AsciiIndexAudit.
+#
+# Additional checks (opt-in):
+#   --familia-audit   Run Familia's generic CustomDomain.health_check, which
+#                     covers any declared unique_index, multi_index, and
+#                     participates_in relationships automatically. Findings are
+#                     appended to the issues array as type :familia_audit.
+#
+# ## Relationship to `bin/ots domains repair` (SIBLINGS, not overlapping)
+#
+#   bin/ots domains repair DOMAIN [--org-id X]
+#     Targeted, single-domain, ORG-ASSIGNMENT-capable, audited. The only verb
+#     that can adopt an orphaned domain into an organization.
+#
+#   bin/ots domains doctor [--all|--org] [--repair]
+#     Broad multi-check scanner including index integrity. Never assigns an org.
+#
+# Check #11 never repairs. Its writes belong to
+# `bin/ots domains backfill-ascii-index --apply`, which runs with the
+# application stopped (docs/runbooks/custom-domain-ascii-index-backfill.md);
+# doctor --repair runs against a live deployment.
+#
+# Check #10 is the org-deletion unblocker: Organization#unlisted_owned_domains
+# reads the `owners` class hashkey as a second source of truth, so an entry left
+# behind by a writer that moved a domain (historically `domains transfer`) makes
+# the org it names undeletable. The refusal message points operators at this
+# command, so this is where that drift has to be both visible and fixable.
+#
+# Exactly one check (#4, org.domains membership) is shared between them, and
+# doctor DELEGATES that repair to Onetime::Operations::Domains::Repair so there
+# is a single implementation, a single cross-org guard, and a single
+# `domain.repair` ColonelAuditEvent. Check #8 reports orphans so a single
+# `doctor --all` gives the complete picture, but never fixes them — assigning an
+# organization is a human decision (use `domains repair --org-id`).
+#
+# ## Audit coverage gap (known, deliberate for now)
+#
+# Doctor's index-housekeeping repairs (display_domain_index entries, stale
+# org.domains entries) mutate with an OT.info line but NO ColonelAuditEvent. They
+# have no single extid-identified target and no colonel surface; extracting an
+# Operations::Domains::RepairIndexes op is tracked separately. Only the #4
+# membership repair is audited today, by the op it delegates to.
+#
+# Usage:
+#   bin/ots domains doctor secrets.example.com      # Check single domain
+#   bin/ots domains doctor --all                    # Scan all domains
+#   bin/ots domains doctor --org on8q...            # Scan domains for one org
+#   bin/ots domains doctor --all --repair           # Auto-repair issues
+#   bin/ots domains doctor --all --json             # JSON output
+#   bin/ots domains doctor --all --familia-audit    # Include Familia audit
+
+require 'json'
+require 'onetime/operations/domains/repair'
+require 'onetime/operations/domains/ascii_index_audit'
+
+require_relative '../customers/shared'
+
+module Onetime
+  module CLI
+    # rubocop:disable Metrics/ClassLength
+    class DomainsDoctorCommand < Command
+      desc 'Check custom domain data integrity'
+
+      argument :fqdn,
+        type: :string,
+        required: false,
+        desc: 'Domain FQDN to check (e.g., secrets.example.com)'
+
+      option :all,
+        type: :boolean,
+        default: false,
+        desc: 'Scan all domains'
+
+      option :org,
+        type: :string,
+        default: nil,
+        desc: 'Organization extid to check domains for'
+
+      option :repair,
+        type: :boolean,
+        default: false,
+        desc: 'Auto-repair issues (default: audit only)'
+
+      option :json,
+        type: :boolean,
+        default: false,
+        desc: 'JSON output'
+
+      option :familia_audit,
+        type: :boolean,
+        default: false,
+        desc: 'Additionally run CustomDomain.health_check (Familia generic audit)'
+
+      SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, warning: 3, low: 4 }.freeze
+
+      # Check #11 (see check_ascii_index_integrity).
+      ASCII_INDEX_RUNBOOK = 'docs/runbooks/custom-domain-ascii-index-backfill.md'
+
+      ASCII_INDEX_FINDINGS = {
+        missing: {
+          severity: :high,
+          message: 'records missing from ascii_display_domain_index',
+          repair_action: 'Stop the application, then run bin/ots domains backfill-ascii-index --apply',
+        },
+        collision: {
+          severity: :high,
+          message: 'records share an A-label with another record (collision)',
+          repair_action: 'Keep the record whose organization has proven DNS ownership, remove the others ' \
+                         'with bin/ots domains remove <extid> --apply, then run the backfill',
+        },
+        conflict: {
+          severity: :high,
+          message: 'records or ascii_display_domain_index entries name a different live record',
+          repair_action: 'Manual decision required: compare the records the entry and the name point at',
+        },
+        stale: {
+          severity: :medium,
+          message: 'ascii_display_domain_index entries name a record that no longer exists',
+          repair_action: 'Stop the application, then run bin/ots domains backfill-ascii-index --apply',
+        },
+      }.freeze
+
+      # Valid 32-char hex pattern for txt_validation_value
+      TXT_VALIDATION_PATTERN = /\A[a-f0-9]{32}\z/i
+
+      def call(fqdn: nil, all: false, org: nil, repair: false, json: false, familia_audit: false, **)
+        boot_application!
+
+        unless fqdn || all || org
+          show_usage
+          return
+        end
+
+        report = { checked: 0, healthy: 0, issues: [], repaired: [], failed_repairs: [] }
+
+        run_familia_health_check(report) if familia_audit
+
+        if fqdn
+          domain = load_domain(fqdn)
+          check_domain(domain, report, repair: repair)
+        elsif org
+          organization = load_org(org)
+          check_index_integrity(report, repair: repair, scope_org: organization)
+          check_org_domains(organization, report, repair: repair)
+        else
+          check_index_integrity(report, repair: repair)
+          scan_all_domains(report, repair: repair)
+        end
+
+        output_report(report, json: json, repair: repair)
+        exit_with_status(report, repair: repair)
+      end
+
+      private
+
+      def show_usage
+        puts <<~USAGE
+          Usage: bin/ots domains doctor [FQDN] [options]
+
+          Check custom domain data integrity and optionally repair issues.
+
+          Arguments:
+            FQDN                    Domain to check (e.g., secrets.example.com)
+
+          Options:
+            --all                   Scan all domains
+            --org EXTID             Check domains for a specific organization
+            --repair                Auto-repair issues (default: audit only)
+            --json                  JSON output
+            --familia-audit         Additionally run CustomDomain.health_check
+                                    (Familia's generic audit covering declared
+                                    indexes and participations; read-only)
+
+          Examples:
+            bin/ots domains doctor secrets.example.com
+            bin/ots domains doctor --all
+            bin/ots domains doctor --org on8q30gih2uxu2cw77jzh7caq07
+            bin/ots domains doctor --all --repair
+            bin/ots domains doctor --all --familia-audit
+
+          Checks performed:
+            1. org_id points to existing organization (CRITICAL)
+            2. display_domain field is not empty (HIGH)
+            3. display_domain_index entries are valid (HIGH)
+            4. Domain is in org.domains sorted set (MEDIUM)
+            5. org.domains entries have valid domain objects (MEDIUM)
+            6. verification_state is coherent (WARNING)
+            7. txt_validation_value format is valid (LOW)
+            8. domain has no org_id - ORPHANED (HIGH, report-only)
+            9. org_id points to an ARCHIVED organization (HIGH, report-only)
+           10. CustomDomain.owners matches the domain's org_id (MEDIUM)
+           11. ASCII name index agrees with the records (report-only;
+               fixed by bin/ots domains backfill-ascii-index)
+            +. Familia.health_check (opt-in via --familia-audit)
+
+          Doctor never assigns an organization. To adopt an orphaned domain:
+            bin/ots domains repair DOMAIN --org-id ORG --apply
+        USAGE
+      end
+
+      def load_domain(fqdn)
+        domain = Onetime::CustomDomain.load_by_display_domain(fqdn)
+        unless domain
+          puts "Domain not found: #{fqdn}"
+          exit 1
+        end
+        domain
+      end
+
+      def load_org(extid)
+        organization = Onetime::Organization.find_by_extid(extid)
+        unless organization
+          puts "Organization not found: #{extid}"
+          exit 1
+        end
+        organization
+      end
+
+      def scan_all_domains(report, repair:)
+        Onetime::CustomDomain.instances.each do |objid|
+          domain = Onetime::CustomDomain.load(objid)
+          next unless domain
+
+          check_domain(domain, report, repair: repair)
+        end
+      end
+
+      def check_org_domains(organization, report, repair:)
+        # Check domains via org.domains sorted set
+        check_stale_org_domains(organization, report, repair: repair)
+
+        # Check each domain belonging to this org
+        organization.domains.to_a.each do |domain_objid|
+          domain = Onetime::CustomDomain.load(domain_objid)
+          next unless domain
+
+          check_domain(domain, report, repair: repair)
+        end
+      end
+
+      def check_domain(domain, report, repair:)
+        report[:checked] += 1
+        issues            = []
+
+        # CHECK: org_id points to existing organization
+        check_stale_org_reference(domain, issues)
+
+        # CHECK: that organization is still live (report-only)
+        check_archived_org_reference(domain, issues)
+
+        # CHECK: domain has an org at all (report-only)
+        check_orphaned_domain(domain, issues)
+
+        # CHECK: display_domain is not empty
+        check_display_domain_missing(domain, issues)
+
+        # CHECK: domain is in org.domains if it has org_id
+        check_org_domains_membership(domain, issues, report, repair: repair)
+
+        # CHECK: CustomDomain.owners agrees with org_id
+        check_owners_index_drift(domain, issues, report, repair: repair)
+
+        # CHECK: verification state coherence
+        check_verification_coherence(domain, issues)
+
+        # CHECK: txt_validation_value format
+        check_txt_validation_format(domain, issues)
+
+        if issues.empty?
+          report[:healthy] += 1
+        else
+          report[:issues] << {
+            type: :domain,
+            domain_fqdn: domain.display_domain,
+            domain_objid: domain.objid,
+            domain_extid: domain.extid,
+            org_id: domain.org_id,
+            issues: issues.sort_by { |i| SEVERITY_ORDER[i[:severity]] },
+          }
+        end
+      end
+
+      # Index-level checks
+      def check_index_integrity(report, repair:, scope_org: nil)
+        issues = []
+
+        check_display_domain_index_integrity(issues, report, repair: repair)
+        check_owners_index_integrity(issues, report, repair: repair, scope_org: scope_org)
+        check_ascii_index_integrity(issues)
+
+        if scope_org
+          check_stale_org_domains(scope_org, report, repair: repair)
+        else
+          # Check all orgs for stale domain entries
+          check_all_org_domains_integrity(issues, report, repair: repair)
+        end
+
+        return if issues.empty?
+
+        report[:issues] << {
+          type: :indexes,
+          issues: issues.sort_by { |i| SEVERITY_ORDER[i[:severity]] },
+        }
+      end
+
+      # CHECK: display_domain_index entries point to valid domains
+      #
+      # ONE check over ONE hash. There used to be a second, byte-identical
+      # method (check_display_domain_index_hash_integrity) walking the same
+      # Onetime::CustomDomain.display_domain_index with the same predicates,
+      # differing only in the reported severity/keys. It reported every stale
+      # entry twice, at two severities, and double-counted report[:repaired] —
+      # the second delete was a no-op HDEL on an already-removed field, so N
+      # real problems surfaced as 2N issues and 2N repairs.
+      #
+      # display_domain_index is declared `unique_index :display_domain,
+      # :display_domain_index` — a single Familia HashKey. The repair releases
+      # each entry with `release_field(fqdn, identifier)`, the ownership-checked
+      # delete Familia's own index release uses.
+      def check_display_domain_index_integrity(issues, report, repair:)
+        stale_entries = []
+
+        Onetime::CustomDomain.display_domain_index.hgetall.each do |fqdn, identifier|
+          domain = Onetime::CustomDomain.load(identifier)
+
+          if domain.nil?
+            stale_entries << { fqdn: fqdn, identifier: identifier, reason: 'domain not found' }
+          elsif domain.display_domain.to_s.downcase != fqdn.downcase
+            stale_entries << { fqdn: fqdn, identifier: identifier, reason: "FQDN mismatch (domain has #{domain.display_domain})" }
+          end
+        end
+
+        return if stale_entries.empty?
+
+        issues << {
+          check: :display_domain_index_stale,
+          severity: :high,
+          message: "#{stale_entries.size} stale display_domain_index entries",
+          stale_entries: stale_entries.first(10),
+          total_stale: stale_entries.size,
+          repairable: true,
+        }
+
+        return unless repair
+
+        # Ownership-checked: the entry is removed only while it still names the
+        # identifier read above, so an entry that changed since the scan (a new
+        # registration of the name) is left alone.
+        released = stale_entries.count do |entry|
+          index   = Onetime::CustomDomain.display_domain_index
+          removed = index.release_field(entry[:fqdn], entry[:identifier]).to_i == 1
+          if removed
+            OT.info "[domains doctor] Removed stale display_domain_index[#{entry[:fqdn]}] (was #{entry[:identifier]})"
+          else
+            OT.info "[domains doctor] Left display_domain_index[#{entry[:fqdn]}]: it no longer names #{entry[:identifier]}"
+          end
+          removed
+        end
+        return unless released.positive?
+
+        report[:repaired] << {
+          action: :display_domain_index_cleaned,
+          count: released,
+        }
+      end
+
+      # CHECK #11: ascii_display_domain_index agrees with the records
+      #
+      # The index holds one entry per DNS name (its A-label) and is claimed for
+      # new records by create! and IdentityGuard. Records registered before it
+      # existed have no entry until the backfill enters them. REPORT-ONLY: the
+      # writes belong to `bin/ots domains backfill-ascii-index --apply`,
+      # which runs with the application stopped, and collisions and conflicts
+      # need an operator's decision. Global, like check #3, in --org mode too.
+      def check_ascii_index_integrity(issues)
+        audit = Onetime::Operations::Domains::AsciiIndexAudit.new.call
+
+        ASCII_INDEX_FINDINGS.each do |category, finding|
+          examples = audit.rows_in(category).map { |row| ascii_row_example(row) } +
+                     audit.entries_in(category).map { |entry| entry.to_h.slice(:ascii_name, :holder_id, :detail) }
+          next if examples.empty?
+
+          issues << {
+            check: :"ascii_index_#{category}",
+            severity: finding[:severity],
+            message: "#{examples.size} #{finding[:message]}",
+            examples: examples.first(10),
+            total: examples.size,
+            repairable: false,
+            repair_action: "#{finding[:repair_action]} (see #{ASCII_INDEX_RUNBOOK})",
+          }
+        end
+
+        unless audit.errors.empty?
+          examples = audit.errors.first(10).map do |error|
+            { domain_objid: error.domain_id, message: error.message }
+          end
+          issues << {
+            check: :ascii_index_unreadable,
+            severity: :high,
+            message: "#{audit.errors.size} domain records could not be loaded by the ASCII index audit " \
+                     '(backfill-ascii-index --apply writes nothing while they remain): ' \
+                     "#{examples.map { |example| "#{example[:domain_objid]}: #{example[:message]}" }.join('; ')}",
+            examples: examples,
+            total: audit.errors.size,
+            repairable: false,
+            repair_action: 'Inspect each with Onetime::CustomDomain.storage_inspect(<domain_id>) from ' \
+                           "bin/ots console and correct it (see #{ASCII_INDEX_RUNBOOK})",
+          }
+        end
+      rescue StandardError => ex
+        issues << {
+          check: :ascii_index_audit_unavailable,
+          severity: :warning,
+          message: "ASCII index audit unavailable: #{ex.class}: #{ex.message}",
+          repairable: false,
+        }
+      end
+
+      def ascii_row_example(row)
+        {
+          ascii_name: row.ascii_name,
+          domain_extid: row.extid,
+          domain_objid: row.domain_id,
+          display_domain: row.display_domain,
+          org_id: row.org_id,
+          holder_id: row.holder_id,
+          detail: row.detail,
+        }.compact
+      end
+
+      # CHECK: org.domains sorted set entries have valid domain objects
+      def check_stale_org_domains(organization, report, repair:)
+        stale_domains = []
+
+        organization.domains.to_a.each do |domain_objid|
+          domain = Onetime::CustomDomain.load(domain_objid)
+
+          if domain.nil?
+            stale_domains << { objid: domain_objid, reason: 'domain not found' }
+          elsif domain.org_id != organization.objid
+            stale_domains << { objid: domain_objid, reason: "org_id mismatch (domain has #{domain.org_id})" }
+          end
+        end
+
+        return if stale_domains.empty?
+
+        report[:issues] << {
+          type: :org_domains,
+          org_extid: organization.extid,
+          org_objid: organization.objid,
+          issues: [{
+            check: :stale_org_domains,
+            severity: :medium,
+            message: "#{stale_domains.size} stale entries in org.domains sorted set",
+            stale_domains: stale_domains.first(10),
+            total_stale: stale_domains.size,
+            repairable: true,
+          }],
+        }
+
+        return unless repair
+
+        removed = 0
+        stale_domains.each do |entry|
+          unless remove_org_domain_entry(organization, entry[:objid])
+            OT.info "[domains doctor] org.domains entry #{entry[:objid]} was already gone from #{organization.extid}"
+            next
+          end
+
+          removed += 1
+
+          # Clear the domain's own org_id if it pointed to this org,
+          # so loading the domain independently won't yield stale data.
+          if entry[:reason] =~ /org_id mismatch/
+            domain = Onetime::CustomDomain.load(entry[:objid])
+            if domain && domain.org_id == organization.objid
+              domain.org_id = nil
+              domain.save
+              OT.info "[domains doctor] Cleared org_id on domain #{entry[:objid]}"
+            end
+          end
+
+          OT.info "[domains doctor] Removed stale org.domains entry #{entry[:objid]} from #{organization.extid}"
+        end
+
+        return if removed.zero?
+
+        report[:repaired] << {
+          org: organization.extid,
+          action: :stale_org_domains_removed,
+          count: removed,
+        }
+      end
+
+      # Remove one entry from org.domains, whether or not its domain record
+      # still exists.
+      #
+      # org.domains is a participation collection that stores raw identifiers,
+      # and Familia JSON-quotes a String argument, so a bare objid never matches.
+      # An identifier-only CustomDomain (the stand-in Organization#domain? uses)
+      # serializes to the raw identifier. Organization#remove_domain is not an
+      # option: it loads the record and raises when it is gone.
+      #
+      # The domain's reverse index drops the collection key as well, as
+      # remove_from_organization_domains would. Organization#add_domain reads
+      # that index for its cross-org guard.
+      #
+      # @return [Boolean] true when ZREM removed the entry
+      def remove_org_domain_entry(organization, domain_objid)
+        member  = Onetime::CustomDomain.new(objid: domain_objid)
+        removed = organization.domains.remove(member)
+        member.untrack_participation_in(organization.domains.dbkey)
+        # redis-rb answers a single-member ZREM with a Boolean; accept a count too.
+        removed == true || (removed.is_a?(Integer) && removed.positive?)
+      end
+
+      # CHECK all orgs for stale domain entries
+      def check_all_org_domains_integrity(_issues, report, repair:)
+        Onetime::Organization.instances.each do |objid|
+          organization = Onetime::Organization.load(objid)
+          next unless organization
+
+          check_stale_org_domains(organization, report, repair: repair)
+        end
+      end
+
+      # CHECK: org_id points to existing organization
+      def check_stale_org_reference(domain, issues)
+        return if domain.org_id.to_s.empty?
+
+        organization = Onetime::Organization.load(domain.org_id)
+        return if organization
+
+        issues << {
+          check: :stale_org_reference,
+          severity: :critical,
+          message: "org_id '#{domain.org_id}' points to deleted organization",
+          repairable: false,
+          repair_action: 'Manual decision required: reassign to another org or delete domain',
+        }
+      end
+
+      # CHECK: org_id points to an ARCHIVED organization
+      #
+      # Organization#archive! is a soft delete that says nothing about the
+      # org's domains, and Organization.load still returns the record — so
+      # check_stale_org_reference sees a healthy pointer and the domain keeps
+      # serving. Every authorization path that resolves a domain to its org
+      # (see load_organization_for_domain) then evaluates entitlements against
+      # an org the operator believes is gone. REPORT-ONLY: whether to bring the
+      # org back or move the domain is a human decision, the same reasoning
+      # that keeps check #1 and #8 report-only.
+      def check_archived_org_reference(domain, issues)
+        return if domain.org_id.to_s.empty?
+
+        organization = Onetime::Organization.load(domain.org_id)
+        return unless organization # Already flagged by stale_org_reference
+        return unless organization.archived?
+
+        issues << {
+          check: :archived_org_reference,
+          severity: :high,
+          message: "org_id '#{domain.org_id}' points to an archived organization",
+          repairable: false,
+          repair_action: 'Manual decision required: unarchive the organization, ' \
+                         "or move the domain (bin/ots domains transfer #{domain.display_domain} --to-org <ORG> --apply)",
+        }
+      end
+
+      # CHECK: domain has no org_id at all (ORPHANED)
+      #
+      # REPORT-ONLY, deliberately. Both check_stale_org_reference and
+      # check_org_domains_membership early-return on a blank org_id, so without
+      # this check `doctor --all` is blind to every orphan and the operator has
+      # to know to also run `domains orphaned`. Doctor still never assigns an
+      # organization — that is a human decision carried by the audited
+      # `domains repair DOMAIN --org-id ORG` verb.
+      def check_orphaned_domain(domain, issues)
+        return unless domain.org_id.to_s.strip.empty?
+
+        issues << {
+          check: :orphaned_domain,
+          severity: :high,
+          message: 'domain has no org_id (orphaned)',
+          repairable: false,
+          repair_action: "Assign an organization: bin/ots domains repair #{domain.display_domain} --org-id <ORG> --apply",
+        }
+      end
+
+      # CHECK: display_domain is not empty
+      def check_display_domain_missing(domain, issues)
+        return unless domain.display_domain.to_s.empty?
+
+        issues << {
+          check: :display_domain_missing,
+          severity: :high,
+          message: 'display_domain field is empty',
+          repairable: false,
+          repair_action: 'Manual intervention required: cannot infer domain name',
+        }
+      end
+
+      # CHECK: domain with org_id is in org.domains sorted set
+      def check_org_domains_membership(domain, issues, report, repair:)
+        return if domain.org_id.to_s.empty?
+
+        organization = Onetime::Organization.load(domain.org_id)
+        return unless organization # Already flagged by stale_org_reference
+
+        # domain?, not organization.domains.member?(objid): the collection
+        # stores raw identifiers and a bare String argument never matches.
+        return if organization.domain?(domain)
+
+        issues << {
+          check: :org_domains_missing,
+          severity: :medium,
+          message: "domain has org_id #{domain.org_id} but is not in org.domains sorted set",
+          repairable: true,
+          repair_action: 'Add domain to org.domains sorted set',
+        }
+
+        return unless repair
+
+        apply_membership_repair(domain, organization, report)
+      end
+
+      # Delegate the MUTATION for check #4 to Onetime::Operations::Domains::Repair.
+      #
+      # Detection stays on Organization#domain? above: it is O(1), while
+      # the op's own check does a load_multi of the whole collection. Do not
+      # "unify" the two into the slow path — that makes --all quadratic. The two
+      # mechanisms can in principle disagree (domain? sees a set entry whose
+      # record fails to load; list_domains .compacts it away), so any non
+      # :repaired status here is recorded as a failed repair rather than
+      # silently swallowed.
+      #
+      # The op resolves the domain object, enforces the cross-org guard in
+      # Organization#add_domain (which RAISES when the domain already belongs to
+      # another org — the raw sorted-set add this replaced bypassed it), and
+      # records the single `domain.repair` ColonelAuditEvent. Doctor must never
+      # record its own.
+      #
+      # Wrapped per domain so one cross-org conflict cannot abort an --all scan.
+      def apply_membership_repair(domain, organization, report)
+        result = Onetime::Operations::Domains::Repair.new(
+          domain: domain,
+          actor: Onetime::CLI::Customers::Shared::CLI_ACTOR,
+          dry_run: false,
+        ).call
+
+        unless result.status == :repaired
+          return record_failed_repair(domain, organization, report, "repair op returned #{result.status}")
+        end
+
+        OT.info "[domains doctor] Added #{domain.display_domain} to org.domains for #{organization.extid} " \
+                'via Operations::Domains::Repair'
+        report[:repaired] << {
+          domain: domain.display_domain,
+          action: :added_to_org_domains,
+          org: organization.extid,
+          repairs_applied: result.repairs_applied,
+        }
+      rescue StandardError => ex
+        record_failed_repair(domain, organization, report, ex.message)
+      end
+
+      def record_failed_repair(domain, organization, report, reason)
+        OT.le "[domains doctor] Failed to repair #{domain.display_domain} " \
+              "for #{organization.extid}: #{reason}"
+        report[:failed_repairs] << {
+          domain: domain.display_domain,
+          action: :added_to_org_domains,
+          org: organization.extid,
+          error: reason,
+        }
+      end
+
+      # CHECK: CustomDomain.owners agrees with this domain's org_id
+      #
+      # `owners` (domainid => org_id) is a plain class_hashkey, not a
+      # Familia-managed index, and Organization#unlisted_owned_domains reads it
+      # as the SECOND source of truth for the org-deletion drift guard. A stale
+      # entry therefore makes the org it names permanently undeletable, and the
+      # refusal message sends the operator here — so doctor has to be able to
+      # both see and fix it.
+      #
+      # An ORPHAN (blank org_id) that still has an owners entry is in scope and
+      # is repaired by REMOVING that entry — org_id is the authoritative field,
+      # so the index follows it down as readily as sideways, and the entry is
+      # precisely what keeps the org it names undeletable. That is not check
+      # #8's "never assign an org" line: nothing is being assigned, and the
+      # previous value is logged and reported before it goes.
+      def check_owners_index_drift(domain, issues, report, repair:)
+        recorded = Onetime::CustomDomain.owners.get(domain.identifier).to_s
+        actual   = domain.org_id.to_s
+        return if recorded == actual
+
+        message = if recorded.empty?
+                    "missing from CustomDomain.owners (org_id is #{actual})"
+                  elsif actual.empty?
+                    "CustomDomain.owners still names #{recorded} but the domain is orphaned (no org_id)"
+                  else
+                    "CustomDomain.owners says #{recorded} but org_id is #{actual}"
+                  end
+
+        adopt  = "bin/ots domains repair #{domain.display_domain} --org-id <ORG> --apply"
+        action = if actual.empty?
+                   "Drop the stale CustomDomain.owners entry, then adopt the domain with: #{adopt}"
+                 else
+                   'Rewrite the CustomDomain.owners entry to match org_id'
+                 end
+
+        issues << {
+          check: :owners_index_drift,
+          severity: :medium,
+          message: message,
+          repairable: true,
+          repair_action: action,
+        }
+
+        return unless repair
+
+        # org_id is the authoritative field; owners is the derived index. A
+        # blank org_id removes the entry (see CustomDomain.record_owner).
+        Onetime::CustomDomain.record_owner(domain, actual)
+        OT.info "[domains doctor] Realigned CustomDomain.owners[#{domain.identifier}] " \
+                "#{recorded.empty? ? '(missing)' : recorded} -> #{actual.empty? ? '(removed)' : actual}"
+
+        report[:repaired] << {
+          domain: domain.display_domain,
+          action: :owners_entry_realigned,
+          org: actual,
+          previous_org: recorded,
+        }
+      end
+
+      # CHECK: CustomDomain.owners entries the per-domain scan cannot reach
+      #
+      # The sibling above only sees domains the scan VISITS: everything in
+      # `instances` for --all, and only `org.domains` members for --org. The
+      # entries that matter most are exactly the ones outside that set — a
+      # domain that moved to another org (`domains transfer`) is no longer in
+      # its previous owner's collection, yet its stale `owners` entry is what
+      # blocks that owner's deletion. This sweep covers those, plus entries
+      # whose domain record is gone entirely.
+      #
+      # Scoped by construction so nothing is reported twice: an entry the
+      # per-domain scan will visit is skipped here.
+      def check_owners_index_integrity(issues, report, repair:, scope_org: nil)
+        drifted = []
+
+        Onetime::CustomDomain.owners.hgetall.each do |domain_id, recorded_org_id|
+          domain        = Onetime::CustomDomain.load(domain_id)
+          actual_org_id = domain&.org_id.to_s
+
+          if scope_org
+            # Only entries that touch THIS org can affect its deletion.
+            next unless [recorded_org_id.to_s, actual_org_id].include?(scope_org.objid)
+            # Repair removes stale memberships before the per-domain scan.
+            next if domain && scope_org.domain?(domain_id) && (!repair || actual_org_id == scope_org.objid)
+          elsif domain && Onetime::CustomDomain.instances.member?(domain_id)
+            next
+          end
+
+          if domain.nil?
+            drifted << {
+              domain_id: domain_id,
+              recorded_org_id: recorded_org_id,
+              actual_org_id: nil,
+              reason: 'domain record not found',
+            }
+          elsif actual_org_id != recorded_org_id.to_s
+            drifted << {
+              domain_id: domain_id,
+              recorded_org_id: recorded_org_id,
+              actual_org_id: actual_org_id,
+              reason: "org_id mismatch (domain has #{actual_org_id.empty? ? '(none)' : actual_org_id})",
+            }
+          end
+        end
+
+        return if drifted.empty?
+
+        issues << {
+          check: :owners_index_stale,
+          severity: :medium,
+          message: "#{drifted.size} CustomDomain.owners entries disagree with the domain's org_id",
+          stale_entries: drifted.first(10),
+          total_stale: drifted.size,
+          repairable: true,
+          repair_action: 'Realign each entry with the domain org_id (removing entries whose domain is gone)',
+        }
+
+        return unless repair
+
+        drifted.each do |entry|
+          # nil actual_org_id (dead record) removes the entry; the single
+          # writer handles both directions.
+          Onetime::CustomDomain.record_owner(entry[:domain_id], entry[:actual_org_id])
+          OT.info "[domains doctor] Realigned CustomDomain.owners[#{entry[:domain_id]}] " \
+                  "#{entry[:recorded_org_id]} -> #{entry[:actual_org_id] || '(removed)'}"
+        end
+
+        report[:repaired] << {
+          action: :owners_index_realigned,
+          count: drifted.size,
+        }
+      end
+
+      # CHECK: verification state coherence
+      def check_verification_coherence(domain, issues)
+        verified_flag = domain.verified
+        has_txt_value = !domain.txt_validation_value.to_s.empty?
+
+        # If verified but no txt_validation_value, this is suspicious but may be legitimate
+        # (e.g., verified via alternate method or migrated data)
+        return unless verified_flag && !has_txt_value
+
+        issues << {
+          check: :verification_incoherent,
+          severity: :warning,
+          message: 'verified is true but txt_validation_value is empty',
+          repairable: false,
+          repair_action: 'May be legitimate (migrated data or alternate verification)',
+        }
+      end
+
+      # CHECK: txt_validation_value format
+      def check_txt_validation_format(domain, issues)
+        value = domain.txt_validation_value.to_s
+        return if value.empty?
+        return if value.match?(TXT_VALIDATION_PATTERN)
+
+        issues << {
+          check: :txt_format_invalid,
+          severity: :low,
+          message: "txt_validation_value '#{value[0..15]}...' is not valid 32-char hex",
+          repairable: false,
+          repair_action: 'Informational only - may need re-verification',
+        }
+      end
+
+      # Run Familia's generic CustomDomain.health_check and translate findings
+      # into report[:issues] entries. Additive layer — does not replace bespoke
+      # checks. Guarded with rescue so a Familia API change cannot crash the
+      # doctor command.
+      def run_familia_health_check(report)
+        audit = Onetime::CustomDomain.health_check
+
+        findings = []
+        collect_familia_instance_findings(audit, findings)
+        collect_familia_unique_index_findings(audit, findings)
+        collect_familia_multi_index_findings(audit, findings)
+        collect_familia_participation_findings(audit, findings)
+
+        return if findings.empty?
+
+        report[:issues] << {
+          type: :familia_audit,
+          model_class: audit.model_class,
+          audited_at: audit.audited_at,
+          duration: audit.duration,
+          issues: findings.sort_by { |i| SEVERITY_ORDER[i[:severity]] },
+        }
+      rescue StandardError => ex
+        report[:issues] << {
+          type: :familia_audit,
+          issues: [{
+            check: :familia_audit_unavailable,
+            severity: :warning,
+            message: "Familia health_check unavailable: #{ex.message}",
+            repairable: false,
+          }],
+        }
+      end
+
+      def collect_familia_instance_findings(audit, findings)
+        instances = audit.instances || {}
+        phantoms  = Array(instances[:phantoms])
+        missing   = Array(instances[:missing])
+
+        unless phantoms.empty?
+          findings << {
+            check: :familia_instances_phantom,
+            severity: :medium,
+            message: "#{phantoms.size} phantom instance(s) in timeline but missing from DB",
+            phantoms: phantoms.first(10),
+            total: phantoms.size,
+            repairable: false,
+          }
+        end
+
+        return if missing.empty?
+
+        findings << {
+          check: :familia_instances_missing,
+          severity: :high,
+          message: "#{missing.size} instance(s) present in DB but absent from timeline",
+          missing: missing.first(10),
+          total: missing.size,
+          repairable: false,
+        }
+      end
+
+      def collect_familia_unique_index_findings(audit, findings)
+        Array(audit.unique_indexes).each do |idx|
+          stale   = Array(idx[:stale])
+          missing = Array(idx[:missing])
+
+          unless stale.empty?
+            findings << {
+              check: :familia_unique_index_stale,
+              severity: :high,
+              index_name: idx[:index_name],
+              message: "#{stale.size} stale entries in unique_index #{idx[:index_name]}",
+              stale: stale.first(10),
+              total: stale.size,
+              repairable: false,
+            }
+          end
+
+          next if missing.empty?
+
+          findings << {
+            check: :familia_unique_index_missing,
+            severity: :high,
+            index_name: idx[:index_name],
+            message: "#{missing.size} missing entries in unique_index #{idx[:index_name]}",
+            missing: missing.first(10),
+            total: missing.size,
+            repairable: false,
+          }
+        end
+      end
+
+      def collect_familia_multi_index_findings(audit, findings)
+        Array(audit.multi_indexes).each do |idx|
+          next if idx[:status] == :not_implemented
+
+          stale    = Array(idx[:stale_members])
+          orphaned = Array(idx[:orphaned_keys])
+
+          unless stale.empty?
+            findings << {
+              check: :familia_multi_index_stale,
+              severity: :medium,
+              index_name: idx[:index_name],
+              message: "#{stale.size} stale members in multi_index #{idx[:index_name]}",
+              stale_members: stale.first(10),
+              total: stale.size,
+              repairable: false,
+            }
+          end
+
+          next if orphaned.empty?
+
+          findings << {
+            check: :familia_multi_index_orphaned,
+            severity: :medium,
+            index_name: idx[:index_name],
+            message: "#{orphaned.size} orphaned keys for multi_index #{idx[:index_name]}",
+            orphaned_keys: orphaned.first(10),
+            total: orphaned.size,
+            repairable: false,
+          }
+        end
+      end
+
+      def collect_familia_participation_findings(audit, findings)
+        Array(audit.participations).each do |part|
+          stale = Array(part[:stale_members])
+          next if stale.empty?
+
+          findings << {
+            check: :familia_participation_stale,
+            severity: :high,
+            collection_name: part[:collection_name],
+            message: "#{stale.size} stale members in participation #{part[:collection_name]}",
+            stale_members: stale.first(10),
+            total: stale.size,
+            repairable: false,
+          }
+        end
+      end
+
+      # Output helpers
+
+      def output_report(report, json:, repair:)
+        if json
+          output_json(report)
+        else
+          output_text(report, repair: repair)
+        end
+      end
+
+      def output_json(report)
+        puts JSON.pretty_generate(report)
+      end
+
+      # rubocop:disable Metrics/PerceivedComplexity
+      def output_text(report, repair:)
+        puts 'Domain Health Check'
+        puts '=' * 40
+        puts
+
+        puts "Domains checked: #{report[:checked]}"
+        puts "Healthy: #{report[:healthy]}"
+        puts "With issues: #{report[:issues].count { |i| i[:type] == :domain }}"
+        puts
+
+        if report[:repaired].any?
+          puts 'Repaired:'
+          report[:repaired].each do |r|
+            case r[:action]
+            when :display_domain_index_cleaned
+              puts "  Cleaned #{r[:count]} stale display_domain_index entries"
+            when :stale_org_domains_removed
+              puts "  #{r[:org]}: removed #{r[:count]} stale org.domains entries"
+            when :added_to_org_domains
+              puts "  #{r[:domain]}: added to org.domains for #{r[:org]}"
+            when :owners_entry_realigned
+              destination = r[:org].to_s.empty? ? '(removed)' : r[:org]
+              puts "  #{r[:domain]}: CustomDomain.owners #{r[:previous_org]} -> #{destination}"
+            when :owners_index_realigned
+              puts "  Realigned #{r[:count]} stale CustomDomain.owners entries"
+            else
+              puts "  #{r[:action]}"
+            end
+          end
+          puts
+        end
+
+        if report[:failed_repairs].any?
+          puts 'Failed repairs:'
+          report[:failed_repairs].each do |failure|
+            puts "  #{failure[:domain]} (org #{failure[:org]}): #{failure[:error]}"
+          end
+          puts
+        end
+
+        return if report[:issues].empty?
+
+        puts 'Issues Found:'
+        puts '-' * 40
+
+        report[:issues].each do |issue_group|
+          puts
+          case issue_group[:type]
+          when :indexes
+            puts 'Index Integrity:'
+          when :org_domains
+            puts "Organization #{issue_group[:org_extid]} domains:"
+          when :familia_audit
+            puts "Familia Audit (#{issue_group[:model_class] || 'CustomDomain'}):"
+          else
+            puts "#{issue_group[:domain_fqdn]} (#{issue_group[:domain_extid]})"
+          end
+
+          issue_group[:issues].each do |issue|
+            severity_label = severity_tag(issue[:severity])
+            repairable     = issue[:repairable] ? '' : ' [manual fix required]'
+            puts "  #{severity_label} #{issue[:message]}#{repairable}"
+
+            puts "             #{issue[:repair_action]}" if issue[:repair_action]
+          end
+        end
+
+        return if repair
+
+        all_issues     = report[:issues].flat_map { |group| group[:issues] }
+        has_repairable = all_issues.any? { |i| i[:repairable] }
+
+        puts
+        puts '-' * 40
+        if has_repairable
+          puts 'To auto-repair repairable issues, run with --repair'
+        else
+          puts 'All issues require manual intervention.'
+        end
+      end
+      # rubocop:enable Metrics/PerceivedComplexity
+
+      def severity_tag(severity)
+        case severity
+        when :critical then '[CRITICAL]'
+        when :high     then '[HIGH]    '
+        when :medium   then '[MEDIUM]  '
+        when :warning  then '[WARNING] '
+        when :low      then '[LOW]     '
+        else                '[UNKNOWN] '
+        end
+      end
+
+      def exit_with_status(report, repair:)
+        # A repair we attempted and did not land is a hard failure, even when
+        # every other domain in the scan was fixed. Fail loud, not silently.
+        exit 1 if report[:failed_repairs].any?
+
+        return if report[:issues].empty?
+
+        all_issues     = report[:issues].flat_map { |group| group[:issues] }
+        has_repairable = all_issues.any? { |i| i[:repairable] }
+
+        if repair
+          # An unrelated successful repair cannot make an incomplete audit healthy.
+          exit 2 if all_issues.any? { |i| i[:check] == :ascii_index_unreadable }
+
+          if report[:repaired].empty?
+            if has_repairable
+              exit 1
+            else
+              puts
+              puts 'ERROR: --repair specified but no issues are auto-repairable.'
+              puts 'Manual intervention required.'
+              exit 2
+            end
+          end
+        else
+          exit 1
+        end
+      end
+    end
+    # rubocop:enable Metrics/ClassLength
+
+    register 'domains doctor', DomainsDoctorCommand
+  end
+end

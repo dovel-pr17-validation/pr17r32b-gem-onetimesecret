@@ -1,0 +1,213 @@
+# apps/web/core/logic/page/get_favicon.rb
+#
+# frozen_string_literal: true
+
+require 'chunky_png'
+require_relative '../base'
+require 'onetime/image_content'
+
+module Core
+  module Logic
+    module Page
+      # GetFavicon - Serve custom favicon for branded domains
+      #
+      # This logic class dynamically serves either:
+      # 1. Custom favicon from the custom domain's icon field (if available)
+      # 2. Custom favicon from the custom domain's logo field (fallback)
+      # 3. Default favicon from the resolved brand pack (public/branding/<pack>,
+      #    default: public/branding/default) via Onetime.brand_asset_path
+      #
+      # For custom favicons, it checks for a cached resized version (32x32)
+      # stored in the image hashkey's 'encoded_favicon' field. If not found,
+      # it generates and caches one from the original image.
+      #
+      # Uses metadata set by DetectHost and DomainStrategy middlewares,
+      # passed through auth strategy result:
+      # - strategy_result.metadata[:domain_strategy] - Domain classification (:custom, :canonical, etc.)
+      # - strategy_result.metadata[:display_domain] - Normalized domain name
+      #
+      class GetFavicon < Core::Logic::Base
+        attr_reader :custom_domain, :icon_data, :content_type, :content_length, :use_default, :image_source, :redirect_url
+
+        FAVICON_SIZE = 32 # 32x32 pixels
+
+        # ICO images are served as-is: browsers render .ico natively and
+        # ChunkyPNG can't decode/resize ICO, so we skip the PNG resize path (#3780).
+        ICO_CONTENT_TYPES = %w[image/x-icon image/vnd.microsoft.icon].freeze
+
+        def process_params
+          # Get domain strategy from auth metadata (set by DomainStrategy middleware,
+          # passed through auth strategy via build_metadata)
+          domain_strategy = strategy_result.metadata[:domain_strategy]
+          display_domain  = strategy_result.metadata[:display_domain]
+
+          OT.ld "[GetFavicon] strategy=#{domain_strategy} domain=#{display_domain}"
+
+          # A :custom classification carries the record DomainStrategy loaded
+          # (#4220): read it from the request's shared lookup instead of
+          # looking the display domain up again.
+          @custom_domain = custom_domain_lookup&.record if domain_strategy == :custom
+
+          @use_default = true # Default to OTS favicon
+        end
+
+        def raise_concerns
+          # No authorization required - public endpoint
+          # But we need to check if custom domain has an icon or logo
+          return unless custom_domain
+
+          # Check icon first, fall back to logo
+          icon_filename = custom_domain.icon['filename']
+          if icon_filename && !icon_filename.empty?
+            @image_source = :icon
+            @use_default  = false
+            return
+          end
+
+          # Fall back to logo if no icon
+          logo_filename = custom_domain.logo['filename']
+          if logo_filename && !logo_filename.empty?
+            @image_source = :logo
+            @use_default  = false
+          end
+        end
+
+        def process
+          if use_default
+            brand_favicon = OT.conf.dig('brand', 'favicon_url')
+            if brand_favicon && !brand_favicon.empty? && brand_favicon.start_with?('https://')
+              serve_redirect_favicon(brand_favicon)
+            else
+              serve_default_favicon
+            end
+          else
+            # Serve custom favicon from Redis (cached or generate)
+            serve_custom_favicon
+            # Existing uploads and derived caches predate byte validation. Do
+            # not send active content under a forged raster Content-Type.
+            detected_type = Onetime::ImageContent.content_type(icon_data)
+            if detected_type
+              @content_type = detected_type
+            else
+              serve_default_favicon
+            end
+          end
+        end
+
+        private
+
+        def serve_custom_favicon
+          # Get the image hashkey based on source (icon or logo)
+          image_hash = image_source == :icon ? custom_domain.icon : custom_domain.logo
+
+          # ICO images pass through unmodified — no ChunkyPNG resize, no
+          # encoded_favicon cache (browsers render .ico natively, #3780).
+          if ICO_CONTENT_TYPES.include?(image_hash['content_type'].to_s)
+            serve_ico_favicon(image_hash)
+            return
+          end
+
+          # Check if we have a cached favicon-sized version
+          cached_favicon = image_hash['encoded_favicon']
+
+          if cached_favicon.to_s.empty?
+            # No cached version - generate one
+            OT.ld "[GetFavicon] No cached favicon for #{custom_domain.display_domain} (source: #{image_source}), generating..."
+            generate_and_cache_favicon(image_hash)
+          else
+            # Use cached version
+            OT.ld "[GetFavicon] Serving cached favicon for #{custom_domain.display_domain} (source: #{image_source})"
+            begin
+              @icon_data = Base64.strict_decode64(cached_favicon)
+            rescue ArgumentError => ex
+              OT.le "[GetFavicon] Corrupted cached favicon for #{custom_domain.display_domain} (source: #{image_source}): #{ex.message}, regenerating"
+              generate_and_cache_favicon(image_hash)
+            end
+          end
+
+          @content_type   = 'image/png' # Resized favicons are always PNG
+          @content_length = icon_data.bytesize.to_s
+        end
+
+        def serve_ico_favicon(image_hash)
+          # Decode the original ICO bytes and serve them without resizing.
+          @icon_data      = Base64.strict_decode64(image_hash['encoded'])
+          @content_type   = 'image/x-icon'
+          @content_length = icon_data.bytesize.to_s
+          OT.ld "[GetFavicon] Serving ICO favicon for #{custom_domain.display_domain} (source: #{image_source})"
+        rescue ArgumentError => ex
+          OT.le "[GetFavicon] Corrupted ICO favicon for #{custom_domain.display_domain} (source: #{image_source}): #{ex.message}, serving default"
+          serve_default_favicon
+        end
+
+        def generate_and_cache_favicon(image_hash)
+          original_encoded = image_hash['encoded']
+          original_type    = image_hash['content_type']
+
+          # Decode original image
+          original_data = Base64.strict_decode64(original_encoded)
+
+          # Try to resize based on content type
+          resized_data = if original_type == 'image/png'
+                           resize_png(original_data)
+                         else
+                           # For non-PNG formats, use original for now
+                           # TODO: Add support for JPEG/WebP/etc with mini_magick or ruby-vips
+                           OT.ld "[GetFavicon] Non-PNG format #{original_type}, using original"
+                           original_data
+                         end
+
+          # Cache the resized favicon
+          encoded_favicon               = Base64.strict_encode64(resized_data)
+          image_hash['encoded_favicon'] = encoded_favicon
+
+          @icon_data = resized_data
+
+          OT.info "[GetFavicon] Generated and cached favicon for #{custom_domain.display_domain} (source: #{image_source})"
+        rescue StandardError => ex
+          # If resizing fails, fall back to original
+          OT.le "[GetFavicon] Failed to resize favicon: #{ex.message}"
+          @icon_data = Base64.strict_decode64(original_encoded)
+        end
+
+        def resize_png(png_data)
+          # Load PNG with ChunkyPNG
+          image = ChunkyPNG::Image.from_blob(png_data)
+
+          # Resize to FAVICON_SIZE x FAVICON_SIZE
+          resized = image.resample_nearest_neighbor(FAVICON_SIZE, FAVICON_SIZE)
+
+          # Return PNG data
+          resized.to_blob
+        end
+
+        def serve_redirect_favicon(url)
+          @redirect_url = url
+          OT.ld "[GetFavicon] Redirecting to brand favicon: #{url}"
+        end
+
+        def serve_default_favicon
+          # Read default favicon from public directory (overlay-first, #3739)
+          favicon_path = Onetime.brand_asset_path('favicon.ico')
+
+          if File.exist?(favicon_path)
+            @icon_data      = File.binread(favicon_path)
+            @content_type   = 'image/x-icon'
+            @content_length = icon_data.bytesize.to_s
+            OT.ld '[GetFavicon] Serving default favicon'
+          else
+            # Fallback to empty response if default doesn't exist
+            @icon_data      = ''
+            @content_type   = 'image/x-icon'
+            @content_length = '0'
+            OT.le "[GetFavicon] Default favicon not found at #{favicon_path}"
+          end
+        end
+
+        def success_data
+          icon_data
+        end
+      end
+    end
+  end
+end

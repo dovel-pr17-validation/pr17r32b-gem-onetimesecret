@@ -1,0 +1,514 @@
+// Vendored Approximated DNS widget v1, with Onetime Secret patches
+// (RISK-2026-08-14-M09). Every edit is marked `// OTS:`; re-apply them after
+// any vendor update.
+//
+//  1. HTML from the remote API (inst.html, verify_section.html) and templates
+//     carrying API values go through window.apxDns.insertHtml, which uses
+//     the host-installed window.apxDns.sanitizeHtml
+//     (src/shared/utils/dnsWidgetHtml.ts, installed by useDnsWidget) and
+//     inserts plain text when no sanitizer is installed (fail closed).
+//  2. API and config values interpolated into the widget's own templates are
+//     escaped with window.apxDns.escapeHtml.
+//  3. Inline on* handlers in the widget's templates are replaced with
+//     data-apxdns-action attributes, dispatched by delegated listeners on
+//     the widget root (bindActions / unbindActions / onActionClick /
+//     onActionSubmit). The sanitizer rewrites the remote markup's
+//     window.apxDns.* handlers the same way. Inline handlers are blocked by
+//     the nonce-only script-src anyway.
+//  4. showManualInstructions looks up data-apxid by value inside the widget
+//     root instead of building a selector from a remote string.
+//  5. Lifecycle: stop() tolerates a root that is already gone and a second
+//     call, and cancels the token-renewal timer. Async callbacks (provider
+//     instructions, verify results, token renewal) do nothing once the
+//     config they were started with has been stopped or replaced.
+window.apxDns = {
+    "init": function(config){
+        if(!('api_url' in config)){
+            config.api_url = "";
+        }
+
+        // OTS: keep the timer handle so stop() and a re-init can cancel it.
+        clearTimeout(window.apxDns.renewTimer);
+        window.apxDns.renewTimer = setTimeout(function(){ window.apxDns.renewToken(); }, 300000)
+        window.apxDns.keepRenewingToken = true;
+
+        if(!('widget_id' in config)){
+            config.widget_id = 'apxdnswidget';
+        }
+
+        window.apxDns.config = config;
+        // OTS: dispatch data-apxdns-action clicks and submits from the widget root.
+        window.apxDns.bindActions();
+        if(!('domain' in config)){
+            window.apxDns.showEnterDomain();
+        }else{
+            window.apxDns.domain = config.domain;
+            window.apxDns.can_restart = false;
+            window.apxDns.setDomain(config.domain);
+        }
+    },
+    "stop": function(){
+        // OTS: remove the delegated listeners bound in init.
+        window.apxDns.unbindActions();
+        // OTS: the host may already have removed the root (Vue's onUnmounted
+        // runs after the DOM is gone), and stop() may run twice.
+        var config = window.apxDns.config;
+        var widget = config ? document.getElementById(config.widget_id) : null;
+        if(widget){
+            widget.innerHTML = "";
+        }
+        clearTimeout(window.apxDns.renewTimer);
+        window.apxDns.renewTimer = null;
+        window.apxDns.keepRenewingToken = false;
+        window.apxDns.domain = null;
+        window.apxDns.can_restart = false;
+        window.apxDns.temp_records = null;
+        window.apxDns.config = null;
+
+        const event = new CustomEvent('apx-dnswidget-stopped', {});
+        document.dispatchEvent(event);
+    },
+    "renewToken": function(){
+        if(window.apxDns.keepRenewingToken === true){
+            // OTS: ignore the response if the widget was stopped or re-inited meanwhile.
+            var config = window.apxDns.config;
+            fetch(window.apxDns.config.api_url + "/token/renew", {
+                method: "POST",
+                cache: "no-cache",
+                headers: {
+                "Content-Type": "application/json",
+                },
+                body: JSON.stringify({"token": window.apxDns.config.token}),
+            }).then(function(resp){
+                resp.json().then(function(data){
+                    if(!window.apxDns.isCurrent(config)){ return; } // OTS
+                    window.apxDns.config.token = data.token
+                    // OTS: keep the timer handle (see init).
+                    window.apxDns.renewTimer = setTimeout(function(){ window.apxDns.renewToken(); }, 300000)
+                })
+            });
+        }
+    },
+    "showEnterDomain": function(domain, showSubdomain, subdomain){
+        var widget = document.getElementById(window.apxDns.config.widget_id);
+        // OTS: data-apxdns-action replaces onsubmit="return window.apxDns.submitDomain(this)";
+        // prefillDomain is escaped.
+        widget.innerHTML = `
+        <div class="apxdns-enter-domain-container">
+            <form data-apxdns-action="submitDomain">
+                <div class="apxdns-domain-container">
+                    <div class="apxdns-domain-input-label">Enter a domain or subdomain</div>
+                    <div class="apxdns-domain-tld-container">
+                        <input type="text" name="apxdns-domain-input" required="true" placeholder="yourdomain.com" value="${window.apxDns.escapeHtml(apxDns.config.prefillDomain || '')}" class="apxdns-domain-input">
+                    </div>
+                    <div class="apxdns-domain-explainer">For example: mydomain.com or app.mydomain.com</div>
+                </div>
+                <div class="apxdns-domain-button-container">
+                    <button type="submit" class="apxdns-domain-submit apxdns-button">Continue</button>
+                    <div class="apxdns-domain-loader apxdns-hide">
+                        <div class="loader"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        `
+    },
+    "submitDomain": function(form){;
+        let data = new FormData(form);
+        let domain_submit_btn_el = document.querySelector("#"+window.apxDns.config.widget_id+" .apxdns-domain-submit")
+
+        let loader_el = document.querySelector("#"+window.apxDns.config.widget_id+" .apxdns-domain-loader")
+        loader_el.classList.remove("apxdns-hide");
+        domain_submit_btn_el.classList.add("apxdns-disable-btn");
+        try {
+            const event = new CustomEvent('apx-dnswidget-user-submitted-domain', {
+                detail: data.get("apxdns-domain-input")
+            });
+            document.dispatchEvent(event);
+            window.apxDns.setDomain(data.get("apxdns-domain-input"));
+        } catch (e) {
+            throw new Error(e.message);
+        }
+        loader_el.classList.remove("apxdns-hide");
+        domain_submit_btn_el.classList.add("apxdns-disable-btn");
+        window.apxDns.can_restart = true;
+        return false; // cancels form action
+    },
+    "setDomain": function(domain){
+        window.apxDns.domain = domain;
+        window.apxDns.temp_records = window.apxDns.config.dnsRecords.map(function(record){
+            var temp = window.apxDns.deepClone(record);
+            if(!('domain' in temp)){
+                temp.domain = window.apxDns.domain;
+            }
+
+            if(temp.value === "{domain}"){
+                temp.value = window.apxDns.domain;
+            }
+            return temp;
+        })
+
+        // OTS: ignore the response if the widget was stopped or re-inited meanwhile.
+        var config = window.apxDns.config;
+        fetch(window.apxDns.config.api_url + "/get-provider-instructions", {
+            method: "POST",
+            cache: "no-cache",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({"records": window.apxDns.temp_records, "token": window.apxDns.config.token}),
+          }).then(function(resp){
+            resp.json().then(function(data){
+                if(!window.apxDns.isCurrent(config)){ return; } // OTS
+                window.apxDns.renderProviderInstructions(data);
+            })
+          });
+    },
+    "restart": function(){
+        const event = new CustomEvent('apx-dnswidget-restarted', {});
+        document.dispatchEvent(event);
+        window.apxDns.domain = null;
+        window.apxDns.temp_records = null;
+        this.showEnterDomain();
+    },
+    "renderProviderInstructions": function(data){
+        // OTS: nothing to render into once stopped or unmounted.
+        var widget = window.apxDns.config ? document.getElementById(window.apxDns.config.widget_id) : null;
+        if(!widget){
+            return;
+        }
+
+        widget.innerHTML = '';
+
+        if(window.apxDns.can_restart){
+            // OTS: data-apxdns-action replaces onclick="window.apxDns.restart()".
+            widget.innerHTML = `
+            <div class="apxdns-restart-section">
+                <button class="apxdns-restart-btn apxdns-text-btn" type="button" data-apxdns-action="restart">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                    </svg>
+                    Go back
+                </div>
+            </div>
+            `;
+        }
+
+        for(const key in data.domain_results){
+            data.domain_results[key].steps.forEach(function(inst, index){
+                // OTS: remote HTML goes through the sanitizer (was insertAdjacentHTML).
+                window.apxDns.insertHtml(widget, inst.html);
+            })
+        }
+
+        // OTS: remote HTML goes through the sanitizer (was insertAdjacentHTML).
+        window.apxDns.insertHtml(widget, data.verify_section.html);
+    },
+    "showManualInstructions": function(dataApxId){
+        // OTS: match data-apxid by value inside the widget root; the id comes
+        // from remote markup and is never spliced into a selector.
+        var widget = document.getElementById(window.apxDns.config.widget_id);
+        var wanted = String(dataApxId);
+        var matches = widget ? widget.querySelectorAll("[data-apxid]") : [];
+        for(var i = 0; i < matches.length; i++){
+            if(matches[i].getAttribute("data-apxid") === wanted){
+                matches[i].classList.toggle('apxdns-hide');
+                return;
+            }
+        }
+    },
+    "verifyRecords": function(){
+        let verify_btn_el = document.querySelector("#"+window.apxDns.config.widget_id+" .apxdns-verify-btn")
+        if(verify_btn_el.classList.contains("apxdns-disable-btn")){
+            return;
+        }
+        let loader_el = document.querySelector("#"+window.apxDns.config.widget_id+" .apxdns-verify-loader")
+        loader_el.classList.remove("apxdns-hide");
+        verify_btn_el.classList.add("apxdns-disable-btn");
+
+        let match_array = window.apxDns.temp_records.map(function(record){
+            return {
+                "apex": record.apex,
+                "tld": record.tld,
+                "domain": record.domain,
+                "host": record.host,
+                "value": record.value,
+                "match_against": record.value,
+                "type": record.type.toLowerCase()
+            };
+        })
+
+        // OTS: ignore the response if the widget was stopped or re-inited meanwhile.
+        var config = window.apxDns.config;
+        fetch(window.apxDns.config.api_url + "/token/check-records-match-exactly", {
+            method: "POST",
+            cache: "no-cache",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({"records": match_array, "token": window.apxDns.config.token})
+        }).then(function(resp){
+            resp.json().then(function(data){
+                if(!window.apxDns.isCurrent(config)){ return; } // OTS
+
+                let partially_verified = data.records.some(function(item){ return item.match === true });
+                let completely_verified = data.records.every(function(item){ return item.match === true });
+                let event_name = 'apx-dnswidget-records-failed-verification';
+
+                if(completely_verified === true){
+                    event_name = 'apx-dnswidget-records-completely-verified'
+                }else if(partially_verified === true){
+                    event_name = 'apx-dnswidget-records-partially-verified'
+                }
+
+                const event = new CustomEvent(event_name, {
+                    detail: data.records
+                });
+                document.dispatchEvent(event);
+
+
+                var domain_records = {};
+                data.records.forEach(function(record){
+                    if(!domain_records[record.apex + "." + record.tld]){
+                        domain_records[record.apex + "." +record.tld] = [];
+                    }
+                    domain_records[record.apex + "." + record.tld].push(record);
+                });
+
+                var verify_section = document.getElementById("apxdnswidget-verify-section");
+                verify_section.innerHTML = "";
+                // OTS: every API value below is escaped, and each template goes
+                // through the sanitizer (was insertAdjacentHTML).
+                var esc = window.apxDns.escapeHtml;
+
+                Object.keys(domain_records).forEach(function(apex_domain){
+                    window.apxDns.insertHtml(verify_section, `
+                    <div class="apxdns-verify-domain">Verify records for ${esc(apex_domain)}</div>
+                    `);
+
+
+                    domain_records[apex_domain].forEach(function(record){
+                        let actual_values_html = "";
+                        if(record.actual_values != record.value){
+                            actual_values_html = `
+                            <div class="apxdns-verify-record-actual-values">
+                                <div class="apxdns-record-actual-values-label">Actual value found:</div>
+                                <textarea rows="1" class="apxdns-verify-record-actual-values-textarea">${esc(record.actual_values || "No value set")}</textarea>
+                            </div>
+                            `
+                        }
+
+                        let verified = `
+                            <div class="apxdns-verify-record-result-container-false">
+                                False
+                            </div>
+                            `;
+                        if(record.match === true){
+                            verified = `
+                            <div class="apxdns-verify-record-result-container-true">
+                                True
+                            </div>
+                            `
+                        }
+
+                        window.apxDns.insertHtml(verify_section, `
+                        <div class="apxdns-verify-record apxdns-verify-record-is-${record.match === true}">
+                            <div class="apxdns-verify-record-slot">
+                                <div class="apxdns-verify-record-type"><span class="apxdns-verify-record-label-span">Type:</span> ${esc(record.type.toUpperCase())} record</div>
+                                <div class="apxdns-verify-record-address"><span class="apxdns-verify-record-label-span">Host:</span> ${esc(record.combined_host)}</div>
+                                <div class="apxdns-verify-record-address"><span class="apxdns-verify-record-label-span">Value:</span> ${esc(record.value)}</div>
+                                <div class="apxdns-verify-record-match"><span class="apxdns-verify-record-label-span">Verified:</span> ${verified}</div>
+                                ${actual_values_html}
+                            </div>
+                        </div>
+                    `);
+                    });
+                })
+
+                loader_el.classList.add("apxdns-hide");
+                verify_btn_el.classList.remove("apxdns-disable-btn");
+                if(window.apxDns.config.verifyAutoScroll !== false){
+                    verify_section.scrollIntoView({block: "start", inline: "nearest", behavior: "smooth"});
+                }
+            })
+        });
+    },
+    "copyInputText": function(input_el){
+        input_el.select();
+        input_el.setSelectionRange(0, 99999); // For mobile devices
+        navigator.clipboard.writeText(input_el.value);
+    },
+    // OTS: whether an async callback started under `config` may still touch
+    // the widget: not after stop() (config is null) or a re-init (new config).
+    "isCurrent": function(config){
+        return config !== null && config !== undefined && window.apxDns.config === config;
+    },
+    // OTS: escape a value for interpolation into a template (text or quoted attribute).
+    "escapeHtml": function(value){
+        return String(value === undefined || value === null ? "" : value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    },
+    // OTS: the only path from remote or API data to an HTML sink. Uses the
+    // host-installed sanitizer; without one, inserts the string as text
+    // (fail closed). A sanitizer that throws inserts nothing.
+    "insertHtml": function(el, html){
+        var source = String(html === undefined || html === null ? "" : html);
+        var sanitize = window.apxDns.sanitizeHtml;
+        if(typeof sanitize === "function"){
+            el.insertAdjacentHTML('beforeend', sanitize(source));
+        }else{
+            el.insertAdjacentText('beforeend', source);
+        }
+    },
+    // OTS: delegated listeners for data-apxdns-action (replace inline handlers).
+    "bindActions": function(){
+        window.apxDns.unbindActions();
+        var root = document.getElementById(window.apxDns.config.widget_id);
+        if(!root){
+            return;
+        }
+        root.addEventListener('click', window.apxDns.onActionClick);
+        root.addEventListener('submit', window.apxDns.onActionSubmit);
+        window.apxDns.actionRoot = root;
+    },
+    // OTS: counterpart of bindActions.
+    "unbindActions": function(){
+        var root = window.apxDns.actionRoot;
+        if(root){
+            root.removeEventListener('click', window.apxDns.onActionClick);
+            root.removeEventListener('submit', window.apxDns.onActionSubmit);
+        }
+        window.apxDns.actionRoot = null;
+    },
+    // OTS: dispatch a click on a data-apxdns-action element to its widget function.
+    "onActionClick": function(event){
+        var root = window.apxDns.actionRoot;
+        var target = event.target;
+        var el = target && typeof target.closest === "function" ? target.closest("[data-apxdns-action]") : null;
+        if(!el || !root || !root.contains(el)){
+            return;
+        }
+        var action = el.getAttribute("data-apxdns-action");
+        if(action === "submitDomain"){
+            return; // the form's submit event handles it
+        }
+        event.preventDefault();
+        if(action === "restart"){
+            window.apxDns.restart();
+        }else if(action === "verifyRecords"){
+            window.apxDns.verifyRecords();
+        }else if(action === "showManualInstructions"){
+            window.apxDns.showManualInstructions(el.getAttribute("data-apxdns-arg") || "");
+        }else if(action === "copyInputText"){
+            var field = window.apxDns.findCopyField(el);
+            if(field){
+                window.apxDns.copyInputText(field);
+            }
+        }
+    },
+    // OTS: submit the domain form without an inline onsubmit handler.
+    "onActionSubmit": function(event){
+        var root = window.apxDns.actionRoot;
+        var form = event.target;
+        if(!root || !form || !root.contains(form) || form.getAttribute("data-apxdns-action") !== "submitDomain"){
+            return;
+        }
+        event.preventDefault();
+        window.apxDns.submitDomain(form);
+    },
+    // OTS: the field a copy button copies: the input just before it, as the
+    // vendor's copyInputText(this.previousElementSibling) did; else the input
+    // in its copy container.
+    "findCopyField": function(el){
+        var previous = el.previousElementSibling;
+        if(previous && previous.matches("input, textarea")){
+            return previous;
+        }
+        var container = el.closest(".apxdns-input-copy-container");
+        return container ? container.querySelector("input, textarea") : null;
+    },
+    "deepClone": function(obj, hash = new WeakMap()) {
+        // Handle primitives and functions
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+
+        // Handle circular references
+        if (hash.has(obj)) {
+            return hash.get(obj);
+        }
+
+        // Handle different types of objects
+        // Date
+        if (obj instanceof Date) {
+            return new Date(obj);
+        }
+        // RegExp
+        if (obj instanceof RegExp) {
+            return new RegExp(obj.source, obj.flags);
+        }
+        // Map
+        if (obj instanceof Map) {
+            const clonedMap = new Map();
+            hash.set(obj, clonedMap);
+            obj.forEach((value, key) => {
+                clonedMap.set(
+                    window.apxDns.deepClone(key, hash),
+                    window.apxDns.deepClone(value, hash)
+                );
+            });
+            return clonedMap;
+        }
+        // Set
+        if (obj instanceof Set) {
+            const clonedSet = new Set();
+            hash.set(obj, clonedSet);
+            obj.forEach(value => {
+                clonedSet.add(window.apxDns.deepClone(value, hash));
+            });
+            return clonedSet;
+        }
+        // ArrayBuffer
+        if (obj instanceof ArrayBuffer) {
+            const clonedBuffer = obj.slice(0);
+            hash.set(obj, clonedBuffer);
+            return clonedBuffer;
+        }
+        // TypedArrays
+        if (ArrayBuffer.isView(obj)) {
+            const clonedView = new obj.constructor(
+                obj.buffer.slice(0),
+                obj.byteOffset,
+                obj.length
+            );
+            hash.set(obj, clonedView);
+            return clonedView;
+        }
+        // Array
+        if (Array.isArray(obj)) {
+            const clonedArr = [];
+            hash.set(obj, clonedArr);
+            clonedArr.push(...obj.map(item => window.apxDns.deepClone(item, hash)));
+            return clonedArr;
+        }
+
+        // Handle plain objects
+        const clonedObj = Object.create(Object.getPrototypeOf(obj));
+        hash.set(obj, clonedObj);
+
+        // Clone own properties
+        const descriptors = Object.getOwnPropertyDescriptors(obj);
+        for (const [key, descriptor] of Object.entries(descriptors)) {
+            if (typeof descriptor.value === 'object' && descriptor.value !== null) {
+                descriptor.value = window.apxDns.deepClone(descriptor.value, hash);
+            }
+            Object.defineProperty(clonedObj, key, descriptor);
+        }
+
+        return clonedObj;
+    }
+}

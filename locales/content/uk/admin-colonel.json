@@ -1,0 +1,814 @@
+{
+  "web.colonel.configEditorTitle": {
+    "text": "Налаштування",
+    "source_hash": "74a883a0"
+  },
+  "web.colonel.configEditorDescription": {
+    "text": "Редагуйте налаштування конфігурації системи. Зміни застосовуються одразу після збереження.",
+    "source_hash": "6025d269"
+  },
+  "web.colonel.invalidJson": {
+    "text": "Недійсний JSON у розділі {section}",
+    "source_hash": "a75ac7a3"
+  },
+  "web.colonel.validationError": {
+    "text": "Помилка валідації",
+    "source_hash": "2aa2d0b4"
+  },
+  "web.colonel.errorFetchingConfig": {
+    "text": "Помилка завантаження конфігурації",
+    "source_hash": "08baf6d2"
+  },
+  "web.colonel.errorSavingConfig": {
+    "text": "Помилка збереження конфігурації",
+    "source_hash": "48df54c7"
+  },
+  "web.colonel.configSaved": {
+    "text": "Конфігурацію успішно збережено",
+    "source_hash": "93b3d3e4"
+  },
+  "web.colonel.mustBeObject": {
+    "text": "Конфігурація повинна бути об'єктом JSON",
+    "source_hash": "74e8897e"
+  },
+  "web.colonel.multipleSectionsInvalid": {
+    "text": "Декілька розділів мають помилки валідації: {sections}",
+    "source_hash": "71fdaea1"
+  },
+  "web.colonel.sectionHasError": {
+    "text": "{section} має помилки валідації: {error}",
+    "source_hash": "e5e01aa0"
+  },
+  "web.colonel.sectionSaved": {
+    "text": "{section} успішно збережено",
+    "source_hash": "7be1d5d2"
+  },
+  "web.colonel.saveSection": {
+    "text": "Зберегти {section}",
+    "source_hash": "4a379f10"
+  },
+  "web.colonel.saveAll": {
+    "text": "Зберегти все",
+    "source_hash": "d3c54e39"
+  },
+  "web.colonel.unsavedChanges": {
+    "text": "Незбережені зміни",
+    "source_hash": "a710c2b9"
+  },
+  "web.colonel.schemaValidationError": {
+    "text": "Помилка валідації схеми: {message} ({path})",
+    "source_hash": "5f838cb2"
+  },
+  "web.colonel.unknownValidationError": {
+    "text": "Невідома помилка валідації: {error}",
+    "source_hash": "b6cf56ca"
+  },
+  "web.colonel.sectionEffectivelyEmpty": {
+    "text": "Розділ {section} не має налаштованих значень",
+    "source_hash": "efb63b77"
+  },
+  "web.colonel.dashboard": {
+    "text": "Панель керування",
+    "source_hash": "67b69646"
+  },
+  "web.colonel.admin": {
+    "text": "Адміністратор",
+    "source_hash": "c1c224b0"
+  },
+  "web.colonel.activity": {
+    "text": "Активність",
+    "source_hash": "38da1505"
+  },
+  "web.colonel.accounts": {
+    "text": "Облікові записи",
+    "source_hash": "8a7c8b67"
+  },
+  "web.colonel.users": {
+    "text": "Користувачі",
+    "source_hash": "6b0cc904"
+  },
+  "web.colonel.usersDescription": {
+    "text": "Керування обліковими записами користувачів та дозволами",
+    "source_hash": "6cfc012c"
+  },
+  "web.colonel.domains": {
+    "text": "Домени",
+    "source_hash": "ced67718"
+  },
+  "web.colonel.settings": {
+    "text": "Налаштування",
+    "source_hash": "74a883a0"
+  },
+  "web.colonel.system": {
+    "text": "Система",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.welcome": {
+    "text": "Ласкаво просимо до Адміністратора",
+    "source_hash": "7881ca9e"
+  },
+  "web.colonel.welcomeDesc": {
+    "text": "Панель адміністративного управління для OneTimeSecret",
+    "source_hash": "57c1e752"
+  },
+  "web.colonel.quickActions": {
+    "text": "Швидкі дії",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.colonel.recentActivity": {
+    "text": "Нещодавня активність",
+    "source_hash": "9ef7d438"
+  },
+  "web.colonel.viewAll": {
+    "text": "Переглянути все",
+    "source_hash": "ff5573a6"
+  },
+  "web.colonel.activityPlaceholder": {
+    "text": "Тут будуть відображатися дані активності",
+    "source_hash": "aaf9e948"
+  },
+  "web.colonel.stats.totalSecrets": {
+    "text": "Всього таємниць",
+    "source_hash": "e17a5459"
+  },
+  "web.colonel.stats.activeUsers": {
+    "text": "Активних користувачів",
+    "source_hash": "5639b9f1"
+  },
+  "web.colonel.stats.secretsToday": {
+    "text": "Таємниць сьогодні",
+    "source_hash": "aefbd2db"
+  },
+  "web.colonel.stats.secretsCreated": {
+    "text": "Створено таємниць",
+    "source_hash": "a97ee479"
+  },
+  "web.colonel.stats.secretsShared": {
+    "text": "Поділено таємницями",
+    "source_hash": "5deb082c"
+  },
+  "web.colonel.stats.totalCustomers": {
+    "text": "Всього користувачів",
+    "source_hash": "0ca3aa44"
+  },
+  "web.colonel.stats.emailsSent": {
+    "text": "Надіслано листів",
+    "source_hash": "87cfb3ab"
+  },
+  "web.colonel.stats.systemHealth": {
+    "text": "Стан системи",
+    "source_hash": "c3d66242"
+  },
+  "web.colonel.stats.healthy": {
+    "text": "Справна",
+    "source_hash": "7f1e323b"
+  },
+  "web.colonel.actions.viewActivity": {
+    "text": "Переглянути активність",
+    "source_hash": "9c28f55c"
+  },
+  "web.colonel.actions.viewActivityDesc": {
+    "text": "Моніторинг системної активності та використання",
+    "source_hash": "f88e9eda"
+  },
+  "web.colonel.actions.manageAccounts": {
+    "text": "Керувати обліковими записами",
+    "source_hash": "9d114268"
+  },
+  "web.colonel.actions.manageAccountsDesc": {
+    "text": "Адміністрування облікових записів користувачів",
+    "source_hash": "d73af927"
+  },
+  "web.colonel.actions.configureDomains": {
+    "text": "Налаштувати домени",
+    "source_hash": "74402af9"
+  },
+  "web.colonel.actions.configureDomainsDesc": {
+    "text": "Налаштування домену та DNS",
+    "source_hash": "1f712094"
+  },
+  "web.colonel.actions.systemSettings": {
+    "text": "Системні налаштування",
+    "source_hash": "1f87f883"
+  },
+  "web.colonel.actions.systemSettingsDesc": {
+    "text": "Конфігурація додатку",
+    "source_hash": "923dc672"
+  },
+  "web.colonel.backgroundJobs": {
+    "text": "Фонові завдання",
+    "source_hash": "48937049"
+  },
+  "web.colonel.queueStatus": {
+    "text": "Статус черги",
+    "source_hash": "3421ffa8"
+  },
+  "web.colonel.queueName": {
+    "text": "Черга",
+    "source_hash": "3b2fe03e"
+  },
+  "web.colonel.pendingMessages": {
+    "text": "В очікуванні",
+    "source_hash": "331551b0"
+  },
+  "web.colonel.consumers": {
+    "text": "Споживачі",
+    "source_hash": "212b350d"
+  },
+  "web.colonel.processingRate": {
+    "text": "Швидкість/сек",
+    "source_hash": "cfde439c"
+  },
+  "web.colonel.connectionStatus": {
+    "text": "Статус з'єднання",
+    "source_hash": "3693e288"
+  },
+  "web.colonel.workerHealth": {
+    "text": "Стан воркерів",
+    "source_hash": "52be3ac1"
+  },
+  "web.colonel.activeWorkers": {
+    "text": "активних воркерів",
+    "source_hash": "ea68cfee"
+  },
+  "web.colonel.noQueueData": {
+    "text": "Дані черги недоступні",
+    "source_hash": "331ffa6b"
+  },
+  "web.colonel.loadingQueueData": {
+    "text": "Завантаження даних черги...",
+    "source_hash": "a3762a00"
+  },
+  "web.colonel.testPlanMode": {
+    "text": "Режим тестування плану",
+    "source_hash": "eba59223"
+  },
+  "web.colonel.testingAsPlan": {
+    "text": "Тестування як {planName}",
+    "source_hash": "b3032f1a"
+  },
+  "web.colonel.clickToReset": {
+    "text": "Натисніть для скидання",
+    "source_hash": "4b25034d"
+  },
+  "web.colonel.selectTestPlan": {
+    "text": "Виберіть план для тестування",
+    "source_hash": "9e6e12fe"
+  },
+  "web.colonel.resetToActual": {
+    "text": "Скинути до фактичного плану",
+    "source_hash": "2cea3f92"
+  },
+  "web.colonel.currentActualPlan": {
+    "text": "Поточний план",
+    "source_hash": "37ca715f"
+  },
+  "web.colonel.availablePlans": {
+    "text": "Доступні плани",
+    "source_hash": "20efa44d"
+  },
+  "web.colonel.activateTestMode": {
+    "text": "Активувати тестовий режим",
+    "source_hash": "0f469baa"
+  },
+  "web.colonel.testModeActive": {
+    "text": "Тестовий режим активний",
+    "source_hash": "ae2c8dd9"
+  },
+  "web.colonel.testModeDescription": {
+    "text": "Тестуйте свій додаток з різними правами плану. Зміни тимчасові та впливають лише на Вашу сесію.",
+    "source_hash": "be03a409"
+  },
+  "web.colonel.warningTestMode": {
+    "text": "Ви тестуєте з правами {planName} (тимчасове перевизначення сесії).",
+    "source_hash": "1a8aecf1"
+  },
+  "web.colonel.organizations.title": {
+    "text": "Організації",
+    "source_hash": "2730183d"
+  },
+  "web.colonel.organizations.description": {
+    "text": "Моніторинг стану синхронізації платежів організацій",
+    "source_hash": "d8f4398b"
+  },
+  "web.colonel.organizations.pageTitle": {
+    "text": "Монітор стану платежів",
+    "source_hash": "9ef57da4"
+  },
+  "web.colonel.organizations.organizationsCount": {
+    "text": "{count} організацій",
+    "source_hash": "bc2feb56"
+  },
+  "web.colonel.organizations.needAttention": {
+    "text": "{count} потребують уваги",
+    "source_hash": "1c8e5840"
+  },
+  "web.colonel.organizations.unknownCount": {
+    "text": "{count} невідомо",
+    "source_hash": "b7bf2cf1"
+  },
+  "web.colonel.organizations.noOrganizations": {
+    "text": "Організацій не знайдено",
+    "source_hash": "538995db"
+  },
+  "web.colonel.organizations.filters.syncStatus": {
+    "text": "Статус синхронізації",
+    "source_hash": "b3998276"
+  },
+  "web.colonel.organizations.filters.subscription": {
+    "text": "Підписка",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.filters.all": {
+    "text": "Всі",
+    "source_hash": "a52ace42"
+  },
+  "web.colonel.organizations.filters.potentiallyStale": {
+    "text": "Можливо застаріло",
+    "source_hash": "40137b37"
+  },
+  "web.colonel.organizations.filters.unknown": {
+    "text": "Невідомо",
+    "source_hash": "b764cdc0"
+  },
+  "web.colonel.organizations.filters.synced": {
+    "text": "Синхронізовано",
+    "source_hash": "5da22fe4"
+  },
+  "web.colonel.organizations.filters.active": {
+    "text": "Активна",
+    "source_hash": "92340695"
+  },
+  "web.colonel.organizations.filters.trialing": {
+    "text": "Пробний період",
+    "source_hash": "3792573d"
+  },
+  "web.colonel.organizations.filters.pastDue": {
+    "text": "Прострочено",
+    "source_hash": "2bda1c7b"
+  },
+  "web.colonel.organizations.filters.canceled": {
+    "text": "Скасовано",
+    "source_hash": "13ca2ee2"
+  },
+  "web.colonel.organizations.columns.account": {
+    "text": "Обліковий запис",
+    "source_hash": "7e1b0d56"
+  },
+  "web.colonel.organizations.columns.billing": {
+    "text": "Оплата",
+    "source_hash": "3ac8bbca"
+  },
+  "web.colonel.organizations.columns.status": {
+    "text": "Статус",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.organizations.columns.usage": {
+    "text": "Використання",
+    "source_hash": "8d59829c"
+  },
+  "web.colonel.organizations.columns.created": {
+    "text": "Створено",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.organizations.columns.details": {
+    "text": "Деталі",
+    "source_hash": "45989de4"
+  },
+  "web.colonel.organizations.columns.owner": {
+    "text": "Власник",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.colonel.organizations.columns.plan": {
+    "text": "План",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.colonel.organizations.columns.members": {
+    "text": "Учасники",
+    "source_hash": "1044a4c0"
+  },
+  "web.colonel.organizations.columns.domains": {
+    "text": "Домени",
+    "source_hash": "ced67718"
+  },
+  "web.colonel.organizations.columns.subscription": {
+    "text": "Підписка",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.columns.default_workspace": {
+    "text": "Робоча область за замовчуванням",
+    "source_hash": "53aa279e"
+  },
+  "web.colonel.organizations.columns.has_billing": {
+    "text": "Має оплату",
+    "source_hash": "db0628ed"
+  },
+  "web.colonel.organizations.legacy.title": {
+    "text": "Адміністрування оплати організацій",
+    "source_hash": "5c7e07e7"
+  },
+  "web.colonel.organizations.legacy.description": {
+    "text": "Керування організаціями та моніторинг стану синхронізації оплати ({total} всього)",
+    "source_hash": "996b446d"
+  },
+  "web.colonel.organizations.legacy.empty": {
+    "text": "Організацій не знайдено",
+    "source_hash": "538995db"
+  },
+  "web.colonel.organizations.legacy.potentially_stale": {
+    "text": "можливо застаріло",
+    "source_hash": "3ddfec45"
+  },
+  "web.colonel.organizations.status.stale": {
+    "text": "Застаріло",
+    "source_hash": "40c9e59c"
+  },
+  "web.colonel.organizations.status.unknown": {
+    "text": "Невідомо",
+    "source_hash": "b764cdc0"
+  },
+  "web.colonel.organizations.status.active": {
+    "text": "активна",
+    "source_hash": "96879611"
+  },
+  "web.colonel.organizations.actions.investigate": {
+    "text": "Дослідити",
+    "source_hash": "e2641093"
+  },
+  "web.colonel.organizations.actions.checking": {
+    "text": "Перевірка...",
+    "source_hash": "2e5f79bb"
+  },
+  "web.colonel.organizations.expanded.customer": {
+    "text": "Клієнт",
+    "source_hash": "bf376338"
+  },
+  "web.colonel.organizations.expanded.subscription": {
+    "text": "Підписка",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.expanded.orgId": {
+    "text": "ID організації",
+    "source_hash": "5e6b9932"
+  },
+  "web.colonel.organizations.investigation.failed": {
+    "text": "Дослідження не вдалося",
+    "source_hash": "193aa900"
+  },
+  "web.colonel.organizations.investigation.result": {
+    "text": "Результат дослідження",
+    "source_hash": "2dbc5cc3"
+  },
+  "web.colonel.organizations.investigation.verifiedSynced": {
+    "text": "Підтверджено синхронізацію",
+    "source_hash": "d92625c2"
+  },
+  "web.colonel.organizations.investigation.mismatchFound": {
+    "text": "Знайдено невідповідність",
+    "source_hash": "361d22f3"
+  },
+  "web.colonel.organizations.investigation.unableToCompare": {
+    "text": "Неможливо порівняти",
+    "source_hash": "64c822ee"
+  },
+  "web.colonel.organizations.investigation.stripeDetails": {
+    "text": "Деталі підписки Stripe",
+    "source_hash": "53a7b0ea"
+  },
+  "web.colonel.organizations.investigation.statusLabel": {
+    "text": "Статус",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.organizations.investigation.product": {
+    "text": "Продукт",
+    "source_hash": "fb9ef894"
+  },
+  "web.colonel.organizations.investigation.resolvedPlan": {
+    "text": "Визначений план",
+    "source_hash": "17c5b37a"
+  },
+  "web.colonel.organizations.investigation.priceId": {
+    "text": "ID ціни",
+    "source_hash": "b39a8f3e"
+  },
+  "web.colonel.organizations.investigation.local": {
+    "text": "Локально",
+    "source_hash": "8c31e6e7"
+  },
+  "web.colonel.organizations.investigation.stripe": {
+    "text": "Stripe",
+    "source_hash": "961a6062"
+  },
+  "web.colonel.organizations.usage.members": {
+    "text": "{count} учасників",
+    "source_hash": "201eb3d9"
+  },
+  "web.colonel.organizations.usage.domains": {
+    "text": "{count} доменів",
+    "source_hash": "cf548c8c"
+  },
+  "web.colonel.secrets.title": {
+    "text": "Таємниці",
+    "source_hash": "d8707d41"
+  },
+  "web.colonel.secrets.description": {
+    "text": "Перегляд та керування всіма таємницями",
+    "source_hash": "48f8052e"
+  },
+  "web.colonel.usageExport.title": {
+    "text": "Експорт використання",
+    "source_hash": "10a0cb94"
+  },
+  "web.colonel.usageExport.description": {
+    "text": "Експорт даних використання та статистики",
+    "source_hash": "2fd0a2e2"
+  },
+  "web.colonel.systemSettings.title": {
+    "text": "Система",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.systemSettings.description": {
+    "text": "Системні налаштування, бази даних та конфігурація",
+    "source_hash": "7690b296"
+  },
+  "web.colonel.customDomains.title": {
+    "text": "Власні домени",
+    "source_hash": "6170ab94"
+  },
+  "web.colonel.customDomains.description": {
+    "text": "Керування власними доменами та брендуванням",
+    "source_hash": "808ee2cb"
+  },
+  "web.colonel.feedback.send_feedback": {
+    "text": "Надіслати відгук",
+    "source_hash": "8235980b"
+  },
+  "web.colonel.feedback.sending_ellipses": {
+    "text": "Надсилання...",
+    "source_hash": "286a3af7"
+  },
+  "web.colonel.titles.index": {
+    "text": "Адміністрування",
+    "source_hash": "4b42c669"
+  },
+  "web.colonel.titles.users": {
+    "text": "Керування користувачами",
+    "source_hash": "fe45f3a1"
+  },
+  "web.colonel.titles.domains": {
+    "text": "Власні домени",
+    "source_hash": "6170ab94"
+  },
+  "web.colonel.titles.system": {
+    "text": "Система",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.titles.maindb": {
+    "text": "Основна база даних",
+    "source_hash": "c4545e98"
+  },
+  "web.colonel.titles.authdb": {
+    "text": "База даних автентифікації",
+    "source_hash": "c683c9a6"
+  },
+  "web.colonel.titles.usage": {
+    "text": "Експорт використання",
+    "source_hash": "10a0cb94"
+  },
+  "web.colonel.titles.info": {
+    "text": "Інформація про систему",
+    "source_hash": "8ad54ec1"
+  },
+  "web.colonel.titles.organizations": {
+    "text": "Організації",
+    "source_hash": "2730183d"
+  },
+  "web.colonel.titles.redis": {
+    "text": "Redis",
+    "source_hash": "a7f64157"
+  },
+  "web.colonel.feedback.when_you_submit_feedback_well_see": {
+    "text": "Коли Ви надішлете відгук, ми побачимо:",
+    "source_hash": "fe77172e"
+  },
+  "web.colonel.previewPlanMode": {
+    "text": "Режим попереднього перегляду тарифного плану",
+    "source_hash": "cf53f19d"
+  },
+  "web.colonel.previewModeDescription": {
+    "text": "Перегляньте застосунок таким, яким його бачать клієнти на іншому тарифному плані. Це впливає лише на ваш вигляд і не змінює фактичний тарифний план жодної організації.",
+    "source_hash": "6fe23f23"
+  },
+  "web.colonel.previewModeActive": {
+    "text": "Попередній перегляд активний",
+    "source_hash": "a558d603"
+  },
+  "web.colonel.customDomains.empty": {
+    "text": "Користувацькі домени не налаштовано",
+    "source_hash": "e10b39f7"
+  },
+  "web.colonel.customDomains.noLogo": {
+    "text": "Без логотипа",
+    "source_hash": "ee5e36ff"
+  },
+  "web.colonel.customDomains.labels.organization": {
+    "text": "Організація",
+    "source_hash": "d764d425"
+  },
+  "web.colonel.customDomains.labels.externalId": {
+    "text": "Зовнішній ідентифікатор",
+    "source_hash": "69da56ba"
+  },
+  "web.colonel.customDomains.labels.created": {
+    "text": "Створено",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.customDomains.labels.updated": {
+    "text": "Оновлено",
+    "source_hash": "3a5ecca1"
+  },
+  "web.colonel.customDomains.labels.favicon": {
+    "text": "Favicon",
+    "source_hash": "42955289"
+  },
+  "web.colonel.customDomains.status.verified": {
+    "text": "Перевірено",
+    "source_hash": "4f783840"
+  },
+  "web.colonel.customDomains.status.resolving": {
+    "text": "Визначення",
+    "source_hash": "3287a034"
+  },
+  "web.colonel.customDomains.status.ready": {
+    "text": "Готово",
+    "source_hash": "5fa7aac5"
+  },
+  "web.colonel.customDomains.status.publicHomepage": {
+    "text": "Публічна головна сторінка",
+    "source_hash": "2ae3ccba"
+  },
+  "web.colonel.customDomains.status.publicApi": {
+    "text": "Публічний API",
+    "source_hash": "ab3aa426"
+  },
+  "web.colonel.customDomains.status.pending": {
+    "text": "Очікування",
+    "source_hash": "331551b0"
+  },
+  "web.colonel.pagination.showing": {
+    "text": "Показано {start}–{end} із {total}",
+    "source_hash": "64af6de2"
+  },
+  "web.colonel.pagination.itemsPerPage": {
+    "text": "Елементів на сторінці",
+    "source_hash": "766a02e0"
+  },
+  "web.colonel.pagination.perPage": {
+    "text": "{count} на сторінці",
+    "source_hash": "34671d42"
+  },
+  "web.colonel.pagination.pageOf": {
+    "text": "Сторінка {current} із {total}",
+    "source_hash": "f0df6412"
+  },
+  "web.colonel.secrets.empty": {
+    "text": "Таємниць не знайдено",
+    "source_hash": "28647b3b"
+  },
+  "web.colonel.secrets.never": {
+    "text": "Ніколи",
+    "source_hash": "6300ef80"
+  },
+  "web.colonel.secrets.columns.shortId": {
+    "text": "Короткий ідентифікатор",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.colonel.secrets.columns.state": {
+    "text": "Стан",
+    "source_hash": "a3b50c47"
+  },
+  "web.colonel.secrets.columns.created": {
+    "text": "Створено",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.secrets.columns.expiration": {
+    "text": "Термін дії",
+    "source_hash": "f38d6e0e"
+  },
+  "web.colonel.secrets.columns.age": {
+    "text": "Вік (днів)",
+    "source_hash": "52ae64c6"
+  },
+  "web.colonel.secrets.state.new": {
+    "text": "Нова",
+    "source_hash": "18fdd549"
+  },
+  "web.colonel.secrets.state.received": {
+    "text": "Отримано",
+    "source_hash": "49f19bee"
+  },
+  "web.colonel.secrets.state.viewed": {
+    "text": "Переглянуто",
+    "source_hash": "1b28d178"
+  },
+  "web.colonel.backToSite": {
+    "text": "Назад до сайту",
+    "source_hash": "4ee0f819"
+  },
+  "web.colonel.customDomains.labels.domain": {
+    "text": "Домен",
+    "source_hash": "79fa3361"
+  },
+  "web.colonel.customDomains.labels.status": {
+    "text": "Статус",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.customDomains.labels.actions": {
+    "text": "Дії",
+    "source_hash": "ff8059dc"
+  },
+  "web.colonel.nav.consoleTag": {
+    "text": "Консоль",
+    "source_hash": "29a40861"
+  },
+  "web.colonel.nav.groups.identity": {
+    "text": "Ідентичність",
+    "source_hash": "999f23fc"
+  },
+  "web.colonel.nav.groups.security": {
+    "text": "Доступ і безпека",
+    "source_hash": "abb29a3f"
+  },
+  "web.colonel.nav.groups.platform": {
+    "text": "Платформа",
+    "source_hash": "c78ffe19"
+  },
+  "web.colonel.nav.groups.billing": {
+    "text": "Оплата",
+    "source_hash": "3ac8bbca"
+  },
+  "web.colonel.nav.groups.communications": {
+    "text": "Комунікації",
+    "source_hash": "919a9253"
+  },
+  "web.colonel.organizations.sameAsContact": {
+    "text": "Як у контакті",
+    "source_hash": "ed18ff43"
+  },
+  "web.colonel.organizations.refresh": {
+    "text": "Оновити",
+    "source_hash": "0e916101"
+  },
+  "web.colonel.organizations.columns.name": {
+    "text": "Назва",
+    "source_hash": "dcd1d522"
+  },
+  "web.colonel.organizations.columns.contactEmail": {
+    "text": "Контактна електронна адреса",
+    "source_hash": "6d7fce11"
+  },
+  "web.colonel.organizations.columns.billingEmail": {
+    "text": "Електронна адреса для виставлення рахунків",
+    "source_hash": "8805b928"
+  },
+  "web.colonel.organizations.columns.planSubscription": {
+    "text": "План і підписка",
+    "source_hash": "b396caac"
+  },
+  "web.colonel.organizations.filters.searchPlaceholder": {
+    "text": "Шукати за ID, назвою або електронною адресою",
+    "source_hash": "6fe16473"
+  },
+  "web.colonel.organizations.capped": {
+    "text": "Результати обмежено: показана кількість є нижньою межею, а не загальною кількістю. Фільтри охоплюють усі організації, пов'язані з підпискою, а також нещодавно оновлені; щоб знайти будь-яку іншу, шукайте за точним ID або email.",
+    "source_hash": "0743238d"
+  },
+  "web.impersonation.banner.label": {
+    "text": "Активний вхід від імені клієнта",
+    "source_hash": "d96f0e8d"
+  },
+  "web.impersonation.banner.viewingAs": {
+    "text": "Перегляд від імені {email}",
+    "source_hash": "cf2dd9c6"
+  },
+  "web.impersonation.banner.readOnly": {
+    "text": "Лише читання: під час входу від імені клієнта зміни заблоковано.",
+    "source_hash": "46ed3b68"
+  },
+  "web.impersonation.banner.expiresIn": {
+    "text": "Завершиться через {time}",
+    "source_hash": "b4999fd8"
+  },
+  "web.impersonation.banner.stop": {
+    "text": "Завершити вхід від імені",
+    "source_hash": "5cf74e38"
+  },
+  "web.impersonation.banner.stopping": {
+    "text": "Завершення…",
+    "source_hash": "bbe85741"
+  },
+  "web.impersonation.banner.stopFailed": {
+    "text": "Не вдалося завершити вхід від імені клієнта. Спробуйте ще раз.",
+    "source_hash": "5aa72353"
+  }
+}

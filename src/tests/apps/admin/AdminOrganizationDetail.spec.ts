@@ -1,0 +1,1076 @@
+// src/tests/apps/admin/AdminOrganizationDetail.spec.ts
+
+import { flushPromises, mount, RouterLinkStub, VueWrapper } from '@vue/test-utils';
+import { AxiosError } from 'axios';
+import { createPinia, setActivePinia } from 'pinia';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockApi = {
+  get: vi.fn(),
+  post: vi.fn(),
+  delete: vi.fn(),
+};
+vi.mock('@/shared/composables/useApi', () => ({ useApi: () => mockApi }));
+
+const showMock = vi.fn();
+vi.mock('@/shared/stores/notificationsStore', () => ({
+  useNotificationsStore: () => ({ show: showMock }),
+}));
+
+const pushMock = vi.fn();
+// `isNavigationFailure` is reached by the shared error classifier on every
+// failed mutation, so the mock carries it for the member-action failure paths.
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: pushMock }),
+  isNavigationFailure: () => false,
+}));
+
+// Member remove / change role are TIER 1: the opener awaits ensureElevated()
+// before the dialog opens. Controlled here so a spec can hold the prompt open,
+// cancel it, or answer it.
+const ensureElevatedMock = vi.fn<() => Promise<boolean>>();
+const requestElevationMock = vi.fn<() => Promise<boolean>>();
+vi.mock('@/apps/admin/composables/useColonelElevation', () => ({
+  useColonelElevation: () => ({
+    ensureElevated: ensureElevatedMock,
+    requestElevation: requestElevationMock,
+    noteElevationRequired: vi.fn(),
+  }),
+  // The kit dialogs host the prompt (useElevationPromptHost) and read this.
+  elevationPromptOpen: { value: false },
+}));
+
+// The open kit dialog hosts the console's step-up prompt, which reads the
+// whole composable; with the composable mocked above, the prompt is stubbed.
+vi.mock('@/apps/admin/components/ElevationPrompt.vue', () => ({
+  default: { name: 'ElevationPrompt', template: '<span data-testid="elevation-prompt-stub" />' },
+}));
+
+vi.mock('@/utils/format', () => ({
+  formatDisplayDateTime: (d: Date) => `DT:${d.toISOString()}`,
+}));
+
+vi.mock('@/shared/components/icons/OIcon.vue', () => ({
+  default: {
+    name: 'OIcon',
+    template: '<span class="o-icon" :data-name="name" />',
+    props: ['collection', 'name', 'class', 'size', 'aria-label'],
+  },
+}));
+
+// CopyButton (used by RevealEmail + JsonViewer) touches navigator.clipboard; stub.
+vi.mock('@/shared/components/ui/CopyButton.vue', () => ({
+  default: {
+    name: 'CopyButton',
+    template: '<button class="copy-button" />',
+    props: ['text', 'tooltip', 'testid'],
+  },
+}));
+
+// Render the headlessui confirm dialog synchronously in jsdom.
+vi.mock('@headlessui/vue', () => ({
+  Dialog: {
+    name: 'Dialog',
+    template: '<div role="dialog" @close="$emit(\'close\')"><slot /></div>',
+    props: ['class'],
+    emits: ['close'],
+  },
+  DialogPanel: {
+    name: 'DialogPanel',
+    template: '<div class="dialog-panel" :data-testid="$attrs[\'data-testid\']"><slot /></div>',
+    props: ['class'],
+  },
+  DialogTitle: { name: 'DialogTitle', template: '<h3><slot /></h3>', props: ['as', 'class'] },
+  TransitionRoot: {
+    name: 'TransitionRoot',
+    template: '<div v-if="show"><slot /></div>',
+    props: ['as', 'show'],
+  },
+  TransitionChild: { name: 'TransitionChild', template: '<div><slot /></div>', props: ['as'] },
+}));
+
+import AdminCheckoutLinkModal from '@/apps/admin/components/AdminCheckoutLinkModal.vue';
+import AdminOrganizationDetail from '@/apps/admin/views/AdminOrganizationDetail.vue';
+import { createTestI18n } from '@tests/setup';
+
+const i18n = createTestI18n();
+const PUBLIC_ID = 'on_abc123';
+/**
+ * The organization NAME the server gates every org-scoped destructive verb on
+ * (#4326) — an identifier the URL (an org id) does not carry.
+ */
+const CONFIRM_HEADERS = { headers: { 'X-OTS-Confirm': encodeURIComponent('Acme') } };
+
+function detailPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    shrimp: '',
+    record: {
+      org_id: 'org1',
+      extid: PUBLIC_ID,
+      display_name: 'Acme',
+      description: 'Acme workspace',
+      is_default: false,
+      archived: false,
+      archived_at: null,
+      archived_comment: null,
+      contact_email: 'owner@acme.test',
+      owner_id: 'cust1',
+      owner_email: 'ow***@a***.test',
+      billing_email: 'billing@acme.test',
+      member_count: 1,
+      domain_count: 1,
+      created: 1700000000,
+      updated: 1700003600,
+      planid: 'identity_plus_v1',
+      stripe_customer_id: 'cus_123',
+      stripe_subscription_id: 'sub_123',
+      subscription_status: 'active',
+      subscription_period_end: '2026-01-01',
+      billing_email_present: true,
+      sync_status: 'potentially_stale',
+      sync_status_reason: 'planid differs from Stripe',
+    },
+    details: {
+      entitlements: {
+        plan: ['create_secrets'],
+        grants: ['custom_domains'],
+        revokes: [],
+        materialized: ['create_secrets', 'custom_domains'],
+        expected: ['create_secrets', 'custom_domains'],
+        materialized_flag: true,
+        materialized_at: 1700000000,
+        plan_stale: false,
+        drift: { extra: [], missing: [], in_sync: true },
+      },
+      // The billing catalog the override picker offers (same source as the
+      // server's known_entitlement? predicate).
+      available_entitlements: [
+        {
+          name: 'api_access',
+          description: 'Can use REST API endpoints',
+          category: 'infrastructure',
+        },
+        { name: 'create_secrets', description: 'Can create basic secrets', category: 'core' },
+        {
+          name: 'custom_domains',
+          description: 'Can configure custom domains',
+          category: 'infrastructure',
+        },
+      ],
+      members: [
+        {
+          extid: 'mem_1',
+          email: 'alice@example.com',
+          role: 'owner',
+          status: 'active',
+          is_owner: true,
+          joined_at: 1700000000,
+          created: 1700000000,
+        },
+      ],
+      domains: [
+        {
+          extid: 'dom_1',
+          domain_id: 'd1',
+          display_domain: 'secrets.acme.test',
+          base_domain: 'acme.test',
+          status: 'active',
+          verified: true,
+          resolving: true,
+          verification_state: 'verified',
+          ready: true,
+          created: 1700000000,
+        },
+      ],
+    },
+    ...overrides,
+  };
+}
+
+/** Build a real AxiosError so the shared classifier extracts `data.error`. */
+function axiosError(status: number, data: unknown, message = 'Request failed'): AxiosError {
+  const err = new AxiosError(message);
+  err.response = { status, data, statusText: '', headers: {}, config: {} as never };
+  return err;
+}
+
+const OWNER = {
+  extid: 'mem_1',
+  email: 'alice@example.com',
+  role: 'owner',
+  status: 'active',
+  is_owner: true,
+  joined_at: 1700000000,
+  created: 1700000000,
+};
+const MEMBER = {
+  extid: 'mem_2',
+  email: 'bob@example.com',
+  role: 'member',
+  status: 'active',
+  is_owner: false,
+  joined_at: 1700000100,
+  created: 1700000100,
+};
+/** A second `owner` membership that is not `owner_id` (e.g. mid-transfer). */
+const CO_OWNER = {
+  extid: 'mem_3',
+  email: 'carol@example.com',
+  role: 'owner',
+  status: 'active',
+  is_owner: false,
+  joined_at: 1700000200,
+  created: 1700000200,
+};
+
+function rosterPayload() {
+  const payload = detailPayload();
+  return { ...payload, details: { ...payload.details, members: [OWNER, MEMBER, CO_OWNER] } };
+}
+
+/** The X-OTS-Confirm header a member verb carries: the MEMBER's email. */
+const MEMBER_CONFIRM_HEADERS = {
+  headers: { 'X-OTS-Confirm': encodeURIComponent('bob@example.com') },
+};
+const MEMBER_URL = `/api/colonel/organizations/${PUBLIC_ID}/members/mem_2`;
+
+function setRoleAck(status = 'success') {
+  return {
+    shrimp: '',
+    record: { org_id: PUBLIC_ID, member_id: 'mem_2', status, from: 'member', to: 'admin' },
+  };
+}
+
+function removeAck() {
+  return {
+    shrimp: '',
+    record: { org_id: PUBLIC_ID, member_id: 'mem_2', status: 'success', role: 'member' },
+  };
+}
+
+function grantAck() {
+  return {
+    shrimp: '',
+    record: {
+      org_id: 'org1',
+      extid: PUBLIC_ID,
+      entitlement: 'analytics',
+      action: 'granted',
+      effective_entitlements: ['create_secrets', 'custom_domains', 'analytics'],
+      grants: ['custom_domains', 'analytics'],
+      revokes: [],
+    },
+  };
+}
+
+function clearAck() {
+  return {
+    shrimp: '',
+    record: {
+      org_id: 'org1',
+      extid: PUBLIC_ID,
+      entitlement: null,
+      action: 'cleared',
+      effective_entitlements: ['create_secrets'],
+      grants: [],
+      revokes: [],
+    },
+  };
+}
+
+function reconcileAck(
+  memberships: {
+    success: number;
+    failed: number;
+    total: number;
+    failed_ids: string[];
+  } | null = null
+) {
+  return {
+    shrimp: '',
+    record: {
+      org_id: 'org1',
+      extid: PUBLIC_ID,
+      mode: 'stripe_sync',
+      status: 'reconciled',
+      reason: null,
+      before: {
+        planid: 'free_v1',
+        subscription_status: 'active',
+        subscription_period_end: null,
+        materialized_count: 1,
+      },
+      after: {
+        planid: 'identity_plus_v1',
+        subscription_status: 'active',
+        subscription_period_end: '2026-01-01',
+        materialized_count: 2,
+      },
+      // #3907 item 3: cascade counts ride on the record; the null default
+      // exercises the "did not cascade / cascade raised" shape the schema
+      // must accept.
+      memberships,
+    },
+  };
+}
+
+function plansPayload() {
+  return {
+    plans: [
+      { planid: 'identity_plus_v1', name: 'Identity Plus', display_order: 1 },
+      { planid: 'team_plus_v1', name: 'Team Plus', display_order: 2 },
+    ],
+    source: 'stripe',
+  };
+}
+
+function planChangeAck(warning: string | null = null, details: Record<string, unknown> = {}) {
+  return {
+    shrimp: '',
+    record: {
+      org_id: 'org1',
+      extid: PUBLIC_ID,
+      display_name: 'Acme',
+      old_planid: 'identity_plus_v1',
+      new_planid: 'team_plus_v1',
+      updated: 1700007200,
+    },
+    details: {
+      changed: true,
+      materialization: 'materialized',
+      memberships: { success: 3, failed: 0, total: 3, failed_ids: [] },
+      entitlements_ok: true,
+      message: 'Organization plan updated successfully',
+      warning,
+      ...details,
+    },
+  };
+}
+
+function investigateAck() {
+  return {
+    shrimp: '',
+    record: {
+      org_id: 'org1',
+      extid: PUBLIC_ID,
+      investigated_at: '2026-07-06 12:00:00 UTC',
+      local: {
+        planid: 'free_v1',
+        stripe_customer_id: 'cus_123',
+        stripe_subscription_id: 'sub_123',
+        subscription_status: 'active',
+        subscription_period_end: null,
+      },
+      stripe: { available: true, reason: null, subscription: null },
+      comparison: {
+        match: false,
+        verdict: 'mismatch_detected',
+        details: 'planid differs',
+        issues: [
+          { field: 'planid', local: 'free_v1', stripe: 'identity_plus_v1', severity: 'high' },
+        ],
+      },
+    },
+  };
+}
+
+describe('AdminOrganizationDetail (org detail + entitlements + reconcile)', () => {
+  let wrapper: VueWrapper;
+  let pinia: ReturnType<typeof createPinia>;
+
+  beforeEach(() => {
+    pinia = createPinia();
+    setActivePinia(pinia);
+    vi.clearAllMocks();
+    ensureElevatedMock.mockResolvedValue(true);
+    requestElevationMock.mockResolvedValue(false);
+  });
+  afterEach(() => wrapper?.unmount());
+
+  const mountView = () =>
+    mount(AdminOrganizationDetail, {
+      props: { id: PUBLIC_ID },
+      // vue-router is mocked wholesale above, so RouterLink has no real
+      // implementation to resolve — stub it the way AdminCustomers.spec does so
+      // the member links still render and carry their `to` target.
+      global: { plugins: [pinia, i18n], stubs: { RouterLink: RouterLinkStub } },
+    });
+  const dialogInput = (w: VueWrapper) => w.find('#admin-confirm-input');
+  const dialogSubmit = (w: VueWrapper) => w.find('[data-testid="admin-confirm-submit"]');
+
+  it('fetches the org by public id on mount and renders the read-out with obscured emails', async () => {
+    mockApi.get.mockResolvedValue({ data: detailPayload() });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(mockApi.get).toHaveBeenCalledWith(`/api/colonel/organizations/${PUBLIC_ID}`, undefined);
+    expect(wrapper.find('[data-testid="detail-content"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="checkout-link-button"]').exists()).toBe(true);
+    expect(wrapper.findComponent(AdminCheckoutLinkModal).props('endpoint')).toBe(
+      `/api/colonel/organizations/${PUBLIC_ID}/checkout-link`
+    );
+
+    // Emails obscured by default (RevealEmail).
+    const billing = wrapper.find('[data-testid="billing-contactEmail"]');
+    expect(billing.text()).not.toContain('owner@acme.test');
+    expect(billing.text()).toContain('o•••@a•••.test');
+
+    // Entitlement resolution matrix is shown on load: one row per entitlement,
+    // each carrying WHY it resolves the way it does.
+    expect(wrapper.find('[data-testid="entitlements-matrix"]').exists()).toBe(true);
+    expect(
+      wrapper.find('[data-testid="entitlement-row-create_secrets"]').attributes('data-state')
+    ).toBe('plan');
+    expect(
+      wrapper.find('[data-testid="entitlement-row-custom_domains"]').attributes('data-state')
+    ).toBe('granted');
+    expect(wrapper.find('[data-testid="entitlements-insync"]').exists()).toBe(true);
+    // Summary signals stay visible above the matrix.
+    expect(wrapper.find('[data-testid="entitlements-summary-materialized"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="entitlements-summary-plan-stale"]').exists()).toBe(true);
+
+    // Members + domains tables render.
+    expect(wrapper.find('[data-testid="members-table"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="domains-table"]').text()).toContain('secrets.acme.test');
+
+    // Each member shows their public id and links through to the customer
+    // record. A real router-link (middle-click / new-tab must work), and the
+    // extid IS the route param — GetUserDetails resolves by extid first.
+    const memberLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-testid') === 'member-detail-mem_1');
+    expect(memberLink).toBeDefined();
+    expect(memberLink!.text()).toContain('mem_1');
+    expect(memberLink!.props('to')).toEqual({
+      name: 'AdminCustomerDetail',
+      params: { id: 'mem_1' },
+    });
+
+    // Each domain links through to its colonel domain record by the domain's
+    // PUBLIC id — never the internal domain_id.
+    const domainLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-testid') === 'domain-detail-dom_1');
+    expect(domainLink).toBeDefined();
+    expect(domainLink!.text()).toContain('secrets.acme.test');
+    expect(domainLink!.props('to')).toEqual({
+      name: 'AdminDomainDetail',
+      params: { id: 'dom_1' },
+    });
+  });
+
+  it('renders an organization whose subscription period end is a number', async () => {
+    // New records store epoch seconds as an integer; the schema must accept
+    // it alongside the legacy string form or the whole detail view fails
+    // validation.
+    mockApi.get.mockResolvedValue({
+      data: detailPayload({
+        record: { ...detailPayload().record, subscription_period_end: 1772940425 },
+      }),
+    });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="detail-content"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="billing-periodEnd"]').text()).toContain('1772940425');
+  });
+
+  it('surfaces the drift + stale warnings when the entitlements are out of sync', async () => {
+    mockApi.get.mockResolvedValue({
+      data: detailPayload({
+        details: {
+          ...detailPayload().details,
+          entitlements: {
+            ...detailPayload().details.entitlements,
+            // Realistic drift: extra ⊆ materialized, missing ⊆ expected.
+            materialized: ['create_secrets', 'legacy_flag'],
+            plan_stale: true,
+            drift: { extra: ['legacy_flag'], missing: ['custom_domains'], in_sync: false },
+          },
+        },
+      }),
+    });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="entitlements-drift-badge"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="entitlements-stale-badge"]').exists()).toBe(true);
+    const drift = wrapper.find('[data-testid="entitlements-drift"]');
+    expect(drift.text()).toContain('legacy_flag');
+    expect(drift.text()).toContain('custom_domains');
+    // And the matrix names the two failure modes per row.
+    expect(
+      wrapper.find('[data-testid="entitlement-row-legacy_flag"]').attributes('data-state')
+    ).toBe('orphaned');
+    expect(
+      wrapper.find('[data-testid="entitlement-row-custom_domains"]').attributes('data-state')
+    ).toBe('missing');
+  });
+
+  it('grants an entitlement chosen from the catalog dropdown and refreshes the detail', async () => {
+    mockApi.get.mockResolvedValue({ data: detailPayload() });
+    mockApi.post.mockResolvedValue({ data: grantAck() });
+    wrapper = mountView();
+    await flushPromises();
+
+    // The dropdown is the primary affordance; free text is not shown yet.
+    expect(wrapper.find('[data-testid="org-entitlement-select"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="org-entitlement-input"]').exists()).toBe(false);
+
+    await wrapper.find('[data-testid="org-entitlement-select"]').setValue('api_access');
+    // A catalog pick is never flagged as a typo.
+    expect(wrapper.find('[data-testid="org-entitlement-catalog-warning"]').exists()).toBe(false);
+    await wrapper.find('[data-testid="org-entitlement-grant"]').trigger('click');
+    await flushPromises();
+
+    // Typed-confirmation gate: confirm disabled until the extid is retyped.
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeDefined();
+    await dialogInput(wrapper).setValue(PUBLIC_ID);
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeUndefined();
+
+    await dialogSubmit(wrapper).trigger('submit');
+    await flushPromises();
+
+    expect(mockApi.post).toHaveBeenCalledWith(
+      `/api/colonel/organizations/${PUBLIC_ID}/entitlements/grant`,
+      { entitlement: 'api_access' },
+      CONFIRM_HEADERS
+    );
+    expect(showMock).toHaveBeenCalledTimes(1);
+    expect(showMock.mock.calls[0][1]).toBe('success');
+    // The panel is driven by a refreshed GET, not the ack: three GETs total
+    // (mount-time detail + available-plans catalog, then the refresh).
+    expect(mockApi.get).toHaveBeenCalledTimes(3);
+  });
+
+  it('changes the plan through the billing-section selector and confirm dialog', async () => {
+    mockApi.get.mockImplementation((url: string) => {
+      if (url === '/api/colonel/available-plans') {
+        return Promise.resolve({ data: plansPayload() });
+      }
+      return Promise.resolve({ data: detailPayload() });
+    });
+    mockApi.post.mockResolvedValue({ data: planChangeAck() });
+    wrapper = mountView();
+    await flushPromises();
+
+    // The selector renders the catalog and tracks the record's current plan.
+    const select = wrapper.find('[data-testid="plan-select"]');
+    expect(select.exists()).toBe(true);
+    expect((select.element as HTMLSelectElement).value).toBe('identity_plus_v1');
+    // Apply is a no-op while the selection matches the record.
+    expect(wrapper.find('[data-testid="plan-apply"]').attributes('disabled')).toBeDefined();
+    // The catalog also feeds the checkout modal (previously mounted with []).
+    expect(wrapper.findComponent(AdminCheckoutLinkModal).props('plans')).toHaveLength(2);
+
+    await select.setValue('team_plus_v1');
+    await wrapper.find('[data-testid="plan-apply"]').trigger('click');
+    await flushPromises();
+
+    // Reversible change: plain confirm, no typed-confirmation token.
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeUndefined();
+    await dialogSubmit(wrapper).trigger('submit');
+    await flushPromises();
+
+    expect(mockApi.post).toHaveBeenCalledWith(`/api/colonel/organizations/${PUBLIC_ID}/plan`, {
+      planid: 'team_plus_v1',
+    });
+    expect(showMock.mock.calls[0][1]).toBe('success');
+    // Refreshed after the mutation: detail + plans on mount, then the refresh.
+    expect(mockApi.get).toHaveBeenCalledTimes(3);
+  });
+
+  it('surfaces the server Stripe-overwrite warning after a plan change', async () => {
+    mockApi.get.mockImplementation((url: string) => {
+      if (url === '/api/colonel/available-plans') {
+        return Promise.resolve({ data: plansPayload() });
+      }
+      return Promise.resolve({ data: detailPayload() });
+    });
+    mockApi.post.mockResolvedValue({
+      data: planChangeAck('Live Stripe subscription may overwrite this change.'),
+    });
+    wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="plan-select"]').setValue('team_plus_v1');
+    await wrapper.find('[data-testid="plan-apply"]').trigger('click');
+    await flushPromises();
+    await dialogSubmit(wrapper).trigger('submit');
+    await flushPromises();
+
+    // Success toast first, then the server's own warning text as info.
+    expect(showMock).toHaveBeenCalledTimes(2);
+    expect(showMock.mock.calls[1][0]).toContain('Stripe');
+    expect(showMock.mock.calls[1][1]).toBe('info');
+  });
+
+  it('surfaces a failed entitlement re-materialization as an error, not success', async () => {
+    mockApi.get.mockImplementation((url: string) => {
+      if (url === '/api/colonel/available-plans') {
+        return Promise.resolve({ data: plansPayload() });
+      }
+      return Promise.resolve({ data: detailPayload() });
+    });
+    // Planid wrote, but the entitlement engine did not run: the org keeps the
+    // OLD plan's entitlements. The server flags it via entitlements_ok:false
+    // and its qualified message must render as an error toast — never the
+    // unqualified success toast.
+    mockApi.post.mockResolvedValue({
+      data: planChangeAck(null, {
+        materialization: 'materialization_failed',
+        memberships: null,
+        entitlements_ok: false,
+        message:
+          'Organization plan was saved, but entitlement re-materialization failed — ' +
+          'run reconcile on this organization.',
+      }),
+    });
+    wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="plan-select"]').setValue('team_plus_v1');
+    await wrapper.find('[data-testid="plan-apply"]').trigger('click');
+    await flushPromises();
+    await dialogSubmit(wrapper).trigger('submit');
+    await flushPromises();
+
+    expect(showMock).toHaveBeenCalledTimes(1);
+    expect(showMock.mock.calls[0][0]).toContain('re-materialization failed');
+    expect(showMock.mock.calls[0][1]).toBe('error');
+  });
+
+  it('surfaces a partial membership cascade as an error, not success', async () => {
+    mockApi.get.mockImplementation((url: string) => {
+      if (url === '/api/colonel/available-plans') {
+        return Promise.resolve({ data: plansPayload() });
+      }
+      return Promise.resolve({ data: detailPayload() });
+    });
+    // Org entitlements materialized but 2 of 5 membership writes failed:
+    // those members keep the previous plan's entitlements, so this is not an
+    // unqualified success either.
+    mockApi.post.mockResolvedValue({
+      data: planChangeAck(null, {
+        memberships: { success: 3, failed: 2, total: 5, failed_ids: ['m1', 'm2'] },
+        entitlements_ok: false,
+        message:
+          'Organization plan updated, but 2 of 5 membership(s) failed to re-materialize ' +
+          "and keep the previous plan's entitlements. Run reconcile on this organization.",
+      }),
+    });
+    wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="plan-select"]').setValue('team_plus_v1');
+    await wrapper.find('[data-testid="plan-apply"]').trigger('click');
+    await flushPromises();
+    await dialogSubmit(wrapper).trigger('submit');
+    await flushPromises();
+
+    expect(showMock).toHaveBeenCalledTimes(1);
+    expect(showMock.mock.calls[0][0]).toContain('2 of 5');
+    expect(showMock.mock.calls[0][1]).toBe('error');
+  });
+
+  it('keeps the out-of-catalog path (CLI parity): warns, then still grants', async () => {
+    mockApi.get.mockResolvedValue({ data: detailPayload() });
+    mockApi.post.mockResolvedValue({ data: grantAck() });
+    wrapper = mountView();
+    await flushPromises();
+
+    // Opt into free text, then type a name the catalog does not carry.
+    await wrapper.find('[data-testid="org-entitlement-select"]').setValue('__other__');
+    await wrapper.find('[data-testid="org-entitlement-input"]').setValue('ships_next_release');
+    expect(wrapper.find('[data-testid="org-entitlement-catalog-warning"]').exists()).toBe(true);
+
+    // Warned, not blocked — the grant button stays live.
+    await wrapper.find('[data-testid="org-entitlement-grant"]').trigger('click');
+    await flushPromises();
+    // The confirm dialog repeats the warning before the write.
+    expect(wrapper.find('[data-testid="admin-confirm-dialog"]').text()).toContain(
+      'entitlements.catalogWarning'
+    );
+
+    await dialogInput(wrapper).setValue(PUBLIC_ID);
+    await dialogSubmit(wrapper).trigger('submit');
+    await flushPromises();
+
+    expect(mockApi.post).toHaveBeenCalledWith(
+      `/api/colonel/organizations/${PUBLIC_ID}/entitlements/grant`,
+      { entitlement: 'ships_next_release' },
+      CONFIRM_HEADERS
+    );
+  });
+
+  it('keeps clear-all behind the typed-confirmation gate and returns the picker to the catalog', async () => {
+    mockApi.get.mockResolvedValue({ data: detailPayload() });
+    mockApi.delete.mockResolvedValue({ data: clearAck() });
+    wrapper = mountView();
+    await flushPromises();
+
+    // Land in free text first, so the reset is observable.
+    await wrapper.find('[data-testid="org-entitlement-select"]').setValue('__other__');
+    expect(wrapper.find('[data-testid="org-entitlement-input"]').exists()).toBe(true);
+
+    await wrapper.find('[data-testid="org-entitlement-clear"]').trigger('click');
+    await flushPromises();
+
+    // Wipes EVERY override — the extid gate is unchanged.
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeDefined();
+    await dialogInput(wrapper).setValue(PUBLIC_ID);
+    await dialogSubmit(wrapper).trigger('submit');
+    await flushPromises();
+
+    expect(mockApi.delete).toHaveBeenCalledWith(
+      `/api/colonel/organizations/${PUBLIC_ID}/entitlements/overrides`,
+      CONFIRM_HEADERS
+    );
+    expect(wrapper.find('[data-testid="org-entitlement-select"]').exists()).toBe(true);
+  });
+
+  it('falls open to free text when the catalog is unavailable (no dropdown, no typo warning)', async () => {
+    mockApi.get.mockResolvedValue({
+      data: detailPayload({
+        details: { ...detailPayload().details, available_entitlements: [] },
+      }),
+    });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="org-entitlement-select"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="org-entitlement-catalog-unavailable"]').exists()).toBe(true);
+
+    await wrapper.find('[data-testid="org-entitlement-input"]').setValue('anything_at_all');
+    // Fail OPEN, exactly like the server's known_entitlement? predicate.
+    expect(wrapper.find('[data-testid="org-entitlement-catalog-warning"]').exists()).toBe(false);
+  });
+
+  it('reconciles through a typed-confirmation dialog and shows the before/after diff', async () => {
+    mockApi.get.mockResolvedValue({ data: detailPayload() });
+    mockApi.post.mockResolvedValue({ data: reconcileAck() });
+    wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="org-reconcile-button"]').trigger('click');
+    await flushPromises();
+
+    expect(dialogSubmit(wrapper).attributes('disabled')).toBeDefined();
+    await dialogInput(wrapper).setValue(PUBLIC_ID);
+    await dialogSubmit(wrapper).trigger('submit');
+    await flushPromises();
+
+    expect(mockApi.post).toHaveBeenCalledWith(`/api/colonel/organizations/${PUBLIC_ID}/reconcile`);
+    const result = wrapper.find('[data-testid="org-reconcile-result"]');
+    expect(result.exists()).toBe(true);
+    // Diff renders both sides (plan free_v1 → identity_plus_v1).
+    const planDiff = wrapper.find('[data-testid="reconcile-diff-planid"]');
+    expect(planDiff.text()).toContain('free_v1');
+    expect(planDiff.text()).toContain('identity_plus_v1');
+    // memberships: null (did not cascade) renders no cascade line.
+    expect(wrapper.find('[data-testid="reconcile-memberships"]').exists()).toBe(false);
+    expect(showMock.mock.calls[0][1]).toBe('success');
+    // Refreshed after the mutation (plus the mount-time available-plans GET).
+    expect(mockApi.get).toHaveBeenCalledTimes(3);
+  });
+
+  // #3907 item 3: the applied statuses carry no reason string, so this line
+  // is the only console-visible signal that a reconcile left memberships
+  // with stale entitlements.
+  it('surfaces a partial membership cascade with the failed ids', async () => {
+    mockApi.get.mockResolvedValue({ data: detailPayload() });
+    mockApi.post.mockResolvedValue({
+      data: reconcileAck({ success: 1, failed: 2, total: 3, failed_ids: ['mem_p', 'mem_q'] }),
+    });
+    wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="org-reconcile-button"]').trigger('click');
+    await flushPromises();
+    await dialogInput(wrapper).setValue(PUBLIC_ID);
+    await dialogSubmit(wrapper).trigger('submit');
+    await flushPromises();
+
+    const cascade = wrapper.find('[data-testid="reconcile-memberships"]');
+    expect(cascade.exists()).toBe(true);
+    expect(cascade.text()).toContain('1/3');
+    expect(cascade.text()).toContain('mem_p, mem_q');
+  });
+
+  it('investigates on demand and renders the verdict', async () => {
+    mockApi.get.mockResolvedValue({ data: detailPayload() });
+    mockApi.post.mockResolvedValue({ data: investigateAck() });
+    wrapper = mountView();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="org-investigate-button"]').trigger('click');
+    await flushPromises();
+
+    expect(mockApi.post).toHaveBeenCalledWith(
+      `/api/colonel/organizations/${PUBLIC_ID}/investigate`
+    );
+    expect(wrapper.find('[data-testid="org-investigate-verdict"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="org-investigate-result"]').text()).toContain('planid');
+  });
+
+  it('renders the not-found state on a 404', async () => {
+    mockApi.get.mockRejectedValue({ response: { status: 404 } });
+    wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="detail-not-found"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="detail-content"]').exists()).toBe(false);
+  });
+
+  // ---- Members: order, owner lock, remove + change role (TIER 1) -----------
+
+  describe('members', () => {
+    const reasonInput = (w: VueWrapper) => w.find('[data-testid="admin-confirm-reason"]');
+    const dialog = (w: VueWrapper) => w.find('[data-testid="admin-confirm-dialog"]');
+
+    async function mountRoster() {
+      mockApi.get.mockResolvedValue({ data: rosterPayload() });
+      wrapper = mountView();
+      await flushPromises();
+    }
+
+    it('renders the members section above the entitlements', async () => {
+      await mountRoster();
+
+      const members = wrapper.find('[data-testid="members-section"]').element;
+      const entitlements = wrapper.find('[data-testid="entitlements-section"]').element;
+      // FOLLOWING: the entitlements section comes after the members section.
+      expect(
+        members.compareDocumentPosition(entitlements) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      // The add-member control still sits in the members header.
+      expect(
+        wrapper
+          .find('[data-testid="members-section"] [data-testid="org-add-member-button"]')
+          .exists()
+      ).toBe(true);
+    });
+
+    it('locks the owner row and any other owner membership', async () => {
+      await mountRoster();
+
+      for (const extid of ['mem_1', 'mem_3']) {
+        const role = wrapper.find(`[data-testid="member-change-role-${extid}"]`);
+        const remove = wrapper.find(`[data-testid="member-remove-${extid}"]`);
+        expect(role.attributes('disabled')).toBeDefined();
+        expect(remove.attributes('disabled')).toBeDefined();
+        // The reason is stated, not left as a dead button.
+        expect(wrapper.find(`[data-testid="member-actions-${extid}"]`).attributes('title')).toBe(
+          'web.admin.organizations.members.ownerLocked'
+        );
+        await role.trigger('click');
+        await remove.trigger('click');
+      }
+      await flushPromises();
+
+      expect(ensureElevatedMock).not.toHaveBeenCalled();
+      expect(dialog(wrapper).exists()).toBe(false);
+      // An ordinary member's controls stay live.
+      expect(
+        wrapper.find('[data-testid="member-change-role-mem_2"]').attributes('disabled')
+      ).toBeUndefined();
+      expect(
+        wrapper.find('[data-testid="member-remove-mem_2"]').attributes('disabled')
+      ).toBeUndefined();
+    });
+
+    it('changes a role: elevation first, then the dialog, then the gated POST', async () => {
+      let answer: (value: boolean) => void = () => {};
+      ensureElevatedMock.mockReturnValue(
+        new Promise<boolean>((resolve) => {
+          answer = resolve;
+        })
+      );
+      mockApi.post.mockResolvedValue({ data: setRoleAck() });
+      await mountRoster();
+
+      await wrapper.find('[data-testid="member-change-role-mem_2"]').trigger('click');
+      await flushPromises();
+
+      // The prompt is open; the action's own dialog is not.
+      expect(ensureElevatedMock).toHaveBeenCalledTimes(1);
+      expect(dialog(wrapper).exists()).toBe(false);
+
+      answer(true);
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="member-role-dialog"]').exists()).toBe(true);
+      // `owner` is never offered, and neither is the role the member holds.
+      const options = wrapper
+        .findAll('[data-testid="member-role-select"] option')
+        .map((o) => (o.element as HTMLOptionElement).value);
+      expect(options).toEqual(['admin']);
+
+      // Typed confirmation is the member's EMAIL — the same token the header sends.
+      expect(dialogSubmit(wrapper).attributes('disabled')).toBeDefined();
+      await dialogInput(wrapper).setValue('bob@example.com');
+      await reasonInput(wrapper).setValue('ticket 4242');
+      await dialogSubmit(wrapper).trigger('submit');
+      await flushPromises();
+
+      expect(mockApi.post).toHaveBeenCalledWith(
+        `${MEMBER_URL}/role`,
+        { role: 'admin', reason: 'ticket 4242' },
+        MEMBER_CONFIRM_HEADERS
+      );
+      expect(showMock).toHaveBeenCalledWith(
+        'web.admin.organizations.members.changeRole.success',
+        'success'
+      );
+      expect(dialog(wrapper).exists()).toBe(false);
+      // Refetched: detail + available-plans on mount, then the refresh.
+      expect(mockApi.get).toHaveBeenCalledTimes(3);
+    });
+
+    it('opens nothing and sends nothing when the operator cancels the prompt', async () => {
+      ensureElevatedMock.mockResolvedValue(false);
+      await mountRoster();
+
+      await wrapper.find('[data-testid="member-change-role-mem_2"]').trigger('click');
+      await wrapper.find('[data-testid="member-remove-mem_2"]').trigger('click');
+      await flushPromises();
+
+      expect(ensureElevatedMock).toHaveBeenCalledTimes(2);
+      expect(dialog(wrapper).exists()).toBe(false);
+      expect(mockApi.post).not.toHaveBeenCalled();
+      expect(mockApi.delete).not.toHaveBeenCalled();
+    });
+
+    it('refreshes a stale role after no_change and offers the other role when reopened', async () => {
+      mockApi.post.mockResolvedValue({ data: setRoleAck('no_change') });
+      await mountRoster();
+      const refreshed = rosterPayload();
+      refreshed.details.members = [OWNER, { ...MEMBER, role: 'admin' }, CO_OWNER];
+      mockApi.get.mockResolvedValue({ data: refreshed });
+
+      await wrapper.find('[data-testid="member-change-role-mem_2"]').trigger('click');
+      await flushPromises();
+      await dialogInput(wrapper).setValue('bob@example.com');
+      await dialogSubmit(wrapper).trigger('submit');
+      await flushPromises();
+
+      expect(mockApi.post).toHaveBeenCalledWith(
+        `${MEMBER_URL}/role`,
+        { role: 'admin' },
+        MEMBER_CONFIRM_HEADERS
+      );
+      expect(showMock).toHaveBeenCalledExactlyOnceWith(
+        'web.admin.organizations.members.changeRole.noChange',
+        'info'
+      );
+      expect(dialog(wrapper).exists()).toBe(false);
+      expect(mockApi.get).toHaveBeenCalledTimes(3);
+      expect(mockApi.get).toHaveBeenLastCalledWith(
+        `/api/colonel/organizations/${PUBLIC_ID}`,
+        undefined
+      );
+
+      await wrapper.find('[data-testid="member-change-role-mem_2"]').trigger('click');
+      await flushPromises();
+
+      expect(
+        wrapper
+          .findAll('[data-testid="member-role-select"] option')
+          .map((o) => (o.element as HTMLOptionElement).value)
+      ).toEqual(['member']);
+      expect(dialogInput(wrapper).element).toHaveProperty('value', '');
+      expect(dialogSubmit(wrapper).attributes('disabled')).toBeDefined();
+      expect(dialog(wrapper).find('[role="alert"]').exists()).toBe(false);
+
+      mockApi.post.mockResolvedValue({
+        data: { ...setRoleAck(), record: { ...setRoleAck().record, from: 'admin', to: 'member' } },
+      });
+      await dialogInput(wrapper).setValue('bob@example.com');
+      await dialogSubmit(wrapper).trigger('submit');
+      await flushPromises();
+
+      expect(mockApi.post).toHaveBeenLastCalledWith(
+        `${MEMBER_URL}/role`,
+        { role: 'member' },
+        MEMBER_CONFIRM_HEADERS
+      );
+      expect(showMock).toHaveBeenLastCalledWith(
+        'web.admin.organizations.members.changeRole.success',
+        'success'
+      );
+      expect(dialog(wrapper).exists()).toBe(false);
+      expect(mockApi.get).toHaveBeenCalledTimes(4);
+    });
+
+    it('keeps a role-change refusal in the dialog without refreshing the roster', async () => {
+      mockApi.post.mockRejectedValue(axiosError(422, { error: 'Cannot change this role' }));
+      await mountRoster();
+
+      await wrapper.find('[data-testid="member-change-role-mem_2"]').trigger('click');
+      await flushPromises();
+      await dialogInput(wrapper).setValue('bob@example.com');
+      await dialogSubmit(wrapper).trigger('submit');
+      await flushPromises();
+
+      expect(dialog(wrapper).text()).toContain('Cannot change this role');
+      expect(showMock).not.toHaveBeenCalled();
+      expect(mockApi.get).toHaveBeenCalledTimes(2);
+    });
+
+    it('removes a member: DELETE with the confirmation header and the reason query', async () => {
+      mockApi.delete.mockResolvedValue({ data: removeAck() });
+      await mountRoster();
+
+      await wrapper.find('[data-testid="member-remove-mem_2"]').trigger('click');
+      await flushPromises();
+
+      expect(ensureElevatedMock).toHaveBeenCalledTimes(1);
+      expect(dialogSubmit(wrapper).attributes('disabled')).toBeDefined();
+      await dialogInput(wrapper).setValue('bob@example.com');
+      await reasonInput(wrapper).setValue('left the company');
+      await dialogSubmit(wrapper).trigger('submit');
+      await flushPromises();
+
+      expect(mockApi.delete).toHaveBeenCalledWith(MEMBER_URL, {
+        ...MEMBER_CONFIRM_HEADERS,
+        params: { reason: 'left the company' },
+      });
+      expect(showMock).toHaveBeenCalledWith(
+        'web.admin.organizations.members.remove.success',
+        'success'
+      );
+      expect(mockApi.get).toHaveBeenCalledTimes(3);
+    });
+
+    it('sends no reason parameter when none is given', async () => {
+      mockApi.delete.mockResolvedValue({ data: removeAck() });
+      await mountRoster();
+
+      await wrapper.find('[data-testid="member-remove-mem_2"]').trigger('click');
+      await flushPromises();
+      await dialogInput(wrapper).setValue('bob@example.com');
+      await dialogSubmit(wrapper).trigger('submit');
+      await flushPromises();
+
+      expect(mockApi.delete).toHaveBeenCalledWith(MEMBER_URL, MEMBER_CONFIRM_HEADERS);
+    });
+
+    it('keeps a server refusal in the dialog and refreshes nothing', async () => {
+      mockApi.delete.mockRejectedValue(
+        axiosError(422, { error: 'Cannot remove the last remaining owner of the organization' })
+      );
+      await mountRoster();
+
+      await wrapper.find('[data-testid="member-remove-mem_2"]').trigger('click');
+      await flushPromises();
+      await dialogInput(wrapper).setValue('bob@example.com');
+      await dialogSubmit(wrapper).trigger('submit');
+      await flushPromises();
+
+      expect(dialog(wrapper).text()).toContain('Cannot remove the last remaining owner');
+      expect(showMock).not.toHaveBeenCalled();
+      // Mount-time detail + available-plans only: no refresh after a failure.
+      expect(mockApi.get).toHaveBeenCalledTimes(2);
+    });
+  });
+});

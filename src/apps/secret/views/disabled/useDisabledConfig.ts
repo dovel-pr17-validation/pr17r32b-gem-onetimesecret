@@ -1,0 +1,427 @@
+// src/apps/secret/views/disabled/useDisabledConfig.ts
+//
+// Derives all rendering inputs for the disabled-homepage variants from
+// bootstrap + identity stores in one place, so the dispatcher can pass a
+// single props bag to whichever variant is selected and the variants stay
+// purely presentational.
+//
+// Variant comes from the per-domain `homepage_config.disabled_homepage_variant`
+// (with a `?variant` URL override and a frontend-constant fallback). The
+// affordance flags (show_promo / show_what_is_this) come from auto-detection
+// rules plus operator overrides on the site-level `bootstrap.disabled_homepage`
+// block.
+
+import type { DisabledHomepageVariant } from '@/schemas/contracts/disabled-homepage';
+import {
+  DEFAULT_DISABLED_HOMEPAGE_VARIANT,
+  disabledHomepageVariantSchema,
+} from '@/schemas/contracts/disabled-homepage';
+import type { BootstrapPayload, Features } from '@/schemas/contracts/bootstrap';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import { useCsrfStore } from '@/shared/stores/csrfStore';
+import { useProductIdentity } from '@/shared/stores/identityStore';
+import type { SsoProvider } from '@/utils/features';
+import { submitSsoLogin } from '@/shared/utils/sso';
+import { storeToRefs } from 'pinia';
+import { computed, type ComputedRef, type Ref } from 'vue';
+
+/**
+ * Read a one-off variant override from the current URL.
+ *
+ * Operator/dogfood escape hatch: `?variant=minimal` (or `v1` / `closed`)
+ * wins over bootstrap config. Useful for previewing a variant before
+ * flipping the deployment default, and for sanity-checking dispatch
+ * when bootstrap is suspected of carrying a stale value.
+ *
+ * Invalid or missing values fall through silently.
+ */
+function readUrlVariantOverride(): DisabledHomepageVariant | null {
+  if (typeof window === 'undefined') return null;
+  const raw = new URLSearchParams(window.location.search).get('variant');
+  if (!raw) return null;
+  const parsed = disabledHomepageVariantSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
+/**
+ * Props bag shared by every disabled-homepage variant.
+ *
+ * Variants should treat these as the complete contract — anything they
+ * need from app state should be added here, not read directly inside
+ * variant components, so dispatch stays the single composition root.
+ *
+ * `whatIsThisHref` and `promoHref` are nullable: an empty `siteHost`
+ * would produce `https:///`, which is useless. The dispatcher gates the
+ * matching `show*` flag whenever the href is null, so variants can
+ * assume the href is a real URL whenever the flag is true.
+ */
+export interface DisabledHomepageProps {
+  /** Branded = custom domain with a configured brand description. */
+  isBranded: boolean;
+  /** Workspace display name for branded mode (e.g. "Acme"). */
+  workspaceName: string;
+  /** Single uppercase letter for the monogram fallback. */
+  monogramInitial: string;
+  /** Custom brand color (hex). Defaults to OTS orange when unbranded. */
+  primaryColor: string;
+  /**
+   * Brand font utility class (font_family). Null when the domain hasn't
+   * chosen a font, so variants keep their own display default (font-brand)
+   * instead of inheriting identityStore's empty-string fallback.
+   */
+  fontFamilyClass: string | null;
+  /**
+   * Brand heading-font utility class (heading_font, backfilled by
+   * font_family per the identityStore ladder). Null when the domain chose
+   * neither, so variants keep their own heading default (font-brand).
+   */
+  headingFontClass: string | null;
+  /**
+   * Brand corner utility class (border_radius / corner_style). Null when the
+   * domain hasn't chosen a corner shape, so variants keep their own default
+   * radii instead of identityStore's DEFAULT_CORNER_CLASS fallback.
+   */
+  cornerClass: string | null;
+  /**
+   * Logo URL: the tenant-uploaded logo, falling back to the operator's
+   * install-wide logo (brand.logo_url) on the canonical site. Deliberately
+   * NOT identityStore's logoSource — that ends in the DEFAULT_LOGO_COMPONENT
+   * sentinel, while variants want URL-or-null so their own monogram/keyhole
+   * fallbacks still apply. Null when neither is configured.
+   */
+  logoUri: string | null;
+  /**
+   * Dark-theme logo on the identity axis (logoDarkSource): the tenant's
+   * BrandSettings.logo_dark_url when the tenant logo is showing, else the
+   * operator's install BRAND_LOGO_DARK_URL when the install logo is showing.
+   * Each rung nulls itself against the other layer's light logo, so the dark
+   * asset always pairs with whichever light logo `logoUri` resolved — never
+   * the operator's dark variant over a tenant logo, or vice versa. Null when
+   * no dark variant applies. Variants swap it in via class-based `dark:`
+   * utilities, mirroring MastHead.
+   */
+  logoDarkUri: string | null;
+  /**
+   * Operator alt text for the install logo (BRAND_LOGO_ALT). Non-null only
+   * while the install logo is the asset being rendered — labeling a tenant
+   * logo with the operator's alt text would leak the wrong accessible name.
+   * Variants fall back to their i18n workspace-derived alt when null.
+   */
+  logoAlt: string | null;
+  /** Domain the visitor sees in the URL bar. */
+  displayDomain: string;
+  /** Whether to render the "Sign in" CTA (auth.signin must be enabled). */
+  showSignin: boolean;
+  /** Whether to render the "What is this?" link. */
+  showWhatIsThis: boolean;
+  /** Operator-configured URL for "What is this link?" — null when unset. */
+  whatIsThisHref: string | null;
+  /** Whether to render the free-tier promo strip. */
+  showPromo: boolean;
+  /** External href for the promo's "Learn how" link — null when unresolvable. */
+  promoHref: string | null;
+  /**
+   * Whether the sign-in CTA should initiate SSO directly instead of routing
+   * to /signin. True only when SSO is the sole login method and exactly one
+   * provider is configured, so the extra /signin hop adds nothing.
+   */
+  ssoOneClick: boolean;
+  /** Display name of the single SSO provider, for the one-click CTA label. */
+  ssoProviderName: string | null;
+  /** Initiates one-click SSO login (POST to /auth/sso/:provider). */
+  onSsoLogin: () => void;
+}
+
+interface DisabledHomepageBindings {
+  /** Reactive variant id — re-reads bootstrap on every access so a config
+   *  refresh (re-hydration / login / logout) flips the rendered variant. */
+  variant: ComputedRef<DisabledHomepageVariant>;
+  /** Reactive props bag. Each property is a getter so `v-bind="props"`
+   *  re-reads on every render, preserving reactivity through the spread. */
+  props: DisabledHomepageProps;
+}
+
+/**
+ * Resolve a tri-state override: explicit operator setting wins, null falls
+ * through to the auto-detection rule.
+ */
+function applyOverride(override: boolean | null | undefined, auto: boolean): boolean {
+  return override === null || override === undefined ? auto : override;
+}
+
+/**
+ * The single SSO provider to one-click into from the disabled-homepage CTA, or
+ * null when the CTA should fall back to the standard /signin link.
+ *
+ * Returns a provider only when SSO is the sole login method — mirroring
+ * AuthMethodSelector: global `restrict_to === 'sso'`, or a custom domain with
+ * `enforce_sso_only` — *and* exactly one provider is configured. With multiple
+ * providers, /signin still has to present a chooser, so the hop earns its keep
+ * and we don't short-circuit it.
+ */
+function resolveSsoOneClickProvider(
+  features: Features | undefined,
+  isCustom: boolean
+): SsoProvider | null {
+  const sso = features?.sso;
+  const providers =
+    sso && typeof sso !== 'boolean' && sso.enabled && Array.isArray(sso.providers)
+      ? sso.providers
+      : [];
+  if (providers.length !== 1) return null;
+
+  const restrictedToSso = features?.restrict_to === 'sso';
+  const enforcedForDomain =
+    typeof sso === 'object' && sso !== null ? sso.enforce_sso_only === true : false;
+  return restrictedToSso || (isCustom && enforcedForDomain) ? providers[0] : null;
+}
+
+/**
+ * Brand font/corner classes for the variants: honor an explicit operator
+ * choice, deliver null when unset so variants keep their own display defaults
+ * (font-brand, rounded-xl).
+ *
+ * Set-ness is read from the RAW `domain_branding` payload (the sparse Redis
+ * hash — keys exist only when the operator saved them), NOT the parsed
+ * identityStore brand: the schema defaults font_family/corner_style to
+ * 'sans'/'rounded' at parse time, which would read as an explicit choice on
+ * every deployment. The class value itself still resolves through
+ * identityStore so validation and fallback rules stay in one place.
+ */
+function useBrandStyleClasses(
+  domainBranding: Ref<BootstrapPayload['domain_branding']>,
+  identityStore: ReturnType<typeof useProductIdentity>
+) {
+  const fontFamilyClass = computed(() =>
+    domainBranding.value?.font_family ? identityStore.fontFamilyClass || null : null
+  );
+  // heading_font OR font_family counts as an explicit choice: the
+  // identityStore ladder backfills heading_font from font_family, and a
+  // domain that picked a body font expects its headings to follow.
+  const headingFontClass = computed(() =>
+    domainBranding.value?.heading_font || domainBranding.value?.font_family
+      ? identityStore.headingFontClass || null
+      : null
+  );
+  const hasCornerPreference = computed(() => {
+    const raw = domainBranding.value;
+    return (raw?.border_radius != null && raw.border_radius !== '') || !!raw?.corner_style;
+  });
+  const cornerClass = computed(() =>
+    hasCornerPreference.value ? identityStore.cornerClass : null
+  );
+  return { fontFamilyClass, headingFontClass, cornerClass };
+}
+
+/**
+ * Validate a resolved variant id against the enum, collapsing every invalid
+ * case (null, undefined, empty string, unknown/legacy id) to the default.
+ *
+ * `??` in the resolution chain only skips null/undefined, so an empty-string or
+ * unrecognised store value would otherwise reach the dispatcher's
+ * `VARIANTS[variant]` as an unknown key -> `<component :is=undefined>` -> a
+ * blank page. This guard prevents that.
+ */
+function coerceDisabledVariant(candidate: unknown): DisabledHomepageVariant {
+  const parsed = disabledHomepageVariantSchema.safeParse(candidate);
+  return parsed.success ? parsed.data : DEFAULT_DISABLED_HOMEPAGE_VARIANT;
+}
+
+// Composition root by design (see DisabledHomepageProps): every variant input
+// is derived here so the variants stay purely presentational.
+// eslint-disable-next-line max-lines-per-function
+export function useDisabledConfig(): DisabledHomepageBindings {
+  const identityStore = useProductIdentity();
+  const {
+    isCustom,
+    primaryColor,
+    logoUri,
+    installLogoUri,
+    logoDarkSource,
+    installLogoAlt,
+    displayName,
+    displayDomain,
+    brand,
+    siteHost,
+  } = storeToRefs(identityStore);
+
+  const bootstrapStore = useBootstrapStore();
+  const {
+    authentication,
+    billing_enabled,
+    disabled_homepage,
+    domain_branding,
+    features,
+    homepage_config,
+    ui,
+  } = storeToRefs(bootstrapStore);
+
+  const csrfStore = useCsrfStore();
+
+  // "Branded" means a custom domain has actually been configured with a brand
+  // description — distinct from isCustom, which can be true even when no
+  // branding is set (free tier with a custom domain).
+  const isBranded = computed(() => isCustom.value && !!brand.value?.description);
+
+  const workspaceName = computed(() => brand.value?.description?.trim() || displayName.value);
+
+  const monogramInitial = computed(() =>
+    (workspaceName.value || displayDomain.value || 'A').trim().charAt(0).toUpperCase()
+  );
+
+  const { fontFamilyClass, headingFontClass, cornerClass } = useBrandStyleClasses(
+    domain_branding,
+    identityStore
+  );
+
+  // The "What is this link?" affordance points at an operator-configured
+  // URL (site.interface.ui.homepage.public_links.recipient_intro). When
+  // unset, the affordance is hidden — no broken-link fallback.
+  const whatIsThisHref = computed(
+    () => ui.value?.homepage?.public_links?.recipient_intro?.trim() || null
+  );
+
+  // Promo "Learn how" still derives from siteHost since it points at the
+  // canonical pricing page, not at operator-controlled content.
+  const hasSiteHost = computed(() => !!siteHost.value);
+  const promoHref = computed(() =>
+    hasSiteHost.value ? `https://${siteHost.value}/pricing` : null
+  );
+
+  // Auto-detection: show "What is this link?" when the operator has
+  // configured a destination URL. Override can still force it off.
+  const showWhatIsThisAuto = computed(() => !!whatIsThisHref.value);
+  const showWhatIsThis = computed(
+    () =>
+      !!whatIsThisHref.value &&
+      applyOverride(disabled_homepage.value?.show_what_is_this, showWhatIsThisAuto.value)
+  );
+
+  // Auto-detection: the "free plans now include custom domains" promo is
+  // SaaS-specific marketing aimed at visitors to free-tier custom domains.
+  // Self-hosted (billing_enabled=false), canonical site, and branded domains
+  // all suppress it. Operator override wins, but again we suppress when the
+  // href is unresolvable.
+  const showPromoAuto = computed(
+    () => !isBranded.value && isCustom.value && billing_enabled.value && hasSiteHost.value
+  );
+  const showPromo = computed(
+    () =>
+      hasSiteHost.value && applyOverride(disabled_homepage.value?.show_promo, showPromoAuto.value)
+  );
+
+  const showSignin = computed(() => !!authentication.value?.signin);
+
+  // One-click SSO: when SSO is the only sign-in method and a single provider
+  // is configured, the CTA POSTs straight to the IdP instead of routing to
+  // /signin (itself just a lone "Sign in with <provider>" button in that
+  // configuration). See resolveSsoOneClickProvider for the gating.
+  const ssoProvider = computed(() => resolveSsoOneClickProvider(features.value, isCustom.value));
+  const ssoOneClick = computed(() => showSignin.value && ssoProvider.value !== null);
+
+  const onSsoLogin = () => {
+    const provider = ssoProvider.value;
+    if (!provider) return;
+    submitSsoLogin({ routeName: provider.route_name, shrimp: csrfStore.shrimp });
+  };
+
+  // Variant resolution (highest precedence first):
+  //   1. ?variant= URL override (dogfood/preview)
+  //   2. per-domain homepage_config.disabled_homepage_variant
+  //   3. deployment-wide default — SPLIT by domain context so the canonical
+  //      site and custom domains stay decoupled (the canonical/custom split
+  //      from 4effa3e3f5):
+  //        - custom domains: ui.homepage.custom_disabled_variant
+  //          (DEFAULT_CUSTOM_DOMAIN_DISABLED_HOMEPAGE_VARIANT env var). Custom
+  //          domains do NOT fall back to the canonical disabled_variant — an
+  //          unset custom default goes straight to the frontend const.
+  //        - canonical site: ui.homepage.disabled_variant
+  //          (DEFAULT_DISABLED_HOMEPAGE_VARIANT env var)
+  //   4. frontend DEFAULT_DISABLED_HOMEPAGE_VARIANT constant
+  // URL is read once at composable-call time (page loads don't preserve query
+  // params); the store-backed fallbacks stay reactive so a $patch on the
+  // domain or site config still flips the variant. homepage_config is null on
+  // the canonical site and on any custom domain that hasn't opted in.
+  const urlOverride = readUrlVariantOverride();
+  // Wrap the ?? precedence chain in coerceDisabledVariant so an invalid/empty
+  // store value falls back to the default instead of blanking the dispatcher.
+  const variant = computed<DisabledHomepageVariant>(() =>
+    coerceDisabledVariant(
+      urlOverride ??
+        homepage_config.value?.disabled_homepage_variant ??
+        (isCustom.value
+          ? ui.value?.homepage?.custom_disabled_variant
+          : ui.value?.homepage?.disabled_variant)
+    )
+  );
+
+  // Getter object: `v-bind="props"` evaluates each property on every render,
+  // so each getter re-reads its source computed and reactivity is preserved
+  // through the spread. Plain destructuring would freeze values at call time.
+  const props = {
+    get isBranded() {
+      return isBranded.value;
+    },
+    get workspaceName() {
+      return workspaceName.value;
+    },
+    get monogramInitial() {
+      return monogramInitial.value;
+    },
+    get primaryColor() {
+      return primaryColor.value;
+    },
+    get fontFamilyClass() {
+      return fontFamilyClass.value;
+    },
+    get headingFontClass() {
+      return headingFontClass.value;
+    },
+    get cornerClass() {
+      return cornerClass.value;
+    },
+    // Tenant logo first, install-wide logo second (installLogoUri is already
+    // null on custom domains, so no operator-identity leak). See the
+    // DisabledHomepageProps docs for why this isn't logoSource.
+    get logoUri() {
+      return logoUri.value || installLogoUri.value;
+    },
+    // Dark variant on the same identity axis (logoDarkSource): tenant dark when
+    // the tenant logo shows, else install dark when the install logo shows —
+    // mirroring MastHead so a tenant's logo_dark_url renders on the disabled
+    // homepage too, not just the operator's install dark logo.
+    get logoDarkUri() {
+      return logoDarkSource.value;
+    },
+    get logoAlt() {
+      return installLogoAlt.value;
+    },
+    get displayDomain() {
+      return displayDomain.value;
+    },
+    get showSignin() {
+      return showSignin.value;
+    },
+    get showWhatIsThis() {
+      return showWhatIsThis.value;
+    },
+    get whatIsThisHref() {
+      return whatIsThisHref.value;
+    },
+    get showPromo() {
+      return showPromo.value;
+    },
+    get promoHref() {
+      return promoHref.value;
+    },
+    get ssoOneClick() {
+      return ssoOneClick.value;
+    },
+    get ssoProviderName() {
+      return ssoProvider.value?.display_name ?? null;
+    },
+    onSsoLogin,
+  } satisfies DisabledHomepageProps;
+
+  return { variant, props };
+}

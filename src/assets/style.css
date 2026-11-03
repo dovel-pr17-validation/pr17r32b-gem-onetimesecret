@@ -1,0 +1,270 @@
+@import 'tailwindcss' source(none);
+/* This file is the v4 design-system entry (CSS-first config — there is no
+   tailwind.config.ts). eslint-plugin-tailwindcss points its `config`
+   setting here (absolute path; see eslint.config.ts). */
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+/*
+ * Class-based dark mode — replaces `darkMode: 'class'` from the former
+ * tailwind.config.ts. Dark mode is toggled by adding the `dark` class to
+ * <html> (see src/shared/composables/useTheme.ts).
+ */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Source paths Tailwind scans for class names — replaces the `content`
+ * array from the former tailwind.config.ts. `source(none)` on the import
+ * above disables automatic detection so only these explicit globs are
+ * scanned. Paths are relative to this file (src/assets/).
+ *
+ * src/assets/tailwind-safelist.ts is matched by the src glob below; it lists
+ * dynamically-generated classes (e.g. SplitButton corners) that the scanner
+ * cannot otherwise detect.
+ */
+@source '../*.html';
+@source '../**/*.{vue,js,ts,jsx,tsx,mjs}';
+@source '../../templates/web/**/*.html';
+@source '../../apps/web/auth/views/**/*.erb';
+
+/*
+ * `@theme static` (not plain `@theme`) is REQUIRED for runtime branding:
+ * the `static` modifier emits every --color-brand* variable into :root
+ * unconditionally, so utilities like bg-brand-500 resolve to var(--color-brand-500)
+ * and useBrandTheme can override those variables on <html> per custom domain —
+ * and clearOverrides() falls back to these compiled defaults. Plain `@theme`
+ * would tree-shake unused shades out of :root and break that fallback.
+ */
+@theme static {
+  /*
+   * Brand font family (Zilla Slab + serif fallback) — replaces
+   * `fontFamily.brand` from the former tailwind.config.ts. The default
+   * sans/serif/mono families come from Tailwind's own theme.
+   */
+  --font-brand: 'Zilla Slab', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+
+  /* Brand color palette - 11 shades (neutral blue #3B82F6) */
+  /* Runtime injection via useBrandTheme will override these */
+  --color-brand-50: #f0f7ff;
+  --color-brand-100: #e0efff;
+  --color-brand-200: #b9dbfe;
+  --color-brand-300: #7cc2fd;
+  --color-brand-400: #54a8f9;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+  --color-brand-950: #172554;
+
+  /* Dimmed brand colors - 11 shades */
+  --color-branddim-50: #f0f5ff;
+  --color-branddim-100: #dce8fe;
+  --color-branddim-200: #b3cdfc;
+  --color-branddim-300: #76abf9;
+  --color-branddim-400: #4c8ff3;
+  --color-branddim-500: #2563eb;
+  --color-branddim-600: #1d4ed8;
+  --color-branddim-700: #1a3fc0;
+  --color-branddim-800: #18339a;
+  --color-branddim-900: #152a7a;
+  --color-branddim-950: #0f1d54;
+
+  /* Complementary brand colors (orange) - 11 shades */
+  --color-brandcomp-50: #fff7ed;
+  --color-brandcomp-100: #ffedd5;
+  --color-brandcomp-200: #fed7aa;
+  --color-brandcomp-300: #fdba74;
+  --color-brandcomp-400: #fb923c;
+  --color-brandcomp-500: #f97316;
+  --color-brandcomp-600: #ea580c;
+  --color-brandcomp-700: #c2410c;
+  --color-brandcomp-800: #9a3412;
+  --color-brandcomp-900: #7c2d12;
+  --color-brandcomp-950: #431407;
+
+  /* Dimmed complementary colors - 11 shades */
+  --color-brandcompdim-50: #fff5eb;
+  --color-brandcompdim-100: #ffe8d1;
+  --color-brandcompdim-200: #fdd0a2;
+  --color-brandcompdim-300: #f9b06a;
+  --color-brandcompdim-400: #f18c3c;
+  --color-brandcompdim-500: #e05d0f;
+  --color-brandcompdim-600: #c24a0b;
+  --color-brandcompdim-700: #9c3a0a;
+  --color-brandcompdim-800: #7c2e0c;
+  --color-brandcompdim-900: #65250d;
+  --color-brandcompdim-950: #3a1306;
+
+  /*
+   * Expanded brand vocabulary (#3646). useBrandTheme injects per-domain
+   * overrides for each of these; the neutral defaults below keep every
+   * bg-brand2-* / bg-brandbg / text-brandtext / rounded-brand utility
+   * resolving even before (or without) any per-domain branding.
+   *
+   * Wiring note: these tokens are injected but not yet rendered by any view.
+   * Consume them with the matching utility in a branded/* component — e.g.
+   * `bg-brand2-500`, `bg-brandbg`, `text-brandtext`, `rounded-brand`. See the
+   * "WIRING" block in useBrandTheme.ts for the full last-mile checklist.
+   */
+
+  /* Secondary brand color scale (neutral slate default) - 11 shades */
+  --color-brand2-50: #f8fafc;
+  --color-brand2-100: #f1f5f9;
+  --color-brand2-200: #e2e8f0;
+  --color-brand2-300: #cbd5e1;
+  --color-brand2-400: #94a3b8;
+  --color-brand2-500: #64748b;
+  --color-brand2-600: #475569;
+  --color-brand2-700: #334155;
+  --color-brand2-800: #1e293b;
+  --color-brand2-900: #0f172a;
+  --color-brand2-950: #020617;
+
+  /* Surface (background) and body-text (ink) single tokens */
+  --color-brandbg: #ffffff;
+  --color-brandtext: #1f2937;
+
+  /* Brand border radius token (default = "md" preset, 0.5rem) */
+  --radius-brand: 0.5rem;
+
+  /*
+   * Curated font-family tokens for the expanded font allowlist. serif/mono
+   * reuse Tailwind's built-ins; these six back the font-brand-* utilities
+   * (see fontFamilyStacks / fontFamilyClasses in brand-helpers.ts).
+   *
+   * --font-brand-sans is a deterministic neutral grotesque with NO OS-UI
+   * generics (no ui-sans-serif/system-ui/-apple-system): those resolve to the
+   * OS UI font (San Francisco on macOS), which would make `sans` render
+   * identically to `system`. Keeping Helvetica/Arial makes the two distinct.
+   */
+  --font-brand-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-brand-system: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-brand-slab: 'Zilla Slab', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-brand-rounded:
+    ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', 'Nunito', system-ui, sans-serif;
+  --font-brand-humanist:
+    'Segoe UI', 'Helvetica Neue', 'Optima', Candara, Calibri, system-ui, sans-serif;
+  --font-brand-geometric: 'Avenir Next', Avenir, 'Century Gothic', 'Futura', system-ui, sans-serif;
+
+  /* Custom animations */
+  --animate-gradient-x: gradient-x 5s ease-in-out infinite;
+}
+
+/* Custom keyframe animations */
+@keyframes gradient-x {
+  0%,
+  100% {
+    background-size: 200% 100%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 100%;
+    background-position: right center;
+  }
+}
+
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer base {
+  /* Zilla Slab font faces */
+  @font-face {
+    font-family: 'Zilla Slab';
+    src: url('./fonts/zs/ZillaSlab-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: fallback;
+  }
+
+  @font-face {
+    font-family: 'Zilla Slab';
+    src: url('./fonts/zs/ZillaSlab-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: fallback;
+  }
+
+  @font-face {
+    font-family: 'Zilla Slab';
+    src: url('./fonts/zs/ZillaSlab-Italic.woff2') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+    font-display: fallback;
+  }
+
+  @font-face {
+    font-family: 'Zilla Slab';
+    src: url('./fonts/zs/ZillaSlab-BoldItalic.woff2') format('woff2');
+    font-weight: 700;
+    font-style: italic;
+    font-display: fallback;
+  }
+
+  /* Base element styles */
+  html {
+    font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-family: 'Zilla Slab', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    /*margin: theme('spacing.5') 0;*/
+  }
+
+  button,
+  a.block {
+    font-family: 'Zilla Slab', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  }
+
+  /*
+   * Restores the pointer cursor on buttons. Tailwind v3's Preflight shipped
+   * `button, [role="button"] { cursor: pointer }`; v4 dropped it to match the
+   * browser default (`cursor: default`), so every button that does not set
+   * `cursor-pointer` itself lost its affordance on upgrade.
+   *
+   * Scoped with `:not(:disabled)` so a disabled button falls through to the
+   * browser default rather than misleadingly showing a pointer. Note that
+   * `:disabled` only matches native form controls, so on `[role='button']`
+   * elements the `:not(:disabled)` clause is inert — `aria-disabled="true"`
+   * is not excluded here, by design. Utilities still win over this rule:
+   * `disabled:cursor-not-allowed` (and any explicit `cursor-*`) emit into the
+   * `utilities` layer, which the cascade orders after `base` regardless of
+   * selector specificity.
+   */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1 {
+    @apply mb-3 text-4xl font-bold text-gray-900;
+  }
+
+  h2 {
+    @apply mb-3 text-3xl font-bold text-gray-800;
+  }
+
+  h3 {
+    @apply mb-2 text-2xl font-semibold text-gray-700;
+  }
+
+  h4 {
+    @apply mb-1 text-xl font-medium text-gray-600;
+  }
+
+  h5 {
+    @apply mb-2 text-lg font-semibold text-gray-700;
+  }
+}

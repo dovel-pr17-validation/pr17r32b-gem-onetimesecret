@@ -1,0 +1,847 @@
+# spec/integration/all/operations/dispatch_notification_spec.rb
+#
+# frozen_string_literal: true
+
+# DispatchNotification Operation Test Suite
+#
+# Tests the notification dispatch operation that delivers notifications
+# to multiple channels: via_bell (Redis), via_email (queue), via_webhook (HTTP).
+#
+# Test Categories:
+#
+#   1. In-app notification delivery (Integration)
+#      - Verifies Redis list storage with correct structure
+#      - Tests TTL and list trimming behavior
+#
+#   2. Email notification delivery (Unit)
+#      - Verifies Publisher.publish is called with correct payload
+#      - Tests email payload structure
+#
+#   3. Webhook notification delivery (Unit)
+#      - Verifies HTTP POST is made with correct payload
+#      - Tests error handling for failed webhooks
+#
+#   4. Multi-channel delivery (Integration)
+#      - Tests delivery to all three channels simultaneously
+#      - Tests partial success scenarios
+#
+#   5. Channel resolution (Unit)
+#      - Tests default channel behavior
+#      - Tests invalid channel filtering
+#
+# Setup Requirements:
+#   - Redis test instance at VALKEY_URL='valkey://127.0.0.1:2163/0'
+#   - Mocked Onetime::Jobs::Publisher for email queueing
+#   - Mocked Net::HTTP for webhook delivery
+#
+# Run with: pnpm run test:rspec spec/onetime/operations/dispatch_notification_spec.rb
+
+require 'spec_helper'
+require 'onetime/operations/dispatch_notification'
+
+RSpec.describe Onetime::Operations::DispatchNotification, type: :integration do
+  let(:custid) { 'cust:test-user-456' }
+
+  # Helper to stub the shared SSRF guard's DNS seam for webhook tests.
+  # Guard.try_each_address! dispatches through Guard.resolve_addresses, so
+  # stubbing that single seam avoids live DNS while keeping the guard's
+  # validation and pinning logic real. Redis is unaffected (the Redis client
+  # does not resolve through Guard).
+  def stub_public_ip_resolution
+    allow(Onetime::Http::Guard).to receive(:resolve_addresses)
+      .and_return(['93.184.216.34']) # example.com public IP
+  end
+
+  let(:base_data) do
+    {
+      type: 'secret.viewed',
+      addressee: {
+        custid: custid,
+        email: 'user@example.com',
+        webhook_url: 'https://example.com/webhook'
+      },
+      template: 'secret_viewed',
+      locale: 'en',
+      channels: ['via_bell'],
+      data: {
+        secret_key: 'abc123',
+        viewed_at: '2024-01-15T10:30:00Z'
+      }
+    }
+  end
+
+
+  describe '#call' do
+    context 'in-app notification delivery' do
+      let(:data) { base_data.merge(channels: ['via_bell']) }
+      let(:operation) { described_class.new(data: data) }
+
+      it 'stores notification in Redis list' do
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:success)
+
+        notifications = Familia.dbclient.lrange("notifications:#{custid}", 0, -1)
+        expect(notifications.length).to eq(1)
+
+        notification = JSON.parse(notifications.first, symbolize_names: true)
+        expect(notification[:type]).to eq('secret.viewed')
+        expect(notification[:template]).to eq('secret_viewed')
+        expect(notification[:data][:secret_key]).to eq('abc123')
+        expect(notification[:read]).to be false
+        expect(notification[:id]).to be_a(String)
+        expect(notification[:created_at]).to be_a(String)
+      end
+
+      it 'sets TTL on notification key' do
+        operation.call
+
+        ttl = Familia.dbclient.ttl("notifications:#{custid}")
+        expect(ttl).to be > 0
+        expect(ttl).to be <= described_class::NOTIFICATION_TTL
+      end
+
+      it 'limits stored notifications to MAX_NOTIFICATIONS' do
+        # Pre-populate with MAX_NOTIFICATIONS
+        described_class::MAX_NOTIFICATIONS.times do |i|
+          Familia.dbclient.lpush("notifications:#{custid}", { id: "old-#{i}" }.to_json)
+        end
+
+        operation.call
+
+        count = Familia.dbclient.llen("notifications:#{custid}")
+        expect(count).to eq(described_class::MAX_NOTIFICATIONS)
+      end
+
+      it 'skips when custid is missing' do
+        data_without_custid = base_data.merge(
+          addressee: { email: 'user@example.com' },
+          channels: ['via_bell']
+        )
+        operation = described_class.new(data: data_without_custid)
+
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:skipped)
+      end
+    end
+
+    context 'email notification delivery' do
+      let(:publisher_instance) { instance_double(Onetime::Jobs::Publisher) }
+      let(:data) { base_data.merge(channels: ['via_email']) }
+      let(:operation) { described_class.new(data: data) }
+
+      before do
+        allow(Onetime::Jobs::Publisher).to receive(:new).and_return(publisher_instance)
+        allow(publisher_instance).to receive(:publish).and_return('queued-msg-id')
+      end
+
+      it 'queues email via Publisher with correct payload' do
+        results = operation.call
+
+        expect(results[:via_email]).to eq(:success)
+        expect(publisher_instance).to have_received(:publish).with(
+          'email.message.send',
+          hash_including(
+            template: 'secret_viewed',
+            data: hash_including(
+              locale: 'en',
+              to: 'user@example.com',
+              secret_key: 'abc123'
+            )
+          )
+        )
+      end
+
+      it 'uses provided locale in email payload' do
+        data_with_locale = base_data.merge(channels: ['via_email'], locale: 'fr')
+        operation = described_class.new(data: data_with_locale)
+
+        operation.call
+
+        expect(publisher_instance).to have_received(:publish).with(
+          'email.message.send',
+          hash_including(
+            data: hash_including(locale: 'fr')
+          )
+        )
+      end
+
+      it 'skips when email is missing' do
+        data_without_email = base_data.merge(
+          addressee: { custid: custid },
+          channels: ['via_email']
+        )
+        operation = described_class.new(data: data_without_email)
+
+        results = operation.call
+
+        expect(results[:via_email]).to eq(:skipped)
+        expect(publisher_instance).not_to have_received(:publish)
+      end
+    end
+
+    context 'webhook notification delivery' do
+      let(:http_instance) { instance_double(Net::HTTP) }
+      let(:response) { instance_double(Net::HTTPSuccess, code: '200', body: 'OK') }
+      let(:data) { base_data.merge(channels: ['via_webhook']) }
+      let(:operation) { described_class.new(data: data) }
+
+      before do
+        stub_public_ip_resolution
+        allow(Net::HTTP).to receive(:new).and_return(http_instance)
+        allow(http_instance).to receive(:ipaddr=)
+        allow(http_instance).to receive(:use_ssl=)
+        allow(http_instance).to receive(:use_ssl?).and_return(true)
+        allow(http_instance).to receive(:verify_mode=)
+        allow(http_instance).to receive(:verify_hostname=)
+        allow(http_instance).to receive(:open_timeout=)
+        allow(http_instance).to receive(:read_timeout=)
+        allow(http_instance).to receive(:request).and_return(response)
+        allow(response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      end
+
+      it 'makes HTTP POST to webhook URL with correct payload' do
+        results = operation.call
+
+        expect(results[:via_webhook]).to eq(:success)
+        expect(http_instance).to have_received(:request) do |request|
+          expect(request).to be_a(Net::HTTP::Post)
+          expect(request['Content-Type']).to eq('application/json')
+          expect(request['User-Agent']).to eq(Onetime::VERSION.user_agent)
+
+          body = JSON.parse(request.body, symbolize_names: true)
+          expect(body[:event]).to eq('secret.viewed')
+          expect(body[:template]).to eq('secret_viewed')
+          expect(body[:data][:secret_key]).to eq('abc123')
+          expect(body[:timestamp]).to be_a(String)
+        end
+      end
+
+      it 'uses SSL for https URLs' do
+        operation.call
+
+        expect(http_instance).to have_received(:use_ssl=).with(true)
+      end
+
+      it 'sets appropriate timeouts' do
+        operation.call
+
+        expect(http_instance).to have_received(:open_timeout=).with(described_class::WEBHOOK_OPEN_TIMEOUT)
+        expect(http_instance).to have_received(:read_timeout=).with(described_class::WEBHOOK_READ_TIMEOUT)
+      end
+
+      it 'returns error when webhook returns non-success status' do
+        error_response = instance_double(Net::HTTPBadRequest, code: '400', body: 'Bad Request')
+        allow(http_instance).to receive(:request).and_return(error_response)
+        allow(error_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(false)
+
+        results = operation.call
+
+        expect(results[:via_webhook]).to eq(:error)
+      end
+
+      it 'skips when webhook_url is missing' do
+        data_without_webhook = base_data.merge(
+          addressee: { custid: custid, email: 'user@example.com' },
+          channels: ['via_webhook']
+        )
+        operation = described_class.new(data: data_without_webhook)
+
+        results = operation.call
+
+        expect(results[:via_webhook]).to eq(:skipped)
+      end
+    end
+
+    context 'multi-channel delivery' do
+      let(:publisher_instance) { instance_double(Onetime::Jobs::Publisher) }
+      let(:http_instance) { instance_double(Net::HTTP) }
+      let(:response) { instance_double(Net::HTTPSuccess, code: '200', body: 'OK') }
+      let(:data) { base_data.merge(channels: %w[via_bell via_email via_webhook]) }
+      let(:operation) { described_class.new(data: data) }
+
+      before do
+        stub_public_ip_resolution
+        allow(Onetime::Jobs::Publisher).to receive(:new).and_return(publisher_instance)
+        allow(publisher_instance).to receive(:publish).and_return('msg-id')
+
+        allow(Net::HTTP).to receive(:new).and_return(http_instance)
+        allow(http_instance).to receive(:ipaddr=)
+        allow(http_instance).to receive(:use_ssl=)
+        allow(http_instance).to receive(:use_ssl?).and_return(true)
+        allow(http_instance).to receive(:verify_mode=)
+        allow(http_instance).to receive(:verify_hostname=)
+        allow(http_instance).to receive(:open_timeout=)
+        allow(http_instance).to receive(:read_timeout=)
+        allow(http_instance).to receive(:request).and_return(response)
+        allow(response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      end
+
+      it 'delivers to all three channels' do
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:success)
+        expect(results[:via_email]).to eq(:success)
+        expect(results[:via_webhook]).to eq(:success)
+
+        # Verify Redis storage
+        notifications = Familia.dbclient.lrange("notifications:#{custid}", 0, -1)
+        expect(notifications.length).to eq(1)
+
+        # Verify Publisher was called
+        expect(publisher_instance).to have_received(:publish)
+
+        # Verify HTTP was called
+        expect(http_instance).to have_received(:request)
+      end
+
+      it 'continues with other channels when one fails' do
+        # Make webhook fail
+        allow(http_instance).to receive(:request).and_raise(StandardError, 'Connection refused')
+
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:success)
+        expect(results[:via_email]).to eq(:success)
+        expect(results[:via_webhook]).to eq(:error)
+      end
+    end
+
+    context 'channel resolution' do
+      it 'defaults to bell when no channels specified' do
+        data_without_channels = base_data.reject { |k, _| k == :channels }
+        operation = described_class.new(data: data_without_channels)
+
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:success)
+        expect(results.keys).to eq([:via_bell])
+      end
+
+      it 'filters out invalid channels' do
+        data_with_invalid = base_data.merge(channels: %w[bell sms carrier_pigeon])
+        operation = described_class.new(data: data_with_invalid)
+
+        results = operation.call
+
+        expect(results.keys).to eq([:via_bell])
+      end
+
+      it 'defaults to bell when all channels are invalid' do
+        data_all_invalid = base_data.merge(channels: %w[sms carrier_pigeon])
+        operation = described_class.new(data: data_all_invalid)
+
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:success)
+      end
+    end
+
+    context 'with empty addressee' do
+      let(:data) { base_data.merge(addressee: {}, channels: %w[via_bell via_email via_webhook]) }
+      let(:operation) { described_class.new(data: data) }
+
+      it 'skips all channels gracefully' do
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:skipped)
+        expect(results[:via_email]).to eq(:skipped)
+        expect(results[:via_webhook]).to eq(:skipped)
+      end
+    end
+  end
+
+  describe '#results' do
+    it 'returns empty hash before call' do
+      operation = described_class.new(data: base_data)
+
+      expect(operation.results).to eq({})
+    end
+
+    it 'returns results after call' do
+      operation = described_class.new(data: base_data.merge(channels: ['via_bell']))
+      operation.call
+
+      expect(operation.results).to eq({ via_bell: :success })
+    end
+  end
+
+  # === Additional Edge Case Coverage ===
+
+  describe 'edge cases for data structure' do
+    context 'with nil data fields' do
+      it 'handles nil data hash gracefully' do
+        data_with_nil = base_data.merge(data: nil, channels: ['via_bell'])
+        operation = described_class.new(data: data_with_nil)
+
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:success)
+        notification = JSON.parse(Familia.dbclient.lrange("notifications:#{custid}", 0, 0).first, symbolize_names: true)
+        expect(notification[:data]).to eq({})
+      end
+
+      it 'handles nil addressee gracefully' do
+        data_nil_addressee = base_data.merge(addressee: nil, channels: ['via_bell'])
+        operation = described_class.new(data: data_nil_addressee)
+
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:skipped)
+      end
+    end
+
+    context 'with empty channels array' do
+      it 'defaults to bell when channels is empty array' do
+        data_empty_channels = base_data.merge(channels: [])
+        operation = described_class.new(data: data_empty_channels)
+
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:success)
+      end
+    end
+
+    context 'channel type coercion' do
+      let(:publisher_instance) { instance_double(Onetime::Jobs::Publisher) }
+
+      before do
+        allow(Onetime::Jobs::Publisher).to receive(:new).and_return(publisher_instance)
+        allow(publisher_instance).to receive(:publish).and_return('queued-msg-id')
+      end
+
+      it 'handles symbol channels' do
+        data_symbol_channels = base_data.merge(channels: [:via_bell, :via_email])
+        operation = described_class.new(data: data_symbol_channels)
+
+        results = operation.call
+
+        expect(results[:via_bell]).to eq(:success)
+        expect(results[:via_email]).to eq(:success)
+      end
+    end
+  end
+
+  describe 'webhook network errors' do
+    let(:http_instance) { instance_double(Net::HTTP) }
+    let(:data) { base_data.merge(channels: ['via_webhook']) }
+
+    before do
+      stub_public_ip_resolution
+      allow(Net::HTTP).to receive(:new).and_return(http_instance)
+      allow(http_instance).to receive(:ipaddr=)
+      allow(http_instance).to receive(:use_ssl=)
+      allow(http_instance).to receive(:use_ssl?).and_return(true)
+      allow(http_instance).to receive(:verify_mode=)
+      allow(http_instance).to receive(:verify_hostname=)
+      allow(http_instance).to receive(:open_timeout=)
+      allow(http_instance).to receive(:read_timeout=)
+    end
+
+    it 'handles connection timeout' do
+      allow(http_instance).to receive(:request).and_raise(Net::OpenTimeout, 'execution expired')
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:error)
+    end
+
+    it 'handles read timeout' do
+      allow(http_instance).to receive(:request).and_raise(Net::ReadTimeout, 'Net::ReadTimeout')
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:error)
+    end
+
+    it 'handles DNS resolution failure' do
+      allow(Net::HTTP).to receive(:new).and_raise(SocketError, 'getaddrinfo: nodename nor servname provided')
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:error)
+    end
+
+    it 'handles SSL certificate error' do
+      allow(http_instance).to receive(:request).and_raise(OpenSSL::SSL::SSLError, 'certificate verify failed')
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:error)
+    end
+  end
+
+  describe 'HTTP vs HTTPS webhook URLs' do
+    let(:http_instance) { instance_double(Net::HTTP) }
+    let(:response) { instance_double(Net::HTTPSuccess, code: '200', body: 'OK') }
+
+    before do
+      stub_public_ip_resolution
+      allow(Net::HTTP).to receive(:new).and_return(http_instance)
+      allow(http_instance).to receive(:ipaddr=)
+      allow(http_instance).to receive(:use_ssl=)
+      allow(http_instance).to receive(:verify_mode=)
+      allow(http_instance).to receive(:verify_hostname=)
+      allow(http_instance).to receive(:open_timeout=)
+      allow(http_instance).to receive(:read_timeout=)
+      allow(http_instance).to receive(:request).and_return(response)
+      allow(response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+    end
+
+    context 'with HTTP webhook URL' do
+      let(:data) do
+        base_data.merge(
+          addressee: base_data[:addressee].merge(webhook_url: 'http://example.com/webhook'),
+          channels: ['via_webhook']
+        )
+      end
+
+      before do
+        allow(http_instance).to receive(:use_ssl?).and_return(false)
+      end
+
+      it 'disables SSL for http URLs' do
+        described_class.new(data: data).call
+
+        expect(http_instance).to have_received(:use_ssl=).with(false)
+      end
+    end
+
+    context 'with HTTPS webhook URL' do
+      let(:data) do
+        base_data.merge(
+          addressee: base_data[:addressee].merge(webhook_url: 'https://secure.example.com/webhook'),
+          channels: ['via_webhook']
+        )
+      end
+
+      before do
+        allow(http_instance).to receive(:use_ssl?).and_return(true)
+      end
+
+      it 'enables SSL for https URLs' do
+        described_class.new(data: data).call
+
+        expect(http_instance).to have_received(:use_ssl=).with(true)
+      end
+
+      it 'sets strict TLS verification' do
+        described_class.new(data: data).call
+
+        expect(http_instance).to have_received(:verify_mode=).with(OpenSSL::SSL::VERIFY_PEER)
+        expect(http_instance).to have_received(:verify_hostname=).with(true)
+      end
+    end
+  end
+
+  describe 'SSRF protection' do
+    let(:http_instance) { instance_double(Net::HTTP) }
+    let(:data) { base_data.merge(channels: ['via_webhook']) }
+
+    before do
+      allow(Net::HTTP).to receive(:new).and_return(http_instance)
+      allow(http_instance).to receive(:ipaddr=)
+      allow(http_instance).to receive(:use_ssl=)
+      allow(http_instance).to receive(:use_ssl?).and_return(true)
+      allow(http_instance).to receive(:verify_mode=)
+      allow(http_instance).to receive(:verify_hostname=)
+      allow(http_instance).to receive(:open_timeout=)
+      allow(http_instance).to receive(:read_timeout=)
+    end
+
+    # Helper to stub the guard's DNS seam for a specific resolved IP. The
+    # guard's validation logic stays real; only resolution is faked.
+    def stub_webhook_ip(ip_address)
+      allow(Onetime::Http::Guard).to receive(:resolve_addresses).and_return([ip_address])
+    end
+
+    it 'blocks loopback addresses without attempting a connection' do
+      stub_webhook_ip('127.0.0.1')
+      allow(http_instance).to receive(:request)
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:error)
+      expect(Net::HTTP).not_to have_received(:new)
+      expect(http_instance).not_to have_received(:request)
+    end
+
+    it 'blocks private network addresses' do
+      stub_webhook_ip('192.168.1.1')
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:error)
+      expect(Net::HTTP).not_to have_received(:new)
+    end
+
+    it 'blocks link-local addresses' do
+      stub_webhook_ip('169.254.169.254') # AWS metadata
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:error)
+      expect(Net::HTTP).not_to have_received(:new)
+    end
+
+    it 'blocks split RRsets with any restricted address' do
+      allow(Onetime::Http::Guard).to receive(:resolve_addresses)
+        .and_return(['93.184.216.34', '10.0.0.5'])
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:error)
+      expect(Net::HTTP).not_to have_received(:new)
+    end
+
+    it 'allows public IP addresses and pins the connection to the validated IP' do
+      response = instance_double(Net::HTTPSuccess, code: '200', body: 'OK')
+      allow(http_instance).to receive(:request).and_return(response)
+      allow(response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+
+      stub_webhook_ip('93.184.216.34')
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:success)
+      # Explicit nil p_addr disables environment-proxy pickup so pinning
+      # cannot be silently bypassed via http_proxy.
+      expect(Net::HTTP).to have_received(:new).with('example.com', 443, nil)
+      expect(http_instance).to have_received(:ipaddr=).with('93.184.216.34')
+    end
+
+    it 'handles DNS resolution failure' do
+      # Resolv::DNS#getaddresses returns [] for unresolvable hosts; the guard
+      # fails closed on empty resolution.
+      allow(Onetime::Http::Guard).to receive(:resolve_addresses).and_return([])
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:error)
+      expect(Net::HTTP).not_to have_received(:new)
+    end
+
+    it 'falls back to the next validated address when the first is unreachable' do
+      response = instance_double(Net::HTTPSuccess, code: '200', body: 'OK')
+      allow(response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      allow(Onetime::Http::Guard).to receive(:resolve_addresses)
+        .and_return(['93.184.216.34', '93.184.216.35'])
+      allow(http_instance).to receive(:request)
+        .and_invoke(->(_req) { raise Errno::ECONNREFUSED }, ->(_req) { response })
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:success)
+      # Each dial stays pinned to one exact validated IP; the fallback walk
+      # never widens beyond the guard-validated set.
+      expect(http_instance).to have_received(:ipaddr=).with('93.184.216.34').ordered
+      expect(http_instance).to have_received(:ipaddr=).with('93.184.216.35').ordered
+    end
+
+    it 'reports an error when every validated address is unreachable' do
+      allow(Onetime::Http::Guard).to receive(:resolve_addresses)
+        .and_return(['93.184.216.34', '93.184.216.35'])
+      allow(http_instance).to receive(:request).and_raise(Errno::ECONNREFUSED)
+
+      results = described_class.new(data: data).call
+
+      expect(results[:via_webhook]).to eq(:error)
+      expect(http_instance).to have_received(:request).twice
+    end
+  end
+
+  describe 'Publisher exception handling' do
+    let(:publisher_instance) { instance_double(Onetime::Jobs::Publisher) }
+    let(:data) { base_data.merge(channels: ['via_email']) }
+
+    before do
+      allow(Onetime::Jobs::Publisher).to receive(:new).and_return(publisher_instance)
+      allow(publisher_instance).to receive(:publish).and_raise(StandardError, 'RabbitMQ unavailable')
+    end
+
+    it 'returns error status when Publisher raises exception' do
+      results = described_class.new(data: data).call
+
+      expect(results[:via_email]).to eq(:error)
+    end
+  end
+
+  describe 'context parameter' do
+    it 'accepts context without affecting delivery' do
+      context = { source_message_id: 'msg-123', correlation_id: 'corr-456' }
+      operation = described_class.new(data: base_data.merge(channels: ['via_bell']), context: context)
+
+      results = operation.call
+
+      expect(results[:via_bell]).to eq(:success)
+    end
+  end
+
+  describe 'notification metadata format' do
+    it 'generates valid UUID for notification id' do
+      operation = described_class.new(data: base_data.merge(channels: ['via_bell']))
+      operation.call
+
+      notification = JSON.parse(Familia.dbclient.lrange("notifications:#{custid}", 0, 0).first, symbolize_names: true)
+
+      expect(notification[:id]).to match(/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i)
+    end
+
+    it 'generates ISO8601 timestamp for created_at' do
+      operation = described_class.new(data: base_data.merge(channels: ['via_bell']))
+      operation.call
+
+      notification = JSON.parse(Familia.dbclient.lrange("notifications:#{custid}", 0, 0).first, symbolize_names: true)
+
+      expect { Time.iso8601(notification[:created_at]) }.not_to raise_error
+    end
+  end
+
+  describe 'delivery events (#4479)' do
+    let(:publisher_instance) { instance_double(Onetime::Jobs::Publisher) }
+    let(:http_instance) { instance_double(Net::HTTP) }
+    let(:response) { instance_double(Net::HTTPSuccess, code: '200', body: 'OK') }
+    let(:data) do
+      base_data.merge(
+        channels: %w[via_email via_webhook],
+        addressee: base_data[:addressee].merge(customer_extid: 'ur2a3b4c5d'),
+      )
+    end
+    let(:operation) { described_class.new(data: data, context: { source_message_id: 'notif-msg-1' }) }
+
+    def clear_events
+      Onetime::DeliveryEvent.events.clear
+    end
+
+    def recorded
+      Onetime::DeliveryEvent.recent(20)
+    end
+
+    before do
+      clear_events
+      stub_public_ip_resolution
+      allow(Onetime::Jobs::Publisher).to receive(:new).and_return(publisher_instance)
+      allow(publisher_instance).to receive(:publish).and_return('email-msg-1')
+
+      allow(Net::HTTP).to receive(:new).and_return(http_instance)
+      allow(http_instance).to receive(:ipaddr=)
+      allow(http_instance).to receive(:use_ssl=)
+      allow(http_instance).to receive(:use_ssl?).and_return(true)
+      allow(http_instance).to receive(:verify_mode=)
+      allow(http_instance).to receive(:verify_hostname=)
+      allow(http_instance).to receive(:open_timeout=)
+      allow(http_instance).to receive(:read_timeout=)
+      allow(http_instance).to receive(:request).and_return(response)
+      allow(response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+    end
+
+    after { clear_events }
+
+    it 'records email as queued (not sent) and webhook as sent, sharing the correlation id' do
+      operation.call
+
+      email   = recorded.find { |event| event['channel'] == 'email' }
+      webhook = recorded.find { |event| event['channel'] == 'webhook' }
+
+      expect(email).to include(
+        'stage' => 'queue',
+        'outcome' => 'queued',
+        'correlation_id' => 'notif-msg-1',
+        'message_id' => 'email-msg-1',
+        'event_type' => 'secret.viewed',
+        'template' => 'secret_viewed',
+        'customer_id' => 'ur2a3b4c5d',
+      )
+      expect(webhook).to include(
+        'stage' => 'delivery',
+        'outcome' => 'sent',
+        'correlation_id' => 'notif-msg-1',
+        'http_status' => 200,
+        'target_host' => 'example.com',
+        'attempt_count' => 1,
+      )
+      expect(webhook['duration_ms']).to be_a(Integer)
+    end
+
+    it 'carries the correlation id, event type and customer extid in the email payload, outside data' do
+      operation.call
+
+      expect(publisher_instance).to have_received(:publish).with(
+        'email.message.send',
+        hash_including(
+          correlation_id: 'notif-msg-1',
+          event_type: 'secret.viewed',
+          customer_extid: 'ur2a3b4c5d',
+          data: hash_not_including(:correlation_id, :customer_extid),
+        ),
+      )
+    end
+
+    it 'generates a correlation id when the context has no source message id' do
+      described_class.new(data: data).call
+
+      ids = recorded.map { |event| event['correlation_id'] }.uniq
+      expect(ids.size).to eq(1)
+      expect(ids.first).to start_with('gen-')
+    end
+
+    it 'records the webhook failure with the status and the email as queued when only the webhook fails' do
+      error_response = instance_double(Net::HTTPServerError, code: '503', body: 'secret-body user@example.com')
+      allow(http_instance).to receive(:request).and_return(error_response)
+      allow(error_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(false)
+
+      results = operation.call
+
+      expect(results).to eq(via_email: :success, via_webhook: :error)
+      webhook = recorded.find { |event| event['channel'] == 'webhook' }
+      expect(webhook).to include(
+        'outcome' => 'failed',
+        'reason' => 'http_status',
+        'http_status' => 503,
+        'target_host' => 'example.com',
+      )
+      expect(webhook).not_to have_key('error_message')
+      expect(webhook.to_json).not_to include('secret-body')
+      expect(recorded.find { |event| event['channel'] == 'email' }).to include('outcome' => 'queued')
+    end
+
+    it 'records a queue failure without upstream error text when publishing raises' do
+      allow(publisher_instance).to receive(:publish)
+        .and_raise(StandardError, 'refused amqp://user:s3cret@broker:5672/')
+
+      results = operation.call
+
+      expect(results[:via_email]).to eq(:error)
+      email = recorded.find { |event| event['channel'] == 'email' }
+      expect(email).to include(
+        'stage' => 'queue',
+        'outcome' => 'failed',
+        'reason' => 'publish_failed',
+        'error_class' => 'StandardError',
+      )
+      expect(email).not_to have_key('error_message')
+            expect(email.to_json).not_to include('s3cret')
+    end
+
+    it 'records skipped events when a channel has no recipient or target' do
+      bare = data.merge(addressee: { custid: custid, customer_extid: 'ur2a3b4c5d' })
+
+      results = described_class.new(data: bare).call
+
+      expect(results).to eq(via_email: :skipped, via_webhook: :skipped)
+      expect(recorded.map { |event| [event['channel'], event['outcome'], event['reason']] })
+        .to contain_exactly(%w[email skipped no_recipient], %w[webhook skipped no_target])
+    end
+
+    it 'does not change channel results when event recording fails' do
+      allow(Onetime::DeliveryEvent).to receive(:record).and_raise(RedisClient::CannotConnectError, 'down')
+
+      results = operation.call
+
+      expect(results).to eq(via_email: :success, via_webhook: :success)
+      expect(publisher_instance).to have_received(:publish).once
+      expect(http_instance).to have_received(:request).once
+    end
+  end
+end

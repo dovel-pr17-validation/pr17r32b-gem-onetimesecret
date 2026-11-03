@@ -1,0 +1,113 @@
+# syntax=docker/dockerfile:1.22@sha256:4a43a54dd1fedceb30ba47e76cfcf2b47304f4161c0caeac2db1c61804ea3c91
+# check=error=true
+
+##
+# SHARED BASE IMAGE
+#
+# System dependencies, toolchain, and non-root user setup shared across
+# all OTS image variants. This image is built as a Bake target and
+# injected into downstream Dockerfiles via build contexts.
+#
+# Contains:
+#   - Ruby 3.4 (slim-trixie) base
+#   - Node.js 26 binaries + npm + pnpm
+#   - Build toolchain (build-essential, libssl-dev, etc.)
+#   - yq for YAML config migration
+#   - Non-root appuser (UID 1001)
+#
+# NOT intended for direct use — consumed by Bake as:
+#   contexts = { base = "target:base" }
+#
+
+ARG APP_DIR=/app
+ARG RUBY_IMAGE_TAG=3.4-slim-trixie@sha256:d8fd978ffc10f0eddee04aa03eb82e5d247079471392ae655de5ae04bdaad914
+ARG NODE_IMAGE_TAG=26@sha256:a723b54c35a76e947095a20a67d39585bb09c862e6b1adeb8a9f518f95e34fb0
+
+##
+# NODE: Node.js source for copying binaries
+#
+FROM docker.io/library/node:${NODE_IMAGE_TAG} AS node
+
+##
+# BASE: System dependencies and tools
+#
+# Installs system packages, updates RubyGems, and prepares the
+# application's package management dependencies using a Debian
+# Ruby 3.4 base image.
+#
+FROM docker.io/library/ruby:${RUBY_IMAGE_TAG} AS base
+ARG APP_DIR
+
+# Install system packages in a single layer
+RUN set -eux && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        libssl-dev \
+        libffi-dev \
+        libyaml-dev \
+        libsqlite3-dev \
+        libpq-dev \
+        pkg-config \
+        git \
+        curl \
+        python3 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+
+# Install yq (optimized for multi-arch)
+# Used for migrating config from v0.22 to v0.23+.
+# Pinned to a specific version to prevent breaking changes from upstream.
+#
+# Supply-chain hardening (RISK-2026-08-14-M12): the binary is copied into
+# every final image and runs at build time against package.json, so a
+# tampered or truncated download must fail the build, not ship. The SHA256
+# of each per-arch release asset is pinned here (from the release's
+# `checksums-bsd` file) and verified with `sha256sum -c` BEFORE the file is
+# made executable. Bumping YQ_VERSION therefore also means updating both
+# digests; a mismatch fails loudly rather than silently installing whatever
+# the download returned. Only amd64 and arm64 are built, so any other
+# architecture is refused instead of falling back to an unverified binary.
+ARG YQ_VERSION=v4.52.4
+ARG YQ_SHA256_AMD64=0c4d965ea944b64b8fddaf7f27779ee3034e5693263786506ccd1c120f184e8c
+ARG YQ_SHA256_ARM64=4c2cc022a129be5cc1187959bb4b09bebc7fb543c5837b93001c68f97ce39a5d
+RUN set -eux && \
+    ARCH=$(dpkg --print-architecture) && \
+    case "$ARCH" in \
+        amd64) YQ_ARCH="amd64"; YQ_SHA256="${YQ_SHA256_AMD64}" ;; \
+        arm64) YQ_ARCH="arm64"; YQ_SHA256="${YQ_SHA256_ARM64}" ;; \
+        *) echo "Unsupported architecture for yq: ${ARCH}" >&2; exit 1 ;; \
+    esac && \
+    curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${YQ_ARCH}" \
+        -o /tmp/yq && \
+    echo "${YQ_SHA256}  /tmp/yq" | sha256sum -c - && \
+    install -m 0755 /tmp/yq /usr/local/bin/yq && \
+    rm -f /tmp/yq && \
+    yq --version
+
+# Copy Node.js binaries (more efficient than full copy)
+COPY --from=node \
+    /usr/local/bin/node \
+    /usr/local/bin/
+
+COPY --from=node \
+    /usr/local/lib/node_modules/npm \
+    /usr/local/lib/node_modules/npm
+
+# Create symlinks and install package managers
+RUN set -eux && \
+    ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
+    node --version && npm --version && \
+    # Keep pnpm version in sync with package.json's "packageManager" field.
+    npm install -g pnpm@11.10.0 && \
+    pnpm --version
+
+# Create non-root user
+# IMPORTANT: UID/GID 1001 is also defined in Dockerfile (final and final-s6 stages).
+# Those stages start from a fresh ruby:slim image, so they recreate appuser independently.
+# Keep all three definitions in sync to avoid permission mismatches on shared volumes.
+RUN groupadd -g 1001 appuser && \
+    useradd -r -u 1001 -g appuser -d ${APP_DIR} -s /sbin/nologin appuser
+
+WORKDIR ${APP_DIR}

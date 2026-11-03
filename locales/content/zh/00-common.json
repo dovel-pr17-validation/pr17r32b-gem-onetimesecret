@@ -1,0 +1,1551 @@
+{
+  "web.COMMON.broadcast": {
+    "text": "",
+    "skip": true,
+    "note": "empty"
+  },
+  "web.COMMON.tagline": {
+    "text": "一次性安全链接",
+    "source_hash": "9da7aece"
+  },
+  "web.COMMON.powered_by": {
+    "text": "技术支持",
+    "source_hash": "fdc5d2e9"
+  },
+  "web.COMMON.website_url": {
+    "text": "https://onetimesecret.com/zh",
+    "source_hash": "440f5303"
+  },
+  "web.COMMON.button_generate_secret_short": {
+    "text": "生成密码",
+    "source_hash": "fdcbfcc7"
+  },
+  "web.COMMON.generate_password_disabled": {
+    "text": "表单填写完成后，生成密码功能将禁用",
+    "source_hash": "dc0e2b8c"
+  },
+  "web.COMMON.email_placeholder": {
+    "text": "例如 tom{'@'}myspace.com",
+    "source_hash": "f2350739"
+  },
+  "web.COMMON.password_placeholder": {
+    "text": "输入您的密码",
+    "source_hash": "c06bf967"
+  },
+  "web.COMMON.custom_domains_title": {
+    "text": "自定义域名",
+    "source_hash": "6170ab94"
+  },
+  "web.COMMON.custom_domains_description": {
+    "text": "使用您的品牌域名增强信任，创建专属的一次性链接。",
+    "source_hash": "71fddc05"
+  },
+  "web.COMMON.get_started_button": {
+    "text": "开始使用",
+    "source_hash": "983f3110"
+  },
+  "web.COMMON.confirm_password_placeholder": {
+    "text": "确认您的密码",
+    "source_hash": "bfd8c343"
+  },
+  "web.COMMON.header_settings": {
+    "text": "设置",
+    "source_hash": "74a883a0"
+  },
+  "web.COMMON.submit_with": {
+    "text": "提交",
+    "source_hash": "155f816c"
+  },
+  "web.COMMON.submitting": {
+    "text": "提交中...",
+    "source_hash": "64115d5b"
+  },
+  "web.COMMON.processing": {
+    "text": "处理中...",
+    "source_hash": "f40a853e"
+  },
+  "web.COMMON.description": {
+    "text": "避免在聊天记录和邮件中泄露敏感信息。分享一个只能查看一次的一次性链接。",
+    "source_hash": "4c895f85"
+  },
+  "web.COMMON.incorrect_passphrase": {
+    "text": "口令错误",
+    "source_hash": "a55f9636"
+  },
+  "web.COMMON.keywords": {
+    "text": "secret,密码生成器,分享内容,onetime",
+    "source_hash": "52728258"
+  },
+  "web.COMMON.button_create_secret": {
+    "text": "创建一次性链接",
+    "source_hash": "a3e07632"
+  },
+  "web.COMMON.button_generate_secret": {
+    "text": "或生成随机密码",
+    "source_hash": "8c1c764b"
+  },
+  "web.COMMON.secret_privacy_options": {
+    "text": "隐私选项",
+    "source_hash": "643a6921"
+  },
+  "web.COMMON.secret_passphrase": {
+    "text": "口令",
+    "source_hash": "e7611f05"
+  },
+  "web.COMMON.secret_passphrase_hint": {
+    "text": "难以猜测的单词或短语",
+    "source_hash": "29d0cf13"
+  },
+  "web.COMMON.secret_recipient_address": {
+    "text": "接收者地址",
+    "source_hash": "f6f6311d"
+  },
+  "web.COMMON.secret_placeholder": {
+    "text": "在此输入内容...",
+    "source_hash": "54630bab"
+  },
+  "web.COMMON.header_create_account": {
+    "text": "创建账户",
+    "source_hash": "0dffe234"
+  },
+  "web.COMMON.about": {
+    "text": "关于",
+    "source_hash": "4efca0d1"
+  },
+  "web.COMMON.header_sign_in": {
+    "text": "登录",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.COMMON.header_dashboard": {
+    "text": "账户",
+    "source_hash": "7e1b0d56"
+  },
+  "web.COMMON.header_logout": {
+    "text": "退出",
+    "source_hash": "d0527e4b"
+  },
+  "web.COMMON.secret": {
+    "text": "内容 | 内容",
+    "source_hash": "c7ebd045"
+  },
+  "web.COMMON.recent": {
+    "text": "最近",
+    "source_hash": "690dbe9d"
+  },
+  "web.COMMON.not_set": {
+    "text": "未设置",
+    "source_hash": "4895f731"
+  },
+  "web.COMMON.word_edit": {
+    "text": "编辑",
+    "source_hash": "464c4ffd"
+  },
+  "web.COMMON.word_save": {
+    "text": "保存",
+    "source_hash": "1509f561"
+  },
+  "web.COMMON.burn": {
+    "text": "销毁",
+    "source_hash": "926c5b43"
+  },
+  "web.COMMON.burned": {
+    "text": "已销毁",
+    "source_hash": "6d747b33"
+  },
+  "web.COMMON.expires_in": {
+    "text": "过期时间",
+    "source_hash": "de996752"
+  },
+  "web.COMMON.burn_this_secret": {
+    "text": "销毁此内容",
+    "source_hash": "ffff30e8"
+  },
+  "web.COMMON.burn_this_secret_hint": {
+    "text": "销毁内容将在查看前将其删除（点击确认）",
+    "source_hash": "c6a8b145"
+  },
+  "web.COMMON.burn_this_secret_confirm_hint": {
+    "text": "销毁内容是永久性的，无法撤销",
+    "source_hash": "ab774967"
+  },
+  "web.COMMON.msg_check_email": {
+    "text": "请查收邮件",
+    "source_hash": "77322879"
+  },
+  "web.COMMON.click_to_continue": {
+    "text": "点击查看 →",
+    "source_hash": "41658f99"
+  },
+  "web.COMMON.click_to_verify": {
+    "text": "点击验证您的账户：",
+    "source_hash": "954d6fc9"
+  },
+  "web.COMMON.error_secret": {
+    "text": "您没有提供任何要分享的内容",
+    "source_hash": "9ac6488f"
+  },
+  "web.COMMON.error_passphrase": {
+    "text": "请检查您的口令",
+    "source_hash": "b582f3a6"
+  },
+  "web.COMMON.enter_passphrase_here": {
+    "text": "在此输入口令",
+    "source_hash": "ee855dad"
+  },
+  "web.COMMON.view_secret": {
+    "text": "查看内容",
+    "source_hash": "01835e7c"
+  },
+  "web.COMMON.careful_only_see_once": {
+    "text": "注意：内容仅显示一次。",
+    "source_hash": "d29e2820"
+  },
+  "web.COMMON.warning": {
+    "text": "警告",
+    "source_hash": "e981ddae"
+  },
+  "web.COMMON.oops": {
+    "text": "哎呀",
+    "source_hash": "8344947a"
+  },
+  "web.COMMON.error": {
+    "text": "错误",
+    "source_hash": "54a0e8c1"
+  },
+  "web.COMMON.unexpected_error": {
+    "text": "发生意外错误，请重试。",
+    "source_hash": "e198269c"
+  },
+  "web.COMMON.secret_was_truncated": {
+    "text": "内容已被截断",
+    "source_hash": "1d1730d4"
+  },
+  "web.COMMON.signup_for_more": {
+    "text": "注册获取更多",
+    "source_hash": "cc1421d0"
+  },
+  "web.COMMON.login_to_your_account": {
+    "text": "登录您的账户",
+    "source_hash": "62f1fe13"
+  },
+  "web.COMMON.sent_to": {
+    "text": "发送至：",
+    "source_hash": "e79c8bcb"
+  },
+  "web.COMMON.field_email": {
+    "text": "邮箱",
+    "source_hash": "969ccbd3"
+  },
+  "web.COMMON.field_password": {
+    "text": "密码",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.COMMON.field_password2": {
+    "text": "确认密码",
+    "source_hash": "c292210c"
+  },
+  "web.COMMON.button_create_account": {
+    "text": "创建账户",
+    "source_hash": "0dffe234"
+  },
+  "web.COMMON.share_a_secret": {
+    "text": "分享内容",
+    "source_hash": "5384461b"
+  },
+  "web.COMMON.title_home": {
+    "text": "首页",
+    "source_hash": "3a786953"
+  },
+  "web.COMMON.word_none": {
+    "text": "无",
+    "source_hash": "dc937b59"
+  },
+  "web.COMMON.word_burned": {
+    "text": "已销毁",
+    "source_hash": "2f79ea62"
+  },
+  "web.COMMON.word_received": {
+    "text": "已查看",
+    "source_hash": "318c5ad5"
+  },
+  "web.COMMON.word_confirm": {
+    "text": "确认",
+    "source_hash": "eebdd24a"
+  },
+  "web.COMMON.word_cancel": {
+    "text": "取消",
+    "source_hash": "19766ed6"
+  },
+  "web.COMMON.word_continue": {
+    "text": "继续",
+    "source_hash": "31fbef16"
+  },
+  "web.COMMON.word_done": {
+    "text": "完成",
+    "source_hash": "11a6767d"
+  },
+  "web.COMMON.back": {
+    "text": "返回",
+    "source_hash": "76900f1b"
+  },
+  "web.COMMON.feedback_text": {
+    "text": "分享您的想法、建议或体验...",
+    "source_hash": "6bd0351a"
+  },
+  "web.COMMON.button_send_feedback": {
+    "text": "发送反馈",
+    "source_hash": "84195de9"
+  },
+  "web.COMMON.verification_sent_to": {
+    "text": "验证邮件已发送至",
+    "source_hash": "62da29c0"
+  },
+  "web.COMMON.autoverified_success": {
+    "text": "账户已创建，请登录。",
+    "source_hash": "fd3610bf"
+  },
+  "web.COMMON.signup_success_generic": {
+    "text": "如果该邮箱已注册账户，您将收到一封验证邮件。",
+    "source_hash": "f596cdd0"
+  },
+  "web.COMMON.burn_this_secret_aria": {
+    "text": "永久销毁此内容",
+    "source_hash": "0a7afc29"
+  },
+  "web.COMMON.burn_confirmation_title": {
+    "text": "请确认",
+    "source_hash": "dcd78dfb"
+  },
+  "web.COMMON.burn_confirmation_message": {
+    "text": "确定要销毁此内容吗？此操作无法撤销。",
+    "source_hash": "5dde5dd9"
+  },
+  "web.COMMON.confirm_burn": {
+    "text": "是的，销毁此内容",
+    "source_hash": "6e5b02a7"
+  },
+  "web.COMMON.burn_security_notice": {
+    "text": "销毁内容将在查看前将其永久删除。",
+    "source_hash": "b4c8bbc3"
+  },
+  "web.COMMON.share_link_securely": {
+    "text": "为了安全起见，请单独分享此链接，不要与其他信息一起发送。",
+    "source_hash": "c46e6204"
+  },
+  "web.COMMON.copied_to_clipboard": {
+    "text": "已复制",
+    "source_hash": "d37078fe"
+  },
+  "web.COMMON.button_create_incoming": {
+    "text": "创建接收链接",
+    "source_hash": "5bb95106"
+  },
+  "web.COMMON.faq_title": {
+    "text": "常见问题",
+    "source_hash": "bd7394ac"
+  },
+  "web.COMMON.verification_not_valid": {
+    "text": "验证无效",
+    "source_hash": "abf07ced"
+  },
+  "web.COMMON.verification_already_logged_in": {
+    "text": "您已登录，无法验证其他账户",
+    "source_hash": "f0a17c5f"
+  },
+  "web.COMMON.show_password": {
+    "text": "显示密码",
+    "source_hash": "6aeaa6a5"
+  },
+  "web.COMMON.hide_password": {
+    "text": "隐藏密码",
+    "source_hash": "a60a56c5"
+  },
+  "web.COMMON.minimum_8_characters": {
+    "text": "密码至少需要 8 个字符",
+    "source_hash": "e3b8d09d"
+  },
+  "web.COMMON.password_requirements": {
+    "text": "密码至少需要 8 个字符",
+    "source_hash": "e5054833"
+  },
+  "web.COMMON.passwords_do_not_match": {
+    "text": "两次输入的密码不一致",
+    "source_hash": "b6eb82cd"
+  },
+  "web.COMMON.form_field_required": {
+    "text": "此字段为必填项",
+    "source_hash": "6876f12e"
+  },
+  "web.COMMON.form_processing": {
+    "text": "正在处理您的请求",
+    "source_hash": "a512a73b"
+  },
+  "web.COMMON.remember_me_description": {
+    "text": "保持登录 30 天",
+    "source_hash": "6e069c11"
+  },
+  "web.COMMON.redirecting": {
+    "text": "跳转中...",
+    "source_hash": "cd23991b"
+  },
+  "web.COMMON.continue": {
+    "text": "继续",
+    "source_hash": "31fbef16"
+  },
+  "web.COMMON.are_you_sure": {
+    "text": "确定吗？",
+    "source_hash": "f0762c4f"
+  },
+  "web.COMMON.caution_zone": {
+    "text": "谨慎操作区",
+    "source_hash": "fe27a3a8"
+  },
+  "web.COMMON.user_menu": {
+    "text": "用户菜单",
+    "source_hash": "6fa25be1"
+  },
+  "web.COMMON.security": {
+    "text": "安全",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.COMMON.manage": {
+    "text": "管理",
+    "source_hash": "5a234448"
+  },
+  "web.COMMON.loading": {
+    "text": "加载中...",
+    "source_hash": "47d2a515"
+  },
+  "web.COMMON.save_changes": {
+    "text": "保存更改",
+    "source_hash": "35322b5b"
+  },
+  "web.COMMON.saving": {
+    "text": "保存中...",
+    "source_hash": "dc85af8f"
+  },
+  "web.COMMON.adding_ellipses": {
+    "text": "添加中",
+    "source_hash": "0a6691ef"
+  },
+  "web.COMMON.e_g_example": {
+    "text": "例如",
+    "source_hash": "a79b4bf9"
+  },
+  "web.COMMON.example_placeholder": {
+    "text": "例如 {example}",
+    "source_hash": "cc921aaa"
+  },
+  "web.COMMON.status": {
+    "text": "状态",
+    "source_hash": "920e413c"
+  },
+  "web.COMMON.escape": {
+    "text": "Esc",
+    "source_hash": "037c9684"
+  },
+  "web.COMMON.active": {
+    "text": "活跃",
+    "source_hash": "92340695"
+  },
+  "web.COMMON.preview": {
+    "text": "预览",
+    "source_hash": "324b134f"
+  },
+  "web.COMMON.remove": {
+    "text": "移除",
+    "source_hash": "c3812fc4"
+  },
+  "web.COMMON.press_esc_to_close": {
+    "text": "按 ESC 关闭",
+    "source_hash": "5aa83883"
+  },
+  "web.COMMON.enter": {
+    "text": "回车",
+    "source_hash": "dc8659db"
+  },
+  "web.COMMON.important": {
+    "text": "重要",
+    "source_hash": "ddca9a57"
+  },
+  "web.COMMON.language": {
+    "text": "语言",
+    "source_hash": "a4fe6526"
+  },
+  "web.COMMON.theme": {
+    "text": "主题",
+    "source_hash": "efb52e71"
+  },
+  "web.COMMON.appearance": {
+    "text": "外观",
+    "source_hash": "3907fa7f"
+  },
+  "web.COMMON.done": {
+    "text": "完成",
+    "source_hash": "11a6767d"
+  },
+  "web.COMMON.end": {
+    "text": "结束",
+    "source_hash": "f4db1e48"
+  },
+  "web.COMMON.general": {
+    "text": "通用",
+    "source_hash": "c910d474"
+  },
+  "web.COMMON.note": {
+    "text": "备注",
+    "source_hash": "d8da2c49"
+  },
+  "web.COMMON.monthly": {
+    "text": "月付",
+    "source_hash": "9b11f6b7"
+  },
+  "web.COMMON.yearly": {
+    "text": "年付",
+    "source_hash": "6e69b59e"
+  },
+  "web.COMMON.go_on_then": {
+    "text": "好的，继续。",
+    "source_hash": "fb697cc7"
+  },
+  "web.COMMON.loading_ellipses": {
+    "text": "加载中...",
+    "source_hash": "47d2a515"
+  },
+  "web.COMMON.not_received": {
+    "text": "未查看",
+    "source_hash": "d84ee92c"
+  },
+  "web.COMMON.confirm_password": {
+    "text": "确认密码",
+    "source_hash": "5ac265f3"
+  },
+  "web.COMMON.new_password": {
+    "text": "新密码",
+    "source_hash": "3dd9df44"
+  },
+  "web.COMMON.email_address": {
+    "text": "邮箱地址",
+    "source_hash": "f2488fd4"
+  },
+  "web.COMMON.switch": {
+    "text": "切换",
+    "source_hash": "78b49fb2"
+  },
+  "web.COMMON.features": {
+    "text": "功能",
+    "source_hash": "5697d03d"
+  },
+  "web.COMMON.not_found": {
+    "text": "未找到",
+    "source_hash": "0019dfc4"
+  },
+  "web.COMMON.emoji_x": {
+    "text": "❌",
+    "source_hash": "2b2966a5"
+  },
+  "web.COMMON.emoji_checkmark": {
+    "text": "✅",
+    "source_hash": "1d456424"
+  },
+  "web.COMMON.supported": {
+    "text": "支持",
+    "source_hash": "c1658000"
+  },
+  "web.COMMON.version": {
+    "text": "版本",
+    "source_hash": "dd167905"
+  },
+  "web.COMMON.other": {
+    "text": "其他",
+    "source_hash": "f97e9da0"
+  },
+  "web.COMMON.min_width_1024px": {
+    "text": "(min-width: 1024px)",
+    "source_hash": "c8a306d0"
+  },
+  "web.COMMON.ctrl_enter": {
+    "text": "Ctrl + Enter",
+    "source_hash": "78192e6e"
+  },
+  "web.COMMON.enter_0": {
+    "text": "⌘ + Enter",
+    "source_hash": "558acbab"
+  },
+  "web.COMMON.mac": {
+    "text": "Mac",
+    "source_hash": "8b3795aa"
+  },
+  "web.COMMON.email_address_copied_to_clipboard": {
+    "text": "邮箱地址已复制",
+    "source_hash": "23238b4e"
+  },
+  "web.COMMON.value": {
+    "text": "值",
+    "source_hash": "8e37953d"
+  },
+  "web.COMMON.host": {
+    "text": "主机",
+    "source_hash": "4a823118"
+  },
+  "web.COMMON.type": {
+    "text": "类型",
+    "source_hash": "baaddf70"
+  },
+  "web.COMMON.previous": {
+    "text": "上一步",
+    "source_hash": "a57b08a4"
+  },
+  "web.COMMON.next": {
+    "text": "下一步",
+    "source_hash": "1ff57a29"
+  },
+  "web.COMMON.password_strength": {
+    "text": "密码强度：",
+    "source_hash": "663d6499"
+  },
+  "web.COMMON.great": {
+    "text": "很好",
+    "source_hash": "c8cc1c7b"
+  },
+  "web.COMMON.pretty_good": {
+    "text": "相当好",
+    "source_hash": "521a41b6"
+  },
+  "web.COMMON.fair": {
+    "text": "尚可",
+    "source_hash": "f7b19afc"
+  },
+  "web.COMMON.meh": {
+    "text": "一般",
+    "source_hash": "8b0d6190"
+  },
+  "web.COMMON.not_great": {
+    "text": "不太好",
+    "source_hash": "00561207"
+  },
+  "web.COMMON.open_options": {
+    "text": "打开选项",
+    "source_hash": "3dc08503"
+  },
+  "web.COMMON.inactive": {
+    "text": "未激活",
+    "source_hash": "ac7c949f"
+  },
+  "web.COMMON.an_error_occurred": {
+    "text": "发生错误",
+    "source_hash": "ddf785b7"
+  },
+  "web.COMMON.copy_secret_to_clipboard": {
+    "text": "复制内容",
+    "source_hash": "a2ceff6d"
+  },
+  "web.COMMON.secret_copied_to_clipboard": {
+    "text": "内容已复制",
+    "source_hash": "da84ff02"
+  },
+  "web.COMMON.double_check_that_passphrase": {
+    "text": "请检查您的口令",
+    "source_hash": "b582f3a6"
+  },
+  "web.COMMON.press_copy_button_below": {
+    "text": "点击下方的复制按钮。",
+    "source_hash": "77fcf6fb"
+  },
+  "web.COMMON.external_link": {
+    "text": "外部链接",
+    "source_hash": "be6f6527"
+  },
+  "web.LABELS.view_toggle.show": {
+    "text": "显示",
+    "source_hash": "0df6f1ca"
+  },
+  "web.LABELS.view_toggle.hide": {
+    "text": "隐藏",
+    "source_hash": "ac20a57b"
+  },
+  "web.LABELS.view_toggle.show_more": {
+    "text": "显示更多",
+    "source_hash": "ba8a80fd"
+  },
+  "web.LABELS.view_toggle.show_less": {
+    "text": "收起",
+    "source_hash": "0264d7b0"
+  },
+  "web.LABELS.enable": {
+    "text": "启用",
+    "source_hash": "5342e09f"
+  },
+  "web.LABELS.disable": {
+    "text": "禁用",
+    "source_hash": "b7e3e4aa"
+  },
+  "web.LABELS.stats": {
+    "text": "统计",
+    "source_hash": "b4a73657"
+  },
+  "web.LABELS.timeline": {
+    "text": "时间线",
+    "source_hash": "9dcff98e"
+  },
+  "web.LABELS.lifespan": {
+    "text": "有效期",
+    "source_hash": "58994285"
+  },
+  "web.LABELS.expiration_time": {
+    "text": "过期时间",
+    "source_hash": "c5db84a8"
+  },
+  "web.LABELS.secret_ttl": {
+    "text": "过期时间",
+    "source_hash": "de996752"
+  },
+  "web.LABELS.close": {
+    "text": "关闭",
+    "source_hash": "7d9eb7ac"
+  },
+  "web.LABELS.loading": {
+    "text": "加载中...",
+    "source_hash": "47d2a515"
+  },
+  "web.LABELS.cancel": {
+    "text": "取消",
+    "source_hash": "19766ed6"
+  },
+  "web.LABELS.saving": {
+    "text": "保存中...",
+    "source_hash": "dc85af8f"
+  },
+  "web.LABELS.saved": {
+    "text": "已保存",
+    "source_hash": "b5c120b3"
+  },
+  "web.LABELS.save": {
+    "text": "保存",
+    "source_hash": "1509f561"
+  },
+  "web.LABELS.save_all": {
+    "text": "全部保存",
+    "source_hash": "d3c54e39"
+  },
+  "web.LABELS.details": {
+    "text": "详情",
+    "source_hash": "45989de4"
+  },
+  "web.LABELS.encrypted": {
+    "text": "已加密",
+    "source_hash": "f45aef6e"
+  },
+  "web.LABELS.secret_status": {
+    "text": "状态",
+    "source_hash": "57330d93"
+  },
+  "web.LABELS.need_help": {
+    "text": "需要帮助？",
+    "source_hash": "c225cdfb"
+  },
+  "web.LABELS.create_new_secret": {
+    "text": "创建新内容",
+    "source_hash": "311d266c"
+  },
+  "web.LABELS.actions": {
+    "text": "操作",
+    "source_hash": "ff8059dc"
+  },
+  "web.LABELS.no_passphrase": {
+    "text": "无需口令",
+    "source_hash": "6b43174d"
+  },
+  "web.LABELS.copy_to_clipboard": {
+    "text": "复制",
+    "source_hash": "b749e205"
+  },
+  "web.LABELS.receipts": {
+    "text": "回执",
+    "source_hash": "60a627df"
+  },
+  "web.LABELS.share": {
+    "text": "分享",
+    "source_hash": "29887a5f"
+  },
+  "web.LABELS.secret_link": {
+    "text": "一次性链接",
+    "source_hash": "a02fb1cd"
+  },
+  "web.LABELS.dismiss": {
+    "text": "忽略",
+    "source_hash": "48845bff"
+  },
+  "web.LABELS.security_details": {
+    "text": "安全详情",
+    "source_hash": "96d2098c"
+  },
+  "web.LABELS.items_count": {
+    "text": "{count} 个项目",
+    "source_hash": "63e0dea7"
+  },
+  "web.LABELS.recipients_count": {
+    "text": "{count} 个接收者",
+    "source_hash": "48187543"
+  },
+  "web.LABELS.view": {
+    "text": "查看",
+    "source_hash": "dcc839a4"
+  },
+  "web.LABELS.views": {
+    "text": "查看次数",
+    "source_hash": "69c40459"
+  },
+  "web.LABELS.times_viewed": {
+    "text": "次查看",
+    "source_hash": "73758343"
+  },
+  "web.LABELS.view_progress": {
+    "text": "查看进度",
+    "source_hash": "6c072c1f"
+  },
+  "web.LABELS.help_section": {
+    "text": "帮助",
+    "source_hash": "614e14f0"
+  },
+  "web.LABELS.passphrase_protected": {
+    "text": "已设置口令保护",
+    "source_hash": "a52b9edf"
+  },
+  "web.LABELS.feedback_received": {
+    "text": "已收到反馈。",
+    "source_hash": "3fa595ef"
+  },
+  "web.LABELS.sending_ellipses": {
+    "text": "发送中...",
+    "source_hash": "286a3af7"
+  },
+  "web.LABELS.title_recent_secrets": {
+    "text": "最近的内容",
+    "source_hash": "0b907f8b"
+  },
+  "web.LABELS.pricing": {
+    "text": "定价",
+    "source_hash": "dfe95783"
+  },
+  "web.LABELS.refresh": {
+    "text": "刷新",
+    "source_hash": "0e916101"
+  },
+  "web.LABELS.reload": {
+    "text": "重新加载",
+    "source_hash": "bdc090ec"
+  },
+  "web.LABELS.filter": {
+    "text": "筛选",
+    "source_hash": "638e249f"
+  },
+  "web.LABELS.clear": {
+    "text": "清除",
+    "source_hash": "83b12c22"
+  },
+  "web.LABELS.caption_recent_secrets": {
+    "text": "本次会话中创建的链接",
+    "source_hash": "6c7ceab8"
+  },
+  "web.LABELS.create_link_short": {
+    "text": "创建链接",
+    "source_hash": "cac74fdb"
+  },
+  "web.LABELS.create_link": {
+    "text": "创建一次性链接",
+    "source_hash": "a30a47b9"
+  },
+  "web.LABELS.create_request_short": {
+    "text": "创建请求",
+    "source_hash": "71a0bd40"
+  },
+  "web.LABELS.create_request": {
+    "text": "创建请求链接",
+    "source_hash": "190463dc"
+  },
+  "web.LABELS.related_settings": {
+    "text": "相关设置",
+    "source_hash": "68574b20"
+  },
+  "web.LABELS.benefits": {
+    "text": "优势",
+    "context": "Section header for listing benefits",
+    "source_hash": "d5b67bc9"
+  },
+  "web.LABELS.creating_links_for": {
+    "text": "正在为以下地址创建链接",
+    "source_hash": "57db069e"
+  },
+  "web.LABELS.scope_indicator": {
+    "text": "正在 {domain} 中创建内容",
+    "source_hash": "3bbed96b"
+  },
+  "web.STATUS.new": {
+    "text": "新建",
+    "source_hash": "18fdd549"
+  },
+  "web.STATUS.unread": {
+    "text": "未读",
+    "source_hash": "1b9f384c"
+  },
+  "web.STATUS.viewed": {
+    "text": "链接已打开",
+    "source_hash": "66844573"
+  },
+  "web.STATUS.received": {
+    "text": "已查看",
+    "source_hash": "49f19bee"
+  },
+  "web.STATUS.previewed": {
+    "text": "已预览",
+    "source_hash": "3d391a9b"
+  },
+  "web.STATUS.revealed": {
+    "text": "已显示",
+    "source_hash": "17376ee4"
+  },
+  "web.STATUS.burned": {
+    "text": "已销毁",
+    "source_hash": "6d747b33"
+  },
+  "web.STATUS.destroyed": {
+    "text": "已销毁",
+    "source_hash": "ff49630c"
+  },
+  "web.STATUS.expiring_soon": {
+    "text": "即将过期",
+    "source_hash": "0259442c"
+  },
+  "web.STATUS.created": {
+    "text": "已创建",
+    "source_hash": "d70b9e24"
+  },
+  "web.STATUS.expires": {
+    "text": "过期",
+    "source_hash": "f6725f3a"
+  },
+  "web.STATUS.expired": {
+    "text": "已过期",
+    "source_hash": "424a2551"
+  },
+  "web.STATUS.orphaned": {
+    "text": "已孤立",
+    "source_hash": "8d827807"
+  },
+  "web.STATUS.secured": {
+    "text": "已保护",
+    "source_hash": "b0cbaa5b"
+  },
+  "web.STATUS.securing": {
+    "text": "保护中",
+    "source_hash": "37c84053"
+  },
+  "web.STATUS.copied": {
+    "text": "已复制",
+    "source_hash": "8d525e5f"
+  },
+  "web.STATUS.time_remaining": {
+    "text": "剩余时间",
+    "source_hash": "9e65f559"
+  },
+  "web.STATUS.new_description": {
+    "text": "链接已创建，尚未被查看",
+    "source_hash": "447c4445"
+  },
+  "web.STATUS.unread_description": {
+    "text": "链接已创建，尚未被查看",
+    "source_hash": "83b9a0ca"
+  },
+  "web.STATUS.viewed_description": {
+    "text": "链接已被打开，可以查看",
+    "source_hash": "f392af12"
+  },
+  "web.STATUS.received_description": {
+    "text": "内容已被接收者查看",
+    "source_hash": "ceb756b4"
+  },
+  "web.STATUS.previewed_description": {
+    "text": "链接已被打开，可以显示内容",
+    "source_hash": "cc7d1e92"
+  },
+  "web.STATUS.revealed_description": {
+    "text": "内容已向接收者显示",
+    "source_hash": "39b32f80"
+  },
+  "web.STATUS.burned_description": {
+    "text": "内容在查看前被手动销毁",
+    "source_hash": "e7aa1ec1"
+  },
+  "web.STATUS.destroyed_description": {
+    "text": "内容已被永久销毁",
+    "source_hash": "9bcb9949"
+  },
+  "web.STATUS.expiring_soon_description": {
+    "text": "内容即将过期",
+    "source_hash": "e182e8f4"
+  },
+  "web.STATUS.orphaned_description": {
+    "text": "内容已孤立，即将被销毁",
+    "source_hash": "49b87422"
+  },
+  "web.STATUS.expired_description": {
+    "text": "内容在查看前已过期",
+    "source_hash": "f527de55"
+  },
+  "web.STATUS.success": {
+    "text": "成功",
+    "source_hash": "c88a0b90"
+  },
+  "web.STATUS.delivered": {
+    "text": "已送达",
+    "source_hash": "90611565"
+  },
+  "web.STATUS.dns_incorrect": {
+    "text": "DNS 配置错误",
+    "source_hash": "7848d601"
+  },
+  "web.STATUS.active": {
+    "text": "活跃",
+    "source_hash": "92340695"
+  },
+  "web.STATUS.inactive": {
+    "text": "未激活",
+    "source_hash": "ac7c949f"
+  },
+  "web.FEATURES.unlimited_views": {
+    "text": "无限查看次数",
+    "source_hash": "3f6859b0"
+  },
+  "web.FEATURES.custom_domain_protected": {
+    "text": "可信的品牌域名",
+    "source_hash": "5e39b05c"
+  },
+  "web.FEATURES.encrypted_in_transit": {
+    "text": "传输和存储均加密",
+    "source_hash": "314c7974"
+  },
+  "web.UNITS.ttl.duration": {
+    "text": "{count} {unit}",
+    "source_hash": "e6c9e0e6"
+  },
+  "web.UNITS.ttl.time.day": {
+    "text": "天 | 天",
+    "source_hash": "6ac0d345"
+  },
+  "web.UNITS.ttl.time.hour": {
+    "text": "小时 | 小时",
+    "source_hash": "f4fef91b"
+  },
+  "web.UNITS.ttl.time.minute": {
+    "text": "分钟 | 分钟",
+    "source_hash": "08d71a9f"
+  },
+  "web.UNITS.ttl.time.second": {
+    "text": "秒 | 秒",
+    "source_hash": "e655e068"
+  },
+  "web.UNITS.ttl.noOptionsAvailable": {
+    "text": "---",
+    "source_hash": "cb3f91d5"
+  },
+  "web.UNITS.ttl_remaining.duration": {
+    "text": "剩余 {count} {unit}",
+    "source_hash": "18f6c6e8"
+  },
+  "web.UNITS.ttl_remaining.time.day": {
+    "text": "剩余天 | 剩余天",
+    "source_hash": "6702855e"
+  },
+  "web.UNITS.ttl_remaining.time.hour": {
+    "text": "剩余小时 | 剩余小时",
+    "source_hash": "2eaebd6f"
+  },
+  "web.UNITS.ttl_remaining.time.minute": {
+    "text": "剩余分钟 | 剩余分钟",
+    "source_hash": "26c80140"
+  },
+  "web.UNITS.ttl_remaining.time.second": {
+    "text": "剩余秒 | 剩余秒",
+    "source_hash": "01159ce3"
+  },
+  "web.UNITS.ttl_remaining.noOptionsAvailable": {
+    "text": "---",
+    "source_hash": "cb3f91d5"
+  },
+  "web.UNITS.limited_views": {
+    "text": "限制 {count} 次查看",
+    "source_hash": "8db0e228"
+  },
+  "web.UNITS.days_remaining": {
+    "text": "剩余 {count} 天",
+    "source_hash": "398e4024"
+  },
+  "web.UNITS.hours_remaining": {
+    "text": "剩余 {count} 小时",
+    "source_hash": "717b6d58"
+  },
+  "web.UNITS.minutes_remaining": {
+    "text": "剩余 {count} 分钟",
+    "source_hash": "d322f4c5"
+  },
+  "web.TITLES.incoming": {
+    "text": "接收的内容",
+    "source_hash": "883dbca9"
+  },
+  "web.TITLES.feedback": {
+    "text": "反馈",
+    "source_hash": "aac77df3"
+  },
+  "web.TITLES.help": {
+    "text": "帮助",
+    "source_hash": "b79cac92"
+  },
+  "web.TITLES.signin": {
+    "text": "登录",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.TITLES.signup": {
+    "text": "创建账户",
+    "source_hash": "0dffe234"
+  },
+  "web.TITLES.forgot_password": {
+    "text": "忘记密码",
+    "source_hash": "fdfd41de"
+  },
+  "web.TITLES.reset_password": {
+    "text": "重置密码",
+    "source_hash": "4e70f1fd"
+  },
+  "web.TITLES.logout": {
+    "text": "正在退出",
+    "source_hash": "afbce8a6"
+  },
+  "web.TITLES.verify_account": {
+    "text": "验证账户",
+    "source_hash": "2f3ea760"
+  },
+  "web.TITLES.mfa_verify": {
+    "text": "双因素认证",
+    "source_hash": "bc074b60"
+  },
+  "web.TITLES.email_login": {
+    "text": "邮箱登录",
+    "source_hash": "c316e3d7"
+  },
+  "web.TITLES.accept_invitation": {
+    "text": "接受邀请",
+    "source_hash": "ce7cfeaf"
+  },
+  "web.TITLES.secret": {
+    "text": "内容",
+    "source_hash": "7e32a729"
+  },
+  "web.TITLES.metadata": {
+    "text": "详情",
+    "source_hash": "c11bd410"
+  },
+  "web.TITLES.receipt": {
+    "text": "回执",
+    "source_hash": "fe0c79e9"
+  },
+  "web.TITLES.burn_secret": {
+    "text": "销毁内容",
+    "source_hash": "28785b83"
+  },
+  "web.TITLES.dashboard": {
+    "text": "控制面板",
+    "source_hash": "67b69646"
+  },
+  "web.TITLES.recent": {
+    "text": "最近的内容",
+    "source_hash": "0b907f8b"
+  },
+  "web.TITLES.domains": {
+    "text": "自定义域名",
+    "source_hash": "6170ab94"
+  },
+  "web.TITLES.domain_add": {
+    "text": "添加域名",
+    "source_hash": "0f09df73"
+  },
+  "web.TITLES.domain_verify": {
+    "text": "验证域名",
+    "source_hash": "b416f537"
+  },
+  "web.TITLES.domain_brand": {
+    "text": "品牌域名",
+    "source_hash": "35e4dfbe"
+  },
+  "web.TITLES.account": {
+    "text": "账户",
+    "source_hash": "7e1b0d56"
+  },
+  "web.TITLES.data_region": {
+    "text": "数据区域",
+    "source_hash": "a1c6039f"
+  },
+  "web.TITLES.current_region": {
+    "text": "当前区域",
+    "source_hash": "b92e254d"
+  },
+  "web.TITLES.available_regions": {
+    "text": "可用区域",
+    "source_hash": "ee788590"
+  },
+  "web.TITLES.why_data_sovereignty": {
+    "text": "数据主权的重要性",
+    "source_hash": "67de6cf7"
+  },
+  "web.TITLES.profile_settings": {
+    "text": "个人资料设置",
+    "source_hash": "4f1063c9"
+  },
+  "web.TITLES.preferences_settings": {
+    "text": "偏好设置",
+    "source_hash": "66962f72"
+  },
+  "web.TITLES.privacy_settings": {
+    "text": "隐私",
+    "source_hash": "54a57c31"
+  },
+  "web.TITLES.notification_settings": {
+    "text": "通知设置",
+    "source_hash": "78801183"
+  },
+  "web.TITLES.change_email": {
+    "text": "更改邮箱",
+    "source_hash": "18c3f2d5"
+  },
+  "web.TITLES.confirm_email_change": {
+    "text": "确认更改邮箱",
+    "source_hash": "c2736949"
+  },
+  "web.TITLES.security_overview": {
+    "text": "安全",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.TITLES.change_password": {
+    "text": "更改密码",
+    "source_hash": "a949f462"
+  },
+  "web.TITLES.mfa_settings": {
+    "text": "双因素认证",
+    "source_hash": "bc074b60"
+  },
+  "web.TITLES.active_sessions": {
+    "text": "活跃会话",
+    "source_hash": "b58fa4e0"
+  },
+  "web.TITLES.recovery_codes": {
+    "text": "恢复代码",
+    "source_hash": "579c7f4e"
+  },
+  "web.TITLES.passkeys": {
+    "text": "通行密钥",
+    "context": "Page title for passkey management",
+    "source_hash": "c87ccdb4"
+  },
+  "web.TITLES.api_settings": {
+    "text": "API 设置",
+    "source_hash": "6c2a9675"
+  },
+  "web.TITLES.advanced_settings": {
+    "text": "高级设置",
+    "source_hash": "22d4f608"
+  },
+  "web.TITLES.system_settings": {
+    "text": "系统设置",
+    "source_hash": "1f87f883"
+  },
+  "web.TITLES.not_found": {
+    "text": "页面未找到",
+    "source_hash": "cb2f00d1"
+  },
+  "web.TITLES.organizations_settings": {
+    "text": "工作区",
+    "source_hash": "1377264b"
+  },
+  "web.TITLES.organization_settings": {
+    "text": "组织设置",
+    "source_hash": "cc1d9e61"
+  },
+  "web.TITLES.pricing": {
+    "text": "定价",
+    "source_hash": "dfe95783"
+  },
+  "web.ARIA.focus_is_now_in_the_main_text_area": {
+    "text": "焦点现在位于主文本区域",
+    "source_hash": "e00dd260"
+  },
+  "web.INSTRUCTION.sharing_instructions": {
+    "text": "分享说明",
+    "source_hash": "1a450046"
+  },
+  "web.INSTRUCTION.share_link_instruction": {
+    "text": "将链接分享给预期的接收者",
+    "source_hash": "43bdee1d"
+  },
+  "web.INSTRUCTION.share_passphrase_instruction": {
+    "text": "通过安全渠道单独分享口令",
+    "source_hash": "c348d386"
+  },
+  "web.INSTRUCTION.secure_channel_instruction": {
+    "text": "使用不同的安全渠道分享敏感信息",
+    "source_hash": "fc78d9cb"
+  },
+  "web.INSTRUCTION.phishing_warning": {
+    "text": "请始终确认您访问的是官方 {product_name} 网站。欺诈者有时会创建与 {product_name} 完全相同的虚假网站，以窃取您的机密内容。为避免网络钓鱼攻击，请在创建新链接前，先核对地址栏中的区域域名。",
+    "source_hash": "2e3b856e"
+  },
+  "web.pricing.title": {
+    "text": "简单透明的定价",
+    "source_hash": "97e283c7"
+  },
+  "web.pricing.subtitle": {
+    "text": "选择适合您需求的方案。所有方案均包含无限内容分享和隐私优先设计。",
+    "source_hash": "9204dff4"
+  },
+  "web.pricing.get_started_free": {
+    "text": "免费开始",
+    "source_hash": "6bb5a4a7"
+  },
+  "web.pricing.start_trial": {
+    "text": "开始使用",
+    "source_hash": "983f3110"
+  },
+  "web.pricing.already_have_account": {
+    "text": "已有账户？",
+    "source_hash": "e77fea93"
+  },
+  "web.pricing.sign_in": {
+    "text": "登录",
+    "source_hash": "bfd402b2"
+  },
+  "web.pricing.recommended_for_you": {
+    "text": "为您推荐",
+    "source_hash": "00093fbd"
+  },
+  "web.COMMON.received": {
+    "text": "已查看",
+    "source_hash": "49f19bee"
+  },
+  "web.LABELS.add_note": {
+    "text": "添加备注...",
+    "source_hash": "32738894"
+  },
+  "web.LABELS.edit_note": {
+    "text": "编辑备注",
+    "source_hash": "299e604c"
+  },
+  "web.LABELS.add_memo": {
+    "text": "添加备忘...",
+    "source_hash": "02384c53"
+  },
+  "web.LABELS.edit_memo": {
+    "text": "编辑备忘",
+    "source_hash": "0ec1a5db"
+  },
+  "web.pricing.free_tier_description": {
+    "text": "使用基本功能创建和分享内容。无需信用卡。",
+    "source_hash": "3a4f2bc0"
+  },
+  "web.COMMON.enter_password_to_continue": {
+    "text": "请输入密码以继续",
+    "context": "Prompt for password confirmation modal",
+    "source_hash": "09055357"
+  },
+  "web.COMMON.password_required_for_action": {
+    "text": "完成此操作需要输入密码",
+    "context": "Description for password confirmation modal",
+    "source_hash": "cc078766"
+  },
+  "api.errors.unexpected_error": {
+    "text": "发生意外错误",
+    "context": "Generic error message for unhandled exceptions in API",
+    "source_hash": "6615bf1c"
+  },
+  "api.errors.service_unavailable": {
+    "text": "服务暂时不可用。请稍后再试。",
+    "context": "Error message when database connection fails",
+    "source_hash": "343ccdcb"
+  },
+  "api.errors.request_processing_error": {
+    "text": "暂时无法处理您的请求",
+    "context": "Error message for recoverable server errors",
+    "source_hash": "fb961f3f"
+  },
+  "web.COMMON.upgrade_description": {
+    "text": "升级以解锁更多功能",
+    "context": "Description shown for free plan users encouraging upgrade",
+    "source_hash": "783f174c"
+  },
+  "api.errors.authentication_required": {
+    "text": "需要身份验证",
+    "source_hash": "0fcfb12d"
+  },
+  "api.errors.sso_only_action_blocked": {
+    "text": "此操作在仅 SSO 模式下不可用",
+    "source_hash": "9bc26394"
+  },
+  "web.COMMON.configure": {
+    "text": "配置",
+    "source_hash": "6defafa2"
+  },
+  "web.COMMON.copy_to_clipboard": {
+    "text": "复制",
+    "source_hash": "b749e205"
+  },
+  "web.COMMON.add": {
+    "text": "添加",
+    "source_hash": "9fd728c6"
+  },
+  "web.COMMON.enabled": {
+    "text": "已启用",
+    "source_hash": "92c1cdfd"
+  },
+  "web.COMMON.disabled": {
+    "text": "已禁用",
+    "source_hash": "75081b59"
+  },
+  "web.COMMON.yes_delete": {
+    "text": "是的，删除",
+    "source_hash": "7b05a8e3"
+  },
+  "web.COMMON.error_code": {
+    "text": "错误代码",
+    "source_hash": "46832415"
+  },
+  "web.COMMON.http_status": {
+    "text": "HTTP 状态",
+    "source_hash": "b2a629f2"
+  },
+  "web.COMMON.details": {
+    "text": "详细信息",
+    "source_hash": "45989de4"
+  },
+  "web.COMMON.field_confirm_password": {
+    "text": "确认密码",
+    "source_hash": "c292210c"
+  },
+  "web.COMMON.passwords_must_match": {
+    "text": "密码必须匹配",
+    "source_hash": "0c060bd4"
+  },
+  "web.COMMON.and": {
+    "text": "和",
+    "source_hash": "6201111b"
+  },
+  "web.COMMON.or": {
+    "text": "或",
+    "source_hash": "7175517a"
+  },
+  "web.COMMON.copied": {
+    "text": "已复制",
+    "source_hash": "8d525e5f"
+  },
+  "web.COMMON.copy": {
+    "text": "复制",
+    "source_hash": "e21f935f"
+  },
+  "web.COMMON.copy_email": {
+    "text": "复制邮箱地址",
+    "source_hash": "61b94846"
+  },
+  "web.COMMON.copy_id": {
+    "text": "复制账户 ID",
+    "source_hash": "fd493ffd"
+  },
+  "web.COMMON.org_id_tooltip": {
+    "text": "您组织的唯一标识符",
+    "source_hash": "c8c08d29"
+  },
+  "web.COMMON.success": {
+    "text": "成功",
+    "source_hash": "c88a0b90"
+  },
+  "web.COMMON.need_help": {
+    "text": "需要帮助",
+    "source_hash": "4ca0ca38"
+  },
+  "web.COMMON.open_help_dialog": {
+    "text": "打开帮助对话框",
+    "source_hash": "55cd1515"
+  },
+  "web.COMMON.focus_is_now_in_the_main_text_area": {
+    "text": "焦点现在位于主文本区域",
+    "source_hash": "e00dd260"
+  },
+  "web.LABELS.show_passphrase": {
+    "text": "显示口令",
+    "source_hash": "76880d38"
+  },
+  "web.LABELS.hide_passphrase": {
+    "text": "隐藏口令",
+    "source_hash": "8ecdc98c"
+  },
+  "web.LABELS.copy_icon": {
+    "text": "复制图标",
+    "source_hash": "d1a5fc0c"
+  },
+  "web.LABELS.copied_icon": {
+    "text": "已复制图标",
+    "source_hash": "90a4b4f1"
+  },
+  "web.STATUS.unverified": {
+    "text": "未验证",
+    "source_hash": "33c8e8de"
+  },
+  "web.TITLES.domain_detail": {
+    "text": "域名设置",
+    "source_hash": "e24f338d"
+  },
+  "web.TITLES.domain_signin": {
+    "text": "登录配置",
+    "source_hash": "2da38c03"
+  },
+  "web.TITLES.domain_signup": {
+    "text": "域名注册验证",
+    "source_hash": "c8ce809a"
+  },
+  "web.TITLES.domain_email": {
+    "text": "邮件配置",
+    "source_hash": "6f38aa51"
+  },
+  "web.TITLES.domain_incoming": {
+    "text": "接收的内容",
+    "source_hash": "883dbca9"
+  },
+  "web.LABELS.update": {
+    "text": "更新",
+    "source_hash": "c1c1009d"
+  },
+  "web.LABELS.updating": {
+    "text": "更新中...",
+    "source_hash": "0a4e0b71"
+  },
+  "web.TITLES.check_email": {
+    "text": "查收您的邮箱",
+    "source_hash": "0e5fc27d"
+  },
+  "web.TITLES.domain_dns": {
+    "text": "DNS 设置",
+    "source_hash": "6c63df31"
+  },
+  "web.TITLES.connected_identities": {
+    "text": "已关联的身份",
+    "source_hash": "e132c4d9"
+  },
+  "web.COMMON.field": {
+    "text": "字段",
+    "source_hash": "f45fc1df"
+  },
+  "web.COMMON.unknown": {
+    "text": "未知",
+    "source_hash": "b764cdc0"
+  },
+  "web.STATUS.pending_ssl": {
+    "text": "证书待签发",
+    "source_hash": "dd34f305"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "api.domains.errors.domain_id_required": {
+    "text": "ID dominio obbligatorio",
+    "source_hash": "6837426b"
+  },
+  "api.domains.errors.domain_not_found": {
+    "text": "Dominio non trovato: %{extid}",
+    "source_hash": "a0fd1025"
+  },
+  "api.domains.errors.organization_not_found": {
+    "text": "Organizzazione non trovata per il dominio: %{domain}",
+    "source_hash": "632afc93"
+  },
+  "api.domains.errors.incoming_secrets_disabled": {
+    "text": "I segreti in arrivo non sono abilitati su questa istanza",
+    "source_hash": "45c0b5c4"
+  },
+  "api.domains.errors.incoming_secrets_entitlement_required": {
+    "text": "La gestione dei segreti in arrivo richiede il diritto incoming_secrets. Esegui l'upgrade del tuo piano.",
+    "source_hash": "1af54ec2"
+  },
+  "api.domains.errors.incoming_config_not_found": {
+    "text": "Configurazione dei segreti in arrivo non trovata per il dominio: %{extid}",
+    "source_hash": "491644a8"
+  },
+  "api.domains.errors.recipients_max_exceeded": {
+    "text": "Sono consentiti al massimo %{max} destinatari",
+    "source_hash": "159842ad"
+  },
+  "api.domains.errors.recipients_invalid_email": {
+    "text": "Email non valida: %{email}",
+    "source_hash": "e9c729c7"
+  },
+  "api.domains.errors.recipients_duplicate": {
+    "text": "Non sono consentiti indirizzi email destinatari duplicati",
+    "source_hash": "6de22182"
+  },
+  "api.domains.errors.homepage_secrets_mode_invalid": {
+    "text": "secrets_mode non valido: %{secrets_mode}",
+    "source_hash": "cf093a04"
+  },
+  "api.domains.errors.homepage_incoming_entitlement_required": {
+    "text": "La modalità Segreti in arrivo richiede il diritto incoming_secrets. Esegui l'upgrade del tuo piano.",
+    "source_hash": "d68b13d8"
+  },
+  "api.domains.errors.homepage_incoming_not_ready": {
+    "text": "I Segreti in arrivo devono essere abilitati con almeno un destinatario prima di poter essere usati come homepage.",
+    "source_hash": "556da6e2"
+  },
+  "api.domains.errors.related_origins_invalid": {
+    "text": "Origine non valida: %{origins}. Inserisci lo schema e l'host, ad esempio https://vault.example.com",
+    "source_hash": "5acb92ca"
+  },
+  "api.domains.errors.related_origins_foreign_organization": {
+    "text": "Queste origini appartengono a un'altra organizzazione e non possono essere aggiunte: %{origins}",
+    "source_hash": "ac21c1e7"
+  },
+  "api.domains.errors.allowed_signup_domains_invalid": {
+    "text": "Dominio non valido: %{domains}. Inserisci un nome di dominio registrabile, ad esempio example.com",
+    "source_hash": "2d93472c"
+  }
+}

@@ -1,0 +1,45 @@
+// src/tests/contracts/custom-domain-safe-dump-fields.ts
+//
+// Canonical field list from CustomDomain.safe_dump_fields (Ruby backend).
+// Source: lib/onetime/models/custom_domain/features/safe_dump_fields.rb
+//
+// Update this list when safe_dump_fields.rb changes.
+// The contract tests will fail if the Zod schema diverges from this list,
+// preventing the class of bug where Zod silently strips fields.
+
+export const CUSTOM_DOMAIN_SAFE_DUMP_FIELDS = [
+  'identifier',
+  'extid',
+  'domainid',
+  'display_domain',
+  'display_domain_ascii',
+  'custid',
+  'base_domain',
+  'subdomain',
+  'trd',
+  'tld',
+  'sld',
+  'is_apex',
+  'txt_validation_host',
+  'txt_validation_value',
+  'txt_validation_record',
+  'txt_validation_record_display',
+  'brand',
+  'icon',
+  'status',
+  'vhost',
+  'ownership_verified',
+  'verified',
+  'created',
+  'updated',
+  'sso_configured',
+  'sso_enabled',
+  'homepage_config',
+  'incoming_configured',
+  'incoming_enabled',
+  'incoming_ready',
+  'mail_configured',
+  'mail_enabled',
+] as const;
+
+export type CustomDomainSafeDumpField = (typeof CUSTOM_DOMAIN_SAFE_DUMP_FIELDS)[number];

@@ -1,0 +1,391 @@
+// src/shared/composables/useDnsWidget.ts
+
+//
+// Composable for integrating the Approximated DNS widget into Vue components.
+// The widget helps users configure DNS records by detecting their DNS provider
+// and offering automated updates or provider-specific instructions.
+
+// Widget asset imports - Vite will handle bundling/hashing
+import dnsWidgetCss from '@/assets/approximated/dnswidget.v1.css?url';
+import dnsWidgetJs from '@/assets/approximated/dnswidget.v1.js?url';
+import { sanitizeDnsWidgetHtml } from '@/shared/utils/dnsWidgetHtml';
+import type { AxiosInstance } from 'axios';
+import { inject, onUnmounted, ref, toValue, type MaybeRefOrGetter, type Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+// DNS widget global interface
+declare global {
+  interface Window {
+    apxDns?: {
+      init: (config: DnsWidgetConfig) => void;
+      stop: () => void;
+      restart: () => void;
+      config?: DnsWidgetConfig;
+      /** HTML sanitizer the patched widget routes remote markup through (M09). */
+      sanitizeHtml?: (html: string) => string;
+    };
+  }
+}
+
+export interface DnsRecord {
+  type: 'A' | 'CNAME' | 'TXT';
+  host: string; // '@' for apex, or subdomain without trailing dot
+  value: string;
+  ttl?: number;
+}
+
+export interface DnsWidgetConfig {
+  token: string;
+  api_url: string;
+  widget_id?: string;
+  dnsRecords: DnsRecord[];
+  domain?: string; // Pre-set domain, skips domain entry UI
+  prefillDomain?: string; // Pre-fill domain input without skipping
+  verifyAutoScroll?: boolean;
+}
+
+export interface DnsWidgetTokenResponse {
+  success: boolean;
+  token: string;
+  api_url: string;
+  expires_in: number;
+}
+
+export interface UseDnsWidgetOptions {
+  /** Element ID where widget will be mounted */
+  widgetId?: string;
+  /** DNS records to configure (accepts a static array or a reactive ref/getter) */
+  dnsRecords: MaybeRefOrGetter<DnsRecord[]>;
+  /** Pre-set domain (skips domain entry step) */
+  domain?: string;
+  /** Pre-fill domain input */
+  prefillDomain?: string;
+  /** Auto-scroll to verification results */
+  verifyAutoScroll?: boolean;
+  /** Callback when user submits a domain */
+  onDomainSubmit?: (domain: string) => void;
+  /** Callback when widget flow is restarted */
+  onRestart?: () => void;
+  /** Callback when all records are verified */
+  onRecordsVerified?: (records: unknown[]) => void;
+  /** Callback when verification fails */
+  onVerificationFailed?: (records: unknown[]) => void;
+  /** Callback when only some records are verified */
+  onPartialVerification?: (records: unknown[]) => void;
+}
+
+/**
+ * [S5] Resolve the per-request CSP nonce so dynamically injected scripts pass
+ * the nonce-only `script-src` policy (Otto emits `script-src 'nonce-<n>'` in
+ * production with no 'strict-dynamic' and no 'self', so an un-nonced injected
+ * script is blocked).
+ *
+ * The nonce is read from the DOM, never from the bootstrap payload
+ * (RISK-2026-08-14-M08): the SystemSerializer no longer publishes it in
+ * window.__BOOTSTRAP_ME__, because a JSON copy of the nonce could be
+ * exfiltrated by an HTML-injection primitive and would defeat the nonce-only
+ * policy.
+ *
+ * Only the `nonce` IDL property of an already-nonced script is read. The shell
+ * renders the Vite entry script with the per-request nonce; browsers then
+ * empty the content attribute (nonce hiding) but keep the IDL property, which
+ * only same-document script can read. The shell also emits
+ * `<meta property="csp-nonce" nonce="...">` for Vite's preload helper
+ * (apps/web/core/views/helpers/vite_manifest.rb). That tag uses the `nonce`
+ * attribute, not `content`, so nonce hiding empties it the same way and
+ * injected markup cannot read it through CSS attribute selectors either; a
+ * `content="..."` form would be readable and must never be introduced. This
+ * composable still does not consult the meta tag: the entry script is enough.
+ * The content attribute is not read: after nonce hiding it is empty.
+ *
+ * Returns undefined when no nonce is discoverable (e.g. CSP disabled), in
+ * which case injection proceeds exactly as before.
+ */
+export function resolveCspNonce(): string | undefined {
+  const noncedScript = document.querySelector<HTMLScriptElement>('script[nonce]');
+  return noncedScript?.nonce || undefined;
+}
+
+/**
+ * Composable for managing the Approximated DNS widget
+ *
+ * @example
+ * ```vue
+ * <script setup>
+ * const { isLoading, error, initWidget } = useDnsWidget({
+ *   dnsRecords: [{ type: 'A', host: '@', value: '123.456.789.01', ttl: 3600 }],
+ *   domain: 'example.com',
+ *   onRecordsVerified: () => console.log('DNS configured!')
+ * });
+ *
+ * onMounted(() => initWidget());
+ * </script>
+ *
+ * <template>
+ *   <div id="apxdnswidget"></div>
+ * </template>
+ * ```
+ */
+/* eslint-disable max-lines-per-function */
+export function useDnsWidget(options: UseDnsWidgetOptions) {
+  const $api = inject('api') as AxiosInstance;
+  const { t } = useI18n();
+
+  const isLoading = ref(false);
+  const error: Ref<string | null> = ref(null);
+  const isInitialized = ref(false);
+  const widgetId = options.widgetId ?? 'apxdnswidget';
+
+  // Event handlers
+  const handleDomainSubmit = (event: CustomEvent<string>) => {
+    options.onDomainSubmit?.(event.detail);
+  };
+
+  const handleRestart = () => {
+    options.onRestart?.();
+  };
+
+  const handleRecordsVerified = (event: CustomEvent<unknown[]>) => {
+    options.onRecordsVerified?.(event.detail);
+  };
+
+  const handleVerificationFailed = (event: CustomEvent<unknown[]>) => {
+    options.onVerificationFailed?.(event.detail);
+  };
+
+  const handlePartialVerification = (event: CustomEvent<unknown[]>) => {
+    options.onPartialVerification?.(event.detail);
+  };
+
+  /**
+   * Fetch a DNS widget token from the backend
+   */
+  const fetchToken = async (): Promise<DnsWidgetTokenResponse | null> => {
+    try {
+      const response = await $api.get<DnsWidgetTokenResponse>('/api/domains/dns-widget/token');
+      return response.data;
+    } catch (err) {
+      console.error('[useDnsWidget] Failed to fetch token:', err);
+      return null;
+    }
+  };
+
+  /**
+   * Load the DNS widget script and CSS
+   */
+  const loadAssets = async (): Promise<boolean> => {
+    // Check if already loaded
+    if (window.apxDns) {
+      return true;
+    }
+
+    return new Promise((resolve) => {
+      // Load CSS (using Vite-resolved URL)
+      // No nonce needed: style-src includes 'self' and the asset is same-origin.
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = dnsWidgetCss;
+      document.head.appendChild(link);
+
+      // Load JS (using Vite-resolved URL)
+      const script = document.createElement('script');
+      script.src = dnsWidgetJs;
+      // [S5] Carry the per-request CSP nonce so the injected script passes the
+      // nonce-only script-src policy. Without it the browser blocks the load.
+      const cspNonce = resolveCspNonce();
+      if (cspNonce) {
+        script.setAttribute('nonce', cspNonce);
+      }
+      script.onload = () => resolve(true);
+      script.onerror = () => {
+        console.error('[useDnsWidget] Failed to load widget script');
+        resolve(false);
+      };
+      document.head.appendChild(script);
+    });
+  };
+
+  /**
+   * Register event listeners for widget events
+   */
+  const registerEventListeners = () => {
+    document.addEventListener(
+      'apx-dnswidget-user-submitted-domain',
+      handleDomainSubmit as EventListener
+    );
+    document.addEventListener('apx-dnswidget-restarted', handleRestart);
+    document.addEventListener(
+      'apx-dnswidget-records-completely-verified',
+      handleRecordsVerified as EventListener
+    );
+    document.addEventListener(
+      'apx-dnswidget-records-failed-verification',
+      handleVerificationFailed as EventListener
+    );
+    document.addEventListener(
+      'apx-dnswidget-records-partially-verified',
+      handlePartialVerification as EventListener
+    );
+  };
+
+  /**
+   * Remove event listeners
+   */
+  const removeEventListeners = () => {
+    document.removeEventListener(
+      'apx-dnswidget-user-submitted-domain',
+      handleDomainSubmit as EventListener
+    );
+    document.removeEventListener('apx-dnswidget-restarted', handleRestart);
+    document.removeEventListener(
+      'apx-dnswidget-records-completely-verified',
+      handleRecordsVerified as EventListener
+    );
+    document.removeEventListener(
+      'apx-dnswidget-records-failed-verification',
+      handleVerificationFailed as EventListener
+    );
+    document.removeEventListener(
+      'apx-dnswidget-records-partially-verified',
+      handlePartialVerification as EventListener
+    );
+  };
+
+  // Bumped by every initWidget call and by stopWidget (SEC-F11). An init that
+  // resumes after an await under a newer generation was superseded: by a
+  // later init (DnsWidget.vue's domain watch), a stop, or the host
+  // unmounting. It must not touch the shared widget: the root id is fixed, so
+  // a stale init would find the next host's root, add listeners nothing
+  // removes, and render its own domain there.
+  let generation = 0;
+
+  /**
+   * Load the assets and a token for an init run. Null when a step failed
+   * (error set) or the run was superseded while waiting (nothing set).
+   */
+  const prepareInit = async (
+    superseded: () => boolean
+  ): Promise<DnsWidgetTokenResponse | null> => {
+    const assetsLoaded = await loadAssets();
+    if (superseded()) return null;
+    if (!assetsLoaded) {
+      error.value = t('web.domains.dns_widget_load_failed');
+      return null;
+    }
+
+    const tokenData = await fetchToken();
+    if (superseded()) return null;
+    if (!tokenData?.token) {
+      error.value = t('web.domains.dns_widget_not_available');
+      return null;
+    }
+
+    // Ensure widget element exists
+    if (!document.getElementById(widgetId)) {
+      error.value = `Widget element #${widgetId} not found`;
+      return null;
+    }
+    return tokenData;
+  };
+
+  /** Register listeners and hand the widget its config. Synchronous. */
+  const startWidget = (tokenData: DnsWidgetTokenResponse) => {
+    registerEventListeners();
+
+    const config: DnsWidgetConfig = {
+      token: tokenData.token,
+      api_url: tokenData.api_url,
+      widget_id: widgetId,
+      dnsRecords: toValue(options.dnsRecords),
+      verifyAutoScroll: options.verifyAutoScroll ?? true,
+    };
+
+    if (options.domain) {
+      config.domain = options.domain;
+    } else if (options.prefillDomain) {
+      config.prefillDomain = options.prefillDomain;
+    }
+
+    // [M09] The patched widget renders its remote API's HTML only through
+    // this sanitizer, and inserts plain text when none is installed
+    // (RISK-2026-08-14-M09). Install it on every init: the widget script
+    // replaces window.apxDns wholesale if it is ever evaluated again.
+    if (window.apxDns) {
+      window.apxDns.sanitizeHtml = sanitizeDnsWidgetHtml;
+    }
+    window.apxDns?.init(config);
+    isInitialized.value = true;
+  };
+
+  /**
+   * Initialize the DNS widget. Resolves false, without touching the widget,
+   * if a later init, a stop or an unmount superseded this call while it waited.
+   */
+  const initWidget = async (): Promise<boolean> => {
+    if (isInitialized.value) {
+      return true;
+    }
+
+    const run = ++generation;
+    const superseded = () => run !== generation;
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const tokenData = await prepareInit(superseded);
+      if (!tokenData) return false;
+      startWidget(tokenData);
+      return true;
+    } catch (err) {
+      if (superseded()) return false;
+      console.error('[useDnsWidget] Initialization error:', err);
+      error.value = t('web.domains.dns_widget_init_failed');
+      return false;
+    } finally {
+      // A superseding init owns the loading state now.
+      if (!superseded()) isLoading.value = false;
+    }
+  };
+
+  /**
+   * Stop and clear the widget. The composable's own cleanup runs even if the
+   * vendored stop() throws, so its document listeners never outlive the host.
+   * Any init still waiting is abandoned.
+   */
+  const stopWidget = () => {
+    generation++;
+    try {
+      window.apxDns?.stop();
+    } catch (err) {
+      console.error('[useDnsWidget] Failed to stop widget:', err);
+    } finally {
+      removeEventListeners();
+      isInitialized.value = false;
+      isLoading.value = false;
+    }
+  };
+
+  /**
+   * Restart the widget flow
+   */
+  const restartWidget = () => {
+    if (window.apxDns) {
+      window.apxDns.restart();
+    }
+  };
+
+  // Cleanup on unmount
+  onUnmounted(() => {
+    stopWidget();
+  });
+
+  return {
+    isLoading,
+    error,
+    isInitialized,
+    initWidget,
+    stopWidget,
+    restartWidget,
+    fetchToken,
+  };
+}

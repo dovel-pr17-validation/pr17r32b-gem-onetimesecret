@@ -1,0 +1,1802 @@
+// src/tests/stores/bootstrapStore.spec.ts
+
+import { bootstrapSchema } from '@/schemas/contracts/bootstrap';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import * as bootstrapService from '@/services/bootstrap.service';
+import * as diagnosticsService from '@/services/diagnostics.service';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { setupTestPinia } from '../setup';
+import {
+  authenticatedBootstrap,
+  anonymousBootstrap,
+  mfaPendingBootstrap,
+  colonelBootstrap,
+  customDomainsBootstrap,
+  standaloneBootstrap,
+  baseBootstrap,
+  mockCustomer,
+  schemaDefaults,
+} from '@/tests/fixtures/bootstrap.fixture';
+import type { BootstrapPayload } from '@/schemas/contracts/bootstrap';
+
+// Mock the bootstrap service
+vi.mock('@/services/bootstrap.service', () => ({
+  getBootstrapSnapshot: vi.fn(),
+  updateBootstrapSnapshot: vi.fn(),
+  // applySnapshot()/resetForLogout() replace the pre-Pinia mirror (#4458).
+  replaceBootstrapSnapshot: vi.fn(),
+  _resetForTesting: vi.fn(),
+}));
+
+// update() calls into the diagnostics facade on every account transition.
+// The facade no-ops when Sentry is not initialized, but the store spec should
+// not depend on Sentry internals at all.
+vi.mock('@/services/diagnostics.service', () => ({
+  setDiagnosticsActorContext: vi.fn(),
+}));
+
+describe('bootstrapStore', () => {
+  let store: ReturnType<typeof useBootstrapStore>;
+  let mockGetBootstrapSnapshot: Mock;
+
+  beforeEach(async () => {
+    // Reset the bootstrap service mock
+    vi.clearAllMocks();
+    mockGetBootstrapSnapshot = vi.mocked(bootstrapService.getBootstrapSnapshot);
+
+    // Initialize test environment. These tests set the snapshot mock and then
+    // call init() themselves, so the auto-init plugin is off (it would hydrate
+    // at creation, before the mock is set); see SetupTestPiniaOptions.autoInit.
+    await setupTestPinia({ autoInit: false });
+    store = useBootstrapStore();
+  });
+
+  afterEach(() => {
+    store.$reset();
+    vi.clearAllMocks();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZATION TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Initialization', () => {
+    it('initializes with default state before init() is called', () => {
+      // Store should have default values before init
+      expect(store.authenticated).toBe(false);
+      expect(store.awaiting_mfa).toBe(false);
+      expect(store.cust).toBeNull();
+      expect(store.custid).toBe('');
+      expect(store.email).toBe('');
+      expect(store.locale).toBe('en');
+      expect(store.isInitialized).toBe(false);
+    });
+
+    it('hydrates state from bootstrap snapshot on init()', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(authenticatedBootstrap);
+
+      const result = store.init();
+
+      expect(result.isInitialized).toBe(true);
+      expect(store.isInitialized).toBe(true);
+      expect(store.authenticated).toBe(true);
+      expect(store.cust).toEqual(mockCustomer);
+      expect(store.custid).toBe(mockCustomer.extid);
+      expect(store.email).toBe(mockCustomer.email);
+    });
+
+    it('only initializes once (idempotent)', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(authenticatedBootstrap);
+
+      // First init
+      const result1 = store.init();
+      expect(result1.isInitialized).toBe(true);
+      expect(mockGetBootstrapSnapshot).toHaveBeenCalledTimes(1);
+
+      // Second init should be a no-op
+      const result2 = store.init();
+      expect(result2.isInitialized).toBe(true);
+      expect(mockGetBootstrapSnapshot).toHaveBeenCalledTimes(1); // Still only called once
+    });
+
+    it('uses defaults when no bootstrap snapshot available', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(null);
+
+      const result = store.init();
+
+      expect(result.isInitialized).toBe(true);
+      expect(store.authenticated).toBe(false);
+      expect(store.cust).toBeNull();
+      expect(store.billing_enabled).toBe(false);
+    });
+
+    it('hydrates anonymous user state correctly', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(anonymousBootstrap);
+
+      store.init();
+
+      expect(store.authenticated).toBe(false);
+      expect(store.awaiting_mfa).toBe(false);
+      expect(store.cust).toBeNull();
+      expect(store.custid).toBe('');
+      expect(store.email).toBe('');
+    });
+
+    it('hydrates MFA pending state correctly', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(mfaPendingBootstrap);
+
+      store.init();
+
+      expect(store.authenticated).toBe(false);
+      expect(store.awaiting_mfa).toBe(true);
+      expect(store.authStatus).toBe('mfa_pending');
+      // No identity until the second factor is verified.
+      expect(store.cust).toBeNull();
+    });
+
+    it('hydrates colonel (admin) state correctly', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(colonelBootstrap);
+
+      store.init();
+
+      expect(store.authenticated).toBe(true);
+      expect(store.cust?.role).toBe('colonel');
+      expect(store.development?.enabled).toBe(true);
+    });
+
+    it('hydrates custom domains state correctly', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(customDomainsBootstrap);
+
+      store.init();
+
+      expect(store.domains_enabled).toBe(true);
+      expect(store.custom_domains).toEqual(['acme.example.com', 'widgets.example.com']);
+    });
+
+    it('hydrates standalone (billing disabled) state correctly', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(standaloneBootstrap);
+
+      store.init();
+
+      expect(store.billing_enabled).toBe(false);
+      expect(store.authenticated).toBe(true);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UPDATE TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('update()', () => {
+    beforeEach(() => {
+      mockGetBootstrapSnapshot.mockReturnValue(anonymousBootstrap);
+      store.init();
+    });
+
+    it('updates partial state correctly', () => {
+      store.update({
+        enjoyTheVue: true,
+        email: 'updated@example.com',
+      });
+
+      expect(store.enjoyTheVue).toBe(true);
+      expect(store.email).toBe('updated@example.com');
+      // Other fields should remain unchanged
+      expect(store.locale).toBe('en');
+    });
+
+    it('syncs the bootstrap.service snapshot so non-Pinia readers stay current', () => {
+      // Regression: features.ts (hasPassword, isSsoOnlyMode, etc.) reads from
+      // the bootstrap.service snapshot, not the Pinia store. After login the
+      // store.update() call must propagate to the snapshot or sidebar tabs
+      // gated by hasPassword() stay hidden until a full page reload.
+      const updateSnapshotMock = vi.mocked(bootstrapService.updateBootstrapSnapshot);
+      updateSnapshotMock.mockClear();
+
+      const payload = { enjoyTheVue: true, has_password: true };
+      store.update(payload);
+
+      expect(updateSnapshotMock).toHaveBeenCalledTimes(1);
+      expect(updateSnapshotMock).toHaveBeenCalledWith(payload);
+    });
+
+    it('does not overwrite fields with undefined values (filterDefined)', () => {
+      // Options API uses filterDefined which filters out undefined values
+      store.update({ authenticated: true, email: 'test@example.com' });
+
+      // Update with undefined - undefined is filtered out, so email is preserved
+      store.update({
+        authenticated: false,
+        email: undefined as unknown as string,
+      });
+
+      expect(store.authenticated).toBe(false);
+      // filterDefined removes undefined values, so email is NOT overwritten
+      expect(store.email).toBe('test@example.com');
+    });
+
+    it('preserves fields not included in update payload', () => {
+      // This is the correct way to preserve fields - don't include them
+      store.update({ authenticated: true, email: 'test@example.com' });
+
+      // Update without email field - email is preserved
+      store.update({ authenticated: false });
+
+      expect(store.authenticated).toBe(false);
+      expect(store.email).toBe('test@example.com'); // Preserved
+    });
+
+    it('cannot state who is signed in: authority keys are dropped (#4458)', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      store.update({
+        authenticated: true,
+        awaiting_mfa: true,
+        auth_status: 'authenticated',
+      });
+
+      expect(warn).toHaveBeenCalledTimes(3);
+      warn.mockRestore();
+      expect(store.authenticated).toBe(false);
+      expect(store.awaiting_mfa).toBe(false);
+      expect(store.authStatus).not.toBe('authenticated');
+    });
+
+    it('updates user identity', () => {
+      const newCustomer = { ...mockCustomer, email: 'new@example.com' };
+
+      store.update({
+        cust: newCustomer,
+        custid: 'new-cust-id',
+        email: 'new@example.com',
+        customer_since: '2024-01-01',
+        apitoken: 'new-api-token',
+      });
+
+      expect(store.cust).toEqual(newCustomer);
+      expect(store.custid).toBe('new-cust-id');
+      expect(store.email).toBe('new@example.com');
+      expect(store.customer_since).toBe('2024-01-01');
+      expect(store.apitoken).toBe('new-api-token');
+    });
+
+    it('updates locale settings', () => {
+      store.update({
+        locale: 'es',
+        i18n_enabled: true,
+        // Production shape: BootstrapPayload.supported_locales is a flat
+        // array of locale codes (z.array(z.string())), not LocaleInfo objects.
+        supported_locales: ['en', 'es'],
+        fallback_locale: 'en',
+      });
+
+      expect(store.locale).toBe('es');
+      expect(store.i18n_enabled).toBe(true);
+      expect(store.supported_locales).toHaveLength(2);
+    });
+
+    it('updates site configuration', () => {
+      store.update({
+        baseuri: 'https://new.example.com',
+        frontend_host: 'https://new.example.com',
+        site_host: 'new.example.com',
+        ot_version: '1.0.0',
+        shrimp: 'new-csrf-token',
+      });
+
+      expect(store.baseuri).toBe('https://new.example.com');
+      expect(store.frontend_host).toBe('https://new.example.com');
+      expect(store.site_host).toBe('new.example.com');
+      expect(store.ot_version).toBe('1.0.0');
+      expect(store.shrimp).toBe('new-csrf-token');
+    });
+
+    it('updates feature flags', () => {
+      store.update({
+        billing_enabled: true,
+        regions_enabled: true,
+        domains_enabled: true,
+        d9s_enabled: true,
+      });
+
+      expect(store.billing_enabled).toBe(true);
+      expect(store.regions_enabled).toBe(true);
+      expect(store.domains_enabled).toBe(true);
+      expect(store.d9s_enabled).toBe(true);
+    });
+
+    it('updates domain configuration', () => {
+      store.update({
+        canonical_domain: 'custom.example.com',
+        domain_strategy: 'custom',
+        domain_id: 'domain-123',
+        display_domain: 'custom.example.com',
+        custom_domains: ['sub1.example.com', 'sub2.example.com'],
+      });
+
+      expect(store.canonical_domain).toBe('custom.example.com');
+      expect(store.domain_strategy).toBe('custom');
+      expect(store.domain_id).toBe('domain-123');
+      expect(store.custom_domains).toEqual(['sub1.example.com', 'sub2.example.com']);
+    });
+
+    it('updates UI configuration', () => {
+      const newUi = {
+        ...schemaDefaults.ui,
+        enabled: true,
+        header: {
+          enabled: true,
+          // #3612: header carries only layout knobs (href/show_name/prominent);
+          // brand identity lives in the flat brand_* fields.
+          logo: { href: '/', show_name: true, prominent: false },
+        },
+        footer_links: {
+          enabled: true,
+          groups: [
+            {
+              name: 'Legal',
+              links: [{ text: 'Privacy', url: '/privacy' }],
+            },
+          ],
+        },
+      };
+
+      store.update({ ui: newUi });
+
+      expect(store.ui.enabled).toBe(true);
+      expect(store.ui.header?.enabled).toBe(true);
+      expect(store.ui.footer_links?.enabled).toBe(true);
+    });
+
+    it('updates stripe/billing data', () => {
+      const stripeCustomer = { id: 'cus_123' } as any;
+      const stripeSubscriptions = [{ id: 'sub_123' }] as any;
+
+      store.update({
+        stripe_customer: stripeCustomer,
+        stripe_subscriptions: stripeSubscriptions,
+      });
+
+      expect(store.stripe_customer).toEqual(stripeCustomer);
+      expect(store.stripe_subscriptions).toEqual(stripeSubscriptions);
+    });
+
+    it('updates organization data', () => {
+      store.update({
+        organization: {
+          objid: 'org_obj_1',
+          extid: 'org_ext_1',
+          display_name: 'Acme Inc',
+          is_default: true,
+          planid: 'pro-plan',
+        },
+      });
+
+      expect(store.organization?.planid).toBe('pro-plan');
+    });
+
+    it('updates entitlement test mode (colonel)', () => {
+      store.update({
+        entitlement_preview_planid: 'test-plan-id',
+        entitlement_preview_plan_name: 'Test Plan',
+      });
+
+      expect(store.entitlement_preview_planid).toBe('test-plan-id');
+      expect(store.entitlement_preview_plan_name).toBe('Test Plan');
+    });
+
+    it('exposes the impersonation marker and the isImpersonating getter', () => {
+      expect(store.impersonation).toBeNull();
+      expect(store.isImpersonating).toBe(false);
+
+      store.update({
+        impersonation: {
+          impersonation_id: 'imp_9f2c1a',
+          impersonator_extid: 'ur_colonel',
+          target_extid: 'ur_bob',
+          target_email: 'bob@example.com',
+          started_at: 1756700000,
+          expires_at: 1756701800,
+        },
+      });
+
+      expect(store.impersonation?.target_email).toBe('bob@example.com');
+      expect(store.isImpersonating).toBe(true);
+    });
+
+    it('CLEARS the marker on an explicit null (a stop or expiry must hide the banner)', () => {
+      store.update({
+        impersonation: {
+          impersonation_id: 'imp_9f2c1a',
+          impersonator_extid: 'ur_colonel',
+          target_extid: 'ur_bob',
+          target_email: 'bob@example.com',
+          started_at: 1756700000,
+          expires_at: 1756701800,
+        },
+      });
+
+      // null is DEFINED, so filterDefined keeps it and the merge overwrites.
+      // (An omitted key would leave the stale marker on screen — which is why
+      // the serializer emits the field unconditionally.)
+      store.update({ impersonation: null });
+
+      expect(store.impersonation).toBeNull();
+      expect(store.isImpersonating).toBe(false);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REFRESH TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RESET TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('$reset()', () => {
+    beforeEach(() => {
+      mockGetBootstrapSnapshot.mockReturnValue(authenticatedBootstrap);
+      store.init();
+    });
+
+    it('resets authentication state to defaults', () => {
+      expect(store.authenticated).toBe(true);
+
+      store.$reset();
+
+      expect(store.authenticated).toBe(false);
+      expect(store.awaiting_mfa).toBe(false);
+    });
+
+    it('resets user identity to defaults', () => {
+      expect(store.cust).not.toBeNull();
+      expect(store.email).toBe(mockCustomer.email);
+
+      store.$reset();
+
+      expect(store.cust).toBeNull();
+      expect(store.custid).toBe('');
+      expect(store.email).toBe('');
+      expect(store.customer_since).toBeUndefined();
+      expect(store.apitoken).toBeUndefined();
+    });
+
+    it('resets locale settings to defaults', () => {
+      store.update({ locale: 'es', i18n_enabled: false });
+
+      store.$reset();
+
+      expect(store.locale).toBe('en');
+      expect(store.i18n_enabled).toBe(true);
+      expect(store.fallback_locale).toBe('en');
+    });
+
+    it('resets site configuration to defaults', () => {
+      store.update({
+        baseuri: 'https://custom.example.com',
+        ot_version: '2.0.0',
+      });
+
+      store.$reset();
+
+      expect(store.baseuri).toBe('');
+      expect(store.frontend_host).toBe('');
+      expect(store.site_host).toBe('');
+      expect(store.ot_version).toBe('');
+      expect(store.shrimp).toBe('');
+    });
+
+    it('resets feature flags to defaults', () => {
+      store.update({
+        billing_enabled: true,
+        regions_enabled: true,
+        domains_enabled: true,
+      });
+
+      store.$reset();
+
+      expect(store.billing_enabled).toBe(false);
+      expect(store.regions_enabled).toBe(false);
+      expect(store.domains_enabled).toBe(false);
+      expect(store.d9s_enabled).toBe(false);
+    });
+
+    it('resets domain configuration to defaults', () => {
+      store.update({
+        canonical_domain: 'custom.example.com',
+        domain_strategy: 'custom',
+        custom_domains: ['sub.example.com'],
+      });
+
+      store.$reset();
+
+      expect(store.canonical_domain).toBe('');
+      expect(store.domain_strategy).toBe('canonical');
+      expect(store.domain_id).toBe('');
+      expect(store.custom_domains).toEqual([]);
+    });
+
+    it('resets all server config fields to defaults (unlike resetForLogout)', () => {
+      store.update({
+        authentication: { ...schemaDefaults.authentication, enabled: false, signup: false },
+        ui: { ...schemaDefaults.ui, enabled: false },
+        features: { ...schemaDefaults.features, markdown: true },
+        regions: {
+          identifier: 'EU',
+          enabled: true,
+          current_jurisdiction: 'EU',
+          jurisdictions: [{ identifier: 'EU', display_name_i18n_key: 'web.regions.eu', domain: 'eu.example.com', icon: { collection: 'flags', name: 'eu' }, enabled: true }],
+        },
+      });
+
+      store.$reset();
+
+      // $reset() resets EVERYTHING to DEFAULTS, including server config
+      expect(store.authentication?.enabled).toBe(true); // Default is true
+      expect(store.ui.enabled).toBe(true); // Default is true
+    });
+
+    it('resets billing data to defaults', () => {
+      store.update({
+        stripe_customer: { id: 'cus_123' } as any,
+        stripe_subscriptions: [{ id: 'sub_123' }] as any,
+      });
+
+      store.$reset();
+
+      expect(store.stripe_customer).toBeUndefined();
+      expect(store.stripe_subscriptions).toBeUndefined();
+    });
+
+    it('resets the impersonation marker to null', () => {
+      store.update({
+        impersonation: {
+          impersonation_id: 'imp_9f2c1a',
+          impersonator_extid: 'ur_colonel',
+          target_extid: 'ur_bob',
+          target_email: 'bob@example.com',
+          started_at: 1756700000,
+          expires_at: 1756701800,
+        },
+      });
+
+      store.$reset();
+
+      expect(store.impersonation).toBeNull();
+      expect(store.isImpersonating).toBe(false);
+    });
+
+    it('resets entitlement test mode to defaults', () => {
+      store.update({
+        entitlement_preview_planid: 'test-plan',
+        entitlement_preview_plan_name: 'Test Plan',
+      });
+
+      store.$reset();
+
+      expect(store.entitlement_preview_planid).toBeUndefined();
+      expect(store.entitlement_preview_plan_name).toBeUndefined();
+    });
+
+    it('resets organization data to defaults', () => {
+      store.update({
+        organization: {
+          objid: 'org_obj_2',
+          extid: 'org_ext_2',
+          display_name: 'Acme Inc',
+          is_default: true,
+          planid: 'pro',
+        },
+      });
+
+      store.$reset();
+
+      expect(store.organization).toBeUndefined();
+    });
+
+    it('resets _initialized flag to false', () => {
+      // Options API $reset() returns to initial state() which has _initialized: false
+      mockGetBootstrapSnapshot.mockReturnValue(authenticatedBootstrap);
+      store.init();
+      expect(store.isInitialized).toBe(true);
+
+      store.$reset();
+
+      // $reset() restores initial state including _initialized: false
+      expect(store.isInitialized).toBe(false);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // resetForLogout() TESTS - Preserves Server Config
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('resetForLogout()', () => {
+    beforeEach(() => {
+      mockGetBootstrapSnapshot.mockReturnValue(authenticatedBootstrap);
+      store.init();
+    });
+
+    it('resets user authentication state to defaults', () => {
+      expect(store.authenticated).toBe(true);
+
+      store.resetForLogout();
+
+      expect(store.authenticated).toBe(false);
+      expect(store.awaiting_mfa).toBe(false);
+    });
+
+    it('resets user identity to defaults', () => {
+      expect(store.cust).not.toBeNull();
+
+      store.resetForLogout();
+
+      expect(store.cust).toBeNull();
+      expect(store.custid).toBe('');
+      expect(store.email).toBe('');
+    });
+
+    it('preserves regions configuration through reset (server config)', () => {
+      const jurisdictions = [
+        { identifier: 'EU', display_name_i18n_key: 'web.regions.eu', domain: 'eu.example.com', icon: { collection: 'flags', name: 'eu' }, enabled: true },
+        { identifier: 'US', display_name_i18n_key: 'web.regions.us', domain: 'us.example.com', icon: { collection: 'flags', name: 'us' }, enabled: true },
+      ];
+      store.update({
+        regions: {
+          identifier: 'EU',
+          enabled: true,
+          current_jurisdiction: 'EU',
+          jurisdictions,
+        },
+      });
+
+      store.resetForLogout();
+
+      // Server config fields are NOT reset
+      expect(store.regions?.identifier).toBe('EU');
+      expect(store.regions?.enabled).toBe(true);
+      expect(store.regions?.jurisdictions).toEqual(jurisdictions);
+    });
+
+    it('preserves authentication settings through reset (server config)', () => {
+      store.update({
+        authentication: {
+          enabled: false,
+          signup: false,
+          signin: false,
+          autoverify: true,
+          required: true,
+        },
+      });
+
+      store.resetForLogout();
+
+      // Server config: retains the values set via update()
+      expect(store.authentication?.enabled).toBe(false);
+      expect(store.authentication?.signup).toBe(false);
+      expect(store.authentication?.signin).toBe(false);
+      expect(store.authentication?.autoverify).toBe(true);
+      expect(store.authentication?.required).toBe(true);
+    });
+
+    it('preserves secret options through reset (server config)', () => {
+      store.update({
+        secret_options: {
+          default_ttl: 3600,
+          ttl_options: [60, 120],
+        },
+      });
+
+      store.resetForLogout();
+
+      // Server config: retains the values set via update()
+      expect(store.secret_options.default_ttl).toBe(3600);
+      expect(store.secret_options.ttl_options).toEqual([60, 120]);
+    });
+
+    it('preserves UI configuration through reset (server config)', () => {
+      store.update({
+        ui: {
+          ...schemaDefaults.ui,
+          enabled: false,
+          header: { enabled: false },
+          footer_links: { enabled: true, groups: [] },
+        },
+      });
+
+      store.resetForLogout();
+
+      // Server config: retains the values set via update()
+      expect(store.ui.enabled).toBe(false);
+      expect(store.ui.header?.enabled).toBe(false);
+      expect(store.ui.footer_links?.enabled).toBe(true);
+    });
+
+    it('preserves features configuration through reset (server config)', () => {
+      store.update({
+        features: { ...schemaDefaults.features, markdown: false },
+      });
+
+      store.resetForLogout();
+
+      expect(store.features.markdown).toBe(false);
+    });
+
+    it('preserves diagnostics configuration through reset (server config)', () => {
+      const diagnosticsConfig = {
+        sentry: {
+          dsn: 'https://test@sentry.io/123',
+          enabled: true,
+          debug: false,
+          logErrors: true,
+          trackComponents: true,
+        },
+      };
+
+      store.update({ diagnostics: diagnosticsConfig });
+
+      store.resetForLogout();
+
+      expect(store.diagnostics).toEqual(diagnosticsConfig);
+    });
+
+    it('keeps _initialized flag true after resetForLogout', () => {
+      expect(store.isInitialized).toBe(true);
+
+      store.resetForLogout();
+
+      // resetForLogout() preserves _initialized because the store structure is still valid
+      expect(store.isInitialized).toBe(true);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // COMPUTED GETTERS TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Computed Getters', () => {
+    beforeEach(() => {
+      mockGetBootstrapSnapshot.mockReturnValue(baseBootstrap);
+      store.init();
+    });
+
+    describe('isInitialized', () => {
+      it('returns false before init()', async () => {
+        // Create fresh store without init
+        await setupTestPinia({ autoInit: false });
+        const freshStore = useBootstrapStore();
+
+        expect(freshStore.isInitialized).toBe(false);
+      });
+
+      it('returns true after init()', () => {
+        expect(store.isInitialized).toBe(true);
+      });
+    });
+
+    describe('headerConfig', () => {
+      it('returns header configuration from UI (logo layout knobs pass through)', () => {
+        store.update({
+          ui: {
+            ...schemaDefaults.ui,
+            enabled: true,
+            header: {
+              enabled: true,
+              logo: { href: '/dashboard', show_name: true, prominent: false },
+            },
+          },
+        });
+
+        expect(store.headerConfig?.enabled).toBe(true);
+        expect(store.headerConfig?.logo?.href).toBe('/dashboard');
+        expect(store.headerConfig?.logo?.show_name).toBe(true);
+        expect(store.headerConfig?.logo?.prominent).toBe(false);
+      });
+
+      it('returns undefined when header not configured', () => {
+        store.update({
+          ui: {
+            ...schemaDefaults.ui,
+            enabled: true,
+          },
+        });
+
+        expect(store.headerConfig).toBeUndefined();
+      });
+    });
+
+    describe('footerLinksConfig', () => {
+      it('returns footer links configuration from UI', () => {
+        store.update({
+          ui: {
+            ...schemaDefaults.ui,
+            enabled: true,
+            footer_links: {
+              enabled: true,
+              groups: [
+                {
+                  name: 'Company',
+                  links: [
+                    { text: 'About', url: '/about' },
+                    { text: 'Contact', url: '/contact' },
+                  ],
+                },
+              ],
+            },
+          },
+        });
+
+        expect(store.footerLinksConfig?.enabled).toBe(true);
+        expect(store.footerLinksConfig?.groups).toHaveLength(1);
+        expect(store.footerLinksConfig?.groups[0].name).toBe('Company');
+      });
+
+      it('returns undefined when footer links not configured', () => {
+        store.update({
+          ui: {
+            ...schemaDefaults.ui,
+            enabled: true,
+          },
+        });
+
+        expect(store.footerLinksConfig).toBeUndefined();
+      });
+    });
+
+    describe('legalUrls', () => {
+      it('returns configured legal URLs from site.legal (#4278)', () => {
+        store.update({
+          legal: {
+            terms_url: 'https://example.com/terms',
+            privacy_url: '/privacy',
+            dpa_url: 'https://example.com/dpa',
+            cookie_url: null,
+            aup_url: null,
+            security_url: null,
+          },
+        });
+
+        expect(store.legalUrls.terms_url).toBe('https://example.com/terms');
+        expect(store.legalUrls.privacy_url).toBe('/privacy');
+        expect(store.legalUrls.dpa_url).toBe('https://example.com/dpa');
+        expect(store.legalUrls.cookie_url).toBeNull();
+      });
+
+      it('defaults every URL to null when the payload omits the block', () => {
+        expect(store.legalUrls).toEqual({
+          terms_url: null,
+          privacy_url: null,
+          dpa_url: null,
+          cookie_url: null,
+          aup_url: null,
+          security_url: null,
+        });
+      });
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REACTIVITY TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Reactivity', () => {
+    beforeEach(() => {
+      mockGetBootstrapSnapshot.mockReturnValue(anonymousBootstrap);
+      store.init();
+    });
+
+    it('update() triggers reactive changes', () => {
+      const initialFlag = store.enjoyTheVue;
+
+      store.update({ enjoyTheVue: !initialFlag });
+
+      expect(store.enjoyTheVue).toBe(!initialFlag);
+    });
+
+    it('computed getter updates when underlying ref changes', () => {
+      // Initial state
+      expect(store.headerConfig).toBeUndefined();
+
+      // Update UI
+      store.update({
+        ui: {
+          ...schemaDefaults.ui,
+          enabled: true,
+          header: { enabled: true },
+        },
+      });
+
+      // Computed should reflect the change
+      expect(store.headerConfig?.enabled).toBe(true);
+    });
+
+    it('individual refs can be updated independently', () => {
+      // Direct property updates (via Pinia's auto-unwrapping)
+      const originalEmail = store.email;
+
+      store.update({ locale: 'fr' });
+
+      expect(store.locale).toBe('fr');
+      expect(store.email).toBe(originalEmail); // Unchanged
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EDGE CASE TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Edge Cases', () => {
+    it('handles empty bootstrap snapshot gracefully', () => {
+      mockGetBootstrapSnapshot.mockReturnValue({});
+
+      store.init();
+
+      // Should use defaults for all missing fields
+      expect(store.authenticated).toBe(false);
+      expect(store.locale).toBe('en');
+      expect(store.isInitialized).toBe(true);
+    });
+
+    it('handles partial bootstrap snapshot', () => {
+      mockGetBootstrapSnapshot.mockReturnValue({
+        authenticated: true,
+        email: 'partial@example.com',
+        // All other fields missing
+      });
+
+      store.init();
+
+      // `authenticated: true` without a customer is not a usable identity:
+      // the status can only withhold (effectiveAuthStatus), and identity
+      // fields are withheld with it.
+      expect(store.authStatus).toBe('unavailable');
+      expect(store.authenticated).toBe(false);
+      expect(store.email).toBe('');
+      // Missing fields should use defaults
+      expect(store.locale).toBe('en');
+      expect(store.billing_enabled).toBe(false);
+    });
+
+    it('handles null customer correctly', () => {
+      mockGetBootstrapSnapshot.mockReturnValue({
+        ...authenticatedBootstrap,
+        cust: null,
+      });
+
+      store.init();
+
+      expect(store.cust).toBeNull();
+    });
+
+    it('handles empty arrays correctly', () => {
+      mockGetBootstrapSnapshot.mockReturnValue({
+        supported_locales: [],
+        custom_domains: [],
+        available_jurisdictions: [],
+        messages: [],
+      });
+
+      store.init();
+
+      expect(store.supported_locales).toEqual([]);
+      expect(store.custom_domains).toEqual([]);
+      expect(store.available_jurisdictions).toEqual([]);
+      expect(store.messages).toEqual([]);
+    });
+
+    it('preserves complex nested objects on update', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(baseBootstrap);
+      store.init();
+
+      const complexUi = {
+        ...schemaDefaults.ui,
+        enabled: true,
+        header: {
+          enabled: true,
+          logo: { href: '/home', show_name: true, prominent: true },
+          navigation: { enabled: true },
+        },
+        footer_links: {
+          enabled: true,
+          groups: [
+            {
+              name: 'Group 1',
+              i18n_key: 'footer.group1',
+              links: [
+                { text: 'Link 1', url: '/link1', external: true },
+                { i18n_key: 'footer.link2', url: '/link2' },
+              ],
+            },
+          ],
+        },
+      };
+
+      store.update({ ui: complexUi });
+
+      expect(store.ui).toEqual(complexUi);
+      expect(store.ui.header?.logo?.href).toBe('/home');
+      expect(store.ui.header?.logo?.show_name).toBe(true);
+      expect(store.ui.header?.logo?.prominent).toBe(true);
+      expect(store.ui.footer_links?.groups[0].links).toHaveLength(2);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INTEGRATION WITH OTHER STORES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Store Integration Patterns', () => {
+    it('provides data for authStore initialization', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(authenticatedBootstrap);
+      store.init();
+
+      // authStore would read these values
+      expect(store.authenticated).toBe(true);
+      expect(store.awaiting_mfa).toBe(false);
+      expect(store.cust).not.toBeNull();
+    });
+
+    it('provides CSRF token for csrfStore', () => {
+      mockGetBootstrapSnapshot.mockReturnValue({
+        ...baseBootstrap,
+        shrimp: 'test-csrf-token-123',
+      });
+      store.init();
+
+      expect(store.shrimp).toBe('test-csrf-token-123');
+    });
+
+    it('provides locale data for languageStore', () => {
+      mockGetBootstrapSnapshot.mockReturnValue({
+        ...baseBootstrap,
+        locale: 'es',
+        supported_locales: [
+          { code: 'en', name: 'English', enabled: true },
+          { code: 'es', name: 'Spanish', enabled: true },
+        ],
+        i18n_enabled: true,
+      });
+      store.init();
+
+      expect(store.locale).toBe('es');
+      expect(store.supported_locales).toHaveLength(2);
+      expect(store.i18n_enabled).toBe(true);
+    });
+
+    it('provides organization data for organizationStore', () => {
+      mockGetBootstrapSnapshot.mockReturnValue({
+        ...authenticatedBootstrap,
+        organization: {
+          objid: 'org-objid-1',
+          extid: 'on-ext-1',
+          display_name: 'Acme',
+          is_default: true,
+          current_user_role: 'owner',
+        },
+      });
+      store.init();
+
+      expect(store.organization?.extid).toBe('on-ext-1');
+      expect(store.organization?.current_user_role).toBe('owner');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SCHEMA CONSISTENCY TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Schema Consistency', () => {
+    /**
+     * The bootstrap schema (bootstrap.schema.ts) defines BOOTSTRAP_UI_DEFAULTS
+     * for UI-specific fields. The store DEFAULTS must remain consistent with
+     * these schema defaults for overlapping fields.
+     *
+     * This test ensures the two sources don't drift apart.
+     */
+    it('store DEFAULTS match schema BOOTSTRAP_UI_DEFAULTS for overlapping fields', async () => {
+      const { BOOTSTRAP_UI_DEFAULTS } = await import('@/tests/contracts/bootstrap-test-schema');
+
+      // Create fresh store to verify initial DEFAULTS (before init() hydrates)
+      await setupTestPinia({ autoInit: false });
+      const freshStore = useBootstrapStore();
+
+      // UI configuration
+      expect(freshStore.ui.enabled).toBe(BOOTSTRAP_UI_DEFAULTS.ui.enabled);
+
+      // Messages (both should default to empty array)
+      expect(freshStore.messages).toEqual(BOOTSTRAP_UI_DEFAULTS.messages);
+
+      // Features
+      expect(freshStore.features.markdown).toBe(BOOTSTRAP_UI_DEFAULTS.features.markdown);
+
+      // Locale defaults
+      expect(freshStore.default_locale).toBe(BOOTSTRAP_UI_DEFAULTS.default_locale);
+      expect(freshStore.supported_locales).toEqual(BOOTSTRAP_UI_DEFAULTS.supported_locales);
+
+      // Development (both have schema defaults - Ruby always emits this field)
+      expect(freshStore.development).toEqual(BOOTSTRAP_UI_DEFAULTS.development);
+
+      // Organization (both undefined by default)
+      expect(freshStore.organization).toBe(BOOTSTRAP_UI_DEFAULTS.organization);
+    });
+
+    it('schema defaults represent valid BootstrapPayload subset', async () => {
+      const { BOOTSTRAP_UI_DEFAULTS, bootstrapUiSchema } = await import(
+        '@/tests/contracts/bootstrap-test-schema'
+      );
+
+      // Parsing an empty object should produce the same defaults
+      const parsedDefaults = bootstrapUiSchema.parse({});
+
+      expect(parsedDefaults).toEqual(BOOTSTRAP_UI_DEFAULTS);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // OPTIONS API COMPATIBILITY TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Options API Compatibility', () => {
+    /**
+     * These tests verify behaviors that must work identically whether
+     * the store uses Setup API or Options API internally.
+     * Tests focus on public interface, not implementation details.
+     */
+
+    beforeEach(() => {
+      mockGetBootstrapSnapshot.mockReturnValue(anonymousBootstrap);
+      store.init();
+    });
+
+    it('update() merges partial state without replacing entire state', () => {
+      // Set up initial state with multiple fields
+      store.update({
+        enjoyTheVue: true,
+        email: 'first@example.com',
+        locale: 'es',
+      });
+
+      // Partial update should only change specified fields
+      store.update({ locale: 'fr' });
+
+      expect(store.locale).toBe('fr');
+      expect(store.enjoyTheVue).toBe(true); // Preserved
+      expect(store.email).toBe('first@example.com'); // Preserved
+    });
+
+    it('sequential updates accumulate correctly', () => {
+      store.update({ enjoyTheVue: true });
+      store.update({ email: 'step1@example.com' });
+      store.update({ custid: 'cust-123' });
+      store.update({ locale: 'de' });
+
+      expect(store.enjoyTheVue).toBe(true);
+      expect(store.email).toBe('step1@example.com');
+      expect(store.custid).toBe('cust-123');
+      expect(store.locale).toBe('de');
+    });
+
+    it('$reset() can be called multiple times safely', () => {
+      store.update({ enjoyTheVue: true, email: 'test@example.com' });
+
+      store.$reset();
+      expect(store.enjoyTheVue).toBe(false);
+
+      // Update again
+      store.update({ enjoyTheVue: true });
+      expect(store.enjoyTheVue).toBe(true);
+
+      // Reset again
+      store.$reset();
+      expect(store.enjoyTheVue).toBe(false);
+    });
+
+    it('store can be re-initialized after $reset()', async () => {
+      // Initial setup (beforeEach already called init() with anonymousBootstrap)
+      mockGetBootstrapSnapshot.mockReturnValue(authenticatedBootstrap);
+
+      // Reset clears everything including _initialized
+      store.$reset();
+      expect(store.authenticated).toBe(false);
+      expect(store.isInitialized).toBe(false); // $reset() also resets _initialized
+
+      // Re-initialization works because _initialized is now false
+      const result = store.init();
+      expect(result.isInitialized).toBe(true);
+      expect(store.authenticated).toBe(true); // Now uses authenticatedBootstrap
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SERVER CONFIG PRESERVATION TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Server Config Preservation', () => {
+    /**
+     * Server configuration fields must NOT be reset on logout (resetForLogout).
+     * These are set by the server at startup and persist until full page reload.
+     *
+     * Note: The built-in $reset() does a full reset to DEFAULTS.
+     * Use resetForLogout() for logout scenarios that preserve server config.
+     */
+
+    beforeEach(() => {
+      mockGetBootstrapSnapshot.mockReturnValue(authenticatedBootstrap);
+      store.init();
+    });
+
+    it('preserves features configuration through resetForLogout', () => {
+      store.update({
+        features: {
+          ...schemaDefaults.features,
+          markdown: false,
+        },
+      });
+
+      store.resetForLogout();
+
+      // Server config fields persist
+      expect(store.features.markdown).toBe(false);
+    });
+
+    it('preserves diagnostics configuration through resetForLogout', () => {
+      // Production shape: DiagnosticsConfig is `{ sentry: SentryConfig } | null`
+      // (see bootstrap.ts sentryConfigSchema/diagnosticsSchema), not a flat
+      // set of feature-area booleans.
+      const diagnosticsConfig = {
+        sentry: {
+          dsn: 'https://test@sentry.io/123',
+          enabled: true,
+          logErrors: true,
+          trackComponents: true,
+        },
+      };
+
+      store.update({ diagnostics: diagnosticsConfig });
+
+      store.resetForLogout();
+
+      // Server config fields persist
+      expect(store.diagnostics).toEqual(diagnosticsConfig);
+    });
+
+    it('preserves legal URLs through resetForLogout', () => {
+      store.update({
+        legal: {
+          terms_url: 'https://example.com/terms',
+          privacy_url: 'https://example.com/privacy',
+          dpa_url: null,
+          cookie_url: null,
+          aup_url: null,
+          security_url: null,
+        },
+      });
+
+      store.resetForLogout();
+
+      // Server config fields persist
+      expect(store.legalUrls.terms_url).toBe('https://example.com/terms');
+      expect(store.legalUrls.privacy_url).toBe('https://example.com/privacy');
+    });
+
+    it('preserves all server config fields together through resetForLogout', () => {
+      // Set up all server config fields
+      const sentryConfig = {
+        dsn: 'https://test@sentry.io/123',
+        enabled: true,
+        logErrors: true,
+        trackComponents: true,
+      };
+      store.update({
+        authentication: { ...schemaDefaults.authentication, enabled: false, signup: false, signin: true },
+        ui: { ...schemaDefaults.ui, enabled: false, header: { enabled: false } },
+        features: { ...schemaDefaults.features, markdown: false },
+        regions: {
+          identifier: 'EU',
+          enabled: true,
+          current_jurisdiction: 'EU',
+          jurisdictions: [{ identifier: 'EU', display_name_i18n_key: 'web.regions.eu', domain: 'eu.example.com', icon: { collection: 'flags', name: 'eu' }, enabled: true }],
+        },
+        secret_options: { default_ttl: 7200, ttl_options: [300, 600] },
+        diagnostics: { sentry: sentryConfig },
+      });
+
+      store.resetForLogout();
+
+      // All server config fields should persist
+      expect(store.authentication?.enabled).toBe(false);
+      expect(store.ui.enabled).toBe(false);
+      expect(store.features.markdown).toBe(false);
+      expect(store.regions?.identifier).toBe('EU');
+      expect(store.secret_options.default_ttl).toBe(7200);
+      expect(store.diagnostics?.sentry?.enabled).toBe(true);
+    });
+
+    it('clears user-specific fields while preserving server config', () => {
+      // Set both user and server config
+      store.update({
+        // User-specific
+        authenticated: true,
+        email: 'user@example.com',
+        cust: mockCustomer,
+        stripe_customer: { id: 'cus_123' } as any,
+        // Server config
+        authentication: { ...schemaDefaults.authentication, enabled: false },
+        features: { ...schemaDefaults.features, markdown: false },
+      });
+
+      store.resetForLogout();
+
+      // User fields are cleared
+      expect(store.authenticated).toBe(false);
+      expect(store.email).toBe('');
+      expect(store.cust).toBeNull();
+      expect(store.stripe_customer).toBeUndefined();
+
+      // Server config persists
+      expect(store.authentication?.enabled).toBe(false);
+      expect(store.features.markdown).toBe(false);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ADDITIONAL FIELD COVERAGE TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Additional Field Coverage', () => {
+    beforeEach(() => {
+      mockGetBootstrapSnapshot.mockReturnValue(baseBootstrap);
+      store.init();
+    });
+
+    it('updates has_password field', () => {
+      expect(store.has_password).toBe(false);
+
+      store.update({ has_password: true });
+
+      expect(store.has_password).toBe(true);
+    });
+
+    it('retains known has_password when a refresh reports null (unknown)', () => {
+      store.update({ has_password: true });
+
+      // null = server couldn't determine it (transient auth-DB failure);
+      // it must not clobber the known-good value in store or snapshot.
+      store.update({ has_password: null, email: 'fresh@example.com' });
+
+      expect(store.has_password).toBe(true);
+      expect(store.email).toBe('fresh@example.com');
+      const lastSnapshotUpdate = vi.mocked(bootstrapService.updateBootstrapSnapshot).mock.lastCall?.[0];
+      expect(lastSnapshotUpdate).toEqual({ email: 'fresh@example.com' });
+    });
+
+    it('updates support_host field', () => {
+      store.update({ support_host: 'help.example.com' });
+
+      expect(store.support_host).toBe('help.example.com');
+    });
+
+    it('updates version fields', () => {
+      store.update({
+        ot_version: '1.2.3',
+        ot_version_long: '1.2.3-beta.1 (abc123)',
+        ruby_version: 'ruby-340',
+      });
+
+      expect(store.ot_version).toBe('1.2.3');
+      expect(store.ot_version_long).toBe('1.2.3-beta.1 (abc123)');
+      expect(store.ruby_version).toBe('ruby-340');
+    });
+
+    it('updates enjoyTheVue flag', () => {
+      store.update({ enjoyTheVue: false });
+
+      expect(store.enjoyTheVue).toBe(false);
+    });
+
+    it('updates homepage_mode and global_banner', () => {
+      store.update({
+        homepage_mode: 'marketing',
+        global_banner: 'System maintenance scheduled',
+      });
+
+      expect(store.homepage_mode).toBe('marketing');
+      expect(store.global_banner).toBe('System maintenance scheduled');
+    });
+
+    it('updates domain_branding and domain_logo', () => {
+      const branding = {
+        button_text_light: false,
+        corner_style: 'square' as const,
+        font_family: 'serif' as const,
+        primary_color: '#ff0000',
+      };
+
+      store.update({
+        domain_branding: branding,
+        domain_logo: '/custom-logo.svg',
+      });
+
+      expect(store.domain_branding).toEqual(branding);
+      expect(store.domain_logo).toBe('/custom-logo.svg');
+    });
+
+    it('updates domain_context field', () => {
+      store.update({ domain_context: 'custom-domain-context' });
+
+      expect(store.domain_context).toBe('custom-domain-context');
+    });
+
+    it('updates messages array', () => {
+      // Production shape: messageSchema.type is 'success' | 'error' | 'info'
+      // (bootstrap.ts) — there is no 'warning' variant.
+      const messages = [
+        { type: 'info' as const, content: 'Welcome message' },
+        { type: 'error' as const, content: 'Maintenance soon' },
+      ];
+
+      store.update({ messages });
+
+      expect(store.messages).toEqual(messages);
+      expect(store.messages).toHaveLength(2);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REFRESH EDGE CASES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DEEP NESTED OBJECT TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Deep Nested Object Handling', () => {
+    beforeEach(() => {
+      mockGetBootstrapSnapshot.mockReturnValue(baseBootstrap);
+      store.init();
+    });
+
+    it('updates deeply nested UI header navigation', () => {
+      // Production shape: headerNavigationSchema (bootstrap.ts) is just
+      // `{ enabled: boolean }` — navigation has no `links` array. Deep-nested
+      // link arrays are covered separately by footer_links.groups[].links
+      // (see 'preserves complex nested objects on update' above).
+      const uiWithNavigation = {
+        ...schemaDefaults.ui,
+        enabled: true,
+        header: {
+          enabled: true,
+          logo: { href: '/', show_name: true, prominent: false },
+          navigation: {
+            enabled: true,
+          },
+        },
+      };
+
+      store.update({ ui: uiWithNavigation });
+
+      expect(store.ui.header?.navigation?.enabled).toBe(true);
+    });
+
+    it('updates deeply nested regions configuration', () => {
+      const jurisdictions = [
+        { identifier: 'EU', display_name_i18n_key: 'web.regions.eu', domain: 'eu.example.com', icon: { collection: 'flags', name: 'eu' }, enabled: true },
+        { identifier: 'US', display_name_i18n_key: 'web.regions.us', domain: 'us.example.com', icon: { collection: 'flags', name: 'us' }, enabled: true },
+        { identifier: 'CA', display_name_i18n_key: 'web.regions.ca', domain: 'ca.example.com', icon: { collection: 'flags', name: 'ca' }, enabled: true },
+      ];
+      const regionsConfig = {
+        identifier: 'EU',
+        enabled: true,
+        current_jurisdiction: 'EU',
+        jurisdictions,
+      };
+
+      store.update({ regions: regionsConfig });
+
+      expect(store.regions?.identifier).toBe('EU');
+      expect(store.regions?.jurisdictions).toHaveLength(3);
+      expect(store.regions?.jurisdictions?.find(j => j.identifier === 'CA')).toBeDefined();
+    });
+
+    it('replaces entire nested object on update (not deep merge)', () => {
+      // First update with full UI
+      store.update({
+        ui: {
+          ...schemaDefaults.ui,
+          enabled: true,
+          header: { enabled: true },
+          footer_links: { enabled: true, groups: [] },
+        },
+      });
+
+      // Second update with partial UI replaces the whole object
+      store.update({
+        ui: {
+          ...schemaDefaults.ui,
+          enabled: false,
+        },
+      });
+
+      // The entire UI object is replaced, not merged
+      expect(store.ui.enabled).toBe(false);
+      expect(store.ui.header).toBeUndefined();
+      expect(store.ui.footer_links).toBeUndefined();
+    });
+
+    it('handles customer object with all fields', () => {
+      const fullCustomer = {
+        ...mockCustomer,
+        feature_flags: { beta: true, experimental: true },
+        secrets_created: 100,
+        last_login: new Date(),
+      };
+
+      store.update({ cust: fullCustomer });
+
+      expect(store.cust?.feature_flags?.beta).toBe(true);
+      expect(store.cust?.secrets_created).toBe(100);
+      expect(store.cust?.last_login).toBeInstanceOf(Date);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TYPE COERCION EDGE CASES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Type Edge Cases', () => {
+    beforeEach(() => {
+      mockGetBootstrapSnapshot.mockReturnValue(baseBootstrap);
+      store.init();
+    });
+
+    it('handles boolean false values correctly (not treated as undefined)', () => {
+      store.update({ enjoyTheVue: true });
+      expect(store.enjoyTheVue).toBe(true);
+
+      store.update({ enjoyTheVue: false });
+      expect(store.enjoyTheVue).toBe(false);
+    });
+
+    it('handles empty string values correctly', () => {
+      store.update({ email: 'test@example.com' });
+      expect(store.email).toBe('test@example.com');
+
+      store.update({ email: '' });
+      expect(store.email).toBe('');
+    });
+
+    it('handles zero values correctly', () => {
+      store.update({
+        secret_options: { default_ttl: 3600, ttl_options: [60, 120] },
+      });
+
+      store.update({
+        secret_options: { default_ttl: 0, ttl_options: [] },
+      });
+
+      expect(store.secret_options.default_ttl).toBe(0);
+      expect(store.secret_options.ttl_options).toEqual([]);
+    });
+
+    it('handles null values for nullable fields', () => {
+      store.update({ cust: mockCustomer });
+      expect(store.cust).not.toBeNull();
+
+      store.update({ cust: null });
+      expect(store.cust).toBeNull();
+    });
+
+    it('handles undefined optional fields', () => {
+      store.update({ customer_since: '2024-01-01' });
+      expect(store.customer_since).toBe('2024-01-01');
+
+      store.update({ customer_since: undefined });
+      // undefined should not overwrite the existing value
+      expect(store.customer_since).toBe('2024-01-01');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZATION EDGE CASES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Initialization Edge Cases', () => {
+    it('handles initialization with undefined values in snapshot', () => {
+      mockGetBootstrapSnapshot.mockReturnValue({
+        authenticated: true,
+        email: undefined,
+        cust: undefined,
+      });
+
+      store.init();
+
+      // `authenticated: true` with no customer can only withhold (#4462).
+      expect(store.authStatus).toBe('unavailable');
+      expect(store.authenticated).toBe(false);
+      // Undefined values should not overwrite defaults
+      expect(store.email).toBe('');
+      expect(store.cust).toBeNull();
+    });
+
+    it('handles initialization with null values for optional fields', () => {
+      mockGetBootstrapSnapshot.mockReturnValue({
+        ...baseBootstrap,
+        customer_since: null,
+        apitoken: null,
+      });
+
+      store.init();
+
+      // These should be set to the provided null values
+      // (or schema-defined behavior)
+      expect(store.isInitialized).toBe(true);
+    });
+
+    it('getBootstrapSnapshot is only called once per init', () => {
+      mockGetBootstrapSnapshot.mockReturnValue(baseBootstrap);
+
+      store.init();
+      store.init();
+      store.init();
+
+      expect(mockGetBootstrapSnapshot).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to defaults when getBootstrapSnapshot throws', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const parseError = new Error('Parse error');
+      mockGetBootstrapSnapshot.mockImplementation(() => {
+        throw parseError;
+      });
+
+      const result = store.init();
+
+      // Should still be initialized
+      expect(result.isInitialized).toBe(true);
+      expect(store.isInitialized).toBe(true);
+
+      // Defaults, and `checking`: a hydration that threw verified nothing,
+      // so it must not read as anonymous (#4456).
+      expect(store.authStatus).toBe('checking');
+      expect(store.authenticated).toBe(false);
+      expect(store.cust).toBeNull();
+      expect(store.email).toBe('');
+
+      // Should log the error
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[BootstrapStore.init] Failed to initialize from snapshot, status: checking:',
+        parseError
+      );
+
+      consoleSpy.mockRestore();
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SENTRY USER CONTEXT (the account-change hook)
+//
+// update() is the single funnel for login, MFA completion, and the 15-minute
+// /bootstrap/me refresh. Every one of those can change WHO the session is, so
+// every one must re-drive the Sentry user context.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('bootstrapStore user context', () => {
+  let store: ReturnType<typeof useBootstrapStore>;
+  let mockSetActorContext: Mock;
+  let mockReplaceSnapshot: Mock;
+
+  // 16 lowercase hex, matching what DiagnosticsRef derives and what
+  // DIAGNOSTICS_REF_PATTERN admits. setDiagnosticsActorContext is mocked here,
+  // but fixtures stay honest so a copy-paste into an unmocked test still
+  // passes the contract.
+  const REF_BLOCK = { actor_ref: 'a1b2c3d4e5f60718' } as const;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockSetActorContext = vi.mocked(diagnosticsService.setDiagnosticsActorContext);
+    mockReplaceSnapshot = vi.mocked(bootstrapService.replaceBootstrapSnapshot);
+    await setupTestPinia();
+    store = useBootstrapStore();
+  });
+
+  afterEach(() => {
+    store.$reset();
+    vi.clearAllMocks();
+  });
+
+  it('drives the Sentry user context when a payload carries diagnostics_ref', () => {
+    store.update({
+      authenticated: true,
+      diagnostics_ref: { ...REF_BLOCK },
+    } as Partial<BootstrapPayload>);
+
+    expect(store.diagnostics_ref).toEqual(REF_BLOCK);
+    expect(mockSetActorContext).toHaveBeenCalledWith(REF_BLOCK);
+  });
+
+  it('clears the context when a complete snapshot OMITS diagnostics_ref (anonymous)', () => {
+    store.applySnapshot(
+      bootstrapSchema.parse({ ...authenticatedBootstrap, diagnostics_ref: { ...REF_BLOCK } })
+    );
+    expect(store.diagnostics_ref).toEqual(REF_BLOCK);
+    mockSetActorContext.mockClear();
+    mockReplaceSnapshot.mockClear();
+
+    // A complete /bootstrap/me body reporting an anonymous session: the block
+    // is absent, not null. applySnapshot() REPLACES, so absence clears it in
+    // the store, in the Sentry context and in the pre-Pinia mirror at once.
+    store.applySnapshot(bootstrapSchema.parse(anonymousBootstrap));
+
+    expect(store.diagnostics_ref).toBeUndefined();
+    expect(mockSetActorContext).toHaveBeenCalledWith(null);
+    expect(mockReplaceSnapshot).toHaveBeenCalledTimes(1);
+    // The service is mocked here; the real one drops undefined keys (see
+    // bootstrapStore.accountTransition.spec.ts, which uses it unmocked).
+    expect(mockReplaceSnapshot.mock.calls[0][0].diagnostics_ref).toBeUndefined();
+  });
+
+  it('replaces the ref on account change', () => {
+    store.update({
+      authenticated: true,
+      diagnostics_ref: { ...REF_BLOCK },
+    } as Partial<BootstrapPayload>);
+
+    const next = { actor_ref: '00112233445566ff' } as const;
+    store.update({ authenticated: true, diagnostics_ref: { ...next } } as Partial<BootstrapPayload>);
+
+    expect(store.diagnostics_ref).toEqual(next);
+    expect(mockSetActorContext).toHaveBeenLastCalledWith(next);
+  });
+
+  it('leaves the context alone for a narrow patch that carries no auth state', () => {
+    store.update({
+      authenticated: true,
+      diagnostics_ref: { ...REF_BLOCK },
+    } as Partial<BootstrapPayload>);
+    mockSetActorContext.mockClear();
+
+    // Silence about diagnostics_ref here means "unchanged", not "anonymous".
+    store.update({ has_password: true } as Partial<BootstrapPayload>);
+
+    expect(mockSetActorContext).not.toHaveBeenCalled();
+    expect(store.diagnostics_ref).toEqual(REF_BLOCK);
+  });
+
+  it('does not preserve diagnostics_ref across resetForLogout — it is top-level, not inside the preserved diagnostics config block', () => {
+    store.update({
+      authenticated: true,
+      diagnostics_ref: { ...REF_BLOCK },
+    } as Partial<BootstrapPayload>);
+
+    store.resetForLogout();
+
+    expect(store.diagnostics_ref).toBeUndefined();
+  });
+
+  // REGRESSION: the ref lives in TWO places — this store and the pre-Pinia
+  // bootstrap.service snapshot that getBootstrapValue('diagnostics_ref')
+  // reads. $reset() clears the first; only clearBootstrapSnapshotKey clears
+  // the second, and updateBootstrapSnapshot cannot express a removal (it
+  // skips undefined). Without this, a soft/SPA logout left the previous ref
+  // readable.
+  it('evicts diagnostics_ref from the pre-Pinia snapshot on resetForLogout', () => {
+    store.applySnapshot(
+      bootstrapSchema.parse({ ...authenticatedBootstrap, diagnostics_ref: { ...REF_BLOCK } })
+    );
+    mockReplaceSnapshot.mockClear();
+
+    store.resetForLogout();
+
+    // The mirror is replaced from the post-reset state, which evicts every
+    // account-scoped key, not only this one.
+    expect(mockReplaceSnapshot).toHaveBeenCalledTimes(1);
+    const mirror = mockReplaceSnapshot.mock.calls[0][0];
+    expect(mirror.diagnostics_ref).toBeUndefined();
+    expect(mirror.cust).toBeNull();
+    expect(mirror).not.toHaveProperty('authStatus');
+  });
+});

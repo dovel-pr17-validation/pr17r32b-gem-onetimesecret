@@ -1,0 +1,551 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "Hesabınız yok mu?",
+    "source_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "Kayıt ol.",
+    "source_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "Parolanızı mı unuttunuz?",
+    "source_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "Giriş Yap",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "Kimlik bilgilerinizi girin",
+    "source_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "Beni hatırla",
+    "source_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "Giriş bağlantısı gönder",
+    "source_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "E-posta gelen kutunuza güvenli bir bağlantı gönderilecektir.",
+    "source_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "veya",
+    "source_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "Parola ile giriş yap",
+    "source_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "Parolasız giriş kullan",
+    "source_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "Hesap oluştur",
+    "source_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "Ana sayfaya dön",
+    "source_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "Parola",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "Sihirli Bağlantı",
+    "source_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "Geçiş anahtarı",
+    "source_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "Yardım mı gerekiyor?",
+    "source_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "Veya şununla devam et",
+    "source_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "SSO ile giriş yap",
+    "source_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "{provider} ile giriş yapın",
+    "source_hash": "b8794f11"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "Kimlik sağlayıcısına yönlendiriliyor...",
+    "source_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "SSO girişi başarısız. Lütfen tekrar deneyin.",
+    "source_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "SSO kimlik doğrulaması başarısız oldu. Lütfen tekrar deneyin veya parola ile giriş yapın.",
+    "source_hash": "13a2210a"
+  },
+  "web.login.errors.token_missing": {
+    "text": "Kimlik doğrulama bağlantısı eksik. Lütfen yeni bir giriş bağlantısı talep edin.",
+    "source_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "Bu giriş bağlantısının süresi doldu. Lütfen yeni bir tane talep edin.",
+    "source_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "Bu giriş bağlantısı geçersiz. Lütfen yeni bir tane talep edin.",
+    "source_hash": "270c6401"
+  },
+  "web.signup.create_your_account": {
+    "text": "Hesabınızı Oluşturun",
+    "source_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "Zaten bir hesabınız var mı?",
+    "source_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "Giriş yap.",
+    "source_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "Hesap Oluşturma Hatası",
+    "source_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "Parola",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "E-posta",
+    "source_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": "Email verification flow after signup"
+  },
+  "web.auth.verify.title": {
+    "text": "Hesabınızı Doğrulayın",
+    "source_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "Hesabınız başarıyla doğrulandı",
+    "source_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "Geçersiz veya süresi dolmuş doğrulama anahtarı",
+    "source_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "Bu doğrulama bağlantısının süresi dolmuş. Lütfen yeni bir tane talep edin.",
+    "source_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "Bu hesap zaten doğrulanmış. Şimdi giriş yapabilirsiniz.",
+    "source_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "Hesap doğrulanamadı. Lütfen tekrar deneyin veya destekle iletişime geçin.",
+    "source_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "Lütfen doğrulama bağlantısı için e-postanızı kontrol edin",
+    "source_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "Hesap doğrulama başarısız. Lütfen doğrulama bağlantınızı kontrol edin veya yeni bir tane talep edin.",
+    "source_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "Doğrulama Başarısız",
+    "source_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "Ne yapmalıyım?",
+    "source_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "En son doğrulama bağlantısı için e-postanızı kontrol edin",
+    "source_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "E-postayı bulamıyorsanız spam/gereksiz klasörünüzü kontrol edin",
+    "source_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "Sorunlar devam ederse destekle iletişime geçin",
+    "source_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "Doğrulama Bağlantısı Gerekli",
+    "source_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "Hesabınızı doğrulamak için lütfen e-posta adresinize gönderilen doğrulama bağlantısını kullanın.",
+    "source_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "Yeni Hesap Oluştur",
+    "source_hash": "0e24ec84"
+  },
+  "web.auth.change_password.title": {
+    "text": "Parola Değiştir",
+    "source_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "Mevcut Parola",
+    "source_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "Yeni Parola",
+    "source_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "Yeni Parolayı Onayla",
+    "source_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "Parolanız başarıyla değiştirildi",
+    "source_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "Parola değiştirme başarısız. Lütfen mevcut parolanızı doğrulayıp tekrar deneyin.",
+    "source_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "Hesabı Kapat",
+    "source_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "Bu işlem geri alınamaz. Tüm gizli mesajlarınız kalıcı olarak silinecektir.",
+    "source_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "Bu işlemin kalıcı olduğunu anlıyorum",
+    "source_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "Onaylamak için parolanızı girin",
+    "source_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "Hesabı Kalıcı Olarak Kapat",
+    "source_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "İptal",
+    "source_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "Parola Sıfırlama Talebi",
+    "source_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "E-posta adresinizi aşağıya girin, size parolanızı sıfırlamak için bir bağlantı göndereceğiz",
+    "source_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "Sıfırlama Bağlantısı Gönder",
+    "source_hash": "7d5f16d4"
+  },
+  "web.auth.password_reset.title": {
+    "text": "Yeni Bir Parola Seçin",
+    "context": "Password reset request flow - user requests a reset link",
+    "source_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "Lütfen aşağıya yeni parolanızı girin. Hesabınızı korumak için güçlü ve benzersiz olduğundan emin olun.",
+    "source_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "Hesabınızın parolasını sıfırlamak için bir bağlantı içeren e-posta gönderildi",
+    "source_hash": "63a6af45"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "Kabul ediyorum:",
+    "source_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "Hesap Bilgileri",
+    "context": "User account overview/dashboard section",
+    "source_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "E-posta Adresi",
+    "source_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "Hesap Oluşturuldu",
+    "source_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "E-posta Doğrulandı",
+    "source_hash": "bc512ab0"
+  },
+  "web.auth.account.region": {
+    "text": "Bölge",
+    "source_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "E-posta Doğrulanmadı",
+    "source_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "E-posta Adresini Doğrula",
+    "source_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "İki Faktörlü Kimlik Doğrulama",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "Etkinleştirildi",
+    "source_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "Devre dışı",
+    "source_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "Aktif Oturumlar",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "{count} aktif oturum",
+    "source_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "Hızlı İşlemler",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "İki Faktörlü Kimlik Doğrulamayı Yönet",
+    "source_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "Aktif Oturumları Yönet",
+    "source_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "Parola Değiştir",
+    "source_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "Hesabı Kapat",
+    "source_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "Yardım ve Destek",
+    "source_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "Giriş Sorun Giderme",
+    "source_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "Sihirli bağlantı gelmiyor mu?",
+    "source_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "Spam veya gereksiz klasörünüzü kontrol edin",
+    "source_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "E-posta adresinizi doğru girdiğinizi doğrulayın",
+    "source_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "Birkaç dakika bekleyin - e-postalar bazen gecikebilir",
+    "source_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "10 dakikadan fazla geçtiyse yeni bir bağlantı talep etmeyi deneyin",
+    "source_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "Parolanızı mı unuttunuz?",
+    "source_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "Yeni bir parola oluşturmak için bir parola sıfırlama bağlantısı talep edebilirsiniz.",
+    "source_hash": "3c3eabad"
+  },
+  "web.help.account_locked": {
+    "text": "Hesap geçici olarak kilitlendi mi?",
+    "source_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "Birden fazla başarısız giriş denemesinden sonra, güvenlik için hesaplar geçici olarak kilitlenir. 15 dakika bekleyin ve tekrar deneyin veya giriş yapmak için Sihirli Bağlantı kullanın.",
+    "source_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "Hala yardıma mı ihtiyacınız var?",
+    "source_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "Hala sorun yaşıyorsanız, yardım etmek için buradayız. Bize bir mesaj gönderin, en kısa sürede size geri döneceğiz.",
+    "source_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "Destekle İletişime Geç",
+    "source_hash": "f8d47b82"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "SSO Hesabı",
+    "source_hash": "b8f4c728"
+  },
+  "web.help.reset_password_link": {
+    "text": "Parolayı sıfırla",
+    "source_hash": "e0edfeb3"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "Bu alan adı için tek oturum açma (SSO) kullanılabilir",
+    "source_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "Kuruluş yöneticisi, ekip üyelerinin buradan giriş yapabilmesi için SSO'yu etkinleştirebilir. Erişim için yöneticiyle iletişime geçin.",
+    "source_hash": "f3726509"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "Giriş yapılamıyor",
+    "source_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "Bu alan adında şu anda giriş yapılamıyor.",
+    "source_hash": "b681c35d"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "Bu alan adı için tek oturum açma (SSO) yapılandırılmamış. Lütfen yöneticinizle iletişime geçin.",
+    "source_hash": "b39ef93e"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "Kimlik sağlayıcınızdan gelen e-posta adresi geçersiz. Lütfen yöneticinizle iletişime geçin.",
+    "source_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "E-posta alan adınız SSO ile kayıt için yetkili değil. Lütfen yöneticinizle iletişime geçin.",
+    "source_hash": "87603782"
+  },
+  "web.auth.check_email.title": {
+    "text": "E-postanızı kontrol edin",
+    "source_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "Doğrulama bağlantısını şu adrese gönderdik:",
+    "source_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "E-posta adresinize bir doğrulama bağlantısı gönderdik.",
+    "source_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "Hesabınızı etkinleştirmek için e-postadaki bağlantıya tıklayın.",
+    "source_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "Bulamıyor musunuz? Spam klasörünüzü kontrol edin.",
+    "source_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "Yanlış adres mi girdiniz?",
+    "source_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "Baştan başla",
+    "source_hash": "5eed7e9f"
+  },
+  "web.auth.field-errors.password": {
+    "text": "Parola",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "Doğrulama e-postasını almadınız mı? Yeniden göndermek için e-postanızı girin.",
+    "source_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "Doğrulama E-postasını Yeniden Gönder",
+    "source_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "Bir hesabın doğrulanması gerekiyorsa, yeni bir e-posta gönderildi. Lütfen gelen kutunuzu ve spam klasörünüzü kontrol edin.",
+    "source_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "Doğrulama e-postası gönderilemedi. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.",
+    "source_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "E-postayı yeniden gönder",
+    "source_hash": "4f44603e"
+  },
+  "web.login.verified_notice": {
+    "text": "E-postanız doğrulandı — artık oturum açabilirsiniz.",
+    "source_hash": "c8d4b5a8"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "Parola Belirle",
+    "source_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "Hesabınızın henüz bir parolası yok. Doğrudan da oturum açabilmeniz için parola belirlemeniz için size güvenli bir bağlantı e-postası göndereceğiz.",
+    "source_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "Kurulum Bağlantısı Gönder",
+    "source_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "Hesabınız için parola belirleme bağlantısı içeren bir e-posta gönderildi",
+    "source_hash": "82b686c7"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "Bu e-posta adresiyle bir hesap zaten mevcut ancak bu oturum açma yöntemine bağlı değil. Mevcut yönteminizle oturum açın, ardından bu sağlayıcıyı Güvenlik ayarları -> Bağlı kimlikler altında bağlayın.",
+    "source_hash": "7fbbb7e7"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "Bu kimlik bağlanamadı. Zaten başka bir hesaba ait olabilir.",
+    "source_hash": "d8b71cf8"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "Sizi organizasyonunuza eklemeyi tamamlayamadık. Lütfen yöneticinizle iletişime geçin.",
+    "source_hash": "155e71bb"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "Bu oturum açma yöntemini bağlayamadık. Mevcut parolanızla oturum açın, ardından bu sağlayıcıyı Güvenlik ayarları -> Bağlı kimlikler altında bağlayın.",
+    "source_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "Gelen kutunuzu kontrol edin - hesabınızı bağlamayı onaylamak için size bir bağlantı e-postası gönderdik. Oturum açmayı tamamlamak için açın.",
+    "source_hash": "b251c8f3"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "Giriş iptal edildi. Hazır olduğunuzda tekrar deneyebilirsiniz.",
+    "source_hash": "b5f3d3ec"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "Bu sağlayıcıyla oturum açma yanlış yapılandırılmış. Lütfen yöneticinizle iletişime geçin.",
+    "source_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "Bu alan adı için tek oturum açma (SSO) yapılandırılmış ancak şu anda kullanılamıyor. Kuruluşunuzun yöneticisiyle iletişime geçin.",
+    "source_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "Alan adının doğrulaması tamamlanmadığı için bu alan adında tek oturum açma (SSO) henüz etkin değil. Lütfen yöneticinizle iletişime geçin.",
+    "source_hash": "bd981480"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "Bu kimlik, bu alan adındaki bir hesaba bağlı değil. Bu alan adında bu kuruluşa ait bir hesapla oturum açabiliyorsanız kimliği Bağlı Kimlikler bölümünden bağlayın. Aksi takdirde bir kuruluş sahibinden bu SSO kimliğini davet etmesini isteyin veya destek ekibiyle iletişime geçin.",
+    "source_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "Bu kimlik bu alan adında bağlanamadı. Bağlama işlemini oturum açtığınız siteden başlatın; bir kuruluşun alan adında hesabınızın zaten o kuruluşa ait olması gerekir.",
+    "source_hash": "d967c761"
+  }
+}

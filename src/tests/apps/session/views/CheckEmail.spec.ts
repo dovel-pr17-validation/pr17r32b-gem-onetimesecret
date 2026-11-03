@@ -1,0 +1,249 @@
+// src/tests/apps/session/views/CheckEmail.spec.ts
+
+/**
+ * CheckEmail View Tests
+ *
+ * The post-signup "Check your email" confirmation page. Verifies that it:
+ *  - reads the email address from browser History state — window.history.state,
+ *    NOT the URL query — because it is PII (see src/utils/pii.ts and
+ *    src/router/README.md),
+ *  - sanitizes that address for display and falls back to generic copy when it
+ *    is absent, non-string, or implausible (tampered state),
+ *  - frames the address with on-page copy (what was sent above it, what to do
+ *    below it) rather than hiding the explanation behind a help icon,
+ *  - prefills the resend form with the known address in compact mode, and
+ *  - preserves billing/redirect params on the "start over" link while
+ *    deliberately NOT carrying the email back into a URL.
+ */
+
+import { mount, VueWrapper } from '@vue/test-utils';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { useRealRouter } from '@/tests/utils/routerSetup';
+import { createRouter, createMemoryHistory, Router, RouterLink } from 'vue-router';
+import { defineComponent } from 'vue';
+import CheckEmail from '@/apps/session/views/CheckEmail.vue';
+import { CHECK_EMAIL_STATE_KEY } from '@/shared/constants/checkEmail';
+import { createTestI18n } from '@tests/setup';
+
+// Mounts with a real router; see useRealRouter.
+useRealRouter();
+
+// Render AuthView's named slots inline so slot content is testable.
+vi.mock('@/apps/session/components/AuthView.vue', () => ({
+  default: defineComponent({
+    name: 'AuthView',
+    template: `<div data-testid="auth-view">
+      <slot name="form" />
+      <slot name="footer" />
+    </div>`,
+    props: [
+      'heading',
+      'headingId',
+      'withHeading',
+      'withSubheading',
+      'omitIcon',
+      'hideIcon',
+      'hideBackgroundIcon',
+    ],
+  }),
+}));
+
+// Stub the resend form but expose its props so we can assert prefill + mode.
+vi.mock('@/apps/session/components/ResendVerificationForm.vue', () => ({
+  default: defineComponent({
+    name: 'ResendVerificationForm',
+    props: ['email', 'compact'],
+    template: '<div data-testid="resend-stub" :data-email="email" :data-compact="compact" />',
+  }),
+}));
+
+const i18n = createTestI18n();
+
+describe('CheckEmail.vue', () => {
+  let router: Router;
+  let wrapper: VueWrapper;
+
+  /**
+   * Mount the view with the email handed over via browser History state (as
+   * useAuth.signup does — window.history.state, never the URL), and any non-PII
+   * billing/redirect params in the query. `email: undefined` simulates a fresh
+   * entry with no handed-over state (shared link, new tab, typed URL); a plain
+   * reload would instead preserve it.
+   *
+   * The router uses memory history (it only needs to supply route.query for the
+   * "start over" link); the address is seeded straight into window.history.state
+   * because that is exactly the surface the component reads — memory history
+   * does not touch window.history, so the two are seeded independently, and the
+   * afterEach hook clears the shared window.history.state between tests.
+   */
+  const createWrapper = async (opts: { email?: unknown; query?: Record<string, string> } = {}) => {
+    router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/check-email', name: 'check-email', component: CheckEmail },
+        { path: '/signin', name: 'signin', component: { template: '<div />' } },
+        { path: '/signup', name: 'signup', component: { template: '<div />' } },
+      ],
+    });
+    await router.push({ path: '/check-email', query: opts.query ?? {} });
+    await router.isReady();
+
+    window.history.replaceState(
+      opts.email !== undefined ? { [CHECK_EMAIL_STATE_KEY]: opts.email } : null,
+      ''
+    );
+
+    return mount(CheckEmail, {
+      global: { plugins: [router, i18n] },
+    });
+  };
+
+  afterEach(() => {
+    wrapper?.unmount();
+    // window.history is shared across tests in the jsdom environment; reset the
+    // handed-over state so it never bleeds into the next case (or spec file).
+    window.history.replaceState(null, '');
+  });
+
+  it('echoes the email address from browser History state', async () => {
+    wrapper = await createWrapper({ email: 'tom@myspace.com' });
+
+    const address = wrapper.find('[data-testid="check-email-address"]');
+    expect(address.exists()).toBe(true);
+    expect(address.text()).toBe('tom@myspace.com');
+  });
+
+  it('never places the email in the URL (state, not query)', async () => {
+    wrapper = await createWrapper({ email: 'tom@myspace.com' });
+
+    // The whole point: the address is shown, but the URL stays clean.
+    expect(wrapper.find('[data-testid="check-email-address"]').text()).toBe('tom@myspace.com');
+    expect(router.currentRoute.value.query.email).toBeUndefined();
+    expect(router.currentRoute.value.fullPath).toBe('/check-email');
+  });
+
+  it('frames the address with the copy above and below it', async () => {
+    wrapper = await createWrapper({ email: 'tom@myspace.com' });
+
+    // The explanation is on the page, not behind a hover: what was sent above
+    // the address, what to do about it below.
+    expect(wrapper.text()).toContain('web.auth.check_email.sent_to');
+    expect(wrapper.text()).toContain('web.auth.check_email.instructions');
+
+    // No help icon competing with it, and no generic fallback copy.
+    expect(wrapper.find('[data-testid="check-email-help"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('web.auth.check_email.sent_to_generic');
+  });
+
+  it('still states the next step when the address is unknown', async () => {
+    wrapper = await createWrapper({});
+
+    // The generic line replaces the address, but the instruction is unchanged —
+    // it is the one thing the page exists to say.
+    expect(wrapper.text()).toContain('web.auth.check_email.sent_to_generic');
+    expect(wrapper.text()).toContain('web.auth.check_email.instructions');
+    // The "sent to <address>" label has no address to introduce, so it is gone
+    // (asserted structurally: its key is a prefix of sent_to_generic's, which
+    // IS rendered here, so a substring check on the text would always pass).
+    expect(wrapper.find('[data-testid="check-email-address"]').exists()).toBe(false);
+  });
+
+  it('falls back to generic copy when no email is in state (fresh entry: shared link / new tab)', async () => {
+    wrapper = await createWrapper({});
+
+    expect(wrapper.find('[data-testid="check-email-address"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('web.auth.check_email.sent_to_generic');
+  });
+
+  it('falls back to generic copy for an implausible state value (no @, over-long, non-string)', async () => {
+    const badValues: unknown[] = ['not-an-email', 'x'.repeat(255) + '@e.com', 12345, { a: 1 }];
+    for (const bad of badValues) {
+      wrapper = await createWrapper({ email: bad });
+      expect(wrapper.find('[data-testid="check-email-address"]').exists()).toBe(false);
+      expect(wrapper.text()).toContain('web.auth.check_email.sent_to_generic');
+      wrapper.unmount();
+    }
+  });
+
+  it('uses a compact one-click resend prefilled with the known address', async () => {
+    wrapper = await createWrapper({ email: 'tom@myspace.com' });
+
+    const resend = wrapper.find('[data-testid="resend-stub"]');
+    expect(resend.exists()).toBe(true);
+    expect(resend.attributes('data-email')).toBe('tom@myspace.com');
+    // Email is known → compact (no editable field competing with "start over").
+    expect(resend.attributes('data-compact')).toBe('true');
+  });
+
+  it('falls back to the full resend form when no email is known', async () => {
+    wrapper = await createWrapper({});
+
+    const resend = wrapper.find('[data-testid="resend-stub"]');
+    expect(resend.exists()).toBe(true);
+    expect(resend.attributes('data-compact')).toBe('false');
+  });
+
+  it('points "start over" back to signup preserving billing params but NOT the email', async () => {
+    wrapper = await createWrapper({
+      email: 'tom@myspace.com',
+      query: { product: 'identity', interval: 'month' },
+    });
+
+    const to = wrapper
+      .findComponent<typeof RouterLink>('[data-testid="check-email-start-over-link"]')
+      .props('to');
+    // Billing context is preserved; the email is deliberately dropped so the
+    // corrected address is retyped and no PII returns to a URL.
+    expect(to).toEqual({
+      path: '/signup',
+      query: { product: 'identity', interval: 'month' },
+    });
+  });
+
+  it('points "start over" to a bare /signup when there are no billing params', async () => {
+    wrapper = await createWrapper({ email: 'tom@myspace.com' });
+
+    const to = wrapper
+      .findComponent<typeof RouterLink>('[data-testid="check-email-start-over-link"]')
+      .props('to');
+    expect(to).toBe('/signup');
+  });
+
+  it('carries ?redirect through "start over" so the destination survives a retyped address', async () => {
+    // This page sits mid-journey: the user signed up on the way to somewhere.
+    // Correcting a typo must not silently reset that destination.
+    wrapper = await createWrapper({
+      email: 'tom@myspace.com',
+      query: { redirect: '/secret/abc?view=raw#content' },
+    });
+
+    const to = wrapper
+      .findComponent<typeof RouterLink>('[data-testid="check-email-start-over-link"]')
+      .props('to');
+    expect(to).toEqual({
+      path: '/signup',
+      query: { redirect: '/secret/abc?view=raw#content' },
+    });
+  });
+
+  it('carries redirect alongside billing params when both are in flight', async () => {
+    wrapper = await createWrapper({
+      email: 'tom@myspace.com',
+      query: { redirect: '/workspace/domains', product: 'identity', interval: 'month' },
+    });
+
+    const to = wrapper
+      .findComponent<typeof RouterLink>('[data-testid="check-email-start-over-link"]')
+      .props('to');
+    expect(to).toEqual({
+      path: '/signup',
+      query: { redirect: '/workspace/domains', product: 'identity', interval: 'month' },
+    });
+  });
+
+  it('does not render a sign-in link (start over is the only recovery path)', async () => {
+    wrapper = await createWrapper({ email: 'tom@myspace.com' });
+
+    expect(wrapper.find('[data-testid="check-email-signin-link"]').exists()).toBe(false);
+  });
+});

@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "إرسال سر",
+    "source_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "شارك المعلومات الحساسة بأمان مع فريق الدعم لدينا",
+    "source_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "جاري التحميل...",
+    "source_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "فشل تحميل الإعدادات",
+    "source_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "الميزة غير متاحة",
+    "source_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "هذه الميزة معطلة حالياً. يرجى الاتصال بالدعم للمساعدة.",
+    "source_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "ملاحظة",
+    "source_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "وصف موجز (مثال: طلب إعادة تعيين كلمة المرور)",
+    "source_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "ساعدنا في توجيه رسالتك للشخص المناسب",
+    "source_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "إرسال إلى",
+    "source_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "اختر مستلماً",
+    "source_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "اختر مستلماً لهذا السر",
+    "source_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "اختر من سيستلم هذه الرسالة الآمنة",
+    "source_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "لا يوجد مستلمون متاحون",
+    "source_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "المعلومات السرية",
+    "source_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "الصق المعلومات الحساسة هنا (كلمات المرور، المفاتيح، إلخ.)",
+    "source_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "سيتم تشفير هذه المعلومات ولن تُعرض إلا مرة واحدة",
+    "source_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "إرسال السر",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "إرسال السر",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "جاري الإرسال...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "جاري الإرسال...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "مسح النموذج",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "مسح النموذج",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "تم الإرسال بنجاح",
+    "source_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "تم تسليم رسالتك الآمنة.",
+    "source_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "رقم المرجع",
+    "source_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "ماذا يحدث بعد ذلك؟",
+    "source_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "سيتمكن المستلم من عرض هذا السر مرة واحدة فقط. بعد العرض، سيتم حذف السر نهائياً.",
+    "source_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "إرسال سر آخر",
+    "source_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "شارك المعلومات الحساسة بأمان",
+    "source_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "أبقِ كلمات المرور والبيانات الخاصة بعيدة عن البريد الإلكتروني وسجلات المحادثات",
+    "source_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "احفظ {receipt} لسجلاتك.",
+    "source_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "الإيصال",
+    "source_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "الترقية مطلوبة",
+    "source_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "تتطلب هذه الميزة ترقية الخطة. يُرجى التواصل مع مالك الحساب لتفعيل الأسرار الواردة.",
+    "source_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "يجب أن تكون المذكرة بطول {max} حرفاً أو أقل",
+    "source_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "محتوى السر مطلوب",
+    "source_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "يُرجى اختيار مستلِم",
+    "source_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "ميزة الأسرار الواردة غير مُفعّلة",
+    "source_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "يُرجى التحقق من النموذج بحثاً عن الأخطاء",
+    "source_hash": "9056e064"
+  }
+}

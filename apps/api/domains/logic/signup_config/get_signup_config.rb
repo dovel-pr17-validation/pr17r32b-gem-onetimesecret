@@ -1,0 +1,85 @@
+# apps/api/domains/logic/signup_config/get_signup_config.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/models/custom_domain/signup_config'
+require_relative 'base'
+
+module DomainsAPI
+  module Logic
+    module SignupConfig
+      # Get Domain Signup Configuration
+      #
+      # @api Retrieves the signup validation configuration for a custom domain.
+      #   Requires the requesting user to be an organization owner with
+      #   custom_signup_validation entitlement.
+      #
+      # Response includes:
+      # - record: validation_strategy, allowed_signup_domains,
+      #   allow_base_domain, the raw flag pair + autoverify, or null when the
+      #   domain is unconfigured.
+      #   Unconfigured is a first-class state (200, not 404) so the settings
+      #   UI can render the inherited global state (ADR-024).
+      # - details: global_enabled / effective_enabled — the resolver's output,
+      #   which the UI displays instead of re-deriving.
+      #
+      class GetSignupConfig < Base
+        attr_reader :signup_config
+
+        def process_params
+          @domain_id = sanitize_identifier(params['extid'])
+        end
+
+        def raise_concerns
+          # Require authenticated user
+          raise_form_error('Authentication required', field: :user_id, error_type: :authentication_required) if cust.anonymous?
+
+          # Validate domain_id parameter
+          raise_form_error('Domain ID required', field: :domain_id, error_type: :missing) if @domain_id.to_s.empty?
+
+          # Load domain and organization, verify ownership and entitlement
+          authorize_domain_signup_config!(@domain_id)
+
+          # Load signup config (nil = unconfigured, serialized as record: null)
+          @signup_config = Onetime::CustomDomain::SignupConfig.find_by_domain_id(@custom_domain.identifier)
+        end
+
+        def process
+          OT.ld "[GetSignupConfig] Getting signup config for domain #{@domain_id} by user #{cust.extid}"
+
+          success_data
+        end
+
+        def success_data
+          {
+            user_id: cust.extid,
+            record: @signup_config.nil? ? nil : serialize_signup_config(@signup_config),
+            details: signup_override_details(@signup_config),
+          }
+        end
+
+        private
+
+        def serialize_signup_config(config)
+          {
+            domain_id: @custom_domain.extid,
+            validation_strategy: config.validation_strategy,
+            allowed_signup_domains: config.allowed_signup_domains,
+            allow_base_domain: config.allow_base_domain?,
+            enabled: config.enabled?,
+            signup_enabled: config.signup_enabled?,
+            autoverify: config.autoverify?,
+            uses_allowlist: config.uses_allowlist?,
+            # Former name of uses_allowlist, still sent so a client built
+            # before the rename parses the response during a deploy.
+            # Deprecated; remove in a later release.
+            requires_allowlist: config.uses_allowlist?,
+            network_validation: config.network_validation?,
+            created_at: config.created.to_i,
+            updated_at: config.updated.to_i,
+          }
+        end
+      end
+    end
+  end
+end

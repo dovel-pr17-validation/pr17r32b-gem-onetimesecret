@@ -1,0 +1,551 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "Ĉu vi bezonas konton?",
+    "source_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "Registriĝu.",
+    "source_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "Ĉu vi forgesis vian pasvorton?",
+    "source_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "Ensaluti",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "Enigu viajn akreditilojn",
+    "source_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "Memori min",
+    "source_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "Sendi ensalutan ligilon",
+    "source_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "Sekura ligilo estos sendita al via retpoŝta poŝtkesto.",
+    "source_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "aŭ",
+    "source_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "Ensaluti per pasvorto",
+    "source_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "Uzi senpasvortan ensaluton",
+    "source_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "Krei konton",
+    "source_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "Reveni hejmen",
+    "source_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "Pasvorto",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "Magia Ligilo",
+    "source_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "Pasŝlosilo",
+    "source_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "Ĉu vi bezonas helpon?",
+    "source_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "Aŭ daŭrigu kun",
+    "source_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "Ensalutu per SSO",
+    "source_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "Ensaluti per {provider}",
+    "source_hash": "b8794f11"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "Alidirektante al identeca provizanto...",
+    "source_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "SSO-ensaluto malsukcesis. Bonvolu reprovi.",
+    "source_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "SSO-aŭtentikigo malsukcesis. Bonvolu reprovi aŭ uzi pasvortan ensaluton.",
+    "source_hash": "13a2210a"
+  },
+  "web.login.errors.token_missing": {
+    "text": "La aŭtentikiga ligilo estas nekompleta. Bonvolu peti novan ensalutan ligilon.",
+    "source_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "Ĉi tiu ensaluta ligilo eksvalidiĝis. Bonvolu peti novan.",
+    "source_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "Ĉi tiu ensaluta ligilo estas nevalida. Bonvolu peti novan.",
+    "source_hash": "270c6401"
+  },
+  "web.signup.create_your_account": {
+    "text": "Kreu Vian Konton",
+    "source_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "Ĉu vi jam havas konton?",
+    "source_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "Ensaluti.",
+    "source_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "Eraro pri Konto-Kreado",
+    "source_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "Pasvorto",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "Retpoŝto",
+    "source_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": "Email verification flow after signup"
+  },
+  "web.auth.verify.title": {
+    "text": "Konfirmu Vian Konton",
+    "source_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "Via konto estis sukcese konfirmita",
+    "source_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "Nevalida aŭ eksvalidiĝinta konfirmŝlosilo",
+    "source_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "Ĉi tiu konfirmligilo eksvalidiĝis. Bonvolu peti novan.",
+    "source_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "Ĉi tiu konto jam estis konfirmita. Vi povas ensaluti nun.",
+    "source_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "Ne eblas konfirmi konton. Bonvolu reprovi aŭ kontakti subtenon.",
+    "source_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "Bonvolu kontroli vian retpoŝton por konfirmligilo",
+    "source_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "Konto-konfirmo malsukcesis. Bonvolu kontroli vian konfirmligilon aŭ peti novan.",
+    "source_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "Konfirmo Malsukcesis",
+    "source_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "Kion mi faru?",
+    "source_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "Kontrolu vian retpoŝton por la plej nova konfirmligilo",
+    "source_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "Kontrolu vian spaman/rubaĵan dosierujon se vi ne povas trovi la retpoŝtmesaĝon",
+    "source_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "Kontaktu subtenon se vi daŭre havas problemojn",
+    "source_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "Konfirmligilo Bezonata",
+    "source_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "Bonvolu uzi la konfirmligilon senditan al via retpoŝta adreso por konfirmi vian konton.",
+    "source_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "Krei Novan Konton",
+    "source_hash": "0e24ec84"
+  },
+  "web.auth.change_password.title": {
+    "text": "Ŝanĝi Pasvorton",
+    "source_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "Nuna Pasvorto",
+    "source_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "Nova Pasvorto",
+    "source_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "Konfirmi Novan Pasvorton",
+    "source_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "Via pasvorto estis sukcese ŝanĝita",
+    "source_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "Pasvorta ŝanĝo malsukcesis. Bonvolu kontroli vian nunan pasvorton kaj reprovi.",
+    "source_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "Fermi Konton",
+    "source_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "Ĉi tiu ago ne povas esti malfara. Ĉiuj viaj sekretoj estos porĉiame forigitaj.",
+    "source_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "Mi komprenas ke ĉi tiu ago estas permanenta",
+    "source_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "Enigu vian pasvorton por konfirmi",
+    "source_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "Porĉiame Fermi Konton",
+    "source_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "Nuligi",
+    "source_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "Peti Pasvortan Restarigon",
+    "source_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "Enigu vian retpoŝtan adreson sube kaj ni sendos al vi ligilon por restarigi vian pasvorton",
+    "source_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "Sendi Restarigligilon",
+    "source_hash": "7d5f16d4"
+  },
+  "web.auth.password_reset.title": {
+    "text": "Elektu Novan Pasvorton",
+    "context": "Password reset request flow - user requests a reset link",
+    "source_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "Bonvolu enigi vian novan pasvorton sube. Certigu ke ĝi estas forta kaj unika por protekti vian konton.",
+    "source_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "Retpoŝtmesaĝo kun ligilo por restarigi la pasvorton de via konto estis sendita al vi",
+    "source_hash": "63a6af45"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "Mi konsentas al la",
+    "source_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "Kontaj Informoj",
+    "context": "User account overview/dashboard section",
+    "source_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "Retpoŝta Adreso",
+    "source_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "Konto Kreita",
+    "source_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "Retpoŝto Konfirmita",
+    "source_hash": "bc512ab0"
+  },
+  "web.auth.account.region": {
+    "text": "Regiono",
+    "source_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "Retpoŝto Ne Konfirmita",
+    "source_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "Konfirmi Retpoŝtan Adreson",
+    "source_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "Dufaktora Aŭtentikigo",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "Aktivigita",
+    "source_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "Malaktivigita",
+    "source_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "Aktivaj Sesioj",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "{count} aktiva(j) sesio(j)",
+    "source_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "Rapidaj Agoj",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "Administri Dufaktoran Aŭtentikigon",
+    "source_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "Administri Aktivajn Sesiojn",
+    "source_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "Ŝanĝi Pasvorton",
+    "source_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "Fermi Konton",
+    "source_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "Helpo kaj Subteno",
+    "source_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "Ensaluta Problemsolvado",
+    "source_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "Ĉu magia ligilo ne alvenas?",
+    "source_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "Kontrolu vian spaman aŭ rubaĵan dosierujon",
+    "source_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "Kontrolu ke vi ĝuste enigis vian retpoŝtan adreson",
+    "source_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "Atendu kelkajn minutojn - retpoŝtmesaĝoj foje povas malfruiĝi",
+    "source_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "Provu peti novan ligilon se pasis pli ol 10 minutoj",
+    "source_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "Ĉu vi forgesis vian pasvorton?",
+    "source_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "Vi povas peti ligilon por restarigi pasvorton por krei novan pasvorton.",
+    "source_hash": "3c3eabad"
+  },
+  "web.help.account_locked": {
+    "text": "Ĉu konto provizore ŝlosita?",
+    "source_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "Post pluraj malsukcesaj ensalutaj provoj, kontoj estas provizore ŝlositaj pro sekureco. Atendu 15 minutojn kaj reprovu, aŭ uzu Magian Ligilon por ensaluti.",
+    "source_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "Ankoraŭ bezonas helpon?",
+    "source_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "Se vi ankoraŭ havas problemojn, ni estas ĉi tie por helpi. Sendu al ni mesaĝon kaj ni respondos al vi kiel eble plej baldaŭ.",
+    "source_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "Kontakti Subtenon",
+    "source_hash": "f8d47b82"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "SSO-konto",
+    "source_hash": "b8f4c728"
+  },
+  "web.help.reset_password_link": {
+    "text": "Restarigi pasvorton",
+    "source_hash": "e0edfeb3"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "Unuopa ensaluto estas disponebla por ĉi tiu domajno",
+    "source_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "La organiza administranto povas ŝalti SSO por permesi al teamanoj ensaluti ĉi tie. Kontaktu la administranton por aliro.",
+    "source_hash": "f3726509"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "Ensaluto ne estas disponebla",
+    "source_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "Ensaluto nuntempe ne estas disponebla en ĉi tiu domajno.",
+    "source_hash": "b681c35d"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "Unuopa ensaluto ne estas agordita por ĉi tiu domajno. Bonvolu kontakti vian administranton.",
+    "source_hash": "b39ef93e"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "La retpoŝtadreso de via identeca provizanto estas nevalida. Bonvolu kontakti vian administranton.",
+    "source_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "Via retpoŝta domajno ne estas rajtigita por SSO-registriĝo. Bonvolu kontakti vian administranton.",
+    "source_hash": "87603782"
+  },
+  "web.auth.check_email.title": {
+    "text": "Kontrolu vian retpoŝton",
+    "source_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "Ni sendis konfirmligilon al la adreso:",
+    "source_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "Ni sendis konfirmligilon al via retpoŝtadreso.",
+    "source_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "Klaku la ligilon en la retmesaĝo por aktivigi vian konton.",
+    "source_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "Ne trovas ĝin? Kontrolu vian spam-dosierujon.",
+    "source_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "Enigis malĝustan adreson?",
+    "source_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "Rekomenci",
+    "source_hash": "5eed7e9f"
+  },
+  "web.auth.field-errors.password": {
+    "text": "Pasvorto",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "Ĉu vi ne ricevis la konfirman retmesaĝon? Enigu vian retpoŝton por resendi ĝin.",
+    "source_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "Resendi konfirman retmesaĝon",
+    "source_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "Se konto bezonas konfirmon, nova retmesaĝo estis sendita. Bonvolu kontroli vian enirkeston kaj spam-dosierujon.",
+    "source_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "Ne eblis sendi la konfirman retmesaĝon. Bonvolu kontroli vian konekton kaj reprovi.",
+    "source_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "Resendi retmesaĝon",
+    "source_hash": "4f44603e"
+  },
+  "web.login.verified_notice": {
+    "text": "Via retpoŝto estis konfirmita — vi nun povas ensaluti.",
+    "source_hash": "c8d4b5a8"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "Agordi Pasvorton",
+    "source_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "Via konto ankoraŭ ne havas pasvorton. Ni retpoŝtos al vi sekuran ligilon por agordi unu por ke vi ankaŭ povu ensaluti rekte.",
+    "source_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "Sendi Agordan Ligilon",
+    "source_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "Retpoŝto estis sendita al vi kun ligilo por agordi pasvorton por via konto",
+    "source_hash": "82b686c7"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "Konto kun ĉi tiu retpoŝtadreso jam ekzistas sed ne estas ligita al ĉi tiu ensalut-metodo. Ensalutu per via ekzistanta metodo, poste ligu ĉi tiun provizanton sub Sekureco-agordoj → Konektitaj identecoj.",
+    "source_hash": "7fbbb7e7"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "Ĉi tiu identeco ne konekteblis. Ĝi eble jam apartenas al alia konto.",
+    "source_hash": "d8b71cf8"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "Ni ne povis fini aldoni vin al via organizo. Bonvolu kontakti vian administranton.",
+    "source_hash": "155e71bb"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "Ni ne povis ligi tiun ensalut-metodon. Ensalutu per via ekzistanta pasvorto, poste konektu ĉi tiun provizanton sub Sekureco-agordoj → Konektitaj identecoj.",
+    "source_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "Kontrolu vian retpoŝtskatolon — ni retpoŝtis al vi ligilon por konfirmi konekti vian konton. Malfermu ĝin por fini ensaluti.",
+    "source_hash": "b251c8f3"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "La ensaluto estis nuligita. Vi povas reprovi kiam ajn vi pretas.",
+    "source_hash": "b5f3d3ec"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "Ensaluto per ĉi tiu provizanto estas misagordita. Bonvolu kontakti vian administranton.",
+    "source_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "Unuopa ensaluto por ĉi tiu domajno estas agordita, sed nuntempe ne uzebla. Kontaktu la administranton de via organizo.",
+    "source_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "Unuopa ensaluto por ĉi tiu domajno ankoraŭ ne estas aktiva, ĉar la kontrolo de la domajno ankoraŭ ne finiĝis. Bonvolu kontakti vian administranton.",
+    "source_hash": "bd981480"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "Ĉi tiu identeco ne estas konektita al konto sur ĉi tiu domajno. Se vi povas ensaluti sur ĉi tiu domajno per konto, kiu apartenas al ĉi tiu organizo, konektu ĝin el Konektitaj identecoj. Alie, petu posedanton de la organizo inviti ĉi tiun SSO-identecon, aŭ kontaktu subtenon.",
+    "source_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "Ĉi tiu identeco ne konekteblis sur ĉi tiu domajno. Komencu la konektadon el la retejo, en kiu vi estas ensalutinta; sur la domajno de organizo, via konto devas jam aparteni al tiu organizo.",
+    "source_hash": "d967c761"
+  }
+}

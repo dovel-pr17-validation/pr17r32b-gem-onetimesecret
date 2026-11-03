@@ -1,0 +1,366 @@
+{
+  "web.footer.api_docs": {
+    "text": "API dokumentacija",
+    "source_hash": "f4137804"
+  },
+  "web.footer.branding_guide": {
+    "text": "Vodnik blagovne znamke",
+    "source_hash": "53f994c5"
+  },
+  "web.footer.customize": {
+    "text": "Prilagodi",
+    "source_hash": "c5276e27"
+  },
+  "web.footer.plans": {
+    "text": "Načrti",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.footer.security": {
+    "text": "Varnost",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.footer.learn_about_our_security_measures": {
+    "text": "Spoznajte naše varnostne ukrepe",
+    "source_hash": "16c8adae"
+  },
+  "web.footer.view_our_terms_and_conditions": {
+    "text": "Oglejte si naše pogoje uporabe",
+    "source_hash": "0dde60b7"
+  },
+  "web.footer.terms": {
+    "text": "Pogoji",
+    "source_hash": "ede54899"
+  },
+  "web.footer.privacy": {
+    "text": "Zasebnost",
+    "source_hash": "54a57c31"
+  },
+  "web.footer.contact": {
+    "text": "Kontakt",
+    "source_hash": "2b5c3d26"
+  },
+  "web.footer.support": {
+    "text": "Podpora",
+    "source_hash": "be91940b"
+  },
+  "web.footer.legals": {
+    "text": "Pravne informacije",
+    "source_hash": "0a410c78"
+  },
+  "web.feedback.when_you_submit_feedback_well_see": {
+    "text": "Ko pošljete povratne informacije, bomo videli:",
+    "source_hash": "fe77172e"
+  },
+  "web.footer.read_our_privacy_policy": {
+    "text": "Preberite našo politiko zasebnosti",
+    "source_hash": "eb443229"
+  },
+  "web.footer.check_our_service_status": {
+    "text": "Preverite stanje naših storitev",
+    "source_hash": "1f04937e"
+  },
+  "web.footer.explore_our_api_documentation": {
+    "text": "Raziščite našo API dokumentacijo",
+    "source_hash": "45beb8f8"
+  },
+  "web.footer.docs": {
+    "text": "Dokumentacija",
+    "source_hash": "7af023c4"
+  },
+  "web.footer.access_our_documentation": {
+    "text": "Dostopite do naše dokumentacije",
+    "source_hash": "37686da2"
+  },
+  "web.footer.view_our_source_code_on_github": {
+    "text": "Oglejte si našo izvorno kodo na GitHubu",
+    "source_hash": "d5def0ab"
+  },
+  "web.footer.resources": {
+    "text": "Viri",
+    "source_hash": "e89b30aa"
+  },
+  "web.footer.blog": {
+    "text": "Blog",
+    "source_hash": "8c6bc099"
+  },
+  "web.footer.read_our_latest_blog_posts": {
+    "text": "Preberite naše najnovejše objave na blogu",
+    "source_hash": "77468d43"
+  },
+  "web.footer.view_our_subscription_pricing": {
+    "text": "Oglejte si cene naročnin",
+    "source_hash": "55f1f590"
+  },
+  "web.footer.learn_about_our_company": {
+    "text": "Spoznajte naše podjetje",
+    "source_hash": "780e18cd"
+  },
+  "web.footer.company": {
+    "text": "Podjetje",
+    "source_hash": "de4743c8"
+  },
+  "web.footer.product": {
+    "text": "Izdelek",
+    "source_hash": "fb9ef894"
+  },
+  "web.footer.source_code_purveyor": {
+    "text": "Izvorna koda",
+    "source_hash": "bc47da66"
+  },
+  "web.navigation.billing": {
+    "text": "Obračun",
+    "source_hash": "3ac8bbca"
+  },
+  "web.navigation.billingOverview": {
+    "text": "Pregled",
+    "source_hash": "d4b1ea57"
+  },
+  "web.navigation.organizations": {
+    "text": "Organizacije",
+    "source_hash": "2730183d"
+  },
+  "web.site.website_version": {
+    "text": "Različica spletne strani",
+    "source_hash": "4d4a570f"
+  },
+  "web.meta.were_making_onetime_secret_available_in_multiple": {
+    "text": "{onetime-secret} je na voljo v več jezikih. Ker je to nova funkcija, lahko naletite na napake v prevodu ali nerodno izražanje. Vaše povratne informacije nam pomagajo izboljšati - če opazite težave, {send-feedback}",
+    "source_hash": "3b482d7f"
+  },
+  "web.meta.translations_are_new_spotted_an_error": {
+    "text": "Prevodi so novi. Opazili ste napako? {send-feedback}",
+    "source_hash": "31eca08d"
+  },
+  "web.meta.we_recently_added_translations": {
+    "text": "Pred kratkim smo dodali prevode. Opazili napako? {send-feedback}",
+    "source_hash": "6e2455c1"
+  },
+  "web.meta.privacy_and_security_should_be_accessible": {
+    "text": "Zasebnost in varnost bi morali biti dostopni vsem, ne glede na jezik. Dodajamo prevode, da našim uporabnikom in njihovim prejemnikom sporočil pomagamo bolje razumeti, kako varno uporabljati in dostopati do varnih sporočil in povezav. Ker je to nova funkcija, lahko naletite na napake v prevodu ali nejasna navodila. Za pomoč pri izboljšanju jasnosti in točnosti naših prevodov, zlasti za kritično varnostno vsebino, {send-feedback}, če opazite težave",
+    "source_hash": "1b8bb38f"
+  },
+  "web.help.learn_more": {
+    "text": "Več informacij",
+    "source_hash": "1445799c"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.title": {
+    "text": "Kaj gledam?",
+    "source_hash": "b9766df3"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.description": {
+    "text": "Ogledujete si varno sporočilo, ki je bilo deljeno z vami prek {product_name}. Ta vsebina je prikazana samo enkrat in nato trajno izbrisana z naših strežnikov.",
+    "source_hash": "7a4e9d16"
+  },
+  "web.help.secret_view_faq.can_i_view_again.title": {
+    "text": "Ali si lahko to skrivnost ogledam še kdaj?",
+    "source_hash": "c8c2c9da"
+  },
+  "web.help.secret_view_faq.can_i_view_again.description": {
+    "text": "Ne. Iz varnostnih razlogov si lahko to skrivnost ogledate samo enkrat. Ko zaprete to stran, bo vsebina trajno izbrisana in je nihče ne bo mogel obnoviti, niti mi.",
+    "source_hash": "4bf980a4"
+  },
+  "web.help.secret_view_faq.how_to_copy.title": {
+    "text": "Kako shranim te informacije?",
+    "source_hash": "90deddbb"
+  },
+  "web.help.secret_view_faq.how_to_copy.description": {
+    "text": "Uporabite gumb 'Kopiraj v odložišče' za kopiranje celotne skrivnosti. Pri daljših skrivnostih se prepričajte, da ste kopirali celotno vsebino, preden zapustite to stran.",
+    "source_hash": "440aa828"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.title": {
+    "text": "Ali se moj ogled te skrivnosti beleži?",
+    "source_hash": "90145e28"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.description": {
+    "text": "Pošiljatelj bo obveščen, da je bila njegova skrivnost ogledana, vendar ne beležimo, kdo jo je ogledal ali od kod. Vaša zasebnost je zaščitena.",
+    "source_hash": "70737473"
+  },
+  "web.help.secret_view_faq.one_time_warning": {
+    "text": "Ko zapustite ali osvežite to stran, bo ta skrivnost trajno izbrisana in je nihče več ne bo mogel obnoviti.",
+    "source_hash": "47feab6e"
+  },
+  "web.layout.go_back_to_previous_page": {
+    "text": "Pojdite nazaj na prejšnjo stran",
+    "source_hash": "1778f2e7"
+  },
+  "web.layout.site_footer": {
+    "text": "Noga spletne strani",
+    "source_hash": "6ca09429"
+  },
+  "web.layout.toggle_dark_mode": {
+    "text": "Preklopi temni način",
+    "source_hash": "ffe32a00"
+  },
+  "web.layout.provide_feedback": {
+    "text": "Podajte povratne informacije",
+    "source_hash": "a70766ae"
+  },
+  "web.layout.company_logo": {
+    "text": "Logotip podjetja",
+    "source_hash": "87a86135"
+  },
+  "web.layout.brand_logo": {
+    "text": "Logotip blagovne znamke",
+    "source_hash": "e458e2b5"
+  },
+  "web.layout.dashboard_navigation": {
+    "text": "Navigacija nadzorne plošče",
+    "source_hash": "da5c1c43"
+  },
+  "web.layout.mobile_navigation": {
+    "text": "Mobilna navigacija",
+    "source_hash": "ccea1730"
+  },
+  "web.layout.main_navigation": {
+    "text": "Glavna navigacija",
+    "source_hash": "56ea852a"
+  },
+  "web.layout.mobile_nav_item_count": {
+    "text": "{count} elementov",
+    "source_hash": "f65216b3"
+  },
+  "web.layout.release_notes": {
+    "text": "Opombe ob izdaji",
+    "source_hash": "bd4702c1"
+  },
+  "web.layout.loading_settings_content": {
+    "text": "Nalaganje vsebine nastavitev...",
+    "source_hash": "81a2a30e"
+  },
+  "web.layout.settings_sections_0": {
+    "text": "Razdelki nastavitev",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.close_settings": {
+    "text": "Zapri nastavitve",
+    "source_hash": "0ccfef82"
+  },
+  "web.layout.settings_sections": {
+    "text": "Razdelki nastavitev",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.customize_your_app_preferences_and_settings": {
+    "text": "Prilagodite svoje preference in nastavitve aplikacije",
+    "source_hash": "00d74c98"
+  },
+  "web.layout.return_home": {
+    "text": "Nazaj domov",
+    "source_hash": "bbcc935e"
+  },
+  "web.layout.return_to_home_page": {
+    "text": "Nazaj na domačo stran",
+    "source_hash": "8d27b81d"
+  },
+  "web.layout.return_to_home": {
+    "text": "Nazaj na domačo stran",
+    "source_hash": "299291b0"
+  },
+  "web.layout.view_privacy_policy": {
+    "text": "Oglejte si politiko zasebnosti",
+    "source_hash": "377733b6"
+  },
+  "web.layout.view_terms_of_service": {
+    "text": "Oglejte si pogoje uporabe",
+    "source_hash": "e2f124cd"
+  },
+  "web.layout.visit_onetime_secret_homepage": {
+    "text": "Obiščite domačo stran {product_name}",
+    "source_hash": "87802af5"
+  },
+  "web.layout.footer_navigation": {
+    "text": "Navigacija v nogi",
+    "source_hash": "76363a64"
+  },
+  "web.layout.terms_of_service": {
+    "text": "Pogoji uporabe",
+    "source_hash": "4afa55bf"
+  },
+  "web.layout.privacy_policy": {
+    "text": "Politika zasebnosti",
+    "source_hash": "506ff394"
+  },
+  "web.layout.icon_library": {
+    "text": "Knjižnica ikon",
+    "source_hash": "a73f4c07"
+  },
+  "web.layout.google_material": {
+    "text": "Google Material",
+    "source_hash": "7c7afa99"
+  },
+  "web.layout.material_design_icons": {
+    "text": "Material Design Icons",
+    "source_hash": "0fb27437"
+  },
+  "web.layout.heroicons": {
+    "text": "Heroicons",
+    "source_hash": "5e7cc07e"
+  },
+  "web.layout.carbon": {
+    "text": "Carbon",
+    "source_hash": "694c87c2"
+  },
+  "web.layout.font_awesome_6": {
+    "text": "Font Awesome 6",
+    "source_hash": "d4eedb15"
+  },
+  "web.layout.view_source_on_github": {
+    "text": "Oglejte si izvorno kodo na GitHubu",
+    "source_hash": "75e96614"
+  },
+  "web.layout.website_version_v_ot_version": {
+    "text": "Različica spletne strani: v{0}",
+    "source_hash": "343f57de"
+  },
+  "web.layout.current_language_is_currentlocal": {
+    "text": "Spremeni jezik. Trenutni jezik je {0}",
+    "source_hash": "77f9c322"
+  },
+  "web.layout.language_changed_to_newlocale": {
+    "text": "Jezik spremenjen na {0}",
+    "source_hash": "1680f4fe"
+  },
+  "web.layout.reset_to_default_language": {
+    "text": "Ponastavi na {0}",
+    "source_hash": "c0cfa9b2"
+  },
+  "web.layout.switch_to_blank_mode": {
+    "text": "Preklopi na način {0}",
+    "source_hash": "c8b909e0"
+  },
+  "web.layout.blank_mode_enabled": {
+    "text": "Način {0} omogočen",
+    "source_hash": "e1d200cb"
+  },
+  "web.layout.workspace": {
+    "text": "Delovni prostor",
+    "source_hash": "87bb59ba"
+  },
+  "web.layout.workspace_context": {
+    "text": "Kontekst delovnega prostora",
+    "source_hash": "dc6fa4f5"
+  },
+  "web.footer.workspace": {
+    "text": "Delovni prostor",
+    "source_hash": "87bb59ba"
+  },
+  "web.help.default_content": {
+    "text": "Za pomoč se obrnite na podporo",
+    "source_hash": "752bca14"
+  },
+  "web.layout.colonels_only_badge": {
+    "text": "Samo za Colonele",
+    "source_hash": "3f1e2dbd"
+  },
+  "web.footer.dpa": {
+    "text": "Pogodba o obdelavi podatkov",
+    "source_hash": "112eae6b"
+  },
+  "web.footer.cookie_policy": {
+    "text": "Politika piškotkov",
+    "source_hash": "ee290b3d"
+  },
+  "web.footer.acceptable_use": {
+    "text": "Politika sprejemljive uporabe",
+    "source_hash": "34aa287a"
+  }
+}

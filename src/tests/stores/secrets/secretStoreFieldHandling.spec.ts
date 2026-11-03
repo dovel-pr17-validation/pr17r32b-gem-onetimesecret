@@ -1,0 +1,307 @@
+// src/tests/stores/secrets/secretStoreFieldHandling.spec.ts
+
+// IMPORTANT: This test uses centralized test setup pattern
+// DO NOT revert to individual axios.create() - use setupTestPinia() instead
+import { useSecretStore } from '@/shared/stores/secretStore';
+import { setupTestPinia } from '../../setup';
+import type AxiosMockAdapter from 'axios-mock-adapter';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  mockSecretRecordRaw,
+  mockSecretResponse,
+  mockSecretRevealed,
+} from '../../fixtures/receipt.fixture';
+
+describe('secretStore', () => {
+  let axiosMock: AxiosMockAdapter | null;
+  let store: ReturnType<typeof useSecretStore>;
+
+  beforeEach(async () => {
+    // Setup testing environment with all needed components
+    const setup = await setupTestPinia();
+    axiosMock = setup.axiosMock;
+
+    // Initialize the store
+    store = useSecretStore();
+  });
+
+  afterEach(() => {
+    if (axiosMock) axiosMock.reset();
+    vi.clearAllMocks();
+  });
+
+  describe('secretStore field handling', () => {
+    describe('is_owner field', () => {
+      it('preserves true value from API', async () => {
+        const response = {
+          ...mockSecretResponse,
+          details: { ...mockSecretResponse.details, is_owner: true },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, response);
+
+        await store.fetch('abc123');
+        expect(store.details?.is_owner).toBe(true);
+      });
+
+      it('preserves false value from API', async () => {
+        const response = {
+          ...mockSecretResponse,
+          details: { ...mockSecretResponse.details, is_owner: false },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, response);
+
+        await store.fetch('abc123');
+        expect(store.details?.is_owner).toBe(false);
+      });
+
+      // This highlights an important lesson: when tests fail with 404s, always
+      // verify your mock endpoints match what the code actually calls.
+      it('rejects missing lifespan field from API (V3 requires number)', async () => {
+        const testKey = 'abc123';
+
+        const mockResponseWithoutLifespan = {
+          success: true,
+          record: {
+            ...mockSecretRecordRaw,
+            lifespan: null,
+          },
+          details: {
+            continue: false,
+            is_owner: false,
+            show_secret: false,
+            display_lines: 1,
+            one_liner: true,
+          },
+        };
+
+        axiosMock?.onGet(`/api/v3/secret/${testKey}`).reply(200, mockResponseWithoutLifespan);
+
+        // V3 schema requires z.number() — null is rejected
+        await expect(store.fetch(testKey)).rejects.toThrow();
+      });
+
+      it('maintains is_owner state after reveal operation', async () => {
+        // First set initial state with is_owner: true
+        const initialResponse = {
+          ...mockSecretResponse,
+          details: { ...mockSecretResponse.details, is_owner: true },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, initialResponse);
+        await store.fetch('abc123');
+
+        // Then reveal the secret
+        const revealResponse = {
+          ...mockSecretRevealed,
+          details: { ...mockSecretRevealed.details, is_owner: true },
+        };
+        axiosMock?.onPost('/api/v3/secret/abc123/reveal').reply(200, revealResponse);
+
+        await store.reveal('abc123', 'password');
+        expect(store.details?.is_owner).toBe(true);
+      });
+
+      it('rejects missing is_owner field (V3 requires boolean)', async () => {
+        const response = {
+          ...mockSecretResponse,
+          details: {
+            ...mockSecretResponse.details,
+            is_owner: undefined,
+          },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, response);
+
+        // V3 schema requires z.boolean() — undefined is rejected
+        await expect(store.fetch('abc123')).rejects.toThrow();
+      });
+    });
+
+    describe('lifespan field', () => {
+      it('preserves static duration from API', async () => {
+        const response = {
+          ...mockSecretResponse,
+          record: {
+            ...mockSecretResponse.record,
+            lifespan: 86400, // Schema expects number (seconds), not string
+            secret_ttl: 86400, // 24 hours in seconds
+          },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, response);
+
+        await store.fetch('abc123');
+        expect(store.record?.lifespan).toBe(86400); // Test exact numeric match
+        expect(store.record?.secret_ttl).toBe(86400); // Verify TTL is preserved
+      });
+
+      it('rejects null lifespan value (V3 requires numbers)', async () => {
+        const response = {
+          ...mockSecretResponse,
+          record: {
+            ...mockSecretResponse.record,
+            lifespan: null,
+            secret_ttl: null,
+          },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, response);
+
+        // V3 schema requires z.number() — null is rejected
+        await expect(store.fetch('abc123')).rejects.toThrow();
+      });
+
+      it('maintains consistent lifespan after reveal', async () => {
+        // First fetch
+        const initialResponse = {
+          ...mockSecretResponse,
+          record: {
+            ...mockSecretResponse.record,
+            lifespan: 86400, // Schema expects number (seconds)
+            secret_ttl: 86400,
+          },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, initialResponse);
+        await store.fetch('abc123');
+        const initialLifespan = store.record?.lifespan;
+
+        // Then reveal
+        const revealResponse = {
+          ...mockSecretRevealed,
+          record: {
+            ...mockSecretRevealed.record,
+            lifespan: 86400, // Schema expects number (seconds)
+            secret_ttl: 86400,
+          },
+        };
+        axiosMock?.onPost('/api/v3/secret/abc123/reveal').reply(200, revealResponse);
+
+        await store.reveal('abc123', 'password');
+        expect(store.record?.lifespan).toBe(initialLifespan);
+      });
+
+      it('rejects null lifespan value (V3 requires numbers)', async () => {
+        const response = {
+          ...mockSecretResponse,
+          record: {
+            ...mockSecretResponse.record,
+            lifespan: null,
+            secret_ttl: null,
+          },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, response);
+
+        // V3 schema requires z.number() — null is rejected
+        await expect(store.fetch('abc123')).rejects.toThrow();
+      });
+
+      it('calculates TTL duration in seconds', async () => {
+        const response = {
+          ...mockSecretResponse,
+          record: {
+            ...mockSecretResponse.record,
+            secret_ttl: 3600, // 1 hour
+            lifespan: 3600, // Schema expects number (seconds), not string
+          },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, response);
+
+        await store.fetch('abc123');
+        expect(store.record?.lifespan).toBe(3600); // Test exact numeric match
+        expect(store.record?.secret_ttl).toBe(3600);
+      });
+    });
+
+    // Issue #3424: a backend record whose numeric fields were written as
+    // Ruby Strings (Familia v2 preserves the written type) used to
+    // serialize as {"lifespan":"604800",...}. The V3 schema is strict
+    // z.number() with no coercion, so parsing fails — the store surfaces a
+    // fetch error, record stays null, and the recipient sees UnknownSecret
+    // ("no longer available") even though the backend returned 200 and the
+    // secret was never consumed. Current backends cast these fields at the
+    // safe_dump boundary, so string payloads can only come from older or
+    // third-party servers — and the schema intentionally stays strict
+    // rather than papering over them with coercion. Backend-side
+    // reproduction + cast regression tests:
+    // try/unit/models/secret/numeric_field_types_try.rb
+    describe('numeric field wire types (issue #3424)', () => {
+      it('rejects string-typed lifespan/secret_ttl (V3 z.number() does not coerce)', async () => {
+        const response = {
+          ...mockSecretResponse,
+          record: {
+            ...mockSecretResponse.record,
+            lifespan: '604800',
+            secret_ttl: '604800',
+          },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, response);
+
+        // "604800" fails where 604800 would pass
+        await expect(store.fetch('abc123')).rejects.toThrow();
+      });
+
+      it('rejects string-typed created/updated timestamps', async () => {
+        const response = {
+          ...mockSecretResponse,
+          record: {
+            ...mockSecretResponse.record,
+            created: '1735142814.123456',
+            updated: '1735204014',
+          },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, response);
+
+        await expect(store.fetch('abc123')).rejects.toThrow();
+      });
+
+      it('accepts float timestamps (Familia.now writes float epoch seconds)', async () => {
+        const response = {
+          ...mockSecretResponse,
+          record: {
+            ...mockSecretResponse.record,
+            created: 1735142814.71047,
+            updated: 1735204014.123456,
+          },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, response);
+
+        await store.fetch('abc123');
+        const created = store.record?.created;
+        expect(created).toBeInstanceOf(Date);
+        expect(Math.floor(created!.getTime() / 1000)).toBe(1735142814);
+      });
+    });
+
+    describe('field interaction', () => {
+      it('preserves both fields through store operations', async () => {
+        // Setup initial state
+        const initialResponse = {
+          ...mockSecretResponse,
+          record: {
+            ...mockSecretResponse.record,
+            lifespan: 86400, // Schema expects number (seconds)
+            secret_ttl: 86400,
+          },
+          details: {
+            ...mockSecretResponse.details,
+            is_owner: true,
+          },
+        };
+        axiosMock?.onGet('/api/v3/secret/abc123').reply(200, initialResponse);
+        await store.fetch('abc123');
+
+        // Verify both fields
+        expect(store.details?.is_owner).toBe(true);
+        expect(store.record?.lifespan).toBe(86400); // Schema expects number, not string
+        expect(store.record?.secret_ttl).toBe(86400);
+
+        // Clear and verify reset
+        store.clear();
+        expect(store.details?.is_owner).toBeUndefined();
+        expect(store.record?.lifespan).toBeUndefined();
+
+        // Fetch again and verify restoration
+        await store.fetch('abc123');
+        expect(store.details?.is_owner).toBe(true);
+        expect(store.record?.lifespan).toBe(86400); // Schema expects number, not string
+      });
+    });
+  });
+});

@@ -1,0 +1,210 @@
+# apps/web/core/views/serializers/organization_serializer.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/logger_methods'
+require 'onetime/membership_snapshot'
+
+module Core
+  module Views
+    # Serializes organization data for the frontend bootstrap payload
+    #
+    # Provides the current user's organization context to the frontend,
+    # enabling domain context initialization without race conditions.
+    # The organization is loaded via OrganizationLoader in the auth strategy.
+    module OrganizationSerializer
+      extend Onetime::LoggerMethods
+
+      # Free-tier limit literals used only when the free_v1 plan itself
+      # cannot be resolved from billing config. Values mirror free_v1 in
+      # billing.yaml (teams is absent there: free tier has none).
+      #
+      # secret_lifetime mirrors WithEntitlements::DEFAULT_FREE_TTL (14 days).
+      # Spelled as a literal like its neighbours rather than referenced, so
+      # this constant stays independent of model load order.
+      FALLBACK_FREE_TIER_LIMITS = {
+        'teams' => 0,
+        'total_members_per_org' => 1,
+        'custom_domains' => 1,
+        'secret_lifetime' => 1_209_600,
+      }.freeze
+
+      # Serializes organization data from view variables
+      #
+      # @param view_vars [Hash] The view variables containing organization info
+      # @return [Hash] Serialized organization data
+      def self.serialize(view_vars)
+        output = output_template
+
+        is_authenticated = view_vars['authenticated']
+        org              = view_vars['organization']
+
+        return output unless is_authenticated && org
+
+        # Serialize minimal organization data needed for frontend initialization
+        # Full organization details can be fetched via API when needed
+        output['organization'] = serialize_organization(org, view_vars['cust'])
+
+        output
+      end
+
+      class << self
+        # Provides the base template for organization serializer output
+        #
+        # @return [Hash] Template with organization output fields
+        def output_template
+          {
+            'organization' => nil,
+          }
+        end
+
+        private
+
+        # Serialize organization to frontend format
+        #
+        # Includes only the fields needed for:
+        # - Domain context initialization (id, extid)
+        # - Basic display (display_name, is_default, is_current_user_default).
+        #   is_default marks the OWNER's default workspace; whether this is
+        #   the current user's default is is_current_user_default.
+        # - Plan identity and role (planid, current_user_role)
+        # - Feature gating and quota display (entitlements, limits)
+        #
+        # entitlements and limit_for resolve through the request-scoped
+        # preview context (ADR-020), so this bootstrap payload reflects
+        # colonel preview mode without any per-consumer wiring.
+        #
+        # @param org [Onetime::Organization] Organization to serialize
+        # @param cust [Onetime::Customer] Current user for role calculation
+        # @return [Hash] Serialized organization data
+        def serialize_organization(org, cust)
+          entitlements, limits = plan_derived_fields(org)
+          {
+            'objid' => org.objid,
+            'extid' => org.extid,
+            'display_name' => org.display_name,
+            'is_default' => org.is_default || false,
+            'is_current_user_default' => current_user_default?(org, cust),
+            'planid' => org.planid,
+            'current_user_role' => determine_user_role(org, cust),
+            'entitlements' => entitlements,
+            'limits' => limits,
+          }
+        end
+
+        # Resolve entitlements and limits for the bootstrap payload
+        #
+        # Both readers fail closed (Billing::PlanCacheMissError) when the
+        # org's planid resolves from neither the plan cache nor billing.yaml.
+        # Degrade to free tier at this read edge only — the model raise must
+        # stay so enforcement paths (require_entitlement!) remain fail-closed,
+        # but a bootstrap read raising takes login down with a 503.
+        #
+        # @param org [Onetime::Organization] Organization
+        # @return [Array(Array<String>, Hash)] Entitlements and limits
+        def plan_derived_fields(org)
+          [org.entitlements, serialize_limits(org)]
+        rescue StandardError => ex
+          # Match by name: builds without the billing app never define (or
+          # raise) the error class, and a bare rescue would NameError here.
+          raise unless defined?(::Billing::PlanCacheMissError) && ex.is_a?(::Billing::PlanCacheMissError)
+
+          OT.le "[OrganizationSerializer] Plan catalog unavailable, degrading to free tier: plan=#{org.planid} org=#{org.extid}"
+          [
+            Onetime::Models::Features::WithPlanEntitlements::FREE_TIER_ENTITLEMENTS.dup,
+            free_tier_fallback_limits,
+          ]
+        end
+
+        # Free-tier limits for the degraded bootstrap payload
+        #
+        # Resolves free_v1 from billing config when possible (config loading
+        # rescues internally, so this returns nil rather than raising), with
+        # FALLBACK_FREE_TIER_LIMITS literals per missing key. Same shape as
+        # serialize_limits: integers, -1 for unlimited.
+        #
+        # @return [Hash] Normalized limits
+        def free_tier_fallback_limits
+          config_limits =
+            if defined?(::Billing::Plan)
+              (::Billing::Plan.load_from_config('free_v1') || {})[:limits] || {}
+            else
+              {}
+            end
+
+          FALLBACK_FREE_TIER_LIMITS.to_h do |key, default|
+            val        = config_limits["#{key}.max"]
+            normalized =
+              if val.nil?
+                default
+              elsif val == 'unlimited'
+                -1
+              else
+                val.to_i
+              end
+            [key, normalized]
+          end
+        end
+
+        # Limits for the bootstrap payload, matching the safe_dump shape
+        # (organization/features/safe_dump_fields.rb): Float::INFINITY
+        # normalizes to -1 for JSON serialization (unlimited).
+        #
+        # secret_lifetime is the same limit V2 enforces on secret creation
+        # (BaseSecretAction#process_ttl reads limit_for('secret_lifetime')),
+        # published so the duration dropdown can drop options the server
+        # would clamp — see usePrivacyOptions.ts. -1 means no ceiling.
+        #
+        # @param org [Onetime::Organization] Organization
+        # @return [Hash] Normalized limits
+        def serialize_limits(org)
+          normalize = ->(val) { val == Float::INFINITY ? -1 : val.to_i }
+          {
+            'teams' => normalize.call(org.limit_for(:teams)),
+            'total_members_per_org' => normalize.call(org.limit_for(:total_members_per_org)),
+            'custom_domains' => normalize.call(org.limit_for(:custom_domains)),
+            'secret_lifetime' => normalize.call(org.limit_for(:secret_lifetime)),
+          }
+        end
+
+        # Whether org is the current user's default organization
+        # (OrganizationLoader.default_organization). False with no user.
+        #
+        # The loader answers from the request's MembershipSnapshot: the
+        # membership list and the user's default it resolved during auth
+        # are not read again here.
+        #
+        # @param org [Onetime::Organization] Organization
+        # @param cust [Onetime::Customer, nil] Current user
+        # @return [Boolean]
+        def current_user_default?(org, cust)
+          return false unless cust && !cust.anonymous?
+
+          default_org = Onetime::Application::OrganizationLoader.default_organization(cust)
+          !default_org.nil? && default_org.objid == org.objid
+        end
+
+        # Determine the current user's role in the organization
+        #
+        # Ownership and the membership record come from the request's
+        # MembershipSnapshot, shared with the loader.
+        #
+        # @param org [Onetime::Organization] Organization
+        # @param cust [Onetime::Customer] Current user
+        # @return [String, nil] Role name or nil
+        def determine_user_role(org, cust)
+          return nil unless cust && !cust.anonymous?
+
+          snapshot = Onetime::MembershipSnapshot.for(cust)
+          if snapshot.owner?(org)
+            'owner'
+          elsif org.member?(cust)
+            snapshot.membership(org)&.role || 'member'
+          end
+        end
+      end
+
+      SerializerRegistry.register(self, ['AuthenticationSerializer'])
+    end
+  end
+end

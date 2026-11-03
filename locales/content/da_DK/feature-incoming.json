@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "Send en besked",
+    "source_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "Del følsomme oplysninger sikkert med vores supportteam",
+    "source_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "Indlæser...",
+    "source_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "Kunne ikke indlæse konfiguration",
+    "source_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "Funktion ikke tilgængelig",
+    "source_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "Denne funktion er i øjeblikket deaktiveret. Kontakt venligst support for hjælp.",
+    "source_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "Notat",
+    "source_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "Kort beskrivelse (f.eks. Anmodning om nulstilling af adgangskode)",
+    "source_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "Hjælp os med at sende din besked til den rette person",
+    "source_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "Send til",
+    "source_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "Vælg en modtager",
+    "source_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "Vælg en modtager til denne besked",
+    "source_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "Vælg hvem der skal modtage denne sikre besked",
+    "source_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "Ingen modtagere er tilgængelige",
+    "source_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "Hemmelig information",
+    "source_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "Indsæt følsomme oplysninger her (adgangskoder, nøgler osv.)",
+    "source_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "Disse oplysninger vil blive krypteret og kan kun ses én gang",
+    "source_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "Send besked",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "Send besked",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "Sender...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "Sender...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "Ryd formular",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "Ryd formular",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "Sendt succesfuldt",
+    "source_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "Din sikre besked er blevet leveret.",
+    "source_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "Reference-ID",
+    "source_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "Hvad sker der nu?",
+    "source_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "Modtageren vil kun kunne se denne besked én gang. Når de har set den, vil beskeden blive permanent slettet.",
+    "source_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "Send en ny besked",
+    "source_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "Del følsomme oplysninger sikkert",
+    "source_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "Hold adgangskoder og private data ude af e-mail og chatlogfiler",
+    "source_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "Gem din {receipt} til dine optegnelser.",
+    "source_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "kvittering",
+    "source_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "Opgradering kræves",
+    "source_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "Denne funktion kræver en planopgradering. Kontakt venligst kontoens ejer for at aktivere indkommende beskeder.",
+    "source_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "Memo skal være på {max} tegn eller mindre",
+    "source_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "Beskedindhold kræves",
+    "source_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "Vælg venligst en modtager",
+    "source_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "Funktionen for indkommende beskeder er ikke aktiveret",
+    "source_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "Tjek venligst formularen for fejl",
+    "source_hash": "9056e064"
+  }
+}

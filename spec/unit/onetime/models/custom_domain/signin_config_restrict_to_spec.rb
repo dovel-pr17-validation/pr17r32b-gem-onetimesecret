@@ -1,0 +1,491 @@
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+RSpec.describe Onetime::CustomDomain::SigninConfig do
+  subject(:resolution) { described_class.resolve_restrict_to(nil, config) }
+
+  let(:config) do
+    described_class.new(
+      domain_id: 'domain-4139',
+      enabled: true,
+      signin_enabled: true,
+      email_auth_enabled: true,
+      sso_enabled: true,
+      restrict_to: restrict_to,
+    )
+  end
+  let(:restrict_to) { 'password' }
+  let(:auth_config) { instance_double(Onetime::AuthConfig, email_auth_enabled?: true) }
+
+  before do
+    allow(OT).to receive(:conf).and_return(
+      'site' => { 'authentication' => { 'enabled' => true, 'signin' => true } },
+    )
+    allow(Onetime).to receive(:auth_config).and_return(auth_config)
+    allow(Onetime::CustomDomain::SsoConfig).to receive(:sso_available_for_tenant_host?)
+      .with('domain-4139').and_return(true)
+  end
+
+  describe '.resolve_restrict_to domain method availability' do
+    it 'keeps an available password restriction' do
+      expect(resolution).to be_restricted
+      expect(resolution.allows?('password')).to be(true)
+    end
+
+    it 'fails a password restriction closed when global sign-in is disabled' do
+      allow(OT).to receive(:conf).and_return(
+        'site' => { 'authentication' => { 'enabled' => true, 'signin' => false } },
+      )
+
+      expect(resolution).to be_unavailable
+      expect(resolution.allows?('password')).to be(false)
+    end
+
+    context 'with an email_auth restriction' do
+      let(:restrict_to) { 'email_auth' }
+
+      it 'fails closed when the domain email-auth capability is disabled' do
+        config.email_auth_enabled = false
+
+        expect(resolution).to be_unavailable
+      end
+
+      it 'fails closed when the global email-auth feature is disabled' do
+        allow(auth_config).to receive(:email_auth_enabled?).and_return(false)
+
+        expect(resolution).to be_unavailable
+      end
+
+      it 'fails closed when the domain sign-in capability is disabled' do
+        config.signin_enabled = false
+
+        expect(resolution).to be_unavailable
+      end
+
+      it 'is restricted only when the domain and global capabilities are available' do
+        expect(resolution).to be_restricted
+        expect(resolution.allows?('email_auth')).to be(true)
+      end
+    end
+
+    context 'with an sso restriction' do
+      let(:restrict_to) { 'sso' }
+
+      it 'fails closed when no SSO path is actually available on the host' do
+        allow(Onetime::CustomDomain::SsoConfig).to receive(:sso_available_for_tenant_host?)
+          .with('domain-4139').and_return(false)
+
+        expect(resolution).to be_unavailable
+      end
+
+      it 'uses the host predicate that includes tenant SSO and platform fallback' do
+        expect(Onetime::CustomDomain::SsoConfig).to receive(:sso_available_for_tenant_host?)
+          .with('domain-4139').and_return(true)
+
+        expect(resolution).to be_restricted
+      end
+
+      # ADR-034#resolution-is-model-owned: the SSO route's authority is the SsoConfig ladder
+      # (sso_available_for_tenant_host? -> tenant_sso_available_for? ->
+      # SigninConfig.sso_permitted_for?), which keys on sso_enabled? and
+      # ignores signin_enabled? entirely. A signin_enabled? short-circuit here
+      # made restrict_to a SECOND authority over the same route: a config with
+      # enabled=true, sso_enabled=true, signin_enabled=false resolved
+      # :unavailable and 404'd a route omniauth_tenant serves successfully.
+      it 'ignores signin_enabled — that is the password/email opt-in, not the SSO ladder' do
+        config.signin_enabled = false
+
+        expect(resolution).to be_restricted
+        expect(resolution.restrict_to).to eq('sso')
+        expect(resolution.allows?('sso')).to be(true)
+      end
+
+      it 'still fails closed when the SSO ladder itself says no, signin_enabled notwithstanding' do
+        config.signin_enabled = false
+        allow(Onetime::CustomDomain::SsoConfig).to receive(:sso_available_for_tenant_host?)
+          .with('domain-4139').and_return(false)
+
+        expect(resolution).to be_unavailable
+      end
+    end
+
+    context 'with a webauthn restriction' do
+      let(:restrict_to) { 'webauthn' }
+
+      it 'remains unavailable on a custom domain' do
+        expect(resolution).to be_unavailable
+      end
+    end
+  end
+
+  # Whether the display/gate 'sso' host pin must defer to the per-domain
+  # config (#4167). Skipping the pin on `enabled?` alone let a config that is
+  # enabled WITHOUT an opinion (restrict_to unset, signin_enabled=false)
+  # resolve :unrestricted on a host whose only working method is SSO.
+  describe '.speaks_for_restrict_to?' do
+    subject(:speaks) { described_class.speaks_for_restrict_to?(config) }
+
+    context 'with no config at all' do
+      let(:config) { nil }
+
+      it { is_expected.to be(false) }
+    end
+
+    context 'with the master switch off' do
+      let(:config) do
+        described_class.new(domain_id: 'domain-4167', enabled: false, restrict_to: 'password')
+      end
+
+      it 'does not speak, whatever the fields say' do
+        expect(speaks).to be(false)
+      end
+    end
+
+    context 'enabled and naming a restriction' do
+      let(:config) do
+        described_class.new(
+          domain_id: 'domain-4167', enabled: true, signin_enabled: false, restrict_to: 'password'
+        )
+      end
+
+      it { is_expected.to be(true) }
+    end
+
+    context 'enabled with restrict_to unset but password/email opted IN' do
+      let(:config) do
+        described_class.new(
+          domain_id: 'domain-4167', enabled: true, signin_enabled: true, restrict_to: nil
+        )
+      end
+
+      it 'speaks — the host genuinely offers more than SSO, so no pin' do
+        expect(speaks).to be(true)
+      end
+    end
+
+    context 'enabled without an opinion (restrict_to unset, signin_enabled off)' do
+      let(:config) do
+        described_class.new(
+          domain_id: 'domain-4167', enabled: true, signin_enabled: false,
+          sso_enabled: true, restrict_to: nil
+        )
+      end
+
+      it 'does not speak — the SSO host pin still applies (#4167)' do
+        expect(speaks).to be(false)
+      end
+    end
+  end
+
+  # The `available:` INPUT the three gates hand to the resolver (#4139). It
+  # lives on the model precisely so no consumer can gather it differently; the
+  # parity spec asserts the display serializer and the route gate agree, and
+  # these cases pin the policy those two share.
+  describe '.restriction_available_for_request?' do
+    subject(:available) do
+      described_class.restriction_available_for_request?(
+        global, config_arg, domain_id: domain_id_arg, custom_host: custom_host
+      )
+    end
+
+    let(:global)        { 'password' }
+    let(:config_arg)    { nil }
+    let(:domain_id_arg) { 'domain-4139' }
+    let(:custom_host)   { true }
+    let(:auth_config) do
+      instance_double(Onetime::AuthConfig, email_auth_enabled?: true, restrict_to: nil, restrict_to_available?: true)
+    end
+
+    context 'on a custom host inheriting a global restriction with no enabled SigninConfig' do
+      # THE DEFECT. Password/email default OFF on custom domains, so an
+      # inherited 'password' restriction names the one method that host cannot
+      # run: the route gate 404s. Before this moved onto the model, only the
+      # gate narrowed here — the serializer reported `restricted/password` and
+      # rendered a form posting to dark routes.
+      it 'narrows through the custom-host capabilities' do
+        expect(available).to be(false)
+      end
+    end
+
+    context 'on a custom host whose SigninConfig opts sign-in in' do
+      let(:config_arg) do
+        described_class.new(
+          domain_id: 'domain-4139', enabled: true, signin_enabled: true, restrict_to: nil
+        )
+      end
+
+      it 'keeps the inherited restriction available' do
+        expect(available).to be(true)
+      end
+    end
+
+    context 'on a canonical host' do
+      let(:custom_host) { false }
+
+      it 'has no custom-domain capabilities to intersect' do
+        expect(available).to be(true)
+      end
+    end
+
+    context 'when nothing is restricted at all' do
+      let(:global) { nil }
+
+      it 'never manufactures unavailability — an unrestricted install must not go dark' do
+        expect(available).to be(true)
+      end
+    end
+
+    context 'when the custom host could not be classified' do
+      let(:domain_id_arg) { nil }
+
+      it 'keeps the global verdict; there is no domain to narrow it' do
+        expect(available).to be(true)
+      end
+    end
+
+    context 'when the operator restriction itself died after boot' do
+      let(:global)      { 'sso' }
+      let(:custom_host) { false }
+      let(:auth_config) do
+        instance_double(
+          Onetime::AuthConfig, email_auth_enabled?: true, restrict_to: 'sso', restrict_to_available?: false
+        )
+      end
+
+      it 'reports unavailable from the global half (ADR-034#degradation-is-fail-closed)' do
+        expect(available).to be(false)
+      end
+    end
+  end
+
+  # The `global` VALUE the three consumers hand to the resolver (#4140). Same
+  # rule as restriction_available_for_request? above and for the same reason:
+  # the SSO HOST PIN used to be written twice (display serializer, route gate)
+  # and omitted entirely by the settings API, which therefore reported
+  # `unrestricted` for a host whose routes the gate restricted to SSO.
+  describe '.inherited_restrict_to' do
+    subject(:inherited) do
+      described_class.inherited_restrict_to(
+        config_arg, domain_id: domain_id_arg, custom_host: custom_host
+      )
+    end
+
+    let(:config_arg)    { nil }
+    let(:domain_id_arg) { 'domain-4139' }
+    let(:custom_host)   { true }
+    let(:auth_config) do
+      instance_double(Onetime::AuthConfig, email_auth_enabled?: true, restrict_to: nil,
+        allow_platform_fallback_for_tenants?: false, sso_enabled?: false)
+    end
+
+    context 'on an SSO-only custom host with no SigninConfig' do
+      it "pins 'sso' — password and email default OFF there" do
+        expect(inherited.value).to eq('sso')
+        expect(inherited.pin_established).to be(true)
+      end
+    end
+
+    context 'on a custom host with no SSO available' do
+      before do
+        allow(Onetime::CustomDomain::SsoConfig).to receive(:sso_available_for_tenant_host?)
+          .with('domain-4139').and_return(false)
+        allow(described_class).to receive(:tenant_sso_awaiting_verification?)
+          .with('domain-4139').and_return(false)
+      end
+
+      it 'inherits the operator restriction (here: none)' do
+        expect(inherited.value).to be_nil
+        expect(inherited.pin_established).to be(false)
+      end
+
+      context 'when tenant SSO waits only on domain verification (#4517)' do
+        before do
+          allow(described_class).to receive(:tenant_sso_awaiting_verification?)
+            .with('domain-4139').and_return(true)
+        end
+
+        it "keeps the 'sso' pin without an availability proof" do
+          expect(inherited.value).to eq('sso')
+          expect(inherited.pin_established).to be(false)
+        end
+
+        it 'resolves the host :unavailable, so no password route opens' do
+          available = described_class.restriction_available_for_request?(
+            inherited.value, nil,
+            domain_id: 'domain-4139', custom_host: true, already_established: inherited.pin_established
+          )
+          resolution = described_class.resolve_restrict_to(inherited.value, nil, available: available)
+
+          expect(resolution).to be_unavailable
+          expect(resolution.allows?('password')).to be(false)
+        end
+      end
+
+      it 'retains the fallback restriction without an availability proof when platform SSO is host-excluded' do
+        allow(auth_config).to receive(:allow_platform_fallback_for_tenants?).and_return(true)
+        allow(auth_config).to receive(:sso_enabled?).and_return(true)
+        allow(described_class).to receive(:global_auth_enabled).and_return(true)
+
+        expect(inherited.value).to eq('sso')
+        expect(inherited.pin_established).to be(false)
+      end
+    end
+
+    context 'on a canonical host' do
+      let(:custom_host) { false }
+
+      it 'never pins — the pin is a custom-host property' do
+        expect(inherited.value).to be_nil
+        expect(inherited.pin_established).to be(false)
+      end
+    end
+
+    context 'when the custom host could not be classified' do
+      let(:domain_id_arg) { nil }
+
+      it 'never pins — there is no domain whose SSO could be probed' do
+        expect(inherited.value).to be_nil
+        expect(inherited.pin_established).to be(false)
+      end
+    end
+
+    context 'when an enabled SigninConfig speaks' do
+      let(:config_arg) do
+        described_class.new(
+          domain_id: 'domain-4139', enabled: true, signin_enabled: true, restrict_to: 'password'
+        )
+      end
+      let(:auth_config) do
+        instance_double(Onetime::AuthConfig, email_auth_enabled?: true, restrict_to: 'password')
+      end
+
+      it 'declines the pin — intersecting it would resolve :conflict and lock the host out' do
+        expect(inherited.value).to eq('password')
+        expect(inherited.pin_established).to be(false)
+      end
+    end
+
+    context 'when a DISABLED SigninConfig exists on an SSO-only host' do
+      let(:config_arg) do
+        described_class.new(
+          domain_id: 'domain-4139', enabled: false, signin_enabled: true, restrict_to: 'password'
+        )
+      end
+
+      it "still pins 'sso' — a disabled config has not spoken" do
+        expect(inherited.value).to eq('sso')
+        expect(inherited.pin_established).to be(true)
+      end
+    end
+  end
+
+  describe '.tenant_sso_awaiting_verification?' do
+    subject(:awaiting) { described_class.tenant_sso_awaiting_verification?('domain-4139') }
+
+    let(:custom_domain) { instance_double(Onetime::CustomDomain, verified: false) }
+    let(:sso_config) do
+      instance_double(Onetime::CustomDomain::SsoConfig,
+        enabled?: true, provider_type: 'oidc', custom_domain: custom_domain)
+    end
+
+    before do
+      allow(Onetime::CustomDomain::SsoConfig).to receive(:find_by_domain_id)
+        .with('domain-4139').and_return(sso_config)
+      allow(described_class).to receive(:sso_permitted_for?).with('domain-4139').and_return(true)
+    end
+
+    it 'is true when enabled tenant SSO is blocked only by the unverified domain' do
+      expect(awaiting).to be(true)
+    end
+
+    it 'is false once the domain is verified' do
+      allow(custom_domain).to receive(:verified).and_return(true)
+      expect(awaiting).to be(false)
+    end
+
+    it 'is false when the SigninConfig withholds SSO' do
+      allow(described_class).to receive(:sso_permitted_for?).with('domain-4139').and_return(false)
+      expect(awaiting).to be(false)
+    end
+
+    it 'is false when the tenant config is disabled' do
+      allow(sso_config).to receive(:enabled?).and_return(false)
+      expect(awaiting).to be(false)
+    end
+
+    it 'is false without a tenant config' do
+      allow(Onetime::CustomDomain::SsoConfig).to receive(:find_by_domain_id)
+        .with('domain-4139').and_return(nil)
+      expect(awaiting).to be(false)
+    end
+
+    # The omniauth tenant hook has already run the ladder and hands its
+    # reason in (QA-09): the rule is applied to it without a second ladder run.
+    context 'with a precomputed reason' do
+      before { allow(Onetime::CustomDomain::SsoConfig).to receive(:tenant_sso_unavailable_reason) }
+
+      def awaiting_with(reason)
+        described_class.tenant_sso_awaiting_verification?('domain-4139', reason: reason)
+      end
+
+      it 'applies the rule to it without running the ladder' do
+        expect(awaiting_with(:domain_unverified)).to be(true)
+        expect(Onetime::CustomDomain::SsoConfig).not_to have_received(:tenant_sso_unavailable_reason)
+      end
+
+      it 'is false when the SigninConfig withholds SSO' do
+        allow(described_class).to receive(:sso_permitted_for?).with('domain-4139').and_return(false)
+        expect(awaiting_with(:domain_unverified)).to be(false)
+      end
+
+      it 'is false for any other rung, without reading the SigninConfig' do
+        expect(awaiting_with(:sso_config_disabled)).to be(false)
+        expect(described_class).not_to have_received(:sso_permitted_for?)
+      end
+
+      # nil is a ladder answer (available), not "run the ladder".
+      it 'is false for an available domain, without running the ladder' do
+        expect(awaiting_with(nil)).to be(false)
+        expect(Onetime::CustomDomain::SsoConfig).not_to have_received(:tenant_sso_unavailable_reason)
+      end
+    end
+  end
+
+  describe '.global_restriction_available?' do
+    let(:auth_config) do
+      instance_double(Onetime::AuthConfig,
+        restrict_to: 'sso',
+        restrict_to_available?: false,
+      )
+    end
+
+    before do
+      allow(Onetime).to receive(:auth_config).and_return(auth_config)
+    end
+
+    context 'when already_established is true' do
+      it 'returns true without consulting AuthConfig (#4165)' do
+        # Even though restrict_to_available? would return false
+        result = described_class.global_restriction_available?('sso', already_established: true)
+        expect(result).to be(true)
+
+        # Verify we did not call restrict_to_available?
+        expect(auth_config).not_to have_received(:restrict_to_available?)
+      end
+    end
+
+    context 'when already_established is false (default)' do
+      it 'consults AuthConfig when the value matches operator restrict_to' do
+        result = described_class.global_restriction_available?('sso')
+        expect(result).to be(false)
+        expect(auth_config).to have_received(:restrict_to_available?)
+      end
+
+      it 'returns true when the value does NOT match operator restrict_to' do
+        result = described_class.global_restriction_available?('password')
+        expect(result).to be(true)
+      end
+    end
+  end
+end

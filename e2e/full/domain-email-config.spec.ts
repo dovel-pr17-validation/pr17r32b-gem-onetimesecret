@@ -1,0 +1,480 @@
+// e2e/full/domain-email-config.spec.ts
+
+/**
+ * E2E Tests for Domain Email Configuration
+ *
+ * Tests the per-domain email sender configuration feature that allows
+ * organizations to configure custom email sending for their domains.
+ *
+ * Flow:
+ * 1. User navigates to /org/{orgId}/domains/{domainId}/email
+ * 2. Views/configures email sender settings (from_name, from_address, reply_to)
+ * 3. Enables/disables email sending for the domain
+ * 4. Saves or deletes configuration
+ *
+ * Prerequisites:
+ * - Authenticated via the project storageState (e2e/global.setup.ts consumes TEST_USER_*)
+ * - User must have access to an organization with custom domains
+ * - At least one custom domain should exist for testing
+ *
+ * Usage:
+ *   TEST_USER_EMAIL=test@example.com TEST_USER_PASSWORD=secret \
+ *     pnpm playwright test domain-email-config.spec.ts
+ */
+
+import { expect, type Locator, type Page, test } from '@playwright/test';
+
+import { env, gateReason } from '../support/env';
+import { getFirstDomain } from '../support/domains';
+import { getFirstOrganization } from '../support/organizations';
+
+// HOLDING ACTION — not coverage (E2E remediation plan Phase 2.4 / PR 5).
+// Every test needs a custom domain on the test account (optional deployment
+// config), so it is env-gated rather than fixme'd (issue #3420): set
+// E2E_CUSTOM_DOMAINS against a domains-enabled target to run it. No CI lane
+// sets that yet, so this suite is DORMANT in CI — real coverage returns when
+// PR 6 adds a domains-enabled lane + fixtures. Gating before the body runs
+// keeps CI from timing out in the org/domain DOM helpers.
+test.beforeEach(() => {
+  test.skip(!env.hasCustomDomains, gateReason.customDomains);
+});
+
+// -----------------------------------------------------------------------------
+// Test Helpers
+// -----------------------------------------------------------------------------
+
+/**
+ * Navigate to domain email config page
+ */
+async function navigateToEmailConfig(
+  page: Page,
+  orgExtid: string,
+  domainExtid: string
+): Promise<boolean> {
+  await page.goto(`/org/${orgExtid}/domains/${domainExtid}/email`);
+  await expect(page.locator('html[data-app-ready="true"]')).toBeAttached();
+
+  const form = page.locator('form');
+  return form.isVisible().catch(() => false);
+}
+
+/**
+ * Find the enabled toggle
+ */
+async function findEnabledToggle(page: Page): Promise<Locator> {
+  const toggle = page
+    .locator('#email-enabled')
+    .or(page.locator('[data-testid="config-enabled-toggle"]'))
+    .or(page.locator('button[role="switch"]'))
+    .first();
+  await expect(toggle, 'the email config form has an Enabled toggle').toBeVisible();
+  return toggle;
+}
+
+/**
+ * Check if toggle is enabled
+ */
+async function isToggleEnabled(toggle: Locator): Promise<boolean> {
+  const ariaChecked = await toggle.getAttribute('aria-checked');
+  return ariaChecked === 'true';
+}
+
+// -----------------------------------------------------------------------------
+// Test Suite: Form Loading
+// -----------------------------------------------------------------------------
+
+test.describe('Domain Email Config - Form Loading', () => {
+  test.beforeEach(async ({ page }) => {
+    page.setDefaultTimeout(15000);
+  });
+
+  test('TC-DEC-001: email config form loads successfully', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    const formLoaded = await navigateToEmailConfig(page, org.extid, domain.extid);
+    expect(formLoaded, 'Email config form should load').toBe(true);
+
+    // Verify form elements are present
+    await expect(page.locator('#email-from-name')).toBeVisible();
+    await expect(page.locator('#email-from-address')).toBeVisible();
+  });
+
+  test('TC-DEC-002: form displays domain context', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    // Domain name should be visible somewhere on page
+    const domainText = page.getByText(domain.displayDomain);
+    await expect(domainText.first()).toBeVisible();
+  });
+
+  test('TC-DEC-003: back navigation returns to domains list', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    // Find and click back button
+    const backButton = page.locator('button').filter({ has: page.locator('[name="arrow-left"]') });
+    if (await backButton.isVisible()) {
+      await backButton.click();
+      await expect(page).toHaveURL(new RegExp(`/org/${org.extid}/domains`));
+    }
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Test Suite: Form Fields
+// -----------------------------------------------------------------------------
+
+test.describe('Domain Email Config - Form Fields', () => {
+  test.beforeEach(async ({ page }) => {
+    page.setDefaultTimeout(15000);
+  });
+
+  test('TC-DEC-004: from_name field accepts input', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    const fromNameInput = page.locator('#email-from-name');
+    await fromNameInput.fill('Test Sender Name');
+    await expect(fromNameInput).toHaveValue('Test Sender Name');
+  });
+
+  test('TC-DEC-005: from_address field validates email format', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    const fromAddressInput = page.locator('#email-from-address');
+
+    // Enter valid email
+    await fromAddressInput.fill('test@example.com');
+    await expect(fromAddressInput).toHaveValue('test@example.com');
+
+    // Note: Client-side validation may show error state for invalid email
+    // This test verifies the field accepts input
+  });
+
+  test('TC-DEC-006: reply_to field is optional', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    const replyToInput = page.locator('#email-reply-to');
+    await expect(replyToInput).toBeVisible();
+
+    // Check it's not marked as required
+    const required = await replyToInput.getAttribute('required');
+    expect(required).toBeNull();
+  });
+
+  test('TC-DEC-007: fields have proper labels', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    // Check for required field indicators
+    const requiredIndicators = page.locator('span.text-red-500');
+    const count = await requiredIndicators.count();
+    expect(count, 'Should have required field indicators').toBeGreaterThanOrEqual(2);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Test Suite: Toggle Behavior
+// -----------------------------------------------------------------------------
+
+test.describe('Domain Email Config - Toggle Behavior', () => {
+  test.beforeEach(async ({ page }) => {
+    page.setDefaultTimeout(15000);
+  });
+
+  test('TC-DEC-008: enabled toggle is present', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    // findEnabledToggle asserts the toggle is visible
+    await findEnabledToggle(page);
+  });
+
+  test('TC-DEC-009: toggle can be switched', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    const toggle = await findEnabledToggle(page);
+
+    const initialState = await isToggleEnabled(toggle);
+
+    // Click toggle and poll for the reactive state to flip (no sleep)
+    await toggle.click();
+    await expect.poll(() => isToggleEnabled(toggle)).toBe(!initialState);
+  });
+
+  test('TC-DEC-010: toggle has proper ARIA attributes', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    const toggle = await findEnabledToggle(page);
+
+    const role = await toggle.getAttribute('role');
+    expect(role).toBe('switch');
+
+    const ariaChecked = await toggle.getAttribute('aria-checked');
+    expect(['true', 'false']).toContain(ariaChecked);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Test Suite: Form Validation
+// -----------------------------------------------------------------------------
+
+test.describe('Domain Email Config - Form Validation', () => {
+  test.beforeEach(async ({ page }) => {
+    page.setDefaultTimeout(15000);
+  });
+
+  test('TC-DEC-011: save button disabled when required fields empty', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    // Clear required fields
+    const fromNameInput = page.locator('#email-from-name');
+    const fromAddressInput = page.locator('#email-from-address');
+
+    await fromNameInput.clear();
+    await fromAddressInput.clear();
+
+    // Save button should be disabled
+    const saveButton = page.locator('button[type="submit"]');
+    await expect(saveButton).toBeDisabled();
+  });
+
+  test('TC-DEC-012: save button enabled when required fields filled', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    // Fill required fields
+    const fromNameInput = page.locator('#email-from-name');
+    const fromAddressInput = page.locator('#email-from-address');
+
+    await fromNameInput.fill('Test Sender');
+    await fromAddressInput.fill('test@example.com');
+
+    // Save button should be enabled
+    const saveButton = page.locator('button[type="submit"]');
+    await expect(saveButton).toBeEnabled();
+  });
+
+  test('TC-DEC-013: invalid email format prevents save', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    // Fill with invalid email
+    const fromNameInput = page.locator('#email-from-name');
+    const fromAddressInput = page.locator('#email-from-address');
+
+    await fromNameInput.fill('Test Sender');
+    await fromAddressInput.fill('not-an-email');
+
+    // Save button should be disabled due to invalid email
+    const saveButton = page.locator('button[type="submit"]');
+    await expect(saveButton).toBeDisabled();
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Test Suite: Save and Delete Operations
+// -----------------------------------------------------------------------------
+
+test.describe('Domain Email Config - Save and Delete', () => {
+  test.beforeEach(async ({ page }) => {
+    page.setDefaultTimeout(15000);
+  });
+
+  test('TC-DEC-014: save button submits form', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    // Mock the save API
+    let saveRequestMade = false;
+    await page.route(`**/api/domains/${domain.extid}/email`, async (route) => {
+      if (route.request().method() === 'PUT' || route.request().method() === 'PATCH') {
+        saveRequestMade = true;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            record: {
+              from_name: 'Test Sender',
+              from_address: 'test@example.com',
+              reply_to: '',
+              enabled: true,
+            },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // Fill and save
+    await page.locator('#email-from-name').fill('Test Sender');
+    await page.locator('#email-from-address').fill('test@example.com');
+
+    const saveButton = page.locator('button[type="submit"]');
+    await saveButton.click();
+
+    // Poll for the capture flag set by the route handler (no sleep)
+    await expect.poll(() => saveRequestMade).toBe(true);
+  });
+
+  test('TC-DEC-015: delete button shows confirmation', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    // Look for delete button
+    const deleteButton = page.locator('button').filter({ hasText: /delete/i });
+
+    if (await deleteButton.isVisible()) {
+      await deleteButton.click();
+
+      // Confirmation dialog should appear
+      const confirmDialog = page.locator('[role="dialog"], .modal');
+      const confirmButton = page
+        .locator('button')
+        .filter({ hasText: /confirm|delete/i })
+        .last();
+
+      const hasConfirmation =
+        (await confirmDialog.isVisible().catch(() => false)) ||
+        (await confirmButton.isVisible().catch(() => false));
+
+      expect(hasConfirmation).toBe(true);
+    }
+  });
+
+  test('TC-DEC-016: discard button resets form changes', async ({ page }) => {
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    const fromNameInput = page.locator('#email-from-name');
+    const originalValue = await fromNameInput.inputValue();
+
+    // Make a change
+    await fromNameInput.fill('Changed Value');
+
+    // Look for discard/reset button
+    const discardButton = page.locator('button').filter({ hasText: /discard|reset|cancel/i });
+
+    if (await discardButton.isVisible()) {
+      await discardButton.click();
+
+      // Value should be reset
+      const newValue = await fromNameInput.inputValue();
+      // Either back to original or empty
+      expect([originalValue, '']).toContain(newValue);
+    }
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Test Suite: Mobile Responsiveness
+// -----------------------------------------------------------------------------
+
+test.describe('Domain Email Config - Mobile', () => {
+  test.beforeEach(async ({ page }) => {
+    page.setDefaultTimeout(15000);
+  });
+
+  test('TC-DEC-017: form is usable on mobile viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+
+    const org = await getFirstOrganization(page);
+
+    const domain = await getFirstDomain(page, org.extid);
+
+    await navigateToEmailConfig(page, org.extid, domain.extid);
+
+    // Form should be visible
+    const form = page.locator('form');
+    await expect(form).toBeVisible();
+
+    // No horizontal overflow
+    const { hasOverflow } = await page.evaluate(() => {
+      const scrollWidth = document.body.scrollWidth;
+      const viewportWidth = window.innerWidth;
+      return { hasOverflow: scrollWidth - viewportWidth > 15 };
+    });
+
+    expect(hasOverflow).toBe(false);
+  });
+});
+
+/**
+ * Qase Test Case Export Format
+ *
+ * Suite: Domain Email Configuration
+ *
+ * | ID          | Title                                          | Priority | Automation |
+ * |-------------|------------------------------------------------|----------|------------|
+ * | TC-DEC-001  | email config form loads successfully           | Critical | Automated  |
+ * | TC-DEC-002  | form displays domain context                   | High     | Automated  |
+ * | TC-DEC-003  | back navigation returns to domains list        | Medium   | Automated  |
+ * | TC-DEC-004  | from_name field accepts input                  | Critical | Automated  |
+ * | TC-DEC-005  | from_address field validates email format      | Critical | Automated  |
+ * | TC-DEC-006  | reply_to field is optional                     | High     | Automated  |
+ * | TC-DEC-007  | fields have proper labels                      | Medium   | Automated  |
+ * | TC-DEC-008  | enabled toggle is present                      | Critical | Automated  |
+ * | TC-DEC-009  | toggle can be switched                         | Critical | Automated  |
+ * | TC-DEC-010  | toggle has proper ARIA attributes              | High     | Automated  |
+ * | TC-DEC-011  | save button disabled when fields empty         | Critical | Automated  |
+ * | TC-DEC-012  | save button enabled when fields filled         | Critical | Automated  |
+ * | TC-DEC-013  | invalid email format prevents save             | Critical | Automated  |
+ * | TC-DEC-014  | save button submits form                       | Critical | Automated  |
+ * | TC-DEC-015  | delete button shows confirmation               | High     | Automated  |
+ * | TC-DEC-016  | discard button resets form changes             | Medium   | Automated  |
+ * | TC-DEC-017  | form is usable on mobile viewport              | High     | Automated  |
+ */

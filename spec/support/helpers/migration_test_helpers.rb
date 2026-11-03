@@ -1,0 +1,401 @@
+# spec/support/helpers/migration_test_helpers.rb
+#
+# frozen_string_literal: true
+
+require 'sequel'
+require 'fileutils'
+require 'timeout'
+require 'concurrent'
+require 'securerandom'
+
+# Shared helpers for migration integration tests
+#
+# Provides utilities for:
+# - Creating and cleaning up test databases
+# - Simulating partial migration states
+# - Verifying schema versions and table existence
+# - Running concurrent migration processes (PostgreSQL only)
+#
+# Usage:
+#   RSpec.describe 'Migrations', :full_auth_mode do
+#     include MigrationTestHelpers
+#
+#     it 'completes partial migrations' do
+#       db = create_partial_migration_state(version: 3)
+#       Auth::Migrator.run_if_needed
+#       expect(verify_schema_version(db: db)).to eq(5)
+#     end
+#   end
+#
+module MigrationTestHelpers
+  # Create a fresh database connection for testing migrations
+  #
+  # @param url [String] Database URL (defaults to ENV['AUTH_DATABASE_URL'])
+  # @return [Sequel::Database] Database connection
+  def create_test_database_connection(url: nil)
+    url ||= ENV['AUTH_DATABASE_URL'] || 'sqlite::memory:'
+    Sequel.connect(url)
+  end
+
+  # Build a PostgreSQL connection URL with a different user/password.
+  # Derives host, port, and database from the given base URL.
+  #
+  # @param user [String] PostgreSQL role name
+  # @param password [String] Password for the role
+  # @param base_url [String] URL to derive host/port/database from
+  # @return [String] Connection URL
+  def build_pg_url(user:, password: nil, base_url: ENV.fetch('AUTH_DATABASE_URL_MIGRATIONS'))
+    uri = URI.parse(base_url)
+    uri.user = user
+    uri.password = password
+    uri.to_s
+  end
+
+  # Connect as PostgreSQL superuser, derived from existing database URL.
+  # Falls back to password 'postgres' (CI default) when PGPASSWORD is unset.
+  # Returns nil if the connection fails.
+  #
+  # @return [Sequel::Database, nil]
+  def connect_as_superuser
+    url = build_pg_url(user: 'postgres', password: ENV.fetch('PGPASSWORD', 'postgres'))
+    db = Sequel.connect(url)
+    db.run('SELECT 1')
+    db
+  rescue Sequel::DatabaseConnectionError, Sequel::DatabaseError
+    db&.disconnect
+    nil
+  end
+
+  # Run migrations using the elevated connection.
+  # Default privileges (set by initialize_auth_db.sql / CI setup) auto-grant
+  # the test user DML access to tables created by the migration user.
+  #
+  # @param migration_db [Sequel::Database] Elevated connection for running migrations
+  # @param migrations_dir [String] Path to migrations directory
+  def run_test_migrations(migration_db:, migrations_dir:)
+    Sequel::Migrator.run(migration_db, migrations_dir)
+  end
+
+  # Get the current schema version from the database
+  #
+  # @param db [Sequel::Database] Database connection
+  # @return [Integer] Current schema version (0 if schema_info table doesn't exist)
+  def get_schema_version(db:)
+    return 0 unless db.table_exists?(:schema_info)
+
+    db[:schema_info].first&.fetch(:version, 0) || 0
+  end
+
+  # Verify the schema version matches expected value
+  #
+  # @param db [Sequel::Database] Database connection
+  # @param expected [Integer] Expected schema version
+  # @return [Integer] Actual schema version
+  def verify_schema_version(db:, expected: nil)
+    version = get_schema_version(db: db)
+    expect(version).to eq(expected) if expected
+    version
+  end
+
+  # Check if a table exists in the database
+  #
+  # @param db [Sequel::Database] Database connection
+  # @param table_name [Symbol] Table name to check
+  # @return [Boolean] True if table exists
+  def verify_table_exists(db:, table_name:)
+    db.table_exists?(table_name)
+  end
+
+  # Derive the issuer-scoped migration's numeric version from its filename, so a
+  # later renumber doesn't rot the regression specs that target migration 008
+  # (#3840 Phase 0 / #3838 item 5). Defaults to the host example's
+  # +migrations_dir+; pass +dir+ to override.
+  #
+  # @param dir [String] Migrations directory (defaults to the host's migrations_dir)
+  # @return [Integer] The issuer-scoped migration's version number
+  def issuer_migration_version(dir = migrations_dir)
+    file = Dir.glob(File.join(dir, '[0-9]*issuer_scoped*.rb')).first
+    raise 'issuer-scoped migration not found' unless file
+
+    File.basename(file)[/\A(\d+)/, 1].to_i
+  end
+
+  # Insert a minimal valid account row and return its primary key. Used by the
+  # issuer-scoped reversibility specs to populate account_identities.
+  #
+  # @param db [Sequel::Database] Database connection
+  # @param email [String] Account email
+  # @return [Integer] The new account's id
+  def insert_account(db, email)
+    db[:accounts].insert(email: email, status_id: 2, external_id: SecureRandom.uuid)
+  end
+
+  # Create a database with partial migration state (migrated to specific version)
+  #
+  # @param db [Sequel::Database] Database connection
+  # @param version [Integer] Target migration version (1-6, where 6 is the last
+  #   structural migration before data-only migrations like email normalization)
+  # @return [Sequel::Database] Database with partial migrations
+  def create_partial_migration_state(db:, version:)
+    raise ArgumentError, 'version must be between 1 and 6' unless (1..6).cover?(version)
+
+    Sequel.extension :migration
+    migrations_dir = File.join(Onetime::HOME, 'apps', 'web', 'auth', 'migrations')
+
+    Sequel::Migrator.run(
+      db,
+      migrations_dir,
+      target: version,
+      use_transactions: true,
+    )
+
+    db
+  end
+
+  # Drop all Rodauth tables from the database (clean slate)
+  #
+  # For PostgreSQL with dual-user setup (CI environment), this method uses
+  # the elevated migration connection to drop/recreate the schema, ensuring
+  # proper ownership and default privileges are maintained.
+  #
+  # @param db [Sequel::Database] Database connection
+  def drop_all_tables(db:)
+    if db.database_type == :postgres
+      # For PostgreSQL: drop tables owned by the migrator role.
+      # Prefer superuser (can drop anything), fall back to migrator, then caller.
+      superuser_url = ENV['AUTH_DATABASE_URL_TEST_SUPERUSER']
+      migration_url = ENV['AUTH_DATABASE_URL_MIGRATIONS']
+
+      elevated_url = [superuser_url, migration_url].find { |u| u && !u.to_s.empty? && u != ENV['AUTH_DATABASE_URL'] }
+
+      if elevated_url
+        elevated_db = Sequel.connect(elevated_url)
+        begin
+          drop_and_recreate_postgres_schema(elevated_db)
+        ensure
+          elevated_db.disconnect
+        end
+      else
+        drop_and_recreate_postgres_schema(db)
+      end
+    else
+      # For SQLite: drop tables individually (no schema support)
+      tables = %i[
+        account_sms_codes
+        account_recovery_codes
+        account_otp_unlocks
+        account_otp_keys
+        account_webauthn_keys
+        account_webauthn_user_ids
+        account_session_keys
+        account_active_session_keys
+        account_activity_times
+        account_password_change_times
+        account_email_auth_keys
+        account_lockouts
+        account_login_failures
+        account_remember_keys
+        account_login_change_keys
+        account_verification_keys
+        account_jwt_refresh_keys
+        account_password_reset_keys
+        account_authentication_audit_logs
+        account_previous_password_hashes
+        account_password_hashes
+        accounts
+        account_statuses
+        account_identities
+        schema_info
+      ]
+
+      tables.each do |table|
+        db.drop_table?(table)
+      rescue Sequel::DatabaseError
+        # Ignore errors - table might not exist
+        nil
+      end
+    end
+  rescue Sequel::DatabaseError => e
+    warn "[MigrationTestHelpers] Failed to drop tables: #{e.message}"
+    # Continue - tests may fail but at least we tried
+  end
+
+  private
+
+  # Drop all tables in PostgreSQL public schema
+  #
+  # Uses DROP TABLE CASCADE instead of DROP SCHEMA because onetime_migrator
+  # doesn't own the public schema in CI (postgres does). Table owners can
+  # drop their own tables, but only schema owners can drop schemas.
+  #
+  # Drops ALL tables including schema_info so migrations re-run from scratch.
+  def drop_and_recreate_postgres_schema(db)
+    # Get all tables and drop them in a single statement (including schema_info)
+    tables = db.tables
+    if tables.any?
+      table_list = tables.map { |t| db.literal(Sequel.identifier(t)) }.join(', ')
+      db.run "DROP TABLE IF EXISTS #{table_list} CASCADE"
+    end
+
+    # Drop functions that migrations will recreate (exclude system/extension functions)
+    our_functions = %w[
+      rodauth_get_salt
+      rodauth_valid_password_hash
+      cleanup_expired_tokens
+      update_last_login_time
+      cleanup_expired_tokens_extended
+      update_accounts_updated_at
+      update_session_last_use
+      cleanup_old_audit_logs
+      get_account_security_summary
+    ]
+
+    db.run "DROP FUNCTION IF EXISTS #{our_functions.join(', ')} CASCADE" if our_functions.any?
+  end
+
+  # Simulate concurrent process boot by running migrations in parallel threads
+  # Each thread runs migrations independently (like separate app instances)
+  #
+  # @param process_count [Integer] Number of concurrent processes to simulate (default: 3)
+  # @param database_url [String] Database URL for all processes
+  # @param migrations_dir [String] Path to migrations directory
+  # @param timeout_seconds [Integer] Maximum time to wait for all processes (default: 10)
+  # @return [Array<Hash>] Results from each thread with :success, :error, :version
+  def simulate_concurrent_boot(process_count: 3, database_url:, migrations_dir:, timeout_seconds: 10)
+    results = Concurrent::Array.new
+    threads = []
+
+    process_count.times do |i|
+      threads << Thread.new do
+        result = { process_id: i, success: false, error: nil, version: nil }
+
+        begin
+          # Each "process" creates its own database connection
+          # This simulates separate application instances
+          db = Sequel.connect(database_url)
+
+          begin
+            # Run migrations directly using Sequel::Migrator
+            # This simulates what Auth::Migrator.run_if_needed does internally
+            Sequel.extension :migration
+            Sequel::Migrator.run(
+              db,
+              migrations_dir,
+              use_transactions: true,
+              use_advisory_lock: db.adapter_scheme == :postgres,
+            )
+
+            result[:version] = get_schema_version(db: db)
+            result[:success] = true
+          ensure
+            db.disconnect
+          end
+        rescue StandardError => e
+          result[:error]   = e.message
+          result[:success] = false
+        end
+
+        results << result
+      end
+    end
+
+    # Wait for all threads with timeout
+    Timeout.timeout(timeout_seconds) do
+      threads.each(&:join)
+    end
+
+    results.to_a
+  rescue Timeout::Error
+    threads.each(&:kill)
+    raise 'Concurrent migration test timed out'
+  end
+
+  # Verify all core Rodauth tables exist (migration 001)
+  #
+  # @param db [Sequel::Database] Database connection
+  # @return [Boolean] True if all tables exist
+  def verify_core_tables_exist(db:)
+    core_tables = %i[
+      account_statuses
+      accounts
+      account_password_hashes
+      account_authentication_audit_logs
+      account_password_reset_keys
+      account_jwt_refresh_keys
+      account_verification_keys
+      account_login_change_keys
+      account_remember_keys
+      account_login_failures
+      account_lockouts
+      account_email_auth_keys
+      account_password_change_times
+      account_activity_times
+      account_session_keys
+      account_active_session_keys
+      account_webauthn_user_ids
+      account_webauthn_keys
+      account_otp_keys
+      account_otp_unlocks
+      account_recovery_codes
+      account_sms_codes
+      account_previous_password_hashes
+    ]
+
+    core_tables.all? { |table| db.table_exists?(table) }
+  end
+
+  # Verify PostgreSQL-specific features exist (functions, triggers, views)
+  #
+  # @param db [Sequel::Database] Database connection
+  # @return [Hash] Status of each feature type
+  def verify_postgres_features(db:)
+    return { functions: false, triggers: false, views: false } unless db.database_type == :postgres
+
+    {
+      functions: postgres_functions_exist?(db: db),
+      triggers: postgres_triggers_exist?(db: db),
+      views: postgres_views_exist?(db: db),
+    }
+  end
+
+  private
+
+  # Check if PostgreSQL functions exist (migration 003)
+  def postgres_functions_exist?(db:)
+    # Check for rodauth_get_salt function (created by migration 003)
+    result = db.fetch(<<~SQL).first
+      SELECT EXISTS (
+        SELECT 1 FROM pg_proc
+        WHERE proname = 'rodauth_get_salt'
+      ) AS exists
+    SQL
+
+    result[:exists]
+  end
+
+  # Check if PostgreSQL triggers exist (migration 004)
+  def postgres_triggers_exist?(db:)
+    # Check for trigger on accounts table
+    result = db.fetch(<<~SQL).first
+      SELECT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgname = 'update_accounts_updated_at'
+      ) AS exists
+    SQL
+
+    result[:exists]
+  end
+
+  # Check if PostgreSQL views exist (migration 005)
+  def postgres_views_exist?(db:)
+    # Check for at least one view (adjust based on actual view names)
+    result = db.fetch(<<~SQL).first
+      SELECT COUNT(*) AS count
+      FROM pg_views
+      WHERE schemaname = 'public'
+        AND viewname LIKE 'account_%'
+    SQL
+
+    result[:count] > 0
+  end
+end

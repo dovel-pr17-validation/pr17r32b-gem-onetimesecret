@@ -1,0 +1,92 @@
+{
+  "api.domains.errors.domain_id_required": {
+    "text": "Domain ID required",
+    "context": "Returned when a domains-API request is missing the extid path parameter",
+    "content_hash": "6837426b"
+  },
+  "api.domains.errors.domain_not_found": {
+    "text": "Domain not found: %{extid}",
+    "context": "Returned when CustomDomain.find_by_extid returns nil for the requested extid (apps/api/domains/logic/incoming_config/base.rb)",
+    "content_hash": "a0fd1025"
+  },
+  "api.domains.errors.organization_not_found": {
+    "text": "Organization not found for domain: %{domain}",
+    "context": "Returned when Organization.load returns nil for the domain's org_id (apps/api/domains/logic/incoming_config/base.rb)",
+    "content_hash": "632afc93"
+  },
+  "api.domains.errors.incoming_secrets_disabled": {
+    "text": "Incoming secrets is not enabled on this instance",
+    "context": "Returned when features.incoming.enabled is false at the instance level (apps/api/domains/logic/incoming_config/base.rb)",
+    "content_hash": "45c0b5c4"
+  },
+  "api.domains.errors.incoming_secrets_entitlement_required": {
+    "text": "Incoming secrets management requires the incoming_secrets entitlement. Please upgrade your plan.",
+    "context": "Returned when the owning organization lacks the incoming_secrets entitlement (apps/api/domains/logic/incoming_config/base.rb)",
+    "content_hash": "1af54ec2"
+  },
+  "api.domains.errors.incoming_config_not_found": {
+    "text": "Incoming configuration not found for domain: %{extid}",
+    "context": "Returned by DELETE /api/domains/:extid/incoming-config when no IncomingConfig record exists for the domain",
+    "content_hash": "491644a8"
+  },
+  "api.domains.errors.recipients_max_exceeded": {
+    "text": "Maximum %{max} recipients allowed",
+    "context": "Returned by PUT /api/domains/:extid/incoming-config when the request body contains more than IncomingConfig::MAX_RECIPIENTS entries",
+    "content_hash": "159842ad"
+  },
+  "api.domains.errors.recipients_invalid_email": {
+    "text": "Invalid email: %{email}",
+    "context": "Returned by PUT /api/domains/:extid/incoming-config when a recipient email fails Truemail validation",
+    "content_hash": "e9c729c7"
+  },
+  "api.domains.errors.recipients_duplicate": {
+    "text": "Duplicate recipient emails not allowed",
+    "context": "Returned by PUT /api/domains/:extid/incoming-config when the request body contains the same email address more than once",
+    "content_hash": "6de22182"
+  },
+  "api.domains.errors.homepage_secrets_mode_invalid": {
+    "text": "Invalid secrets_mode: %{secrets_mode}",
+    "context": "Returned by PUT /api/domains/:extid/homepage-config when secrets_mode is not one of create|incoming (apps/api/domains/logic/homepage_config/put_homepage_config.rb)",
+    "content_hash": "cf093a04"
+  },
+  "api.domains.errors.homepage_incoming_entitlement_required": {
+    "text": "Incoming secrets mode requires the incoming_secrets entitlement. Please upgrade your plan.",
+    "context": "Returned by PUT /api/domains/:extid/homepage-config when secrets_mode=incoming but the owning organization lacks the incoming_secrets entitlement",
+    "content_hash": "d68b13d8"
+  },
+  "api.domains.errors.homepage_incoming_not_ready": {
+    "text": "Incoming secrets must be enabled with at least one recipient before it can be used as the homepage.",
+    "context": "Returned by PUT /api/domains/:extid/homepage-config when secrets_mode=incoming but the domain's IncomingConfig is missing, disabled, or has no recipients",
+    "content_hash": "556da6e2"
+  },
+  "api.domains.errors.homepage_cidr_invalid": {
+    "text": "Not a valid IP address or CIDR range: %{cidr}. Enter an IPv4 or IPv6 address or range, for example 203.0.113.0/24",
+    "context": "Returned by PUT /api/domains/:extid/homepage-config and PUT /api/colonel/domains/:extid/configs/homepage (fields allowed_cidrs / denied_cidrs) when an entry does not parse as an IPv4/IPv6 address or CIDR range. %{cidr} is the refused entry as typed",
+    "content_hash": "20c2572d"
+  },
+  "api.domains.errors.homepage_cidrs_max_exceeded": {
+    "text": "Maximum %{max} network entries allowed per list",
+    "context": "Returned by PUT /api/domains/:extid/homepage-config and the colonel homepage config upsert when allowed_cidrs or denied_cidrs holds more than HomepageConfig::MAX_CIDRS distinct ranges",
+    "content_hash": "faac87f8"
+  },
+  "api.domains.errors.homepage_network_rules_disabled": {
+    "text": "Homepage network rules are not enabled on this installation",
+    "context": "Returned by PUT /api/domains/:extid/homepage-config (field allowed_cidrs / denied_cidrs) when either list is sent while features.organizations.homepage_network_rules_ui_enabled (ORGS_HOMEPAGE_NETWORK_RULES_UI_ENABLED) is off",
+    "content_hash": "b5a26c48"
+  },
+  "api.domains.errors.related_origins_invalid": {
+    "text": "Not a valid origin: %{origins}. Enter the scheme and host, for example https://vault.example.com",
+    "context": "Returned by PUT /api/colonel/domains/:extid/configs/signin (field related_origins) when an entry is not an absolute http(s)://host[:port] origin. %{origins} is the refused entry as typed",
+    "content_hash": "5acb92ca"
+  },
+  "api.domains.errors.related_origins_foreign_organization": {
+    "text": "These origins belong to another organization and cannot be added: %{origins}",
+    "context": "Returned by PUT /api/colonel/domains/:extid/configs/signin (field related_origins) when an entry names a custom domain owned by a different organization (#4421). %{origins} is a comma-separated list of the refused origin URLs",
+    "content_hash": "ac21c1e7"
+  },
+  "api.domains.errors.allowed_signup_domains_invalid": {
+    "text": "Not a valid domain: %{domains}. Enter a registrable domain name, for example example.com",
+    "context": "Returned by PUT /api/colonel/domains/:extid/configs/signup (field allowed_signup_domains) when an entry is not a domain with a valid public suffix. %{domains} is the refused entry as typed",
+    "content_hash": "2d93472c"
+  }
+}

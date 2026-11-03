@@ -1,0 +1,690 @@
+# lib/onetime/errors.rb
+#
+# frozen_string_literal: true
+
+module Onetime
+  # Marker module for boot errors that must always halt execution, even in
+  # CLI mode. Without this marker, boot! swallows OT::Problem in :cli to
+  # allow REPL debugging — but config errors leave OT.conf unusable, so
+  # commands hit nil errors downstream. Including this module signals
+  # "boot cannot recover from this; surface the error to the user."
+  module FatalBootError; end
+
+  # The Problem class inherits from RuntimeError, which is a subclass of StandardError.
+  # Both RuntimeError and StandardError are standard exception classes in Ruby, but
+  # RuntimeError is used for errors that are typically caused by the program's logic
+  # and are usually rescued implicitly (e.g., in `rescue RuntimeError`).
+  # StandardError is the default exception type for many Ruby errors and is also rescue-able.
+  #
+  # Subclassing from RuntimeError indicates the error is more specific to runtime conditions.
+  class Problem < RuntimeError
+    attr_accessor :message
+
+    def initialize(message = nil)
+      super
+      @message = message
+    end
+
+    # Exception#to_s returns the message stored at construction time inside
+    # the C-level internal slot, which never changes — so when ErrorResolver
+    # mutates @message via the accessor to install the localized string,
+    # to_s would still return the original. That breaks loggers and
+    # middleware that rely on the standard exception string representation.
+    # Delegating to @message keeps to_s consistent with #message.
+    def to_s
+      @message || super
+    end
+  end
+
+  # Raised when there is an issue with configuration settings, such as missing,
+  # invalid, or malformed configuration data during initialization. This
+  # exception indicates that the application's configuration is not set up
+  # correctly and needs to be reviewed and corrected before normal operation
+  # can proceed.
+  class ConfigError < Problem
+    include FatalBootError
+  end
+
+  class MigrationError < Problem
+    include FatalBootError
+  end
+
+  # Raised at boot by CheckSecretVerifier when site.secret_verifier_mode is
+  # 'enforce' and the stored key verifier does not match the running SECRET
+  # (C10/QS-6). Fatal even in CLI mode: every pre-rotation ciphertext is
+  # unrecoverable under the wrong key, so continuing silently is the failure
+  # this check exists to prevent.
+  class SecretVerifierMismatch < Problem
+    include FatalBootError
+  end
+
+  # Raised when a secret's ciphertext cannot be decrypted with the running
+  # SECRET (C10/QS-6): either the boot-time verifier already flagged a
+  # mismatch (fast-fail before any reveal claim), or this ciphertext predates
+  # a key rotation (per-secret signal; the reveal claim is rolled back so the
+  # record and ciphertext survive). Maps to HTTP 503 in otto_hooks — a
+  # server-side condition, retryable after the operator restores the key.
+  class SecretUndecryptable < Problem
+    attr_accessor :error_key, :args
+    attr_reader :code
+
+    DEFAULT_MESSAGE = 'This secret cannot be decrypted right now. The link is ' \
+                      'still intact — the site operator must restore the ' \
+                      'encryption key before it can be revealed.'
+
+    def initialize(message = DEFAULT_MESSAGE, code: 'secret_undecryptable',
+                   error_key: 'api.secrets.errors.secret_undecryptable', args: {})
+      super(message)
+      @code      = code
+      @error_key = error_key
+      @args      = args
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'SecretUndecryptable',
+        code: code,
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  # A DESTRUCTIVE admin operation could not write its audit event (#4333).
+  #
+  # {Onetime::ColonelAuditEvent.record} is fail-open by default — a broken
+  # audit write must never break the operation that called it. Destructive
+  # verbs (purge, delete, role change, revoke, suspend) opt out of that with
+  # `fail_closed: true`, and this is what they raise: the operator is told the
+  # action has no trail instead of being told it succeeded.
+  #
+  # NOT a Forbidden/Unauthorized subclass, deliberately. Those two families are
+  # what {Onetime::AuditedFailure.authorization_rejection?} drops on the floor
+  # (an authorization rejection must never be able to write into the
+  # count-capped operator trail); an audit-write failure is the opposite — it is
+  # exactly the event an operator needs to see, and classing it as a rejection
+  # would silently suppress the follow-up failure record.
+  #
+  # That follow-up record is SPECIAL-CASED on this class:
+  # {Onetime::AuditedFailure} writes it under
+  # {Onetime::AuditedFailure::AUDIT_WRITE_FAILURE_VERB} rather than the failing
+  # op's verb, so it reads as "the trail is missing an event for X" instead of
+  # claiming X failed. The `verb` and `target` below are what it carries over —
+  # they are the identity of the MISSING event, not of this exception.
+  #
+  # No `register_error_handler` entry, also deliberately: this is a backend
+  # infrastructure failure, not a request-shaped error, so it lands on the
+  # generic 500 path with the datastore/network errors it is caused by (Ruby
+  # sets `cause` to the underlying exception). The message carries verb/target
+  # — both PUBLIC identifiers by the model's own contract — and never the
+  # event's `detail`, which is the field that can hold operator-supplied text.
+  class AuditWriteFailure < Problem
+    attr_reader :verb, :target
+
+    def initialize(verb:, target:, message: nil)
+      @verb   = verb.to_s
+      @target = target.to_s
+
+      message ||= "Audit write failed for #{@verb} on #{@target}; " \
+                  'the action is not recorded in the operator trail'
+      super(message)
+    end
+  end
+
+  # An authentication gate could not READ the policy for the request host
+  # (ADR-034#restrict-to-is-an-access-control-not-a-display-preference /
+  # #degradation-is-fail-closed,
+  # ADR-024#operator-defaults-require-positive-classification, #4139/#4157): the
+  # per-domain half of that policy lives in the datastore, so a read failure
+  # leaves the gate unable to say what this host permits. Sign-in and sign-up
+  # each get a subclass; the SHAPE lives here exactly once, because the two
+  # must not drift into differently-formed 503s for the identical failure.
+  #
+  # Maps to HTTP 503 at every edge — otto_hooks (Core, invite API) and
+  # Auth::ErrorTranslator (the Roda auth router) — because that is the piece
+  # that makes unconditional fail-closed survivable. A gate's normal reject
+  # shape is a 404 (ADR-034#reject-as-not-found-not-forbidden) whose whole
+  # point is to be indistinguishable from an
+  # undefined route, or a bare redirect home; answering an unreadable policy
+  # the same way would put mystery not-founds on the auth routes of an install
+  # that restricts nothing, indistinguishable from a routing regression. A 503
+  # says what actually happened — a backend read failed, retry — and is
+  # alertable as itself. That 404 exists to hide policy-gated methods; when the
+  # policy is unreadable there is no policy to hide.
+  #
+  # NOT a FormError/Forbidden: nothing about the request is wrong.
+  #
+  # Otto resolves error handlers by walking error.class.ancestors, but this
+  # parent is deliberately registered nowhere: each subclass carries its own
+  # register_error_handler entry in lib/onetime/application/otto_hooks.rb so
+  # the response's error_type names the gate that failed. Inheriting from this
+  # class buys the shape (RETRY_AFTER, to_h), not the 503.
+  class AuthPolicyUnavailable < Problem
+    # Seconds. Surfaced in the body (Otto error handlers cannot set response
+    # headers) and lifted into a Retry-After header by
+    # Onetime::Middleware::RetryAfterHeader.
+    RETRY_AFTER = 5
+
+    def initialize(message = self.class::DEFAULT_MESSAGE)
+      super
+    end
+
+    # error_type is derived from the class name rather than restated per
+    # subclass: the two surfaces must be separable in alerting (a 503 on
+    # sign-up is a different page being down than a 503 on sign-in) without
+    # anyone having to keep a hand-written string in sync with the class.
+    def to_h
+      {
+        error: message,
+        error_type: self.class.name.split('::').last,
+        retry_after: self.class::RETRY_AFTER,
+      }
+    end
+  end
+
+  # The `restrict_to` / sign-in policy for the REQUEST HOST could not be read.
+  # Raised by Core::Controllers::Base#signin_policy_read_failed! and by
+  # SigninConfig.resolve_lookup_failure.
+  class SigninPolicyUnavailable < AuthPolicyUnavailable
+    DEFAULT_MESSAGE = 'Sign-in is temporarily unavailable. Please try again shortly.'
+  end
+
+  # The sign-up policy for the REQUEST HOST could not be read (#4157). Same
+  # rule and same shape as the sign-in sibling above, deliberately NOT the same
+  # class: the user-visible copy would otherwise say "sign-in" on a failed
+  # POST /auth/create-account, and the error_type is what routes the alert.
+  #
+  # The decision to raise is not restated here or at the call sites — it is
+  # SignupConfig.resolve_lookup_failure, which carves out positively-classified
+  # operator hosts via the same SigninConfig.operator_host? predicate the
+  # sign-in path uses, so the two gates cannot disagree about which hosts
+  # survive a datastore blip. The one other raiser,
+  # SignupConfig#validate_domain_allowlist, has no host to carve out: it runs
+  # only after the host's own config was read.
+  class SignupPolicyUnavailable < AuthPolicyUnavailable
+    DEFAULT_MESSAGE = 'Sign-up is temporarily unavailable. Please try again shortly.'
+  end
+
+  # The CustomDomain record for the REQUEST HOST could not be read (#4668).
+  # DomainStrategy made the read while classifying the host, the read
+  # raised, and Onetime::CustomDomain::Lookup published the failure for the
+  # request (state read_failed); the host classified :invalid. Raised by the
+  # auth router's before_rodauth hook (apps/web/auth/config/hooks/restrict_to.rb)
+  # for every Rodauth route on such a host, before any sign-in gate runs. The
+  # SSO request and callback phases are served by OmniAuth outside Rodauth's
+  # routes, so they answer the same condition with a redirect to
+  # /signin?auth_error=domain_unavailable (apps/web/auth/config/hooks/omniauth_tenant.rb)
+  # carrying the same copy.
+  #
+  # ONE answer for every exception class the read raised, deliberately. The
+  # lookup keeps any StandardError (Lookup.capture), while the gates rescue
+  # only Redis::BaseError around their reads, so the same unreadable record
+  # used to answer 503 SigninPolicyUnavailable or 500 ServerError depending
+  # on what the datastore client raised, and SSO fell to the generic
+  # sso_failed. The result stays fail-closed: no credential email, no IdP
+  # URL, no change to reset keys. The copy does not guess at the visitor's
+  # intent: the domain is not available, and its owner should get in touch.
+  #
+  # No register_error_handler entry in lib/onetime/application/otto_hooks.rb:
+  # nothing under Otto raises it, and Core's handling of an :invalid host is
+  # unchanged. The Roda auth router maps it through Auth::ErrorTranslator's
+  # AuthPolicyUnavailable family entry: 503, retry_after in the body, lifted
+  # into Retry-After by Onetime::Middleware::RetryAfterHeader.
+  class DomainUnavailable < AuthPolicyUnavailable
+    DEFAULT_MESSAGE = 'This domain is not available. If this is your domain, contact us.'
+  end
+
+  # Raised by Organization.create! when the contact_email unique index already
+  # holds a reservation for that address (the HSETNX check-and-reserve lost).
+  # Rescue this class, never match on the message: the call sites that carry a
+  # fallback (retry without a contact_email, adopt the orphaned org, render
+  # :email_taken) must not be silently disabled by a reworded message.
+  class OrganizationExists < Problem
+  end
+
+  # A persisted account provisioning failure prevents organization and
+  # entitlement context from being established. This is an operator-remediated
+  # account state, not a retryable OrganizationExists exception: callers receive
+  # one stable code/classification without collision evidence or identifiers.
+  class AccountProvisioningFailed < Problem
+    DEFAULT_MESSAGE = 'Account setup could not be completed. Contact support and provide the error code.'
+
+    attr_reader :code, :classification, :failed_at
+
+    def initialize(code:, classification:, failed_at: nil, message: DEFAULT_MESSAGE)
+      super(message)
+      @code           = code.to_s
+      @classification = classification.to_s
+      @failed_at      = failed_at.to_s.empty? ? nil : failed_at.to_f
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'AccountProvisioningFailed',
+        code: code,
+        classification: classification,
+        failed_at: failed_at,
+      }.compact
+    end
+  end
+
+  # Default-workspace provisioning could not run to a verdict THIS request and
+  # persisted nothing: the collision classifier could not read its evidence
+  # (:unreadable is "could not determine", not an account state), or another
+  # request holds the per-customer creation lock and its workspace has not
+  # appeared within the bounded wait. The next request simply retries — which
+  # is exactly why this is a sibling of AccountProvisioningFailed and never
+  # converted into it: a 409 is a latched, operator-remediated state and this
+  # is a 503.
+  #
+  # `reason` is a bounded code for alerting (:collision_unreadable,
+  # :provisioning_in_progress); `collision` carries the classifier result for
+  # the caller's own logging and is never serialized.
+  #
+  # Otto resolves error handlers by walking error.class.ancestors
+  # (otto/core/error_handler.rb), but Problem itself is registered nowhere, so
+  # an unregistered Problem subclass is a 500. This class therefore has its
+  # own registration in lib/onetime/application/otto_hooks.rb; the Roda auth
+  # router maps it through Auth::ErrorTranslator. Both put `retry_after` in
+  # the body so Onetime::Middleware::RetryAfterHeader lifts it into the
+  # header. It lives here, not in the auth app, because it is the lib-level
+  # twin of AccountProvisioningFailed: raised through the same
+  # OrganizationContext path and consumed by both routing stacks.
+  class AccountProvisioningUnavailable < Problem
+    DEFAULT_MESSAGE = 'Account setup is temporarily unavailable. Please try again shortly.'
+    RETRY_AFTER     = 5
+
+    attr_reader :reason, :collision
+
+    def initialize(reason:, collision: nil, message: DEFAULT_MESSAGE)
+      super(message)
+      @reason    = reason.to_sym
+      @collision = collision
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'AccountProvisioningUnavailable',
+        reason: reason,
+        retry_after: RETRY_AFTER,
+      }
+    end
+  end
+
+  # A write that could not complete this request for a reason the caller
+  # did not cause and that a retry can clear: the datastore could not be
+  # reached, or a concurrent write won an optimistic lock. Not bad input,
+  # so not a 422, and not a server fault to page on, so not a 500: a 503
+  # with Retry-After. Registered in lib/onetime/application/otto_hooks.rb
+  # (Problem itself has no handler); the body's retry_after becomes the
+  # Retry-After header (Middleware::RetryAfterHeader).
+  #
+  # `reason` is a bounded code for logs and alerting (:datastore,
+  # :concurrent_write).
+  class TemporarilyUnavailable < Problem
+    DEFAULT_MESSAGE = 'This could not be completed right now. Please try again shortly.'
+    RETRY_AFTER     = 5
+
+    attr_reader :reason
+
+    def initialize(message = DEFAULT_MESSAGE, reason:)
+      super(message)
+      @reason = reason.to_sym
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'TemporarilyUnavailable',
+        reason: reason,
+        retry_after: RETRY_AFTER,
+      }
+    end
+  end
+
+  class RecordNotFound < Problem
+    # i18n shape: error_key + args are resolved at the HTTP edge so logic
+    # classes never touch I18n. error_key is the full dotted i18n key (e.g.
+    # 'api.organizations.errors.organization_not_found'), keeping each call
+    # site greppable from the JSON locale entry.
+    attr_accessor :error_key, :args
+
+    def initialize(message = nil, error_key: nil, args: {})
+      super(message)
+      @error_key = error_key
+      @args      = args
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'RecordNotFound',
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  class MissingSecret < RecordNotFound
+  end
+
+  class FormError < Problem
+    attr_accessor :form_fields, :field, :error_type, :error_key, :args, :details
+
+    # Two shapes:
+    # - Legacy: FormError.new('resolved string', field:, error_type:)
+    # - i18n:   FormError.new(error_key: 'api.organizations.errors.email_required',
+    #                         args: { max: 5 }, field:, error_type:)
+    # The edge handler resolves error_key+args via I18n.t; logic never does.
+    def initialize(message = nil, error_key: nil, args: {}, field: nil, error_type: nil, details: nil)
+      super(message)
+      @error_key  = error_key
+      @args       = args
+      @field      = field
+      @error_type = error_type
+      @details    = details
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: error_type,
+        field: field,
+        error_key: error_key,
+        details: details,
+      }.compact
+    end
+  end
+
+  class Unauthorized < RuntimeError
+  end
+
+  # =========================================================================
+  # CRITICAL ARCHITECTURAL WARNING: EXCEPTION HANDLER ORDERING
+  # =========================================================================
+  #
+  # Onetime::Forbidden represents a standard access-control error (ADR-013).
+  # It inherits from RuntimeError (which is a subclass of StandardError).
+  #
+  # Because of this class hierarchy, in any controller action or middleware
+  # that uses a catch-all rescue block (`rescue StandardError => ex`),
+  # Onetime::Forbidden WILL be caught by that block if not handled first.
+  #
+  # To prevent access control errors from being swallowed, logged as system
+  # failures, and downgraded to 500 Internal Server Errors, you MUST rescue
+  # Onetime::Forbidden explicitly BEFORE StandardError and re-raise it:
+  #
+  #   rescue Onetime::Forbidden
+  #     raise # Propagate up to OttoHooks Forbidden 403 handler
+  #   rescue StandardError => ex
+  #     # Handle unexpected 500 system errors here
+  #   end
+  #
+  # =========================================================================
+  class Forbidden < RuntimeError
+    attr_accessor :message, :error_key, :args
+
+    def initialize(message = 'Forbidden', error_key: nil, args: {})
+      super(message)
+      @message   = message
+      @error_key = error_key
+      @args      = args
+    end
+
+    # See Problem#to_s — same divergence applies to every Forbidden
+    # subclass since they all reuse this attr_accessor :message.
+    def to_s
+      @message || super
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'Forbidden',
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  # Raised when a user lacks the required entitlement for an action.
+  # Contains upgrade path information for the API response.
+  #
+  # i18n shape: error_key + args inherited from Forbidden are resolved at
+  # the HTTP edge by Onetime::Application::ErrorResolver, so logic code
+  # passes the dotted i18n key (e.g. 'api.entitlements.errors.api_access_required')
+  # and never touches I18n directly.
+  class EntitlementRequired < Forbidden
+    attr_reader :entitlement, :current_plan, :upgrade_to
+
+    def initialize(entitlement, current_plan: nil, upgrade_to: nil, message: nil,
+                   error_key: nil, args: {})
+      @entitlement    = entitlement
+      @current_plan   = current_plan
+      @upgrade_to     = upgrade_to
+      default_message = "Feature requires #{entitlement.to_s.tr('_', ' ')} entitlement"
+      super(message || default_message, error_key: error_key, args: args)
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'EntitlementRequired',
+        entitlement: entitlement,
+        current_plan: current_plan,
+        upgrade_to: upgrade_to,
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  class Redirect < RuntimeError
+    attr_reader :location, :status
+
+    def initialize(l, s = 302)
+      @location = l
+      @status   = s
+    end
+  end
+
+  # Raised when guest API routes are disabled or a specific guest operation is disabled.
+  # Contains an error code for the API response.
+  #
+  # i18n shape: error_key + args inherited from Forbidden are resolved at
+  # the HTTP edge by Onetime::Application::ErrorResolver, so logic code
+  # passes the dotted i18n key and never touches I18n directly.
+  class GuestRoutesDisabled < Forbidden
+    attr_reader :code
+
+    def initialize(message = 'Guest API access is disabled', code: 'GUEST_ROUTES_DISABLED',
+                   error_key: nil, args: {})
+      super(message, error_key: error_key, args: args)
+      @code = code
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'GuestRoutesDisabled',
+        code: code,
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  # Raised when a rate limit is exceeded (too many failed attempts, etc.)
+  # Used for security features like passphrase attempt limiting.
+  #
+  # i18n shape: error_key + args inherited from Forbidden are resolved at
+  # the HTTP edge by Onetime::Application::ErrorResolver, so logic code
+  # passes the dotted i18n key and never touches I18n directly.
+  class LimitExceeded < Forbidden
+    attr_reader :retry_after, :attempts, :max_attempts
+
+    def initialize(message = 'Rate limit exceeded', retry_after: nil, attempts: nil, max_attempts: nil,
+                   error_key: nil, args: {})
+      super(message, error_key: error_key, args: args)
+      @retry_after  = retry_after
+      @attempts     = attempts
+      @max_attempts = max_attempts
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'LimitExceeded',
+        retry_after: retry_after,
+        attempts: attempts,
+        max_attempts: max_attempts,
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  # Raised when a destructive colonel verb was invoked without the matching
+  # server-side confirmation token (#4326). A Forbidden subclass deliberately:
+  # AuditedFailure.authorization_rejection? drops the whole Forbidden family, so a
+  # compromised colonel session cannot mint audit events by hammering a destructive
+  # route (the operator trail is count-capped with NO TTL).
+  class ConfirmationRequired < Forbidden
+    ERROR_CODE = 'confirmation_required'
+
+    attr_reader :field
+
+    def initialize(message = 'Confirmation required', field: nil, error_key: nil, args: {})
+      super(message, error_key: error_key, args: args)
+      @field = field
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'ConfirmationRequired',
+        error_code: ERROR_CODE,
+        field: field,
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  # Raised when a TIER 1 colonel verb is invoked outside a live step-up window
+  # (#4327). Forbidden subclass for the same audit-exclusion reason as
+  # {ConfirmationRequired}: whoever holds the cookie can drive this rejection on
+  # demand, and the operator trail is count-capped with no TTL.
+  #
+  # `window` is the configured elevation lifetime in seconds, so the console can
+  # tell the operator how long a fresh window will last before they re-enter a
+  # credential.
+  class ElevationRequired < Forbidden
+    ERROR_CODE = 'elevation_required'
+
+    attr_reader :window
+
+    def initialize(message = 'Step-up authentication required', window: nil, error_key: nil, args: {})
+      super(message, error_key: error_key, args: args)
+      @window = window
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'ElevationRequired',
+        error_code: ERROR_CODE,
+        window: window,
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  # Raised when a step-up ATTEMPT itself fails (#4327) — a wrong password, or a
+  # factor this account cannot satisfy. Distinct from {ElevationRequired}, which
+  # says "you never elevated": this one says "the elevation you just tried did
+  # not work", and the console renders the server's remediation message.
+  class ElevationFailed < Forbidden
+    ERROR_CODE = 'elevation_failed'
+
+    attr_reader :factor
+
+    def initialize(message = 'Step-up authentication failed', factor: nil, error_key: nil, args: {})
+      super(message, error_key: error_key, args: args)
+      @factor = factor
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'ElevationFailed',
+        error_code: ERROR_CODE,
+        factor: factor,
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  # Raised when the colonel's password re-authentication for a lapsed admin
+  # session window fails (POST /api/colonel/reauthenticate, see
+  # ColonelAPI::Logic::Colonel::ReauthenticateSession): a wrong password, or
+  # a verified password whose session id could not be renewed. The sibling of
+  # {ElevationFailed}; a separate code because the console answers it
+  # differently (the expired-session banner, not the step-up prompt).
+  class ReauthenticationFailed < Forbidden
+    ERROR_CODE = 'reauthentication_failed'
+
+    def initialize(message = 'Password verification failed.', error_key: nil, args: {})
+      super
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'ReauthenticationFailed',
+        error_code: ERROR_CODE,
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  # Raised when password re-authentication for a lapsed admin session window
+  # is not offered to this account: in full auth mode, an account with a
+  # second factor enrolled, or one whose second-factor state could not be
+  # read (see ColonelAPI::Logic::Colonel::ReauthenticateSession). The
+  # password alone does not restore the window; the operator signs in again,
+  # which asks for the second factor. Separate from {ReauthenticationFailed}
+  # because re-entering the password cannot change the answer.
+  class ReauthenticationUnavailable < Forbidden
+    ERROR_CODE = 'reauthentication_unavailable'
+
+    def initialize(
+      message = 'This account uses two-factor authentication. Sign in again to restore admin access.',
+      error_key: nil,
+      args: {}
+    )
+      super
+    end
+
+    def to_h
+      {
+        error: message,
+        error_type: 'ReauthenticationUnavailable',
+        error_code: ERROR_CODE,
+        error_key: error_key,
+      }.compact
+    end
+  end
+
+  # A destructive-action guard was called with no expected token — a programming
+  # error in the calling logic class, never a caller-triggerable condition. 500,
+  # never a silent admit. Distinct from a bare Onetime::Problem because Otto
+  # resolves error handlers by EXACT class name and Problem is not registered.
+  class GuardMisconfigured < Problem
+    ERROR_CODE = 'guard_misconfigured'
+
+    def to_h
+      {
+        error: 'Internal configuration error',
+        error_type: 'GuardMisconfigured',
+        error_code: ERROR_CODE,
+      }
+    end
+  end
+end

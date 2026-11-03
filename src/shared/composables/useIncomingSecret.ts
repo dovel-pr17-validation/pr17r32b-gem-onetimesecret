@@ -1,0 +1,216 @@
+// src/shared/composables/useIncomingSecret.ts
+
+import { AsyncHandlerOptions, createError, useAsyncHandler } from '@/shared/composables/useAsyncHandler';
+import { IncomingSecretPayload, IncomingSecretResponse } from '@/schemas/api/incoming';
+import { useIncomingStore } from '@/shared/stores/incomingStore';
+import { useNotificationsStore } from '@/shared/stores/notificationsStore';
+import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+
+interface IncomingSecretForm {
+  memo: string;
+  secret: string;
+  recipientId: string;
+}
+
+interface IncomingSecretOptions {
+  onSuccess?: (response: IncomingSecretResponse) => Promise<void> | void;
+}
+
+interface ValidationErrors {
+  memo?: string;
+  secret?: string;
+  recipientId?: string;
+}
+
+/**
+ * useIncomingSecret
+ *
+ * Orchestrates incoming secret creation workflow. Manages form state,
+ * validation, and submission for incoming secrets feature.
+ *
+ * Responsibilities:
+ * - Form state management
+ * - Client-side validation
+ * - API payload creation
+ * - Form submission
+ * - Response handling
+ * - Navigation after success
+ */
+/* eslint-disable max-lines-per-function */
+export function useIncomingSecret(options?: IncomingSecretOptions) {
+  const incomingStore = useIncomingStore();
+  const notifications = useNotificationsStore();
+  const router = useRouter();
+  const { t } = useI18n();
+
+  // Form state
+  const form = ref<IncomingSecretForm>({
+    memo: '',
+    secret: '',
+    recipientId: '',
+  });
+
+  const errors = ref<ValidationErrors>({});
+  const isSubmitting = ref(false);
+
+  // Computed
+  const memoMaxLength = computed(() => incomingStore.memoMaxLength);
+  const secretMaxLength = computed(() => incomingStore.secretMaxLength);
+  const isFeatureEnabled = computed(() => incomingStore.isFeatureEnabled);
+  const recipients = computed(() => incomingStore.recipients);
+  const isFormValid = computed(() => !!(form.value.secret.trim() && form.value.recipientId));
+
+  // Two separate handlers because useAsyncHandler doesn't support per-call
+  // option overrides. Consider adding wrap(operation, overrides?) signature
+  // to useAsyncHandler if this pattern becomes common.
+
+  // Config loading: no notifications, sets store error state
+  const configHandlerOptions: AsyncHandlerOptions = {
+    notify: false,
+    setLoading: (loading) => (incomingStore.isLoading = loading),
+    onError: (err) => {
+      incomingStore.configError = err.message;
+    },
+  };
+
+  const { wrap: wrapConfig } = useAsyncHandler(configHandlerOptions);
+
+  // Form submission: shows user notifications
+  const submitHandlerOptions: AsyncHandlerOptions = {
+    notify: (message, severity) => notifications.show(message, severity, 'top'),
+    setLoading: (loading) => (isSubmitting.value = loading),
+  };
+
+  const { wrap: wrapSubmit } = useAsyncHandler(submitHandlerOptions);
+
+  // Validation
+  const validateMemo = (): boolean => {
+    // Memo is optional, only validate if provided
+    if (form.value.memo.trim() && form.value.memo.length > memoMaxLength.value) {
+      errors.value.memo = t('incoming.validation_memo_too_long', { max: memoMaxLength.value });
+      return false;
+    }
+
+    errors.value.memo = undefined;
+    return true;
+  };
+
+  const validateSecret = (): boolean => {
+    if (!form.value.secret.trim()) {
+      errors.value.secret = t('incoming.validation_secret_required');
+      return false;
+    }
+
+    errors.value.secret = undefined;
+    return true;
+  };
+
+  const validateRecipient = (): boolean => {
+    if (!form.value.recipientId) {
+      errors.value.recipientId = t('incoming.validation_recipient_required');
+      return false;
+    }
+
+    errors.value.recipientId = undefined;
+    return true;
+  };
+
+  const validateForm = (): boolean => {
+    const memoValid = validateMemo();
+    const secretValid = validateSecret();
+    const recipientValid = validateRecipient();
+
+    return memoValid && secretValid && recipientValid;
+  };
+
+  const clearValidation = () => {
+    errors.value = {};
+  };
+
+  /**
+   * Creates API payload from form data
+   */
+  const createPayload = (): IncomingSecretPayload => ({
+    memo: form.value.memo.trim() || '', // Empty string if no memo provided
+    secret: form.value.secret,
+    recipient: form.value.recipientId,
+  });
+
+  /**
+   * Handles form submission
+   */
+  const submit = () =>
+    wrapSubmit(async () => {
+      if (!isFeatureEnabled.value) {
+        throw createError(t('incoming.validation_feature_disabled'), 'human');
+      }
+
+      if (!validateForm()) {
+        throw createError(t('incoming.validation_form_errors'), 'human');
+      }
+
+      const payload = createPayload();
+      const response = await incomingStore.createIncomingSecret(payload);
+
+      if (options?.onSuccess) {
+        await options.onSuccess(response);
+      } else if (response.success && response.record?.receipt?.key) {
+        // Default navigation to success view
+        await router.push({
+          name: 'IncomingSuccess',
+          params: { receiptKey: response.record.receipt.key },
+        });
+      }
+
+      return response;
+    });
+
+  /**
+   * Resets form to initial state
+   */
+  const resetForm = () => {
+    form.value = {
+      memo: '',
+      secret: '',
+      recipientId: '',
+    };
+    clearValidation();
+  };
+
+  /**
+   * Loads configuration from API
+   * Errors are stored in incomingStore.configError for UI display
+   */
+  const loadConfig = () =>
+    wrapConfig(async () => {
+      await incomingStore.loadConfig();
+    });
+
+  return {
+    // Form state
+    form,
+    errors,
+    isSubmitting,
+
+    // Computed
+    memoMaxLength,
+    secretMaxLength,
+    isFeatureEnabled,
+    recipients,
+    isFormValid,
+
+    // Validation
+    validateMemo,
+    validateSecret,
+    validateRecipient,
+    validateForm,
+    clearValidation,
+
+    // Operations
+    submit,
+    resetForm,
+    loadConfig,
+  };
+}

@@ -1,0 +1,46 @@
+##
+# DOCKER COMPOSE - MAILPIT (EMAIL TESTING)
+#
+# Local SMTP capture server for development and testing.
+# All outbound email is intercepted — nothing is delivered.
+#
+# Include alongside the simple stack:
+#
+#     include:
+#       - path: docker/compose/docker-compose.simple.yml
+#       - path: docker/compose/docker-compose.mailpit.yml
+#
+# Then set in .env (or export before running):
+#
+#     SMTP_HOST=mailpit
+#     SMTP_PORT=1025
+#     SMTP_TLS=
+#     SMTP_AUTH=
+#
+# Web UI: http://localhost:8025
+# SMTP:   mailpit:1025 (from within the app container)
+#
+# Note: For use with docker-compose.full.yml, add mailpit to
+# onetime-network so it can communicate with the app service.
+# Uncomment the networks block below:
+#
+#    networks:
+#      - onetime-network
+#
+# networks:
+#   onetime-network:
+#     external: true
+
+services:
+  mailpit:
+    image: axllent/mailpit@sha256:b68349e3a014b90c5610bfb26b2ae36f3892d7b8cf25ee140c6c71c98d2fcf48
+    container_name: onetime-mailpit
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '60m'
+        max-file: '3'
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI
+    restart: unless-stopped

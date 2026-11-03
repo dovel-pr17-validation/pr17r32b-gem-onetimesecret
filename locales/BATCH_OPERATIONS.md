@@ -1,0 +1,271 @@
+# locales/BATCH_OPERATIONS.md
+
+---
+
+## Local i18n branch processing
+
+Pipeline order (each step assumes the previous one ran):
+
+1. **Export** — drained _and audit-clean_ DB -> `locales/content/` + shared tables via
+   `export-all.sh` (dry-run by default). Exports a locale only when `pending: 0` **and**
+   `tasks audit <locale> --strict` is clean, skips the rest, then runs `i18n db export`
+   once. Leaves uncommitted changes in the working tree; everything below operates on
+   those. **It exits non-zero when any locale failed the audit, failed to export, or
+   landed dirty** — read the summary before moving on to step 2, because the set of
+   changed locales is then smaller than the set you asked for.
+   See [README.md](README.md) step 4.
+2. **Create branches** — one `i18n/update-<locale>` branch per changed locale (below).
+3. **Open PRs** — one PR per branch (below).
+4. **Rebase / respond to feedback / merge back** — the original sections that follow.
+
+### Exporting drained and clean locales
+
+`export-all.sh` writes each drained _and clean_ locale's DB translations into
+`locales/content/`, then runs `i18n db export` once. Dry-run is the default — pass
+`--execute` to act.
+
+Two gates, both must pass, both reported per locale:
+
+- **drained** — skips any locale with `pending > 0`.
+- **audit-clean** — `i18n tasks audit <locale> --strict` must exit 0: no stranded
+  `in_progress` row, no key-set or blank-translation defect, no lost interpolation
+  token, and at least one completed row actually checked. `pending: 0` alone proves
+  only that the rows left the queue, not that what they wrote is correct. The audit's
+  `en_leak` check is advisory and never blocks an export.
+
+After a successful export the written content is re-checked in place with
+`validate variables` and (when the derived governance cache exists) the register lint.
+`validate variables` gates on its own `blocking` count — placeholder and format
+defects in translated text. Keys the locale has not translated yet are reported as
+`untranslated` but never block: coverage is the `pending: 0` gate's job, above.
+Failures are reported as **dirty**; nothing is reverted, because surfacing the problem
+while the content is still unstaged is the point.
+
+```bash
+# preview: which locales are drained + clean, what it would export
+locales/scripts/export-all.sh
+
+# do it: export every gated locale + shared db tables (once)
+locales/scripts/export-all.sh --execute
+
+# or a specific subset
+locales/scripts/export-all.sh --execute de es fr_FR
+```
+
+**Exit status is part of the output.** Non-zero means at least one locale failed the
+audit, failed to export, or landed dirty — the summary names each set:
+
+```
+Done: 27 locale(s) exported, 1 skipped, 1 failed audit, 0 failed export, 1 dirty
+Not drained (skipped): pl
+Failed audit (not exported): ja
+Exported but dirty (fix the content, it is unstaged): ru
+```
+
+A locale that is merely not drained is a normal state and does not affect the exit
+status. Fix audit findings with `tasks update <ID> --file ... --validate --strict`,
+re-audit, and re-run the export before continuing to **Creating the branches** —
+otherwise you will branch a locale set that silently omits the failures.
+
+Leaves uncommitted changes in the working tree for **Creating the branches** below.
+
+### Exporting the DB (glossary + shared tables)
+
+`export-all.sh` already runs this as its last step. Run it standalone only when re-exporting
+shared tables without re-running the locale exports. Writes `glossary.sql` and the other shared
+db tables **once**, after every locale is drained. `i18n tasks export <locale>` does _not_ touch
+these.
+
+```bash
+python3 locales/scripts/i18n db export
+```
+
+Also record the round in `session_log` — nothing else writes that table, and `db export`
+skips it when empty (so a round leaves no trace unless you add a row):
+
+```bash
+python3 locales/scripts/i18n db session add \
+  --date <YYYY-MM-DD> --tasks <total> \
+  --notes 'N-locale drain; <recoveries, glossary rows, audit result — verbatim>'
+python3 locales/scripts/i18n db export session_log   # persist the row
+python3 locales/scripts/i18n db session list         # verify
+```
+
+### Creating the branches
+
+`branch-per-locale.sh` slices the uncommitted `locales/content/` changes into one branch per
+locale. Bases on **`main`** (line 21). Dry-run is the default — pass `--execute` to act.
+
+```bash
+# preview: which locales, which base, what it would run
+locales/scripts/branch-per-locale.sh --changed
+
+# do it: for each changed locale, checkout main -> branch i18n/update-<locale> ->
+#        add locales/content/<locale>/ -> commit -> push -u origin
+locales/scripts/branch-per-locale.sh --changed --execute
+
+# or a specific subset
+locales/scripts/branch-per-locale.sh --execute de es fr_FR
+```
+
+Safe to re-run: skips locales with no changes and any branch that already exists. Requires a
+clean tree **outside** `locales/`. The commit-msg hook prepends the `[#XXXX]` prefix — don't
+hand-add it.
+
+### Opening the PRs
+
+`pr-per-locale.sh` opens one PR per `i18n/update-<locale>` branch, running a fresh local `claude`
+translation-quality review per locale and baking its summary into the PR body. The review time is
+the natural throttle (no burst of API calls). Bases on **`main`** by default. Dry-run unless
+`--execute`.
+
+```bash
+# preview: prints each review + the exact gh command, creates nothing
+locales/scripts/pr-per-locale.sh
+
+# create all PRs (authenticated gh required)
+locales/scripts/pr-per-locale.sh --execute
+
+# deeper review model, or skip the review for a stats-only body
+locales/scripts/pr-per-locale.sh --execute --model claude-opus-4-8
+locales/scripts/pr-per-locale.sh --execute --no-review
+
+# refresh the body of an already-open PR instead of skipping it
+locales/scripts/pr-per-locale.sh --execute --update de
+```
+
+Each run writes its per-locale artifacts to `locales/reviews/<timestamp>/` (the `<locale>.md`
+quality reviews plus `.raw.txt`/`.stderr`/`i18n-validate-*.json` diagnostics). **This directory is
+gitignored — we do not commit reviews to this repo.** The `.md` reviews are already baked into the
+PR bodies on GitHub; the local copies are bespoke, per-diff quality records we may relocate to the
+**translation-rules** repo as an audit trail. Until that lands, treat `locales/reviews/` as local
+scratch and keep the runs you care about out-of-tree.
+
+Capture the resulting PR numbers to rebuild the arrays below — they are per-round and the ones
+listed are stale (a prior batch). Note `--head` is exact-match, not a prefix, so filter with jq
+(the freshly-opened PRs are in the default open state):
+
+```bash
+gh pr list --limit 100 --json number,headRefName \
+  --jq '.[] | select(.headRefName | startswith("i18n/update-")) | "\(.number) \(.headRefName)"'
+```
+
+### Rebasing on main
+
+Make sure we have the latest everything (including any changes to locale scripts, translation
+workflow checks etc, and to avoid any conflicts merging back into main)
+
+```bash
+git fetch origin
+start=$(git branch --show-current)
+failed=()
+for b in $(git branch --list 'i18n/update-*' --format='%(refname:short)'); do
+  echo "=== $b ==="
+  if ! git rebase origin/main "$b"; then
+    git rebase --abort
+    failed+=("$b")
+    echo ">>> conflict, left $b untouched"
+  fi
+done
+git switch "$start"   # rebases pollute @{-1}, so `git switch -` lands wrong
+echo "Rebased cleanly; needs manual attention: ${failed[*]:-none}"
+```
+
+### Responding to PR feedback
+
+> The `pairs=(…)` numbers below are from a **prior batch** — regenerate them for the current
+> round with the `gh pr list … startswith` command above before running this.
+
+```bash
+pairs=(
+  "4105 i18n/update-zh"
+  "4104 i18n/update-vi"
+  "4103 i18n/update-uk"
+  "4102 i18n/update-tr"
+  "4101 i18n/update-sv_SE"
+  "4100 i18n/update-sl_SI"
+  "4099 i18n/update-ru"
+  "4097 i18n/update-pt_PT"
+  "4096 i18n/update-pt_BR"
+  "4095 i18n/update-pl"
+  "4094 i18n/update-nl"
+  "4093 i18n/update-mi_NZ"
+  "4092 i18n/update-ko"
+  "4091 i18n/update-ja"
+  "4090 i18n/update-it_IT"
+  "4089 i18n/update-hu"
+  "4088 i18n/update-he"
+  "4085 i18n/update-fr_FR"
+  "4084 i18n/update-fr_CA"
+  "4083 i18n/update-es"
+  "4082 i18n/update-eo"
+  "4079 i18n/update-el_GR"
+  "4078 i18n/update-de_AT"
+  "4077 i18n/update-de"
+  "4076 i18n/update-da_DK"
+  "4075 i18n/update-cs"
+  "4074 i18n/update-ca_ES"
+  "4073 i18n/update-bg"
+  "4072 i18n/update-ar"
+)
+for pair in "${pairs[@]}"; do
+  pr="${pair%% *}"; b="${pair#* }"
+  echo "=== PR #$pr ($b) ==="
+  git switch "$b" || { echo "skip $b"; continue; }
+  claude -p --model claude-sonnet-5 --permission-mode acceptEdits "$(cat <<EOF
+You are on branch $b, which is the head of PR #$pr in onetimesecret/onetimesecret.
+Read the PR description and any review feedback: gh pr view $pr --comments; gh api repos/onetimesecret/onetimesecret/pulls/$pr/comments.
+For each actionable comment, update this locale's files under locales/content/. Validate JSON.
+Commit each logical change (commit-msg hook adds the prefix; don't hand-add it) and push with git push.
+Do not force-push, rebase, amend, or switch branches. If a comment is ambiguous or you disagree, leave it and note why.
+EOF
+)"
+done
+git switch main
+```
+
+### Merging back into main
+
+One integration PR, not 29 (or however many branches you have). The `#4072–4105` / `seq 4072 4105`
+references are from a prior batch — swap in the current round's numbers.
+
+```bash
+# 1. preflight — local must match origin; base must be locale-only (octopus aborts on any conflict)
+git fetch origin
+base=$(git rev-parse origin/main)
+for b in $(git branch --list 'i18n/update-*' --format='%(refname:short)'); do
+  [ "$(git rev-parse "$b")" = "$(git rev-parse "origin/$b")" ] || echo "DRIFT: $b"
+  git diff --name-only "$(git merge-base "$b" "$base")".."$b" | grep -qv '^locales/content/' && echo "NON-LOCALE: $b"
+done
+
+# 2. octopus merge -> push -> PR
+git switch -c i18n/integration-batch origin/main
+git merge --no-ff $(git branch --list 'i18n/update-*' --format='%(refname:short)')
+git push -u origin i18n/integration-batch
+gh pr create --base main \
+  --title "i18n: batch locale updates (supersedes #4072–#4105)" \
+  --body "Octopus merge of 29 i18n/update-* branches. Locale-only, conflict-free."
+
+# 3. after the PR merges, the 29 auto-close as Merged (tips reachable from main). verify:
+all_prs=(
+  4105 4104 4103 4102 4101 4100 4099 4097 4096 4095 4094 4093 4092 4091 4090
+  4089 4088 4085 4084 4083 4082 4079 4078 4077 4076 4075 4074 4073 4072
+)
+for pr in $all_prs; do gh pr view "$pr" --json number,state --jq '"\(.number) \(.state)"'; done
+```
+
+Octopus aborts on conflict — run sequentially to find the offender:
+
+```bash
+for b in $(git branch --list 'i18n/update-*' --format='%(refname:short)'); do
+  git merge --no-ff --no-edit "$b" || { echo ">>> conflict on $b"; break; }
+done
+```
+
+Notes:
+
+- `--no-ff` is redundant for an octopus (multi-head merges never fast-forward) —
+  harmless, leave or drop.
+- Reverting a 29-parent octopus is awkward (`git revert -m <n>`); acceptable for
+  a locale batch you'll never roll back. Use sequential 2-parent merges if you
+  need easy rollback.

@@ -1,0 +1,277 @@
+# apps/api/domains/spec/logic/sso_config/serializers_spec.rb
+#
+# frozen_string_literal: true
+
+# Unit tests for SsoConfig::Serializers — the certificate-expiry fields
+# (#4450). An expired IdP certificate stays advertised on the sign-in page
+# (availability never checks expiry, by design) while every login through it
+# is refused as sso_config_unusable; cert_expired / cert_expires_at are how
+# the admin learns why.
+#
+# Certificates are minted here with OpenSSL; no key material is checked in.
+#
+# RUN (always via the lane runner — see AGENTS.md):
+#   tests/lanes/run unit --only apps/api/domains/spec/logic/sso_config/serializers_spec.rb
+
+require 'base64'
+require 'openssl'
+require 'time'
+
+require_relative File.join(Onetime::HOME, 'spec', 'spec_helper')
+require_relative '../../../../../../apps/api/domains/application'
+require_relative File.join(Onetime::HOME, 'apps', 'web', 'auth', 'spec', 'support', 'domain_sso_test_fixtures')
+
+RSpec.describe DomainsAPI::Logic::SsoConfig::Serializers do
+  include DomainSsoTestFixtures
+
+  # encrypted_field needs key configuration; same setup as the model spec.
+  before(:all) do
+    @original_encryption_keys = Familia.config.encryption_keys&.dup
+    @original_key_version     = Familia.config.current_key_version
+    @original_personalization = Familia.config.encryption_personalization
+
+    Familia.configure do |config|
+      config.encryption_keys            = { v1: Base64.strict_encode64('test_encryption_key_32bytes_ok!!') }
+      config.current_key_version        = :v1
+      config.encryption_personalization = 'SsoSerializers'
+    end
+  end
+
+  after(:all) do
+    Familia.configure do |config|
+      config.encryption_keys            = @original_encryption_keys if @original_encryption_keys
+      config.current_key_version        = @original_key_version if @original_key_version
+      config.encryption_personalization = @original_personalization if @original_personalization
+    end
+  end
+
+  let(:serializer) { Class.new { include DomainsAPI::Logic::SsoConfig::Serializers }.new }
+
+  def mint_cert_pem(not_after:)
+    key             = OpenSSL::PKey::RSA.new(2048)
+    cert            = OpenSSL::X509::Certificate.new
+    cert.version    = 2
+    cert.serial     = 1
+    cert.subject    = OpenSSL::X509::Name.parse('/CN=serializer-spec-idp.example.com')
+    cert.issuer     = cert.subject
+    cert.public_key = key.public_key
+    cert.not_before = not_after - 86_400
+    cert.not_after  = not_after
+    cert.sign(key, OpenSSL::Digest.new('SHA256'))
+    cert.to_pem
+  end
+
+  def saml_config_with_cert(pem)
+    build_domain_sso_config(:saml).tap { |config| config.idp_cert = pem }
+  end
+
+  describe '#saml_sp_identifiers' do
+    let(:config) { build_domain_sso_config(:saml) }
+    let(:custom_domain) do
+      instance_double(
+        Onetime::CustomDomain,
+        display_domain: 'secrets.example.com',
+        verified: verified,
+      )
+    end
+    let(:verified) { true }
+
+    before do
+      allow(config).to receive(:custom_domain).and_return(custom_domain)
+      allow(OT).to receive(:conf).and_return('site' => { 'ssl' => true })
+    end
+
+    let(:tenant_identifiers) do
+      {
+        sp_entity_id: 'https://secrets.example.com/auth/sso/saml/metadata',
+        acs_url: 'https://secrets.example.com/auth/sso/saml/callback',
+      }
+    end
+
+    it 'returns tenant-host identifiers for a verified domain' do
+      expect(serializer.saml_sp_identifiers(config)).to eq(tenant_identifiers)
+    end
+
+    # #4579: the values to register at the IdP, live once verification
+    # completes. The tenant hook refuses SSO on the domain until then
+    # (sso_domain_unverified), so the IdP never receives anything else.
+    context 'when domain ownership is unverified' do
+      let(:verified) { false }
+
+      it 'still returns the tenant-host identifiers, never the canonical host' do
+        expect(serializer.saml_sp_identifiers(config)).to eq(tenant_identifiers)
+      end
+    end
+
+    context 'when the domain has no display_domain' do
+      let(:custom_domain) do
+        instance_double(Onetime::CustomDomain, display_domain: '  ', verified: true)
+      end
+
+      it 'returns both identifiers as nil' do
+        expect(serializer.saml_sp_identifiers(config)).to eq(sp_entity_id: nil, acs_url: nil)
+      end
+    end
+
+    context 'when the domain cannot be loaded' do
+      let(:custom_domain) { nil }
+
+      it 'returns both identifiers as nil' do
+        expect(serializer.saml_sp_identifiers(config)).to eq(sp_entity_id: nil, acs_url: nil)
+      end
+    end
+
+    it 'returns both identifiers as nil for a non-saml record' do
+      oidc = build_domain_sso_config(:oidc)
+      allow(oidc).to receive(:custom_domain).and_return(custom_domain)
+
+      expect(serializer.saml_sp_identifiers(oidc)).to eq(sp_entity_id: nil, acs_url: nil)
+    end
+  end
+
+  describe '#serialize_sso_config last_sign_in' do
+    let(:config) do
+      Onetime::CustomDomain::SsoConfig.create!(
+        domain_id: "serializer-outcome-#{SecureRandom.hex(4)}",
+        provider_type: 'oidc', client_id: 'client', issuer: 'https://idp.example.com',
+      )
+    end
+
+    after do
+      Onetime::CustomDomain::SsoSigninOutcome.delete_for_domain!(config.domain_id)
+      Onetime::CustomDomain::SsoConfig.delete_for_domain!(config.domain_id)
+    end
+
+    it 'is nil when no sign-in outcome is recorded for the domain' do
+      expect(serializer.serialize_sso_config(config)[:last_sign_in]).to be_nil
+    end
+
+    it 'is the recorded outcome, as SsoSigninOutcome#to_api_h shapes it' do
+      Onetime::CustomDomain::SsoSigninOutcome.record_failure!(
+        config.domain_id,
+        config: config,
+        stage: 'provider',
+        code: 'invalid_credentials',
+        provider_type: 'oidc',
+        now: Time.at(1_760_000_000),
+      )
+
+      expect(serializer.serialize_sso_config(config)[:last_sign_in]).to eq(
+        result: 'failed',
+        at: 1_760_000_000,
+        succeeded_at: nil,
+        failed_at: 1_760_000_000,
+        failure_stage: 'provider',
+        failure_code: 'invalid_credentials',
+        provider_type: 'oidc',
+      )
+    ensure
+      Onetime::CustomDomain::SsoSigninOutcome.delete_for_domain!(config.domain_id)
+    end
+
+    it 'F2: does not attach replacement history to an older config snapshot' do
+      Onetime::CustomDomain::SsoConfig.delete_for_domain!(config.domain_id)
+      replacement = Onetime::CustomDomain::SsoConfig.create!(
+        domain_id: config.domain_id, client_id: 'new', issuer: 'https://idp.example.com',
+      )
+      Onetime::CustomDomain::SsoSigninOutcome.record_success!(config.domain_id, config: replacement)
+
+      expect(serializer.serialize_sso_config(config)[:last_sign_in]).to be_nil
+      expect(serializer.serialize_sso_config(replacement)[:last_sign_in][:result]).to eq('succeeded')
+    end
+
+    it 'is nil, not an error, when the outcome cannot be read' do
+      unreadable = instance_double(Onetime::CustomDomain::SsoSigninOutcome)
+      allow(unreadable).to receive(:to_api_h).and_raise(Redis::BaseConnectionError)
+      allow(Onetime::CustomDomain::SsoSigninOutcome).to receive(:find_by_domain_id)
+        .with(config.domain_id, config: config).and_return(unreadable)
+      allow(OT).to receive(:le)
+
+      expect(serializer.serialize_sso_config(config)[:last_sign_in]).to be_nil
+      expect(OT).to have_received(:le).with(a_string_including('last_sign_in unreadable'))
+    end
+  end
+
+  describe '#serialize_sso_config certificate expiry' do
+    context 'with an expired certificate' do
+      let(:not_after) { Time.at(Time.now.to_i - 3600).utc }
+      let(:payload)   { serializer.serialize_sso_config(saml_config_with_cert(mint_cert_pem(not_after: not_after))) }
+
+      it 'flags cert_expired' do
+        expect(payload[:cert_expired]).to be(true)
+      end
+
+      it 'reports cert_expires_at as ISO 8601 UTC' do
+        expect(payload[:cert_expires_at]).to eq(not_after.iso8601)
+      end
+
+      it 'does not name idp_cert as unreadable (expired is not undecryptable)' do
+        expect(payload[:unreadable_fields]).to eq([])
+      end
+    end
+
+    context 'with a current certificate' do
+      let(:not_after) { Time.at(Time.now.to_i + (30 * 86_400)).utc }
+      let(:payload)   { serializer.serialize_sso_config(saml_config_with_cert(mint_cert_pem(not_after: not_after))) }
+
+      it 'reports the expiry without flagging it' do
+        expect(payload).to include(cert_expired: false, cert_expires_at: not_after.iso8601)
+      end
+    end
+
+    context 'with a certificate OpenSSL cannot parse' do
+      let(:payload) { serializer.serialize_sso_config(saml_config_with_cert("-----BEGIN CERTIFICATE-----\nnope\n-----END CERTIFICATE-----")) }
+
+      it 'serves null / false rather than raising' do
+        expect(payload).to include(cert_expires_at: nil, cert_expired: false)
+      end
+    end
+
+    context 'with a non-saml record' do
+      let(:payload) { serializer.serialize_sso_config(build_domain_sso_config(:oidc)) }
+
+      it 'serves null / false' do
+        expect(payload).to include(cert_expires_at: nil, cert_expired: false)
+      end
+    end
+  end
+
+  # The SAML IdP metadata URL the trio was imported from: plaintext like the
+  # trio, AAD-bound like the trio, and a reveal failure is an error state
+  # named in unreadable_fields, never a quiet null.
+  describe '#serialize_sso_config idp_metadata_url' do
+    let(:url) { 'https://login.microsoftonline.com/contoso.onmicrosoft.com/federationmetadata/2007-06/federationmetadata.xml?appid=abc' }
+
+    it 'serves a stored value in plaintext' do
+      payload = serializer.serialize_sso_config(build_domain_sso_config(:saml, idp_metadata_url: url))
+
+      expect(payload).to include(idp_metadata_url: url, unreadable_fields: [])
+    end
+
+    it 'serves null when unset or cleared' do
+      expect(serializer.serialize_sso_config(build_domain_sso_config(:saml))[:idp_metadata_url]).to be_nil
+
+      cleared = build_domain_sso_config(:saml, idp_metadata_url: url)
+      cleared.idp_metadata_url = ''
+      expect(serializer.serialize_sso_config(cleared)[:idp_metadata_url]).to be_nil
+    end
+
+    it 'serves null for a non-saml record' do
+      expect(serializer.serialize_sso_config(build_domain_sso_config(:oidc))[:idp_metadata_url]).to be_nil
+    end
+
+    it 'names a value that will not decrypt in unreadable_fields and serves null' do
+      config    = build_domain_sso_config(:saml, idp_metadata_url: url)
+      concealed = double('ConcealedString')
+      allow(concealed).to receive(:reveal).and_raise(Familia::EncryptionError, 'tag mismatch')
+      allow(config).to receive(:idp_metadata_url).and_return(concealed)
+      allow(OT).to receive(:lw)
+
+      payload = serializer.serialize_sso_config(config)
+
+      expect(payload).to include(idp_metadata_url: nil, unreadable_fields: ['idp_metadata_url'])
+      expect(payload[:idp_cert]).to eq(DomainSsoTestFixtures.saml_cert_pem)
+      expect(OT).to have_received(:lw).with(/Failed to reveal encrypted field idp_metadata_url/)
+    end
+  end
+end

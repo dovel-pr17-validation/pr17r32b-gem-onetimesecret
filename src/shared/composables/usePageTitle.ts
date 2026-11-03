@@ -1,0 +1,200 @@
+// src/shared/composables/usePageTitle.ts
+
+import { globalComposer } from '@/i18n';
+import { resolveProductName } from '@/shared/constants/brand';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import { storeToRefs } from 'pinia';
+import { computed, effectScope, watch } from 'vue';
+
+/**
+ * Composable for managing page titles and meta tags dynamically.
+ *
+ * Features:
+ * - Automatic title updates with app name suffix
+ * - i18n support for translated titles
+ * - Meta tag updates (og:title, twitter:title)
+ * - TypeScript support for route meta
+ * - Can be used outside of component setup (e.g., in router guards)
+ *
+ * @example
+ * // In a component
+ * const { setTitle } = usePageTitle();
+ * setTitle('Custom Page');
+ *
+ * @example
+ * // With i18n key
+ * const { setTitle } = usePageTitle();
+ * setTitle('DASHBOARD.TITLE'); // Will translate automatically
+ *
+ * @example
+ * // In router guards
+ * const { setTitle } = usePageTitle();
+ * router.afterEach((to) => {
+ *   setTitle(to.meta.title);
+ * });
+ */
+
+const TITLE_SEPARATOR = ' - ';
+
+type TitleArg = string | null | undefined;
+
+/**
+ * The last title passed to setTitle, as given (an i18n key or plain text),
+ * with the setter that applied it. Module-level so the locale watcher below
+ * can apply it again: whoever set the title last, the router's afterEach or a
+ * component, keeps it, translated into the new language.
+ */
+let lastTitle: { title: TitleArg; apply: (title: TitleArg) => void } | null = null;
+
+/**
+ * Re-applies the last title when the active locale changes, so the document
+ * title, og:title and twitter:title follow a language switch that involves
+ * no navigation (the router only sets a title when the route's title
+ * changes). One watcher for the module, created in a detached scope so it
+ * belongs to no component and no unmount stops it.
+ *
+ * The getter reads the locale with `?.` because unit tests that mock '@/i18n'
+ * supply a composer without one; the watcher then never fires.
+ */
+effectScope(true).run(() => {
+  watch(
+    () => globalComposer.locale?.value,
+    () => lastTitle?.apply(lastTitle.title)
+  );
+});
+
+export function usePageTitle() {
+  // Use the global i18n composer instance directly to avoid requiring
+  // Vue's injection context. This allows usePageTitle to be called
+  // outside of component setup (e.g., in router guards).
+  const { t, te } = globalComposer;
+
+  const bootstrapStore = useBootstrapStore();
+  const { display_domain, brand_product_name } = storeToRefs(bootstrapStore);
+
+  // Cache DOM elements to avoid repeated queries
+  let ogTitleMeta: HTMLMetaElement | null | undefined;
+  let twitterTitleMeta: HTMLMetaElement | null | undefined;
+
+  /**
+   * Resolves the app name used in the document title, og:title and
+   * twitter:title, following the neutral brand fallback chain:
+   *   1. display_domain     - the active (custom) domain, when set
+   *   2. brand_product_name - the per-installation product name from OT.conf
+   *   3. neutral default    - 'Secure Links' via resolveProductName
+   *
+   * This must NEVER emit OTS branding. Mirroring constants/brand.ts, when
+   * neither a domain nor a configured product name is available the title
+   * degrades to the neutral default rather than leaking "Onetime Secret" into
+   * browser tabs or social-share previews (the A4 leak). The product-name
+   * fallback goes through the shared `resolveProductName` helper — the same one
+   * `identityStore.productName` uses — rather than the store itself, because
+   * usePageTitle runs in router guards (see setupRouterGuards), outside the
+   * component/i18n context that identityStore initializes with.
+   *
+   * Reads `.value` on each call so the resolved name stays reactive to store
+   * changes (do not hoist the raw values out of the refs).
+   */
+  const getAppName = (): string =>
+    display_domain.value || resolveProductName(brand_product_name?.value);
+
+  /**
+   * Translates a title if it's an i18n key, otherwise returns the raw string
+   * @param title - Either a plain string or an i18n key
+   * @returns Translated or original title
+   */
+  const translateTitle = (title: string): string => {
+    // Check if it's an i18n key (e.g., 'DASHBOARD.TITLE')
+    if (te(title)) {
+      try {
+        return t(title);
+      } catch (error) {
+        console.error('Failed to translate title:', title, error);
+        return title;
+      }
+    }
+    return title;
+  };
+
+  /**
+   * Formats the complete page title with app name suffix
+   * @param pageTitle - The page-specific title
+   * @returns Formatted title string
+   */
+  const formatTitle = (pageTitle: string): string => {
+    const appName = getAppName();
+    const translatedTitle = translateTitle(pageTitle);
+
+    if (!translatedTitle || translatedTitle === appName) {
+      return appName;
+    }
+
+    return `${translatedTitle}${TITLE_SEPARATOR}${appName}`;
+  };
+
+  /** Writes the formatted title to the document title and its meta tags. */
+  const applyTitle = (title: TitleArg) => {
+    try {
+      const finalTitle = title ? formatTitle(title) : getAppName();
+
+      // Update document title
+      document.title = finalTitle;
+
+      // Cache and update Open Graph meta tag (query once on first access)
+      if (ogTitleMeta === undefined) {
+        ogTitleMeta = document.querySelector<HTMLMetaElement>('meta[property="og:title"]');
+      }
+      if (ogTitleMeta) {
+        ogTitleMeta.setAttribute('content', finalTitle);
+      }
+
+      // Cache and update Twitter meta tag (query once on first access)
+      if (twitterTitleMeta === undefined) {
+        twitterTitleMeta = document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]');
+      }
+      if (twitterTitleMeta) {
+        twitterTitleMeta.setAttribute('content', finalTitle);
+      }
+    } catch (error) {
+      console.error('Failed to update page title:', error);
+    }
+  };
+
+  /**
+   * Updates the document title and related meta tags, and keeps them in the
+   * active language: a later locale change applies the same title again.
+   * @param title - The new title (can be plain string or i18n key)
+   */
+  const setTitle = (title: TitleArg) => {
+    lastTitle = { title, apply: applyTitle };
+    applyTitle(title);
+  };
+
+  /**
+   * Creates a computed title that automatically updates when dependencies change
+   * Useful for reactive titles based on component state
+   *
+   * @param titleGetter - Function that returns the current title
+   * @returns Computed title value
+   *
+   * @example
+   * const secretId = ref('abc123');
+   * const title = useComputedTitle(() => `Secret ${secretId.value}`);
+   * watch(title, (newTitle) => setTitle(newTitle));
+   */
+  const useComputedTitle = (titleGetter: () => string) => {
+    const title = computed(titleGetter);
+
+    watch(title, (newTitle) => {
+      setTitle(newTitle);
+    }, { immediate: true });
+
+    return title;
+  };
+
+  return {
+    setTitle,
+    useComputedTitle,
+    formatTitle,
+  };
+}

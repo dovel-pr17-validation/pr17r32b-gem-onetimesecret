@@ -1,0 +1,108 @@
+# .github/actions/setup-ruby-test-env/action.yml
+---
+# ==============================================================================
+# Setup Ruby Test Environment - Composite Action
+# ==============================================================================
+# Version: 1.2.0
+# Repository: onetimesecret/onetimesecret
+#
+# Prepares a complete Ruby test environment for CI jobs. Consolidates common
+# setup steps used across multiple Ruby test jobs.
+#
+# The Ruby pin lives in the repo, not here: ruby/setup-ruby reads
+# .ruby-version. There is no version input. The Gemfile reads the same file
+# (`ruby file:`), so handing setup-ruby any other version only makes Bundler
+# refuse to load. To run under another Ruby (a preview lane), pin the
+# checkout first with .github/scripts/pin-ruby-version.sh.
+#
+# Setup Steps:
+#   1. Download frontend build artifacts (optional)
+#   2. Verify downloaded assets exist
+#   3. Enable memory overcommit for Redis
+#   4. Setup Ruby (from .ruby-version)
+#      with bundler caching (deployment mode, so the lockfile is frozen)
+#   5. Install gem dependencies
+#   6. Copy default config files to etc/
+#   7. Generate ephemeral test secrets
+#
+# Usage:
+#   - uses: ./.github/actions/setup-ruby-test-env
+#     with:
+#       download-artifacts: 'true'
+#
+#   # Another Ruby (e.g. a preview lane testing a newer one):
+#   - run: .github/scripts/pin-ruby-version.sh 4.0.2
+#   - uses: ./.github/actions/setup-ruby-test-env
+#
+# Changelog:
+#   1.2.0 - Remove the ruby-version override: under `ruby file:` it could only
+#           fail; pin the checkout with pin-ruby-version.sh instead
+#   1.1.0 - Read Ruby version from .ruby-version; ruby-version is override-only
+#   1.0.0 - Initial release consolidating Ruby setup from ci.yml
+# ==============================================================================
+
+name: Setup Ruby Test Environment
+description: |
+  Sets up a complete Ruby test environment for CI jobs.
+  Handles artifact download, asset verification, system config,
+  Ruby/bundler setup, dependencies, config files, and test secrets.
+
+inputs:
+  download-artifacts:
+    description: 'Whether to download frontend build artifacts'
+    required: false
+    default: 'true'
+  artifact-name:
+    description: 'Name of the artifact to download'
+    required: false
+    default: 'frontend-build'
+  artifact-path:
+    description: 'Path to download artifacts to'
+    required: false
+    default: 'public/web/dist/'
+
+runs:
+  using: composite
+  steps:
+    - name: Download build artifacts
+      if: inputs.download-artifacts == 'true'
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifact-path }}
+
+    - name: Verify downloaded assets
+      if: inputs.download-artifacts == 'true'
+      shell: bash
+      run: |
+        if [ ! -d "${{ inputs.artifact-path }}" ] || [ -z "$(ls -A "${{ inputs.artifact-path }}")" ]; then
+          echo "::error::Frontend assets not found or empty at ${{ inputs.artifact-path }}"
+          exit 1
+        fi
+        echo "::notice::Frontend assets verified at ${{ inputs.artifact-path }}"
+
+    - name: Enable memory overcommit for Redis
+      shell: bash
+      run: sudo sysctl -w vm.overcommit_memory=1
+
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+      with:
+        ruby-version: '.ruby-version'
+        bundler-cache: true
+
+    - name: Setup test configuration
+      shell: bash
+      run: |
+        for file in etc/defaults/*.defaults.*; do
+          if [ -f "$file" ]; then
+            target="etc/$(basename "$file" | sed 's/\.defaults//')"
+            if [ ! -f "$target" ]; then
+              cp "$file" "$target"
+              echo "Created $target from defaults"
+            fi
+          fi
+        done
+
+    - name: Generate random secrets for testing
+      uses: ./.github/actions/generate-test-secrets

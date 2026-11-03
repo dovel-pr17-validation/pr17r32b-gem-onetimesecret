@@ -1,0 +1,317 @@
+# spec/cli/customers_command_spec.rb
+#
+# frozen_string_literal: true
+
+require_relative 'cli_spec_helper'
+
+# CLI spec helper mocks OT.boot!, so the auth operations namespace
+# isn't autoloaded. The verify/unverify subcommand tests stub
+# Auth::Operations::SetCustomerVerification.new, which requires the
+# constant to exist at stub time — load it explicitly.
+require 'auth/operations/set_customer_verification'
+
+RSpec.describe 'Customers Command', type: :cli do
+  let(:customer1) do
+    double('Customer',
+      custid: 'customer1@example.com',
+      email: 'customer1@example.com',
+      cust_domains: ['example.com']
+    )
+  end
+
+  let(:customer2) do
+    double('Customer',
+      custid: 'customer2@example.com',
+      email: 'customer2@example.com',
+      cust_domains: []
+    )
+  end
+
+  before do
+    # Mock Onetime::Customer (Familia model) instances
+    instances_double = double('instances')
+    allow(instances_double).to receive(:size).and_return(2)
+    allow(instances_double).to receive(:element_count).and_return(2)
+    allow(instances_double).to receive(:range).with(0, -1)
+      .and_return(['customer1@example.com', 'customer2@example.com'])
+    allow(Onetime::Customer).to receive(:instances).and_return(instances_double)
+    allow(Onetime::Customer).to receive(:load_multi)
+      .with(['customer1@example.com', 'customer2@example.com'])
+      .and_return([customer1, customer2])
+  end
+
+  describe 'list subcommand' do
+    it 'lists customer domains sorted by count' do
+      output = run_cli_command_quietly('customers', 'list')
+      expect(output[:stdout]).to include('2 customers')
+      expect(output[:stdout]).to include('example.com')
+    end
+
+    it 'handles customers with no domains' do
+      instances_double = double('instances')
+      allow(instances_double).to receive(:size).and_return(1)
+      allow(instances_double).to receive(:element_count).and_return(1)
+      allow(instances_double).to receive(:range).with(0, -1)
+        .and_return(['customer2@example.com'])
+      allow(Onetime::Customer).to receive(:instances).and_return(instances_double)
+      allow(Onetime::Customer).to receive(:load_multi)
+        .with(['customer2@example.com'])
+        .and_return([customer2])
+
+      output = run_cli_command_quietly('customers', 'list')
+      expect(output[:stdout]).to include('1 customers')
+    end
+  end
+
+  describe 'without options' do
+    it 'displays customer count' do
+      output = run_cli_command_quietly('customers')
+      expect(output[:stdout]).to include('2 customers')
+    end
+  end
+
+  # Common doubles for verify/unverify subcommands. The CLI commands are
+  # thin orchestrators; the meaningful coverage of the underlying
+  # state-change lives in
+  # apps/web/auth/spec/operations/set_customer_verification_spec.rb.
+  # These specs cover only the CLI translation layer.
+  # `role` / `verified?` are read by the #4328 unverify interlocks; a plain
+  # customer short-circuits both without touching the role index.
+  let(:target_customer) do
+    double('Customer',
+      email: 'target@example.com',
+      objid: 'cust_target',
+      extid: 'cust_ext_target',
+      role: 'customer',
+      verified?: true,
+      anonymous?: false,
+    )
+  end
+
+  let(:verification_op) { instance_double(Auth::Operations::SetCustomerVerification) }
+
+  before do
+    allow(OT::Utils).to receive(:normalize_email).and_call_original
+    allow(OT::Utils).to receive(:obscure_email).and_return('t***@example.com')
+  end
+
+  describe 'verify subcommand' do
+    it 'reports success and exits 0 when the op returns :success' do
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email)
+        .and_return(target_customer)
+      allow(Auth::Operations::SetCustomerVerification).to receive(:new)
+        .with(customer: target_customer, verified: true, verified_by: 'cli_provision', db: nil)
+        .and_return(verification_op)
+      allow(verification_op).to receive(:call).and_return(:success)
+
+      output = run_cli_command_quietly('customers', 'verify', 'target@example.com')
+      expect(output[:stdout]).to include('Verified:')
+      expect(last_exit_code).to eq(0)
+    end
+
+    it 'reports already-verified and exits 0 when the op returns :no_change' do
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email)
+        .and_return(target_customer)
+      allow(Auth::Operations::SetCustomerVerification).to receive(:new)
+        .and_return(verification_op)
+      allow(verification_op).to receive(:call).and_return(:no_change)
+
+      output = run_cli_command_quietly('customers', 'verify', 'target@example.com')
+      expect(output[:stdout]).to include('already verified')
+      expect(last_exit_code).to eq(0)
+    end
+
+    it 'exits 1 with a friendly message when customer is not found' do
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email).and_return(nil)
+
+      output = run_cli_command_quietly('customers', 'verify', 'missing@example.com')
+      expect(output[:stdout]).to include('Customer not found')
+      expect(last_exit_code).to eq(1)
+    end
+
+    it 'exits 1 when customer is anonymous' do
+      allow(target_customer).to receive(:anonymous?).and_return(true)
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email)
+        .and_return(target_customer)
+
+      output = run_cli_command_quietly('customers', 'verify', 'target@example.com')
+      expect(output[:stdout]).to include('anonymous')
+      expect(last_exit_code).to eq(1)
+    end
+
+    it 'translates NoAuthDatabase to an actionable error and exits 1' do
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email)
+        .and_return(target_customer)
+      allow(Auth::Operations::SetCustomerVerification).to receive(:new)
+        .and_return(verification_op)
+      allow(verification_op).to receive(:call).and_raise(
+        Auth::Operations::SetCustomerVerification::NoAuthDatabase,
+        'Auth database unreachable',
+      )
+
+      output = run_cli_command_quietly('customers', 'verify', 'target@example.com')
+      expect(output[:stdout]).to include('AUTH_DATABASE_URL')
+      expect(last_exit_code).to eq(1)
+    end
+
+    it 'translates AccountNotFound to a sync-auth-accounts hint and exits 1' do
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email)
+        .and_return(target_customer)
+      allow(Auth::Operations::SetCustomerVerification).to receive(:new)
+        .and_return(verification_op)
+      allow(verification_op).to receive(:call).and_raise(
+        Auth::Operations::SetCustomerVerification::AccountNotFound,
+        'No Rodauth account for target@example.com',
+      )
+
+      output = run_cli_command_quietly('customers', 'verify', 'target@example.com')
+      expect(output[:stdout]).to include('sync-auth-accounts')
+      expect(last_exit_code).to eq(1)
+    end
+
+    it 'translates AccountClosed to a plain error and exits 1' do
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email)
+        .and_return(target_customer)
+      allow(Auth::Operations::SetCustomerVerification).to receive(:new)
+        .and_return(verification_op)
+      allow(verification_op).to receive(:call).and_raise(
+        Auth::Operations::SetCustomerVerification::AccountClosed,
+        'Cannot change verification for customer cust_ext_target: Rodauth account is closed',
+      )
+
+      output = run_cli_command_quietly('customers', 'verify', 'target@example.com')
+      expect(output[:stdout]).to include('Rodauth account is closed')
+      expect(output[:stdout]).not_to include('sync-auth-accounts')
+      expect(last_exit_code).to eq(1)
+    end
+  end
+
+  describe 'unverify subcommand' do
+    it 'calls the op with verified: false and verified_by: nil' do
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email)
+        .and_return(target_customer)
+      allow(Auth::Operations::SetCustomerVerification).to receive(:new)
+        .with(customer: target_customer, verified: false, verified_by: nil, db: nil)
+        .and_return(verification_op)
+      allow(verification_op).to receive(:call).and_return(:success)
+
+      output = run_cli_command_quietly('customers', 'unverify', 'target@example.com')
+      expect(output[:stdout]).to include('Unverified:')
+      expect(last_exit_code).to eq(0)
+    end
+
+    it 'reports already-unverified when the op returns :no_change' do
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email)
+        .and_return(target_customer)
+      allow(Auth::Operations::SetCustomerVerification).to receive(:new)
+        .and_return(verification_op)
+      allow(verification_op).to receive(:call).and_return(:no_change)
+
+      output = run_cli_command_quietly('customers', 'unverify', 'target@example.com')
+      expect(output[:stdout]).to include('already unverified')
+      expect(last_exit_code).to eq(0)
+    end
+
+    it 'exits 1 when customer is not found' do
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email).and_return(nil)
+
+      output = run_cli_command_quietly('customers', 'unverify', 'missing@example.com')
+      expect(output[:stdout]).to include('Customer not found')
+      expect(last_exit_code).to eq(1)
+    end
+
+    it 'translates AccountClosed to a plain error and exits 1' do
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email)
+        .and_return(target_customer)
+      allow(Auth::Operations::SetCustomerVerification).to receive(:new)
+        .and_return(verification_op)
+      allow(verification_op).to receive(:call).and_raise(
+        Auth::Operations::SetCustomerVerification::AccountClosed,
+        'Cannot change verification for customer cust_ext_target: Rodauth account is closed',
+      )
+
+      output = run_cli_command_quietly('customers', 'unverify', 'target@example.com')
+      expect(output[:stdout]).to include('Rodauth account is closed')
+      expect(output[:stdout]).not_to include('sync-auth-accounts')
+      expect(last_exit_code).to eq(1)
+    end
+  end
+
+  describe 'numeric Rodauth account ID identifier' do
+    # When given a numeric identifier, the command routes through the
+    # Shared#resolve_customer helper to the SQL accounts table to look
+    # up external_id, then back to the Redis Customer record. We stub
+    # the helper at the instance method level so the test doesn't need
+    # a real Auth::Database; the helper's own contract (numeric → SQL
+    # → extid → Customer) is exercised in practice via the CLI smoke
+    # tests in the PR manual-test plan.
+    it 'accepts a numeric ID and resolves via the Shared helper' do
+      allow_any_instance_of(Onetime::CLI::CustomersVerifyCommand)
+        .to receive(:resolve_customer).with('123').and_return(target_customer)
+      allow(Auth::Operations::SetCustomerVerification).to receive(:new)
+        .and_return(verification_op)
+      allow(verification_op).to receive(:call).and_return(:success)
+
+      output = run_cli_command_quietly('customers', 'verify', '123')
+      expect(output[:stdout]).to include('Verified:')
+      expect(last_exit_code).to eq(0)
+    end
+
+    it 'reports Customer not found when no account matches the numeric ID' do
+      allow_any_instance_of(Onetime::CLI::CustomersVerifyCommand)
+        .to receive(:resolve_customer).with('99999').and_return(nil)
+
+      output = run_cli_command_quietly('customers', 'verify', '99999')
+      expect(output[:stdout]).to include('Customer not found')
+      expect(last_exit_code).to eq(1)
+    end
+  end
+
+  # Customers::Shared#resolve_customer dispatches on the identifier's shape.
+  # A UUID-shaped argument is an objid and loads directly; extids and emails
+  # can never take that shape, so they keep the extid/email path.
+  describe 'objid identifier' do
+    let(:objid) { '0199d3c4-5b6a-7c8d-9e0f-a1b2c3d4e5f6' }
+    let(:resolver) { Class.new { include Onetime::CLI::Customers::Shared }.new }
+
+    before do
+      allow(Onetime::Customer).to receive(:load).and_return(nil)
+      allow(Onetime::Customer).to receive(:load_by_extid_or_email).and_return(nil)
+    end
+
+    it 'verifies a customer addressed by objid' do
+      allow(Onetime::Customer).to receive(:load).with(objid).and_return(target_customer)
+      allow(Auth::Operations::SetCustomerVerification).to receive(:new)
+        .with(customer: target_customer, verified: true, verified_by: 'cli_provision', db: nil)
+        .and_return(verification_op)
+      allow(verification_op).to receive(:call).and_return(:success)
+
+      output = run_cli_command_quietly('customers', 'verify', objid)
+
+      expect(output[:stdout]).to include('Verified:')
+      expect(last_exit_code).to eq(0)
+      expect(Onetime::Customer).not_to have_received(:load_by_extid_or_email)
+    end
+
+    it 'loads by objid, case-insensitively, without touching the extid/email lookup' do
+      allow(Onetime::Customer).to receive(:load).with(objid).and_return(target_customer)
+
+      expect(resolver.resolve_customer(" #{objid.upcase} ")).to eq(target_customer)
+      expect(Onetime::Customer).not_to have_received(:load_by_extid_or_email)
+    end
+
+    it 'returns nil for an objid no record carries' do
+      expect(resolver.resolve_customer(objid)).to be_nil
+      expect(Onetime::Customer).to have_received(:load).with(objid)
+    end
+
+    it 'never routes an extid or an email to Customer.load' do
+      resolver.resolve_customer('urasakn4f2nl2ew0pq275ky8j3v')
+      resolver.resolve_customer('Target@Example.com')
+
+      expect(Onetime::Customer).not_to have_received(:load)
+      expect(Onetime::Customer).to have_received(:load_by_extid_or_email).with('urasakn4f2nl2ew0pq275ky8j3v')
+      expect(Onetime::Customer).to have_received(:load_by_extid_or_email).with('target@example.com')
+    end
+  end
+end

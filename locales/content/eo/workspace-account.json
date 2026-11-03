@@ -1,0 +1,726 @@
+{
+  "web.account.settings": {
+    "text": "Agordoj",
+    "source_hash": "74a883a0"
+  },
+  "web.account.change_password": {
+    "text": "Ŝanĝi Pasvorton",
+    "source_hash": "a949f462"
+  },
+  "web.account.close_account": {
+    "text": "Fermi Konton",
+    "source_hash": "e1513814"
+  },
+  "web.account.verify_account": {
+    "text": "Konfirmi Konton",
+    "source_hash": "2f3ea760"
+  },
+  "web.account.subscription_title": {
+    "text": "Abono",
+    "source_hash": "4999c6c6"
+  },
+  "web.account.manage_subscription": {
+    "text": "Administri Abonon",
+    "source_hash": "cbc4ef92"
+  },
+  "web.account.customer_information": {
+    "text": "Klientaj Informoj",
+    "source_hash": "8258db6d"
+  },
+  "web.account.customer_since": {
+    "text": "Kliento ekde:",
+    "source_hash": "0b37cff3"
+  },
+  "web.account.email": {
+    "text": "Retpoŝto:",
+    "source_hash": "17507dcf"
+  },
+  "web.account.region": {
+    "text": "Regiono",
+    "source_hash": "d3a008ef"
+  },
+  "web.account.account_balance": {
+    "text": "Saldo:",
+    "source_hash": "e0351221"
+  },
+  "web.account.default_payment_method": {
+    "text": "Defaŭlta Pagmaniero",
+    "source_hash": "c60f014b"
+  },
+  "web.account.card_ending": {
+    "text": "finanta per",
+    "source_hash": "0195bccf"
+  },
+  "web.account.subscriptions_title": {
+    "text": "Abonoj",
+    "source_hash": "a151f2e9"
+  },
+  "web.account.quantity": {
+    "text": "Kvanto:",
+    "source_hash": "d4b2cb96"
+  },
+  "web.account.next_billing_date": {
+    "text": "Sekva faktura dato:",
+    "source_hash": "8e6f9cfe"
+  },
+  "web.account.changePassword.username": {
+    "text": "Uzantnomo",
+    "source_hash": "e3b89e9d"
+  },
+  "web.account.changePassword.currentPassword": {
+    "text": "Nuna Pasvorto",
+    "source_hash": "8ac76099"
+  },
+  "web.account.changePassword.newPassword": {
+    "text": "Nova Pasvorto",
+    "source_hash": "7c451e0f"
+  },
+  "web.account.changePassword.confirmPassword": {
+    "text": "Konfirmi",
+    "source_hash": "eebdd24a"
+  },
+  "web.account.changePassword.updatePassword": {
+    "text": "Ĝisdatigi Pasvorton",
+    "source_hash": "557be0da"
+  },
+  "web.account.changePassword.updating": {
+    "text": "Ĝisdatigante...",
+    "source_hash": "0a4e0b71"
+  },
+  "web.account.timezone": {
+    "text": "Horzono",
+    "source_hash": "4ceca1d5"
+  },
+  "web.account.customer_id": {
+    "text": "Kliento-ID",
+    "source_hash": "62566c64"
+  },
+  "web.account.account_id_customerid": {
+    "text": "Konto-ID",
+    "source_hash": "919bb4cb"
+  },
+  "web.account.created_windowprops_cust_secrets_created_secrets": {
+    "text": "Kreis {0} sekretojn ekde {1}.",
+    "source_hash": "8cb99810"
+  },
+  "web.account.delete_account": {
+    "text": "Forigi Konton",
+    "source_hash": "c031bf99"
+  },
+  "web.account.api_key": {
+    "text": "API-Ŝlosilo",
+    "source_hash": "23189d55"
+  },
+  "web.account.account_type_windowprops_plan_options_name": {
+    "text": "Konto-tipo: {0}",
+    "source_hash": "617bfe67"
+  },
+  "web.account.your_account": {
+    "text": "Via Konto",
+    "source_hash": "89e60bfb"
+  },
+  "web.account.support_details": {
+    "text": "Subtenaj Detaloj",
+    "source_hash": "cbad8751"
+  },
+  "web.account.back_to_details": {
+    "text": "Reen al Detaloj",
+    "source_hash": "f6f841b9"
+  },
+  "web.account.customer_id_cust_custid": {
+    "text": "Kliento-ID: {0}",
+    "source_hash": "7e2d4201"
+  },
+  "web.account.token_generated": {
+    "text": "Ĵetono generita.",
+    "source_hash": "05986d95"
+  },
+  "web.account.keep_this_token_secure_it_provides_full_access_t": {
+    "text": "Konservu ĉi tiun ĵetonon sekura. Ĝi povas esti uzata por krei kaj administri sekretojn per la API.",
+    "source_hash": "a63cc8ec"
+  },
+  "web.account.confirm_with_your_password": {
+    "text": "Konfirmu per via pasvorto",
+    "source_hash": "ff2147fd"
+  },
+  "web.account.are_you_sure_you_want_to_permanently_delete_your": {
+    "text": "Ĉu vi certas, ke vi volas porĉiame forigi vian konton? Ĉi tiu ago ne povas esti malfarita.",
+    "source_hash": "4fa3e4b8"
+  },
+  "web.account.confirm_account_deletion": {
+    "text": "Konfirmi Konto-Forigon",
+    "source_hash": "bb3fc7e5"
+  },
+  "web.account.deleting_cust_custid": {
+    "text": "Forigante {0}",
+    "source_hash": "81d21828"
+  },
+  "web.account.deleting_ellipsis": {
+    "text": "Forigante...",
+    "source_hash": "685ecb98"
+  },
+  "web.account.permanently_delete_account": {
+    "text": "Porĉiame Forigi Konton",
+    "source_hash": "f894e42c"
+  },
+  "web.account.permanent_and_non_reversible": {
+    "text": "permanenta kaj ne reverskebla.",
+    "source_hash": "6121225e"
+  },
+  "web.account.deleting_your_account_is": {
+    "text": "Forigi vian konton estas",
+    "source_hash": "ec31577b"
+  },
+  "web.account.burn_them_before_continuing": {
+    "text": "forbruligu ilin antaŭ ol daŭrigi",
+    "source_hash": "f89a5794"
+  },
+  "web.account.any_secrets_you_wish_to_remove": {
+    "text": "Ajnajn sekretojn kiujn vi deziras forigi,",
+    "source_hash": "b45e2dd5"
+  },
+  "web.account.secrets_will_remain_active_until_they_expire": {
+    "text": "Sekretoj restos aktivaj ĝis ili eksvalidiĝos.",
+    "source_hash": "ddb4e2b5"
+  },
+  "web.account.please_be_advised": {
+    "text": "Bonvolu noti:",
+    "source_hash": "086020fd"
+  },
+  "web.account.account_deleted_successfully": {
+    "text": "Konto sukcese forigita.",
+    "source_hash": "afcfdd58"
+  },
+  "web.account.deactivate": {
+    "text": "Malaktivigi",
+    "source_hash": "fb1e6fa5"
+  },
+  "web.account.are_you_sure_you_want_to_deactivate_your_account": {
+    "text": "Ĉu vi certas, ke vi volas malaktivigi vian konton? Ĉiuj viaj datumoj estos porĉiame forigitaj de niaj serviloj. Ĉi tiu ago ne povas esti malfarita.",
+    "source_hash": "4940e20a"
+  },
+  "web.account.deactivate_account": {
+    "text": "Malaktivigi konton",
+    "source_hash": "5e31b73d"
+  },
+  "web.settings.title": {
+    "text": "Agordoj",
+    "source_hash": "74a883a0"
+  },
+  "web.settings.description": {
+    "text": "Administru viajn kontajn agordojn kaj preferojn",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.manage_your_account_settings_and_preferences": {
+    "text": "Administru viajn kontoajn agordojn kaj preferojn",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.back_to_dashboard": {
+    "text": "Reen al Panelo",
+    "source_hash": "97ba1d39"
+  },
+  "web.settings.sections.account": {
+    "text": "Konto",
+    "source_hash": "7e1b0d56"
+  },
+  "web.settings.sections.billing": {
+    "text": "Fakturado",
+    "source_hash": "3ac8bbca"
+  },
+  "web.settings.sections.advanced": {
+    "text": "Altnivelaj",
+    "source_hash": "9f088dbe"
+  },
+  "web.settings.general": {
+    "text": "Ĝeneralaj",
+    "source_hash": "c910d474"
+  },
+  "web.settings.preferences": {
+    "text": "Preferoj",
+    "source_hash": "66962f72"
+  },
+  "web.settings.appearance": {
+    "text": "Aspekto",
+    "source_hash": "3907fa7f"
+  },
+  "web.settings.theme.title": {
+    "text": "Etoso",
+    "source_hash": "efb52e71"
+  },
+  "web.settings.theme.description": {
+    "text": "Elekti helan aŭ malhelan etoson",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.theme.choose_light_or_dark_theme": {
+    "text": "Elekti helan aŭ malhelan etoson",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.language.title": {
+    "text": "Lingvo",
+    "source_hash": "a4fe6526"
+  },
+  "web.settings.language.description": {
+    "text": "Elekti vian preferatan lingvon",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.language.select_your_preferred_language": {
+    "text": "Elekti vian preferatan lingvon",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.security_settings_description": {
+    "text": "Administru aŭtentikigon kaj kontan sekurecon",
+    "source_hash": "945109d1"
+  },
+  "web.settings.profile_settings_description": {
+    "text": "Administru viajn kontajn informojn",
+    "source_hash": "4a23a29f"
+  },
+  "web.settings.profile.title": {
+    "text": "Profilo",
+    "source_hash": "d696a35b"
+  },
+  "web.settings.profile.change_email": {
+    "text": "Ŝanĝi Retpoŝtadreson",
+    "source_hash": "18c3f2d5"
+  },
+  "web.settings.profile.current_email": {
+    "text": "Nuna Retpoŝtadreso",
+    "source_hash": "5f1cab64"
+  },
+  "web.settings.profile.current_password": {
+    "text": "Nuna Pasvorto",
+    "source_hash": "8ac76099"
+  },
+  "web.settings.profile.new_email": {
+    "text": "Nova Retpoŝtadreso",
+    "source_hash": "5bafb4be"
+  },
+  "web.settings.profile.enter_password_to_confirm": {
+    "text": "Enigu vian nunan pasvorton",
+    "source_hash": "27814c03"
+  },
+  "web.settings.profile.password_required_for_security": {
+    "text": "Via pasvorto estas postulata por sekurecaj celoj",
+    "source_hash": "d18f62f2"
+  },
+  "web.settings.profile.verification_email_notice": {
+    "text": "Kontrola retpoŝto estos sendita al la nova adreso",
+    "source_hash": "575082a1"
+  },
+  "web.settings.profile.update_email": {
+    "text": "Ĝisdatigi Retpoŝtadreson",
+    "source_hash": "6ec61b2e"
+  },
+  "web.settings.profile.change_email_description": {
+    "text": "Ĝisdatigi la retpoŝtadreson asociitan kun via konto",
+    "source_hash": "636abb16"
+  },
+  "web.settings.profile.all_fields_required": {
+    "text": "Ĉiuj kampoj estas postulataj",
+    "source_hash": "04814271"
+  },
+  "web.settings.profile.invalid_email": {
+    "text": "Bonvolu enigi validan retpoŝtadreson",
+    "source_hash": "b00f7e3a"
+  },
+  "web.settings.profile.email_same_as_current": {
+    "text": "Nova retpoŝtadreso devas diferenci de la nuna retpoŝtadreso",
+    "source_hash": "f7cfed6e"
+  },
+  "web.settings.profile.email_change_success": {
+    "text": "Konfirma retmesaĝo sendita. Bonvolu kontroli vian novan enirkeston kaj klaku la konfirmligilon por kompletigi la ŝanĝon.",
+    "source_hash": "45f0a4b5"
+  },
+  "web.settings.profile.email_change_error": {
+    "text": "Malsukcesis ĝisdatigi retpoŝtadreson. Bonvolu reprovi.",
+    "source_hash": "aeba6591"
+  },
+  "web.settings.sessions.title": {
+    "text": "Aktivaj Sesioj",
+    "source_hash": "b58fa4e0"
+  },
+  "web.settings.sessions.description": {
+    "text": "Administri viajn aktivajn sesiojn",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.sessions.manage_active_sessions": {
+    "text": "Administri viajn aktivajn sesiojn",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.password.title": {
+    "text": "Pasvorto",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.settings.password.description": {
+    "text": "Ĝisdatigi vian kontan pasvorton",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.password.update_account_password": {
+    "text": "Ĝisdatigi vian kontan pasvorton",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.delete_account.title": {
+    "text": "Forigi Konton",
+    "source_hash": "c031bf99"
+  },
+  "web.settings.delete_account.description": {
+    "text": "Porĉiam forigi vian konton kaj ĉiujn datumojn",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.delete_account.permanently_delete_your_account": {
+    "text": "Porĉiam forigi vian konton kaj ĉiujn datumojn",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.security.security_score": {
+    "text": "Sekureca Poentaro",
+    "source_hash": "02d2f374"
+  },
+  "web.settings.security.score_description": {
+    "text": "Via ĝenerala konta sekureca sano",
+    "source_hash": "cf20935e"
+  },
+  "web.settings.security.excellent": {
+    "text": "Bonega",
+    "source_hash": "0dc8ee55"
+  },
+  "web.settings.security.good": {
+    "text": "Bona",
+    "source_hash": "c939327c"
+  },
+  "web.settings.security.fair": {
+    "text": "Akceptebla",
+    "source_hash": "f7b19afc"
+  },
+  "web.settings.security.weak": {
+    "text": "Malforta",
+    "source_hash": "8d6cea25"
+  },
+  "web.settings.security.improve_security": {
+    "text": "Plibonigi vian sekurecon",
+    "source_hash": "c38bcbf5"
+  },
+  "web.settings.security.enable_mfa_recommendation": {
+    "text": "Ebligi dufaktoran aŭtentikigon por pli forta protekto",
+    "source_hash": "6beda528"
+  },
+  "web.settings.security.generate_recovery_codes_recommendation": {
+    "text": "Generi rekuperajn kodojn kiel rezervon",
+    "source_hash": "eb5f3ebd"
+  },
+  "web.settings.security.configured": {
+    "text": "Agordita",
+    "source_hash": "84aebc69"
+  },
+  "web.settings.security.change": {
+    "text": "Ŝanĝi",
+    "source_hash": "c0bf75bd"
+  },
+  "web.settings.security.manage": {
+    "text": "Administri",
+    "source_hash": "5a234448"
+  },
+  "web.settings.security.enable": {
+    "text": "Ebligi",
+    "source_hash": "5342e09f"
+  },
+  "web.settings.security.codes_available": {
+    "text": "{0} kodoj disponeblas",
+    "source_hash": "76d6236d"
+  },
+  "web.settings.security.no_codes": {
+    "text": "Neniuj kodoj generitaj",
+    "source_hash": "3b2eae20"
+  },
+  "web.settings.security.active_sessions": {
+    "text": "{0} aktiva sesio | {0} aktivaj sesioj",
+    "source_hash": "30737484"
+  },
+  "web.settings.security.best_practices": {
+    "text": "Plej Bonaj Sekurecaj Praktikoj",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.security.use_strong_unique_password": {
+    "text": "Uzi fortan, unikan pasvorton por via konto",
+    "source_hash": "5fc8cbf4"
+  },
+  "web.settings.security.enable_mfa_for_protection": {
+    "text": "Ebligi dufaktoran aŭtentikigon por plia protekto",
+    "source_hash": "107e4898"
+  },
+  "web.settings.security.save_recovery_codes_safely": {
+    "text": "Konservi viajn rekuperajn kodojn en sekura loko",
+    "source_hash": "605513fc"
+  },
+  "web.settings.security.review_sessions_regularly": {
+    "text": "Regule revizii kaj nuligi neuzatajn sesiojn",
+    "source_hash": "efe59445"
+  },
+  "web.settings.security.view_details": {
+    "text": "Vidi detalojn",
+    "source_hash": "d1bf045b"
+  },
+  "web.settings.api.title": {
+    "text": "API kaj Integriĝoj",
+    "source_hash": "21fc84f3"
+  },
+  "web.settings.api.description": {
+    "text": "Administri API-ŝlosilojn kaj integriĝojn",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.manage_api_keys": {
+    "text": "Administri API-ŝlosilojn kaj integriĝojn",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.documentation": {
+    "text": "API-Dokumentaro",
+    "source_hash": "1cc77e60"
+  },
+  "web.settings.api.documentation_description": {
+    "text": "Lernu kiel integri {product_name} en viajn aplikaĵojn",
+    "source_hash": "9bba1ae8"
+  },
+  "web.settings.api.rest_api_reference": {
+    "text": "REST API Referenco",
+    "source_hash": "26a5af61"
+  },
+  "web.settings.api.complete_api_documentation": {
+    "text": "Kompleta API-dokumentaro kaj finpunktoj",
+    "source_hash": "c1c87ad8"
+  },
+  "web.settings.api.code_examples": {
+    "text": "Kodekzemploj",
+    "source_hash": "216d28e4"
+  },
+  "web.settings.api.example_code_and_libraries": {
+    "text": "Ekzempla kodo kaj klientbibliotekoj",
+    "source_hash": "61c5956f"
+  },
+  "web.settings.api.security_best_practices": {
+    "text": "Plej Bonaj Sekurecaj Praktikoj",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.api.never_commit_api_keys": {
+    "text": "Neniam enmetu API-ŝlosilojn en versiokontrolo",
+    "source_hash": "cc8c327e"
+  },
+  "web.settings.api.use_environment_variables": {
+    "text": "Uzu mediajn variablojn por konservi API-ŝlosilojn",
+    "source_hash": "c05e8802"
+  },
+  "web.settings.api.rotate_keys_regularly": {
+    "text": "Rotaciu API-ŝlosilojn regule por sekureco",
+    "source_hash": "eda6a5db"
+  },
+  "web.settings.api.use_https_only": {
+    "text": "Ĉiam uzu HTTPS kiam vi faras API-petojn",
+    "source_hash": "b3f405ef"
+  },
+  "web.settings.api.monitor_api_usage": {
+    "text": "Monitoru vian API-uzadon kaj agordu alarmojn",
+    "source_hash": "abb08beb"
+  },
+  "web.settings.api.important_notice": {
+    "text": "Grava Avizo",
+    "source_hash": "03d3ba93"
+  },
+  "web.settings.api.regenerating_key_warning": {
+    "text": "Regeneri vian API-ŝlosilon malvalidigos la nunan ŝlosilon. Ĝisdatigu ĉiujn aplikaĵojn uzantajn la malnovan ŝlosilon.",
+    "source_hash": "ab168f83"
+  },
+  "web.settings.privacy.title": {
+    "text": "Privatecaj Agordoj",
+    "source_hash": "eefad6ba"
+  },
+  "web.settings.privacy.manage_privacy_settings": {
+    "text": "Administri viajn privatecajn preferojn",
+    "source_hash": "add087da"
+  },
+  "web.settings.privacy.your_privacy": {
+    "text": "Via Privateco",
+    "source_hash": "cad972db"
+  },
+  "web.settings.privacy.non_negotiable": {
+    "text": "Sendiskutebla",
+    "source_hash": "ad090a29"
+  },
+  "web.settings.privacy.not_a_setting": {
+    "text": "Ne agordo",
+    "source_hash": "41278ece"
+  },
+  "web.settings.privacy.no_analytics_statement": {
+    "text": "Neniu analitiko. Neniu spurado. Punkto.",
+    "source_hash": "3e154b1c"
+  },
+  "web.settings.privacy.explanation": {
+    "text": "Ĉi tio ne estas agordo ĉar estas nenio por ŝalti aŭ malŝalti. Via privateco estas enkonstruita en kiel ni funkcias.",
+    "source_hash": "ed943792"
+  },
+  "web.settings.notifications.title": {
+    "text": "Sciigaj Agordoj",
+    "source_hash": "07a063ca"
+  },
+  "web.settings.notifications.description": {
+    "text": "Administri kiel vi ricevas sciigojn",
+    "source_hash": "148c5ff6"
+  },
+  "web.settings.notifications.error_updating": {
+    "text": "Malsukcesis ĝisdatigi sciigan preferon. Bonvolu reprovi.",
+    "source_hash": "c08abc04"
+  },
+  "web.settings.notifications.reveal_notifications.title": {
+    "text": "Sciigoj pri Sekreta Montrado",
+    "source_hash": "c0fb2e25"
+  },
+  "web.settings.notifications.reveal_notifications.description": {
+    "text": "Ricevi retpoŝton kiam iu vidas vian sekreton",
+    "source_hash": "a3a67095"
+  },
+  "web.settings.notifications.reveal_notifications.help": {
+    "text": "Vi estos sciigita ĉiufoje kiam ricevanto montras unu el viaj sekretoj",
+    "source_hash": "ba93106d"
+  },
+  "web.settings.notifications.privacy_note": {
+    "text": "Sciigaj retpoŝtoj inkluzivas nur la tempostampilon kaj sekretan identigilon. Informoj pri rigardanto neniam estas inkluzivitaj.",
+    "source_hash": "7aac282f"
+  },
+  "web.settings.caution.title": {
+    "text": "Zono de Zorgema Konsidero",
+    "source_hash": "fe27a3a8"
+  },
+  "web.settings.caution.description": {
+    "text": "Altnivelaj agordoj kaj datumadministrado",
+    "source_hash": "223ee55d"
+  },
+  "web.settings.caution.data_export": {
+    "text": "Eksporto de Datumoj",
+    "source_hash": "bdcea052"
+  },
+  "web.settings.caution.export_your_data": {
+    "text": "Eksporti viajn kontajn datumojn",
+    "source_hash": "dc5ffcb0"
+  },
+  "web.settings.caution.export_description": {
+    "text": "Peti kompletan kopion de viaj kontaj datumoj en maŝinlegebla formato",
+    "source_hash": "369c3391"
+  },
+  "web.settings.caution.request_data_export": {
+    "text": "Peti Eksporton de Datumoj",
+    "source_hash": "902394be"
+  },
+  "web.settings.caution.export_info": {
+    "text": "Tempo de Eksporta Pritraktado",
+    "source_hash": "2ebb2d44"
+  },
+  "web.settings.caution.export_info_description": {
+    "text": "Eksportoj estas pritraktataj ene de 24 horoj kaj senditaj al via retpoŝtadreso",
+    "source_hash": "a2f81e3b"
+  },
+  "web.settings.caution.deletion_warning_title": {
+    "text": "Forigo de via konto faros:",
+    "source_hash": "17a8a676"
+  },
+  "web.settings.caution.deletion_warning_secrets": {
+    "text": "Porĉiam forigi ĉiujn viajn sekretojn",
+    "source_hash": "974ccdb9"
+  },
+  "web.settings.caution.deletion_warning_metadata": {
+    "text": "Forigi ĉiujn sekretajn metadatumojn kaj historion",
+    "source_hash": "ec4ee372"
+  },
+  "web.settings.caution.deletion_warning_api_keys": {
+    "text": "Malvalidigi ĉiujn API-ŝlosilojn",
+    "source_hash": "7581333b"
+  },
+  "web.settings.caution.deletion_warning_irreversible": {
+    "text": "Ĉi tiu ago ne povas esti malfarita",
+    "source_hash": "02ccc074"
+  },
+  "web.settings.profile.confirm_email_change_title": {
+    "text": "Retpoŝta adreso ĝisdatigita",
+    "source_hash": "cf02eb0c"
+  },
+  "web.settings.profile.email_confirmed_success": {
+    "text": "Via retpoŝto estis sukcese ĝisdatigita. Bonvolu ensaluti per via nova retpoŝta adreso.",
+    "source_hash": "a84efcea"
+  },
+  "web.settings.profile.email_confirm_verifying": {
+    "text": "Kontrolante vian novan retpoŝtan adreson...",
+    "source_hash": "a6a4745f"
+  },
+  "web.settings.profile.email_confirm_error_title": {
+    "text": "Retpoŝta ŝanĝo malsukcesis",
+    "source_hash": "953f3936"
+  },
+  "web.settings.profile.email_confirm_invalid": {
+    "text": "Ĉi tiu kontrola ligo estas nevalida aŭ eksvalidiĝis.",
+    "source_hash": "f54594c2"
+  },
+  "web.settings.profile.email_confirm_back_to_settings": {
+    "text": "Reen al kontaj agordoj",
+    "source_hash": "fd49b66b"
+  },
+  "web.settings.profile.redirecting_to_signin": {
+    "text": "Alidirektas al ensaluto...",
+    "source_hash": "c65f7dcc"
+  },
+  "web.settings.profile.resend_confirmation": {
+    "text": "Resendi konfirman retpoŝton",
+    "source_hash": "c617fff7"
+  },
+  "web.settings.profile.resend_confirmation_success": {
+    "text": "Konfirma retpoŝto sukcese resendita.",
+    "source_hash": "2287783b"
+  },
+  "web.settings.profile.resend_confirmation_sending": {
+    "text": "Sendante...",
+    "source_hash": "286a3af7"
+  },
+  "web.settings.profile.email_change_pending": {
+    "text": "Kontrola retpoŝto estis sendita. Kontrolu vian ricevujon kaj alklaku la konfirman ligon.",
+    "source_hash": "5806c93f"
+  },
+  "web.settings.profile.didnt_receive_email": {
+    "text": "Ĉu vi ne ricevis la retpoŝton?",
+    "source_hash": "fe3ac3ad"
+  },
+  "web.settings.api.api_disabled_notice": {
+    "text": "La API estas malŝaltita por ĉi tiu instanco.",
+    "source_hash": "66d12d6b"
+  },
+  "web.settings.security.sso_managed_title": {
+    "text": "Sekureco administrata de SSO",
+    "source_hash": "1f6c9472"
+  },
+  "web.settings.security.sso_managed_description": {
+    "text": "Via konto estas aŭtentikigita tra la unuopa ensaluta provizanto de via organizo. Pasvorto, plurfaktora aŭtentikigo kaj restaŭraj kodoj estas administrataj de via identeca provizanto.",
+    "source_hash": "cd0cf39f"
+  },
+  "web.settings.api.api_username": {
+    "text": "API-Uzantnomo",
+    "source_hash": "0b3e483e"
+  },
+  "web.settings.api.api_username_description": {
+    "text": "Via uzantnomo por HTTP Basic-aŭtentikigo",
+    "source_hash": "f3e65de3"
+  },
+  "web.settings.api.basic_auth_hint": {
+    "text": "Por HTTP Basic-aŭtentikigo, uzu vian kontan retpoŝtadreson aŭ ĉi tiun ID kiel la uzantnomon kaj vian API-ĵetonon kiel la pasvorton.",
+    "source_hash": "cfa3806d"
+  },
+  "web.settings.security.set": {
+    "text": "Agordita",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.settings.security.not_set": {
+    "text": "Ne agordita",
+    "source_hash": "4895f731"
+  },
+  "web.settings.security.set_password_title": {
+    "text": "Agordi pasvorton",
+    "source_hash": "4e411687"
+  },
+  "web.settings.security.set_password_description": {
+    "text": "Aldonu pasvorton al via konto por ke vi ankaŭ povu ensaluti sen via idento-provizanto",
+    "source_hash": "a6970402"
+  }
+}

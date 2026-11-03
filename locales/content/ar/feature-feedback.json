@@ -1,0 +1,74 @@
+{
+  "web.feedback.your_feedback": {
+    "text": "ملاحظاتك",
+    "source_hash": "cdb1c0a5"
+  },
+  "web.feedback.all_feedback_welcome": {
+    "text": "جميع الملاحظات مرحب بها!",
+    "source_hash": "c57d3006"
+  },
+  "web.feedback.help_us_improve": {
+    "text": "ساعدنا على التحسين",
+    "source_hash": "f35439c4"
+  },
+  "web.feedback.close_feedback_modal": {
+    "text": "إغلاق نافذة الملاحظات",
+    "source_hash": "41689bb4"
+  },
+  "web.feedback.share_your_feedback": {
+    "text": "شارك ملاحظاتك",
+    "source_hash": "6d62dfbd"
+  },
+  "web.feedback.delano_mandelbaum": {
+    "text": "Delano Mandelbaum",
+    "source_hash": "6da0b72b"
+  },
+  "web.feedback.delano": {
+    "text": "Delano",
+    "source_hash": "f58154f7"
+  },
+  "web.feedback.help_content_goes_here": {
+    "text": "محتوى المساعدة يظهر هنا.",
+    "source_hash": "796979ea"
+  },
+  "web.feedback.founder_note_line1": {
+    "text": "أقرأ كل ملاحظة تأتي من هنا. هذه هي الطريقة التي أحدد بها ما يجب التركيز عليه.",
+    "source_hash": "8b430d93"
+  },
+  "web.feedback.founder_note_line2": {
+    "text": "إذا كان هناك شيء غير صحيح، أو لديك أفكار حول كيفية عمله، فهذا هو المكان المناسب.",
+    "source_hash": "d4b8f073"
+  },
+  "web.feedback.open_feedback_form": {
+    "text": "فتح نموذج الملاحظات",
+    "source_hash": "acd8409b"
+  },
+  "web.feedback.enter_your_feedback": {
+    "text": "أدخل ملاحظاتك",
+    "source_hash": "1bb310f4"
+  },
+  "web.feedback.send_feedback": {
+    "text": "إرسال ملاحظات",
+    "source_hash": "8235980b"
+  },
+  "web.feedback.sending_ellipses": {
+    "text": "جارٍ الإرسال...",
+    "source_hash": "286a3af7"
+  },
+  "web.feedback.reason_email_change_unauthorized": {
+    "text": "يبدو أنك تبلغ عن تغيير غير مصرح به للبريد الإلكتروني في حسابك. يرجى وصف ما حدث وسنحقق في الأمر فوراً.",
+    "source_hash": "00e56551"
+  },
+  "web.feedback.anonymous_no_reply": {
+    "text": "ملاحظة: إذا كنت ترغب في الحصول على رد، يُرجى التوقيع أو تضمين عنوان بريد إلكتروني في الرسالة.",
+    "source_hash": "c984f705"
+  },
+  "web.feedback.characters_remaining": {
+    "text": "{count} حرف متبقٍ",
+    "source_hash": "8d796f40"
+  },
+  "web.feedback.character_limit_reached": {
+    "text": "تم بلوغ الحد الأقصى للأحرف",
+    "source_hash": "031e9310"
+  }
+}

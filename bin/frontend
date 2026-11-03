@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#
+# bin/frontend - Start just the frontend service via Overmind.
+# For all services, use: bin/dev
+
+if ! command -v overmind >/dev/null 2>&1; then
+  echo "Error: Overmind not found. Install with: brew install overmind"
+  exit 1
+fi
+
+if [[ -z "${OTS_ENV_LOADED:-}" ]]; then
+  echo "Error: OTS_ENV_LOADED is not set — run: direnv allow .  (or re-run bin/setup)" >&2
+  exit 1
+fi
+
+PORT="${PORT:-7143}"
+
+exec env PORT="$PORT" OVERMIND_SKIP_ENV=1 overmind start -f Procfile.dev -l frontend

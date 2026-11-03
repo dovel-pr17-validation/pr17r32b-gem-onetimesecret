@@ -1,0 +1,434 @@
+# apps/web/billing/spec/operations/grant_probono_entitlements_spec.rb
+#
+# frozen_string_literal: true
+
+# Unit tests for GrantProbonoEntitlements operation.
+#
+# Covers:
+# - default_org_for: owned organizations only — default_org_id when owned,
+#   then the owned is_default workspace, then the first owned org
+# - filter_eligible: keeps only LEGACY_PROBONO_PLANIDS customers
+# - find_eligible_customers: yields progress, returns filtered array
+# - .call with no org: returns :skipped_no_org without writes
+# - .call with complimentary org: returns :skipped_already_complimentary
+# - .call with --force on complimentary org: bypasses the skip
+# - .call dry_run: returns :would_grant without writes
+# - .call live: writes planid + complimentary, materializes, clears
+#   customer.planid (and verifies the ordering invariant)
+# - .call propagates PlanCacheMissError from materialize_entitlements_for_org
+#
+# Run: pnpm run test:rspec apps/web/billing/spec/operations/grant_probono_entitlements_spec.rb
+
+require 'spec_helper'
+require 'billing/operations/grant_probono_entitlements'
+
+RSpec.describe Billing::Operations::GrantProbonoEntitlements do
+  let(:customer_email) { 'probono@example.com' }
+
+  # All stubs below use symbol keys because they are method names being
+  # defined on the double, not data keys. Setters (`planid=`,
+  # `complimentary=`) use the rocket form `:method= => value` since
+  # Ruby's `key:` shorthand only accepts identifier-shaped names; that
+  # is why they cluster at the bottom of each `double()` call.
+
+  let(:customer) do
+    double('Customer',
+      extid: 'cust_ext_1',
+      email: customer_email,
+      planid: 'identity',
+      default_org_id: nil,
+      anonymous?: false,
+      :planid= => nil,
+      save: true,
+    )
+  end
+
+  let(:org) do
+    double('Organization',
+      extid: 'org_ext_1',
+      objid: 'org_obj_1',
+      is_default: true,
+      archived?: false,
+      owner?: true,
+      planid: 'free_v1',
+      complimentary: nil,
+      :planid= => nil,
+      :complimentary= => nil,
+      save: true,
+    )
+  end
+
+  let(:materialize_result) do
+    Billing::Operations::MaterializeResult.new(
+      status: :materialized,
+      planid: 'identity',
+      entitlements_count: 5,
+      source: :config,
+      reason: nil,
+    )
+  end
+
+  before do
+    allow(customer).to receive(:organization_instances)
+      .and_return(double(to_a: [org]))
+    allow(Billing::Operations::ApplySubscriptionToOrg)
+      .to receive(:materialize_entitlements_for_org).and_return(materialize_result)
+    allow(OT).to receive(:le)
+    allow(OT).to receive(:lw)
+    allow(OT).to receive(:info)
+  end
+
+  # ---------------------------------------------------------------------------
+  # .default_org_for (class method)
+  # ---------------------------------------------------------------------------
+
+  describe '.default_org_for' do
+    let(:org_a) { double('OrgA', objid: 'a', is_default: false, archived?: false, owner?: true) }
+    let(:org_b) { double('OrgB', objid: 'b', is_default: true, archived?: false, owner?: true) }
+    let(:org_c) { double('OrgC', objid: 'c', is_default: false, archived?: false, owner?: true) }
+
+    it 'returns nil when customer has no organizations' do
+      allow(customer).to receive(:organization_instances)
+        .and_return(double(to_a: []))
+
+      expect(described_class.default_org_for(customer)).to be_nil
+    end
+
+    it 'returns the org matching customer.default_org_id when set' do
+      allow(customer).to receive(:default_org_id).and_return('c')
+      allow(customer).to receive(:organization_instances)
+        .and_return(double(to_a: [org_a, org_b, org_c]))
+
+      expect(described_class.default_org_for(customer)).to eq(org_c)
+    end
+
+    it 'falls back to is_default org when default_org_id is unset' do
+      allow(customer).to receive(:default_org_id).and_return(nil)
+      allow(customer).to receive(:organization_instances)
+        .and_return(double(to_a: [org_a, org_b, org_c]))
+
+      expect(described_class.default_org_for(customer)).to eq(org_b)
+    end
+
+    it 'falls back to first org when no is_default flag is set' do
+      allow(customer).to receive(:default_org_id).and_return(nil)
+      allow(customer).to receive(:organization_instances)
+        .and_return(double(to_a: [org_a, org_c]))
+
+      expect(described_class.default_org_for(customer)).to eq(org_a)
+    end
+
+    it 'falls back through default_org_id when it points at an organization the customer is not in' do
+      allow(customer).to receive(:default_org_id).and_return('missing')
+      allow(customer).to receive(:organization_instances)
+        .and_return(double(to_a: [org_a, org_b]))
+
+      expect(described_class.default_org_for(customer)).to eq(org_b)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Target selection: the grant writes planid/complimentary onto the target,
+  # so it must be a workspace the customer OWNS. A legacy pro-bono customer
+  # who joined another owner's default workspace lists that workspace with
+  # is_default too — selecting it would change THAT owner's plan.
+  # ---------------------------------------------------------------------------
+
+  describe 'target selection with the shared lookup fixture' do
+    include_context 'default workspace lookup fixture'
+
+    before do
+      allow(customer).to receive(:organization_instances)
+        .and_return(double(to_a: lookup_fixture_orgs))
+      allow(customer).to receive(:default_org_id).and_return(nil)
+      stub_workspace_ownership(customer)
+      [foreign_default, archived_default, owned_default].each do |o|
+        allow(o).to receive(:complimentary).and_return(nil)
+        allow(o).to receive(:planid=)
+        allow(o).to receive(:complimentary=)
+        allow(o).to receive(:save).and_return(true)
+      end
+    end
+
+    it '.default_org_for selects the owned live default, not the foreign default listed first' do
+      expect(described_class.default_org_for(customer)).to be(owned_default)
+    end
+
+    it '.default_org_for ignores a default_org_id naming a joined organization' do
+      allow(customer).to receive(:default_org_id).and_return(foreign_default.objid)
+
+      expect(described_class.default_org_for(customer)).to be(owned_default)
+    end
+
+    it 'grants to the owned workspace and never writes to the joined one' do
+      result = described_class.call(customer)
+
+      expect(result.granted?).to be(true)
+      expect(result.org_extid).to eq(owned_default.extid)
+      expect(owned_default).to have_received(:planid=).with('identity')
+      expect(owned_default).to have_received(:complimentary=).with('true')
+      expect(foreign_default).not_to have_received(:planid=)
+      expect(foreign_default).not_to have_received(:complimentary=)
+      expect(foreign_default).not_to have_received(:save)
+      expect(archived_default).not_to have_received(:planid=)
+    end
+
+    it 'offers no explicit target: a cross-owner grant has no authorization contract' do
+      expect { described_class.call(customer, org: foreign_default) }.to raise_error(ArgumentError)
+      expect(foreign_default).not_to have_received(:planid=)
+    end
+
+    it 'skips a customer who owns no live organization rather than grant to a joined one' do
+      allow(customer).to receive(:organization_instances)
+        .and_return(double(to_a: [foreign_default, archived_default]))
+
+      result = described_class.call(customer)
+
+      expect(result.status).to eq(:skipped_no_org)
+      expect(foreign_default).not_to have_received(:planid=)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # .filter_eligible (class method)
+  # ---------------------------------------------------------------------------
+
+  describe '.filter_eligible' do
+    let(:identity_cust)  { double('Customer', planid: 'identity') }
+    let(:paid_cust)      { double('Customer', planid: 'identity_plus_v1') }
+    let(:no_planid_cust) { double('Customer', planid: nil) }
+    let(:empty_cust)     { double('Customer', planid: '') }
+
+    it 'keeps only customers with planid == "identity"' do
+      result = described_class.filter_eligible(
+        [identity_cust, paid_cust, no_planid_cust, empty_cust],
+      )
+
+      expect(result).to eq([identity_cust])
+    end
+
+    it 'returns empty when no customer matches' do
+      result = described_class.filter_eligible([paid_cust, no_planid_cust])
+      expect(result).to be_empty
+    end
+
+    it 'handles non-string planids via to_s' do
+      sym_cust = double('Customer', planid: :identity)
+      result   = described_class.filter_eligible([sym_cust])
+      expect(result).to eq([sym_cust])
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # .find_eligible_customers (class method)
+  # ---------------------------------------------------------------------------
+
+  describe '.find_eligible_customers' do
+    let(:cust_eligible)   { double('Customer', planid: 'identity') }
+    let(:cust_ineligible) { double('Customer', planid: 'identity_plus_v1') }
+
+    # Stub Familia's cursor-based iterator. each_record yields one
+    # record at a time, just like the real implementation.
+    def stub_each_record(records)
+      instances = double('instances', element_count: records.size)
+      allow(instances).to receive(:each_record) do |**_kwargs, &block|
+        records.each(&block)
+      end
+      allow(Onetime::Customer).to receive(:instances).and_return(instances)
+    end
+
+    it 'returns only eligible customers' do
+      stub_each_record([cust_eligible, cust_ineligible, cust_eligible])
+
+      result = described_class.find_eligible_customers
+
+      expect(result).to eq([cust_eligible, cust_eligible])
+    end
+
+    it 'yields the final progress at scanned == total' do
+      stub_each_record([cust_eligible, cust_ineligible, cust_eligible])
+
+      progress = []
+      described_class.find_eligible_customers(batch_size: 100) do |scanned, total|
+        progress << [scanned, total]
+      end
+
+      expect(progress).to eq([[3, 3]])
+    end
+
+    it 'yields progress at each batch boundary and at the end' do
+      stub_each_record(Array.new(5) { cust_ineligible })
+
+      progress = []
+      described_class.find_eligible_customers(batch_size: 2) do |scanned, total|
+        progress << [scanned, total]
+      end
+
+      # Boundaries at 2, 4; final yield at 5 (scanned == total)
+      expect(progress).to eq([[2, 5], [4, 5], [5, 5]])
+    end
+
+    it 'returns empty when no eligible customers exist' do
+      stub_each_record([cust_ineligible, cust_ineligible])
+
+      result = described_class.find_eligible_customers
+      expect(result).to be_empty
+    end
+
+    it 'uses cursor-based each_record, not the materializing .all' do
+      instances = double('instances', element_count: 0)
+      allow(instances).to receive(:each_record)
+      allow(Onetime::Customer).to receive(:instances).and_return(instances)
+
+      # Lock in the SSCAN-backed scan: .all (SMEMBERS) would block
+      # Redis on large customer sets.
+      expect(instances).not_to receive(:all)
+
+      described_class.find_eligible_customers
+
+      expect(instances).to have_received(:each_record).with(batch_size: 100)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # .call — skip paths
+  # ---------------------------------------------------------------------------
+
+  describe '.call skip paths' do
+    it 'returns :skipped_no_org without writes when customer has no org' do
+      allow(customer).to receive(:organization_instances)
+        .and_return(double(to_a: []))
+
+      expect(org).not_to receive(:planid=)
+      expect(customer).not_to receive(:planid=)
+      expect(Billing::Operations::ApplySubscriptionToOrg)
+        .not_to receive(:materialize_entitlements_for_org)
+
+      result = described_class.call(customer)
+
+      expect(result.status).to eq(:skipped_no_org)
+      expect(result.customer_extid).to eq('cust_ext_1')
+      expect(result.org_extid).to be_nil
+      expect(result.skipped?).to be true
+    end
+
+    it 'returns :skipped_already_complimentary when org is complimentary and force is false' do
+      allow(org).to receive(:complimentary).and_return('true')
+
+      expect(org).not_to receive(:planid=)
+      expect(customer).not_to receive(:planid=)
+      expect(Billing::Operations::ApplySubscriptionToOrg)
+        .not_to receive(:materialize_entitlements_for_org)
+
+      result = described_class.call(customer)
+
+      expect(result.status).to eq(:skipped_already_complimentary)
+      expect(result.org_extid).to eq('org_ext_1')
+      expect(result.skipped?).to be true
+    end
+
+    it 'does not skip a complimentary org when force is true' do
+      allow(org).to receive(:complimentary).and_return('true')
+
+      result = described_class.call(customer, force: true)
+
+      expect(result.status).to eq(:granted)
+      expect(result.granted?).to be true
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # .call — dry-run
+  # ---------------------------------------------------------------------------
+
+  describe '.call dry_run' do
+    it 'returns :would_grant without mutating org or customer' do
+      expect(org).not_to receive(:planid=)
+      expect(org).not_to receive(:complimentary=)
+      expect(org).not_to receive(:save)
+      expect(customer).not_to receive(:planid=)
+      expect(Billing::Operations::ApplySubscriptionToOrg)
+        .not_to receive(:materialize_entitlements_for_org)
+
+      result = described_class.call(customer, dry_run: true)
+
+      expect(result.status).to eq(:would_grant)
+      expect(result.would_grant?).to be true
+      expect(result.customer_extid).to eq('cust_ext_1')
+      expect(result.org_extid).to eq('org_ext_1')
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # .call — live grant
+  # ---------------------------------------------------------------------------
+
+  describe '.call live grant' do
+    it 'sets org.planid to the target plan' do
+      expect(org).to receive(:planid=).with('identity')
+
+      described_class.call(customer)
+    end
+
+    it 'marks org complimentary' do
+      expect(org).to receive(:complimentary=).with('true')
+      expect(org).to receive(:save)
+
+      described_class.call(customer)
+    end
+
+    it 'materializes entitlements with raise_on_miss: true' do
+      expect(Billing::Operations::ApplySubscriptionToOrg)
+        .to receive(:materialize_entitlements_for_org)
+        .with(org, raise_on_miss: true)
+        .and_return(materialize_result)
+
+      described_class.call(customer)
+    end
+
+    it 'materializes before marking complimentary, then clears customer planid' do
+      call_order = []
+      allow(Billing::Operations::ApplySubscriptionToOrg)
+        .to receive(:materialize_entitlements_for_org) do
+          call_order << :materialize
+          materialize_result
+        end
+      allow(org).to receive(:complimentary=) { |_| call_order << :complimentary_set }
+      allow(org).to receive(:save) { call_order << :org_save }
+      allow(customer).to receive(:planid=) { |_| call_order << :clear_customer_planid }
+      allow(customer).to receive(:save) { call_order << :customer_save }
+
+      described_class.call(customer)
+
+      # Materialize must precede the complimentary write+save, so a
+      # failure in materialize cannot leave org marked complimentary.
+      expect(call_order).to eq(
+        %i[materialize complimentary_set org_save clear_customer_planid customer_save],
+      )
+    end
+
+    it 'leaves org.complimentary and customer.planid untouched when materialize raises' do
+      allow(Billing::Operations::ApplySubscriptionToOrg)
+        .to receive(:materialize_entitlements_for_org)
+        .and_raise(Billing::PlanCacheMissError.new('plan missing', plan_id: 'identity'))
+
+      expect(org).not_to receive(:complimentary=)
+      expect(org).not_to receive(:save)
+      expect(customer).not_to receive(:planid=)
+      expect(customer).not_to receive(:save)
+
+      expect {
+        described_class.call(customer)
+      }.to raise_error(Billing::PlanCacheMissError)
+    end
+
+    it 'returns :granted with both extids on success' do
+      result = described_class.call(customer)
+
+      expect(result.status).to eq(:granted)
+      expect(result.customer_extid).to eq('cust_ext_1')
+      expect(result.org_extid).to eq('org_ext_1')
+      expect(result.reason).to be_nil
+    end
+  end
+end

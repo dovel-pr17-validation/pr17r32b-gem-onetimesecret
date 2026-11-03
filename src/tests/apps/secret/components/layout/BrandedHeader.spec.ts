@@ -1,0 +1,267 @@
+// src/tests/apps/secret/components/layout/BrandedHeader.spec.ts
+//
+// Tests for BrandedHeader — the component that switches between
+// BrandedMastHead (custom domains) and MastHead (canonical domain)
+// based on productIdentity.isCustom.
+
+import { mount, VueWrapper } from '@vue/test-utils';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createTestingPinia } from '@pinia/testing';
+import { createTestI18n } from '@tests/setup';
+import BrandedHeader from '@/apps/secret/components/layout/BrandedHeader.vue';
+import { nextTick } from 'vue';
+
+// Track which component renders
+const brandedMastHeadSpy = vi.fn();
+const mastHeadSpy = vi.fn();
+
+// Mock BrandedMastHead
+vi.mock('@/apps/secret/components/layout/BrandedMastHead.vue', () => ({
+  default: {
+    name: 'BrandedMastHead',
+    template: '<div class="branded-masthead" :data-headertext="headertext" :data-subtext="subtext" />',
+    props: ['headertext', 'subtext', 'displayMasthead', 'displayNavigation'],
+    setup() {
+      brandedMastHeadSpy();
+    },
+  },
+}));
+
+// Mock MastHead
+vi.mock('@/shared/components/layout/MastHead.vue', () => ({
+  default: {
+    name: 'MastHead',
+    template: '<div class="standard-masthead" />',
+    props: ['displayMasthead', 'displayNavigation', 'colonel'],
+    setup() {
+      mastHeadSpy();
+    },
+  },
+}));
+
+// Mock vue-router
+vi.mock('vue-router', () => ({
+  RouterLink: {
+    template: '<a :href="to"><slot /></a>',
+    props: ['to'],
+  },
+  useRoute: vi.fn(() => ({ path: '/', query: {}, params: {} })),
+  useRouter: vi.fn(() => ({ push: vi.fn() })),
+}));
+
+const i18n = createTestI18n();
+
+describe('BrandedHeader', () => {
+  let wrapper: VueWrapper;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    if (wrapper) {
+      wrapper.unmount();
+    }
+  });
+
+  const mountComponent = (
+    props: Record<string, unknown> = {},
+    storeOverrides: {
+      domain_strategy?: string;
+      domain_logo?: string | null;
+      domain_branding?: Record<string, unknown>;
+      homepage_config?: Record<string, unknown> | null;
+      header?: Record<string, unknown>;
+    } = {}
+  ) => {
+    const pinia = createTestingPinia({
+      createSpy: vi.fn,
+      stubActions: false,
+      initialState: {
+        bootstrap: {
+          domain_strategy: storeOverrides.domain_strategy ?? 'canonical',
+          domain_logo: storeOverrides.domain_logo ?? null,
+          domains_enabled: storeOverrides.domain_strategy === 'custom',
+          display_domain: storeOverrides.domain_strategy === 'custom'
+            ? 'secrets.acme.com'
+            : 'onetimesecret.com',
+          site_host: 'onetimesecret.com',
+          canonical_domain: 'onetimesecret.com',
+          domain_id: storeOverrides.domain_strategy === 'custom' ? 'cd_acme' : '',
+          domain_branding: storeOverrides.domain_branding ?? {
+            primary_color: '#36454F',
+            corner_style: 'rounded',
+            font_family: 'sans',
+            button_text_light: true,
+          },
+          homepage_config: storeOverrides.homepage_config ?? null,
+          ui: {
+            // #3612: ui.header carries only layout knobs; brand identity
+            // (logo asset, product name) lives in the flat brand_* fields.
+            header: storeOverrides.header ?? {
+              enabled: true,
+              logo: { href: null, show_name: null, prominent: null },
+              navigation: { enabled: true },
+            },
+          },
+          brand_product_name: null,
+          brand_logo_url: null,
+          brand_logo_alt: null,
+        },
+      },
+    });
+
+    return mount(BrandedHeader, {
+      props: {
+        displayMasthead: true,
+        displayNavigation: false,
+        ...props,
+      },
+      global: {
+        plugins: [i18n, pinia],
+        stubs: {
+          RouterLink: {
+            template: '<a :href="to"><slot /></a>',
+            props: ['to'],
+          },
+        },
+      },
+    });
+  };
+
+  describe('Component switching based on domain strategy', () => {
+    it('renders MastHead on canonical domain', async () => {
+      wrapper = mountComponent({}, {
+        domain_strategy: 'canonical',
+        domain_logo: null,
+      });
+
+      await nextTick();
+      expect(wrapper.find('.standard-masthead').exists()).toBe(true);
+      expect(wrapper.find('.branded-masthead').exists()).toBe(false);
+      expect(mastHeadSpy).toHaveBeenCalled();
+      expect(brandedMastHeadSpy).not.toHaveBeenCalled();
+    });
+
+    it('renders BrandedMastHead on custom domain', async () => {
+      wrapper = mountComponent({}, {
+        domain_strategy: 'custom',
+        domain_logo: 'https://cdn.example.com/logo.png',
+      });
+
+      await nextTick();
+      expect(wrapper.find('.branded-masthead').exists()).toBe(true);
+      expect(wrapper.find('.standard-masthead').exists()).toBe(false);
+      expect(brandedMastHeadSpy).toHaveBeenCalled();
+      expect(mastHeadSpy).not.toHaveBeenCalled();
+    });
+
+    it('renders BrandedMastHead on custom domain even without logo', async () => {
+      // Key scenario: custom domain with no uploaded logo
+      // BrandedHeader should still use BrandedMastHead (NOT MastHead)
+      // because the switching is based on domain_strategy, not domain_logo
+      wrapper = mountComponent({}, {
+        domain_strategy: 'custom',
+        domain_logo: null,
+      });
+
+      await nextTick();
+      expect(wrapper.find('.branded-masthead').exists()).toBe(true);
+      expect(wrapper.find('.standard-masthead').exists()).toBe(false);
+    });
+  });
+
+  describe('Header text on custom domains', () => {
+    it('shows "Secure Links" when homepage_config is null/disabled', async () => {
+      wrapper = mountComponent({}, {
+        domain_strategy: 'custom',
+        domain_logo: 'https://cdn.example.com/logo.png',
+        domain_branding: {
+          primary_color: '#ff4400',
+          corner_style: 'square',
+          font_family: 'sans',
+          button_text_light: false,
+        },
+      });
+
+      await nextTick();
+      const branded = wrapper.find('.branded-masthead');
+      expect(branded.attributes('data-headertext')).toBe('web.homepage.secure_links');
+      expect(branded.attributes('data-subtext')).toBe(
+        'web.homepage.a_trusted_way_to_share_sensitive_information_etc'
+      );
+    });
+
+    it('shows "Create a Secure Link" when homepage_config is enabled', async () => {
+      wrapper = mountComponent({}, {
+        domain_strategy: 'custom',
+        domain_logo: 'https://cdn.example.com/logo.png',
+        domain_branding: {
+          primary_color: '#ff4400',
+          corner_style: 'square',
+          font_family: 'sans',
+          button_text_light: false,
+        },
+        homepage_config: {
+          domain_id: 'cd_acme',
+          enabled: true,
+          created_at: null,
+          updated_at: null,
+        },
+      });
+
+      await nextTick();
+      const branded = wrapper.find('.branded-masthead');
+      expect(branded.attributes('data-headertext')).toBe('web.homepage.create_a_secure_link');
+    });
+  });
+
+  describe('Masthead visibility', () => {
+    it('hides header content when displayMasthead is false', async () => {
+      wrapper = mountComponent({
+        displayMasthead: false,
+      }, {
+        domain_strategy: 'canonical',
+      });
+
+      await nextTick();
+      // The outer header exists but inner content is hidden via v-if
+      expect(wrapper.find('.standard-masthead').exists()).toBe(false);
+      expect(wrapper.find('.branded-masthead').exists()).toBe(false);
+    });
+  });
+
+  // HEADER_ENABLED gate (#3362): operator config collapses the entire
+  // <header> banner landmark — no empty landmark, no whitespace band.
+  describe('HEADER_ENABLED gate', () => {
+    it('removes the <header> element when header.enabled is false', async () => {
+      wrapper = mountComponent({}, {
+        domain_strategy: 'canonical',
+        header: { enabled: false },
+      });
+
+      await nextTick();
+      expect(wrapper.find('header').exists()).toBe(false);
+      // Content collapses with the landmark, not merely emptied.
+      expect(wrapper.find('.standard-masthead').exists()).toBe(false);
+      expect(wrapper.find('.branded-masthead').exists()).toBe(false);
+    });
+
+    it('renders the <header> element when header.enabled is true', async () => {
+      wrapper = mountComponent({}, {
+        domain_strategy: 'canonical',
+        header: { enabled: true },
+      });
+
+      await nextTick();
+      expect(wrapper.find('header').exists()).toBe(true);
+    });
+
+    it('renders the <header> element when header.enabled is omitted (default true)', async () => {
+      wrapper = mountComponent({}, { domain_strategy: 'canonical' });
+
+      await nextTick();
+      expect(wrapper.find('header').exists()).toBe(true);
+    });
+  });
+});

@@ -1,0 +1,244 @@
+// src/tests/components/AppSessionState.spec.ts
+//
+// #4460 / #4465 / #4461 at the root component: protected content is withheld
+// while the session cannot be verified, the stale-session notice is
+// persistent, and one session transition produces exactly one message. Also
+// the layout root's `lang`, which follows the active locale.
+
+import App from '@/App.vue';
+import { useAuthStore } from '@/shared/stores/authStore';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import { useNotificationsStore } from '@/shared/stores/notificationsStore';
+import { SESSION_TRANSITION_KEY } from '@/utils/sessionTransition';
+import { createTestingPinia } from '@pinia/testing';
+import { mount } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { defineComponent, h, markRaw, nextTick, reactive, ref } from 'vue';
+
+const route = reactive<{ meta: Record<string, unknown>; name: string; fullPath: string }>({
+  meta: {},
+  name: 'Test',
+  fullPath: '/test',
+});
+
+vi.mock('vue-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-router')>()),
+  useRoute: () => route,
+}));
+
+// The active locale App.vue reads; a ref, as useI18n() returns it.
+const activeLocale = ref('en');
+
+vi.mock('vue-i18n', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-i18n')>()),
+  useI18n: () => ({ t: (key: string) => key, locale: activeLocale }),
+}));
+
+vi.mock('@/shared/composables/useBrandTheme', () => ({ useBrandTheme: vi.fn() }));
+vi.mock('@/shared/components/icons/sprites', () => ({ iconLibraryComponents: {} }));
+
+const ProtectedPage = defineComponent({
+  render: () => h('div', { 'data-testid': 'protected-page' }, 'account data'),
+});
+const Layout = defineComponent({ render() { return h('main', this.$slots.default?.()); } });
+const RouterViewStub = defineComponent({
+  // App.vue puts a class on <router-view>; the slot renders a fragment.
+  inheritAttrs: false,
+  render() { return this.$slots.default?.({ Component: ProtectedPage }); },
+});
+
+function mountApp(status: 'authenticated' | 'unavailable' | 'checking' | 'anonymous', requiresAuth: boolean) {
+  // markRaw: a real route's meta is not deeply reactive, so its layout
+  // component is not made reactive either.
+  route.meta = { requiresAuth, layout: markRaw(Layout) };
+  const pinia = createTestingPinia({ createSpy: vi.fn, stubActions: true });
+  useBootstrapStore().authStatus = status;
+  const wrapper = mount(App, {
+    global: {
+      plugins: [pinia],
+      mocks: { $route: route },
+      stubs: {
+        // Stands in for the router: hands the slot the matched component.
+        RouterView: RouterViewStub,
+        RouteErrorBoundary: defineComponent({
+          props: { resetKey: { type: String, default: undefined } },
+          render() { return this.$slots.default?.(); },
+        }),
+        ImpersonationBanner: true,
+        NotificationHost: true,
+        CriticalSprites: true,
+        OIcon: true,
+      },
+    },
+  });
+  return { wrapper, authStore: useAuthStore() };
+}
+
+describe('App: session state at the root', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    activeLocale.value = 'en';
+  });
+
+  describe('layout lang', () => {
+    it('carries the active locale as a BCP 47 tag and follows a switch', async () => {
+      activeLocale.value = 'pt_BR';
+      const { wrapper } = mountApp('anonymous', false);
+
+      expect(wrapper.find('main').attributes('lang')).toBe('pt-BR');
+
+      activeLocale.value = 'bg';
+      await nextTick();
+      expect(wrapper.find('main').attributes('lang')).toBe('bg');
+    });
+  });
+
+  describe('protected content while verification is unavailable (#4460)', () => {
+    it('renders the protected page when authenticated', () => {
+      const { wrapper } = mountApp('authenticated', true);
+
+      expect(wrapper.find('[data-testid="protected-page"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="verification-unavailable"]').exists()).toBe(false);
+    });
+
+    it.each(['unavailable', 'checking'] as const)(
+      'withholds it in `%s` and offers retry instead',
+      (status) => {
+        const { wrapper } = mountApp(status, true);
+
+        expect(wrapper.find('[data-testid="protected-page"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain('account data');
+        expect(wrapper.find('[data-testid="verification-retry"]').exists()).toBe(true);
+      }
+    );
+
+    it('does not withhold a public route', () => {
+      const { wrapper } = mountApp('unavailable', false);
+
+      expect(wrapper.find('[data-testid="protected-page"]').exists()).toBe(true);
+    });
+
+    it('recovers in place when verification succeeds: no page load involved', async () => {
+      const { wrapper } = mountApp('unavailable', true);
+
+      useBootstrapStore().authStatus = 'authenticated';
+      await nextTick();
+
+      expect(wrapper.find('[data-testid="protected-page"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="verification-unavailable"]').exists()).toBe(false);
+    });
+
+    it('retry goes through the coordinator', async () => {
+      const { wrapper, authStore } = mountApp('unavailable', true);
+      vi.mocked(authStore.retryNow).mockResolvedValue('failed');
+
+      await wrapper.find('[data-testid="verification-retry"]').trigger('click');
+      await nextTick();
+      await nextTick();
+
+      expect(authStore.retryNow).toHaveBeenCalledTimes(1);
+      expect(wrapper.find('[data-testid="verification-retry-failed"]').exists()).toBe(true);
+    });
+  });
+
+  describe('stale-session notice (#4465)', () => {
+    it('is absent in the ordinary case', () => {
+      const { wrapper } = mountApp('authenticated', true);
+
+      expect(wrapper.find('[data-testid="stale-session-notice"]').exists()).toBe(false);
+    });
+
+    it('is persistent once the state is entered, and leaves the page content in place', async () => {
+      const { wrapper, authStore } = mountApp('authenticated', true);
+
+      authStore.staleSession = true;
+      await nextTick();
+
+      const notice = wrapper.find('[data-testid="stale-session-notice"]');
+      expect(notice.attributes('role')).toBe('alert');
+      expect(wrapper.find('[data-testid="stale-session-reload"]').exists()).toBe(true);
+      // The user must still be able to copy unsubmitted input.
+      expect(wrapper.find('[data-testid="protected-page"]').exists()).toBe(true);
+      // Nothing dismisses it: no close control, no timer.
+      expect(notice.findAll('button')).toHaveLength(1);
+    });
+  });
+
+  // The notice is queued, not shown over whatever is up: the app mounts after
+  // the initial navigation, whose guards may already have raised a notice
+  // (an org-role refusal), and that one must not be replaced.
+  describe('one transition, one message (#4461)', () => {
+    it.each(['ended', 'replaced'] as const)('announces a parked `%s` once and removes it', (kind) => {
+      sessionStorage.setItem(SESSION_TRANSITION_KEY, kind);
+
+      mountApp('anonymous', false);
+      const notifications = useNotificationsStore();
+
+      expect(notifications.enqueue).toHaveBeenCalledTimes(1);
+      expect(notifications.enqueue).toHaveBeenCalledWith(
+        `web.auth.session.${kind}`,
+        'info',
+        'top',
+        10000
+      );
+      expect(notifications.show).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem(SESSION_TRANSITION_KEY)).toBeNull();
+    });
+
+    it('a second mount says nothing', () => {
+      sessionStorage.setItem(SESSION_TRANSITION_KEY, 'ended');
+      mountApp('anonymous', false);
+
+      mountApp('anonymous', false);
+
+      expect(useNotificationsStore().enqueue).not.toHaveBeenCalled();
+      expect(useNotificationsStore().show).not.toHaveBeenCalled();
+    });
+
+    it('says nothing on an ordinary page load', () => {
+      mountApp('authenticated', true);
+
+      expect(useNotificationsStore().enqueue).not.toHaveBeenCalled();
+      expect(useNotificationsStore().show).not.toHaveBeenCalled();
+    });
+  });
+
+  // The coordinator owns the toasts of the 401s it reconciles. When that
+  // reconciliation settles without a transition it publishes one notice, and
+  // this is where it becomes a message (ADR-046#rejection-disposition).
+  describe('one fallback notice per owned rejection batch', () => {
+    it('shows the suppressed caller message as an error', async () => {
+      const { authStore } = mountApp('authenticated', true);
+      const notifications = useNotificationsStore();
+
+      authStore.rejectionNotice = { serial: 1, count: 3, message: 'Authentication Required' };
+      await nextTick();
+
+      expect(notifications.show).toHaveBeenCalledTimes(1);
+      expect(notifications.show).toHaveBeenCalledWith('Authentication Required', 'error');
+    });
+
+    it('falls back to the generic text when the caller had none', async () => {
+      const { authStore } = mountApp('authenticated', true);
+
+      authStore.rejectionNotice = { serial: 1, count: 1, message: null };
+      await nextTick();
+
+      expect(useNotificationsStore().show).toHaveBeenCalledWith('web.COMMON.unexpected_error', 'error');
+    });
+
+    it('a new serial is a new notice; clearing the value says nothing', async () => {
+      const { authStore } = mountApp('authenticated', true);
+      const notifications = useNotificationsStore();
+
+      authStore.rejectionNotice = { serial: 1, count: 1, message: 'Authentication Required' };
+      await nextTick();
+      authStore.rejectionNotice = null;
+      await nextTick();
+      authStore.rejectionNotice = { serial: 2, count: 1, message: 'Authentication Required' };
+      await nextTick();
+
+      expect(notifications.show).toHaveBeenCalledTimes(2);
+    });
+  });
+});

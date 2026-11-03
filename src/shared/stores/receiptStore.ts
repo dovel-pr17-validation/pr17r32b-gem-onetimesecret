@@ -1,0 +1,225 @@
+// src/shared/stores/receiptStore.ts
+
+import { createError } from '@/shared/composables/useAsyncHandler';
+import { responseSchemas } from '@/schemas/api/v3/responses';
+import type { Receipt, ReceiptDetails } from '@/schemas/shapes/v3/receipt';
+import { gracefulParse } from '@/utils/schemaValidation';
+import { useApi } from '@/shared/composables/useApi';
+import { defineStore, PiniaCustomProperties } from 'pinia';
+import { computed, ref } from 'vue';
+
+/**
+ * API mode for endpoint selection.
+ * - 'authenticated': Uses /api/v3/receipt/* endpoints (requires session)
+ * - 'public': Uses /api/v3/guest/receipt/* endpoints (no auth required)
+ */
+export type ApiMode = 'authenticated' | 'public';
+
+/**
+ * Receipt status constants
+ *
+ * STATE TERMINOLOGY MIGRATION:
+ *   'viewed'   -> 'previewed'  (link accessed, confirmation shown)
+ *   'received' -> 'revealed'   (secret content decrypted/consumed)
+ *
+ * Legacy values retained for backward compatibility.
+ * @deprecated VIEWED, RECEIVED - use PREVIEWED, REVEALED instead
+ */
+export const RECEIPT_STATUS = {
+  NEW: 'new',
+  SHARED: 'shared',
+  RECEIVED: 'received',     // @deprecated - use REVEALED
+  REVEALED: 'revealed',     // NEW: secret content was revealed
+  BURNED: 'burned',
+  VIEWED: 'viewed',         // @deprecated - use PREVIEWED
+  PREVIEWED: 'previewed',   // NEW: link was accessed
+  ORPHANED: 'orphaned',
+} as const;
+
+
+/**
+ * Type definition for ReceiptStore.
+ */
+export type ReceiptStore = {
+  // State
+  record: Receipt | null;
+  details: ReceiptDetails | null;
+  apiMode: ApiMode;
+  _initialized: boolean;
+
+  // Getters
+  isInitialized: boolean;
+  canBurn: boolean;
+
+  // Actions
+  init: () => { isInitialized: boolean };
+  fetch: (key: string) => Promise<void>;
+  burn: (key: string, passphrase?: string) => Promise<void>;
+  setApiMode: (mode: ApiMode) => void;
+  $reset: () => void;
+} & PiniaCustomProperties;
+
+// Store definition naturally groups related functionality.
+// eslint-disable-next-line max-lines-per-function
+export const useReceiptStore = defineStore('receipt', () => {
+  const $api = useApi();
+
+  // State
+  const record = ref<Receipt | null>(null);
+  const details = ref<ReceiptDetails | null>(null);
+  const _initialized = ref(false);
+  const apiMode = ref<ApiMode>('authenticated');
+
+  /**
+   * Returns the appropriate endpoint path based on current API mode.
+   * @param path - The path suffix (e.g., '/receipt/abc123')
+   * @returns Full endpoint path with correct prefix
+   */
+  function getEndpoint(path: string): string {
+    const prefix = apiMode.value === 'public' ? '/api/v3/guest' : '/api/v3';
+    return `${prefix}${path}`;
+  }
+
+  /**
+   * Sets the API mode for endpoint selection.
+   * @param mode - 'authenticated' for /api/v3/receipt/*, 'public' for /api/v3/guest/receipt/*
+   */
+  function setApiMode(mode: ApiMode) {
+    apiMode.value = mode;
+  }
+
+  // Getters
+  const isInitialized = computed(() => _initialized.value);
+
+  /**
+   * Initializes the receipt store.
+   * Idempotent - subsequent calls have no effect if already initialized.
+   *
+   * @returns Object containing initialization status
+   */
+  function init() {
+    if (_initialized.value) return { isInitialized };
+
+
+    _initialized.value = true;
+    return { isInitialized };
+  }
+
+  const canBurn = computed((): boolean => {
+    if (!record.value) return false;
+
+    // States where secret can still be burned (not yet revealed/consumed)
+    const validStates = [
+      RECEIPT_STATUS.NEW,
+      RECEIPT_STATUS.SHARED,
+      RECEIPT_STATUS.VIEWED,     // @deprecated - use PREVIEWED
+      RECEIPT_STATUS.PREVIEWED,  // NEW canonical state
+    ] as const;
+
+    if (
+      record.value.burned ||
+      !validStates.includes(record.value.state as (typeof validStates)[number])
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  /**
+   * Fetches receipt for given key from API.
+   * Validates response against receipt schema using Zod.
+   * Updates store state with validated response.
+   *
+   * @param key - Receipt identifier
+   * @throws {ZodError} When response fails schema validation (dev/test only)
+   * @throws In production, throws generic error on schema failure after logging
+   * @throws {AxiosError} When request fails
+   */
+  async function fetch(key: string) {
+    const endpoint = getEndpoint(`/receipt/${key}`);
+    const response = await $api.get(endpoint);
+    const result = gracefulParse(
+      responseSchemas.receipt,
+      response.data,
+      'ReceiptResponse'
+    );
+
+    if (!result.ok) {
+      throw new Error('Unable to load receipt. Please try again.');
+    }
+
+    record.value = result.data.record;
+    details.value = result.data.details ?? null;
+    return result.data;
+  }
+
+  /**
+   * Burns (destroys) receipt identified by key.
+   * Validates current state allows burning via canBurn.
+   * Updates store state with validated response.
+   *
+   * @param key - Receipt identifier
+   * @param passphrase - Optional passphrase required for some secrets
+   * @throws {ApplicationError} When receipt cannot be burned
+   * @throws {ZodError} When response fails schema validation (dev/test only)
+   * @throws In production, throws generic error on schema failure after logging
+   * @throws {AxiosError} When request fails
+   */
+  async function burn(key: string, passphrase?: string) {
+    if (!canBurn.value) {
+      throw createError('Cannot burn this receipt', 'human', 'error');
+    }
+
+    const endpoint = getEndpoint(`/receipt/${key}/burn`);
+    const response = await $api.post(endpoint, {
+      passphrase,
+      continue: true,
+    });
+
+    const result = gracefulParse(
+      responseSchemas.receipt,
+      response.data,
+      'ReceiptResponse'
+    );
+
+    if (!result.ok) {
+      throw new Error('Unable to burn secret. Please try again.');
+    }
+
+    record.value = result.data.record;
+    details.value = result.data.details ?? null;
+
+    return result.data;
+  }
+
+  /**
+   * Resets store state to initial values.
+   * apiMode is intentionally preserved: it's set by the consuming
+   * composable based on auth state, and resetting it here causes a
+   * race condition when Vue processes new component setup before
+   * old component unmount.
+   */
+  function $reset() {
+    record.value = null;
+    details.value = null;
+    _initialized.value = false;
+  }
+
+  return {
+    // State
+    record,
+    details,
+    apiMode,
+
+    // Getters
+    canBurn,
+
+    // Actions
+    init,
+    fetch,
+    burn,
+    setApiMode,
+    $reset,
+  };
+});

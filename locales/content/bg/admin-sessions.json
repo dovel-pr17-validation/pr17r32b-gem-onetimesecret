@@ -1,0 +1,254 @@
+{
+  "web.admin.sessions.title": {
+    "text": "Сесии",
+    "source_hash": "6fa3cbf4"
+  },
+  "web.admin.sessions.description": {
+    "text": "Проверявайте, търсете и отменяйте активни сесии при реакция на инциденти.",
+    "source_hash": "784a3a44"
+  },
+  "web.admin.sessions.anonymous": {
+    "text": "Анонимен",
+    "source_hash": "e7a8aa2d"
+  },
+  "web.admin.sessions.columns.sessionId": {
+    "text": "ИД на сесията",
+    "source_hash": "cb9ac5c5"
+  },
+  "web.admin.sessions.columns.authenticated": {
+    "text": "Удост.",
+    "source_hash": "8eb3ea9b"
+  },
+  "web.admin.sessions.columns.email": {
+    "text": "Имейл",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.sessions.columns.externalId": {
+    "text": "Външен ИД",
+    "source_hash": "69da56ba"
+  },
+  "web.admin.sessions.columns.ipAddress": {
+    "text": "IP адрес",
+    "source_hash": "3c3de0c9"
+  },
+  "web.admin.sessions.columns.country": {
+    "text": "Държава",
+    "source_hash": "701d021d"
+  },
+  "web.admin.sessions.columns.created": {
+    "text": "Удостоверен на",
+    "source_hash": "8d6c9b01"
+  },
+  "web.admin.sessions.columns.actions": {
+    "text": "Действия",
+    "source_hash": "ff8059dc"
+  },
+  "web.admin.sessions.columns.role": {
+    "text": "Роля",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.sessions.detail.yes": {
+    "text": "Да",
+    "source_hash": "85a39ab3"
+  },
+  "web.admin.sessions.detail.no": {
+    "text": "Не",
+    "source_hash": "1ea442a1"
+  },
+  "web.admin.sessions.detail.none": {
+    "text": "Няма",
+    "source_hash": "dc937b59"
+  },
+  "web.admin.sessions.detail.unknown": {
+    "text": "Неизвестно",
+    "source_hash": "b764cdc0"
+  },
+  "web.admin.sessions.detail.noExpiry": {
+    "text": "Без изтичане",
+    "source_hash": "fe06351d"
+  },
+  "web.admin.sessions.detail.expired": {
+    "text": "Изтекла",
+    "source_hash": "424a2551"
+  },
+  "web.admin.sessions.detail.ttlSeconds": {
+    "text": "оставащи {seconds}с",
+    "source_hash": "3c9d75ce"
+  },
+  "web.admin.sessions.drawer.title": {
+    "text": "Сесия {id}",
+    "source_hash": "29dcbd66"
+  },
+  "web.admin.sessions.drawer.notFound": {
+    "text": "Сесията не е намерена",
+    "source_hash": "0969eab8"
+  },
+  "web.admin.sessions.drawer.notFoundDescription": {
+    "text": "Тази сесия вече не съществува в Redis. Може да е изтекла или вече да е била отменена.",
+    "source_hash": "11e3ef05"
+  },
+  "web.admin.sessions.drawer.loadError": {
+    "text": "Тази сесия не можа да бъде заредена.",
+    "source_hash": "82ae90fb"
+  },
+  "web.admin.sessions.drawer.retry": {
+    "text": "Повторен опит",
+    "source_hash": "942087cc"
+  },
+  "web.admin.sessions.fields.sessionId": {
+    "text": "ИД на сесията",
+    "source_hash": "cb9ac5c5"
+  },
+  "web.admin.sessions.fields.key": {
+    "text": "Redis ключ",
+    "source_hash": "0b196725"
+  },
+  "web.admin.sessions.fields.ttl": {
+    "text": "TTL",
+    "source_hash": "76f6014f"
+  },
+  "web.admin.sessions.fields.authenticated": {
+    "text": "Удостоверен",
+    "source_hash": "6ab694cf"
+  },
+  "web.admin.sessions.fields.email": {
+    "text": "Имейл",
+    "source_hash": "969ccbd3"
+  },
+  "web.admin.sessions.fields.externalId": {
+    "text": "Външен ИД",
+    "source_hash": "69da56ba"
+  },
+  "web.admin.sessions.fields.accountId": {
+    "text": "ИД на акаунта",
+    "source_hash": "919bb4cb"
+  },
+  "web.admin.sessions.fields.role": {
+    "text": "Роля",
+    "source_hash": "14736a2e"
+  },
+  "web.admin.sessions.fields.locale": {
+    "text": "Локал",
+    "source_hash": "ca3dc612"
+  },
+  "web.admin.sessions.fields.ipAddress": {
+    "text": "IP адрес",
+    "source_hash": "3c3de0c9"
+  },
+  "web.admin.sessions.fields.authenticatedAt": {
+    "text": "Удостоверен на",
+    "source_hash": "8d6c9b01"
+  },
+  "web.admin.sessions.fields.authenticatedBy": {
+    "text": "Удостоверен от",
+    "source_hash": "3ebbabfe"
+  },
+  "web.admin.sessions.fields.activeSessionId": {
+    "text": "ИД на активна сесия",
+    "source_hash": "f32b1158"
+  },
+  "web.admin.sessions.fields.userAgent": {
+    "text": "User Agent",
+    "source_hash": "62e01345"
+  },
+  "web.admin.sessions.fields.orgContext": {
+    "text": "Контекст на организацията",
+    "source_hash": "a596d9f2"
+  },
+  "web.admin.sessions.list.loadError": {
+    "text": "Сесиите не можаха да бъдат заредени.",
+    "source_hash": "00c678d9"
+  },
+  "web.admin.sessions.list.retry": {
+    "text": "Повторен опит",
+    "source_hash": "942087cc"
+  },
+  "web.admin.sessions.list.empty": {
+    "text": "Не са намерени активни сесии",
+    "source_hash": "e35312d6"
+  },
+  "web.admin.sessions.revoke.button": {
+    "text": "Отмяна",
+    "source_hash": "87e6d00b"
+  },
+  "web.admin.sessions.revoke.confirmTitle": {
+    "text": "Да се отмени ли тази сесия?",
+    "source_hash": "0c6605c1"
+  },
+  "web.admin.sessions.revoke.confirmDescription": {
+    "text": "Това незабавно отписва потребителя, като отменя сесия {id}. Въведете {token} за потвърждение.",
+    "source_hash": "80578692"
+  },
+  "web.admin.sessions.revoke.success": {
+    "text": "Сесията е отменена",
+    "source_hash": "0af5e14d"
+  },
+  "web.admin.sessions.scan.summary": {
+    "text": "Показани {shown} удостоверени · {anonymous} анонимни скрити · {scanned} сканирани",
+    "source_hash": "34cb67a4"
+  },
+  "web.admin.sessions.scan.capped": {
+    "text": "Сканирането е ограничено до първите {scanned} ключа — удостоверените сесии извън този прозорец не са изброени. Стеснете търсенето, за да ги достигнете.",
+    "source_hash": "7a8d6fd5"
+  },
+  "web.admin.sessions.search.placeholder": {
+    "text": "Търсене по имейл, външен ИД или манипулатор на сесията",
+    "source_hash": "4894dec4"
+  },
+  "web.admin.sessions.sections.session": {
+    "text": "Сесия",
+    "source_hash": "6959b415"
+  },
+  "web.admin.sessions.sections.raw": {
+    "text": "Необработени данни за сесията",
+    "source_hash": "c9f11eb4"
+  },
+  "web.admin.sessions.status.authenticated": {
+    "text": "Удостоверен",
+    "source_hash": "6ab694cf"
+  },
+  "web.admin.sessions.status.anonymous": {
+    "text": "Анонимен",
+    "source_hash": "e7a8aa2d"
+  },
+  "web.admin.sessions.authority.title": {
+    "text": "Не е източникът на истина за сесиите в режим на пълно удостоверяване",
+    "source_hash": "796fb07f"
+  },
+  "web.admin.sessions.authority.description": {
+    "text": "Този списък е хранилището за сесии в Redis. Когато режимът на удостоверяване е зададен на full, авторитетното състояние на сесиите се намира в базата данни с акаунти на Rodauth, която тази конзола не чете. Акаунти, влезли чрез Rodauth, може да не се показват тук, а отменянето на сесия тук не прекратява сесия в Rodauth.",
+    "source_hash": "77bc4904"
+  },
+  "web.admin.sessions.authority.descriptionRevokeAll": {
+    "text": "Този списък е хранилището за сесии в Redis. Когато режимът на удостоверяване е зададен на full, авторитетното състояние на сесиите се намира в базата данни с акаунти на Rodauth, която тази конзола не чете. Акаунти, влезли чрез Rodauth, може да не се показват тук, а отменянето на отделна сесия тук не прекратява съответната ѝ сесия в Rodauth. „Отмяна на всички“ прекратява и сесиите на акаунта в Rodauth.",
+    "source_hash": "f964663d"
+  },
+  "web.admin.sessions.authority.openAdmin": {
+    "text": "Отваряне на Rodauth Admin",
+    "source_hash": "ce523836"
+  },
+  "web.admin.sessions.authority.notConfigured": {
+    "text": "Задайте RODAUTH_ADMIN_URL, за да свържете оттук към Rodauth Admin.",
+    "source_hash": "c070dbfb"
+  },
+  "web.admin.sessions.columns.sessionHandle": {
+    "text": "Манипулатор на сесията",
+    "source_hash": "2f08034d"
+  },
+  "web.admin.sessions.errors.scanCapped": {
+    "text": "Тази сесия не е намерена в извадката от пространството с ключове. Отворете я от реда ѝ в списъка, за да може собственикът да бъде използван за търсенето ѝ.",
+    "source_hash": "67b73f7f"
+  },
+  "web.admin.sessions.fields.sessionHandle": {
+    "text": "Манипулатор на сесията",
+    "source_hash": "2f08034d"
+  },
+  "web.admin.sessions.revoke.ownSession": {
+    "text": "Това е вашата собствена сесия. Отменянето ѝ ще ви отпише — вместо това използвайте „Изход“.",
+    "source_hash": "a6762292"
+  },
+  "web.admin.sessions.rodauthAdmin.open": {
+    "text": "Отваряне в Rodauth Admin",
+    "source_hash": "467173c8"
+  }
+}

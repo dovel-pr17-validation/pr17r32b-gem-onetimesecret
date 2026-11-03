@@ -1,0 +1,1457 @@
+<!-- src/apps/admin/views/AdminCustomerDetail.vue -->
+
+<script setup lang="ts">
+  import AdminAccountDiagnosticsSection from '@/apps/admin/components/AdminAccountDiagnosticsSection.vue';
+  import AdminCustomerSessionsSection from '@/apps/admin/components/AdminCustomerSessionsSection.vue';
+  import AdminCustomerOrganizationsSection from '@/apps/admin/components/customers/AdminCustomerOrganizationsSection.vue';
+  import {
+    AdminConfirmDialog,
+    DataTable,
+    SchemaIssueList,
+    StatCard,
+  } from '@/apps/admin/components/kit';
+  import type { DataTableColumn } from '@/apps/admin/components/kit';
+  import RevealEmail from '@/apps/admin/components/RevealEmail.vue';
+  import { useAdminDestructiveMutation } from '@/apps/admin/composables/useAdminDestructiveMutation';
+  import { useResourceFetch } from '@/apps/admin/composables/useResourceFetch';
+  import { accountConfirmToken, confirmHeaders } from '@/apps/admin/utils/confirmHeader';
+  import { reasonBody, reasonQueryArgs } from '@/apps/admin/utils/operatorReason';
+  import type {
+    ColonelUserDetailReceipt,
+    ColonelUserDetails,
+    ColonelUserDetailSecret,
+    ColonelUserPurgeLifecycleItem,
+    ColonelUserPurgeLifecycleResult,
+    ColonelUserPurgeResponse,
+  } from '@/schemas/api/internal/responses/colonel';
+  import {
+    colonelImpersonateResponseSchema,
+    colonelUserDetailRecordSchema,
+    colonelUserDetailResponseSchema,
+    colonelUserDetailsSchema,
+    colonelUserMutationResponseSchema,
+    colonelUserPurgeLifecycleResultSchema,
+    colonelUserPurgeResponseSchema,
+  } from '@/schemas/api/internal/responses/colonel';
+  import OIcon from '@/shared/components/icons/OIcon.vue';
+  import { useApi } from '@/shared/composables/useApi';
+  import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+  import { useNotificationsStore } from '@/shared/stores/notificationsStore';
+  import { formatDisplayDateTime } from '@/utils/format';
+  import { hardNavigate } from '@/utils/navigation';
+  import { gracefulParse } from '@/utils/schemaValidation';
+  import { computed, onMounted, ref, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
+
+  /**
+   * Customer detail — the "support without SSH" read-out plus the guarded
+   * mutation buttons (ticket #22, the reference slice for tickets 30/31/32).
+   *
+   * - Single-resource fetch via {@link useResourceFetch} against
+   *   GET /api/colonel/users/:id, keyed by the customer's PUBLIC id (extid).
+   * - Read-out: profile, verification + role, key timestamps, lifetime stats,
+   *   and the customer's secrets / receipts / organizations. Organization
+   *   detail owns plan, Stripe, and subscription information. Loading, empty,
+   *   not-found and error states are all handled explicitly.
+   * - Guarded actions (CONTRACT 3 / D4): set-role, verify, unverify and
+   *   unsuspend go through a simple confirm; PURGE, SUSPEND and IMPERSONATE
+   *   require typed confirmation (retype the public id — purge asks for the
+   *   email) via {@link AdminConfirmDialog} in danger mode. Suspension is the reversible trust & safety pause (no data
+   *   destroyed — unlike purge); colonel accounts cannot be suspended. Audit
+   *   is emitted server-side; nothing here logs it.
+   */
+  const props = defineProps<{
+    /** The customer's public id (route param), forwarded from the router. */
+    id: string;
+  }>();
+
+  const { t } = useI18n();
+  const router = useRouter();
+  const $api = useApi();
+  const notifications = useNotificationsStore();
+  const bootstrapStore = useBootstrapStore();
+
+  const publicId = computed(() => props.id);
+  const userUrl = (): string => `/api/colonel/users/${encodeURIComponent(publicId.value)}`;
+
+  const {
+    data: userData,
+    loading: userLoading,
+    error: userError,
+    validationError: userValidationError,
+    mismatch: userMismatch,
+    notFound: userNotFound,
+    load: loadUser,
+    refresh: refreshUser,
+  } = useResourceFetch({
+    url: userUrl,
+    schema: colonelUserDetailResponseSchema,
+    context: 'ColonelUserDetailResponse',
+  });
+
+  type DetailSection = keyof ColonelUserDetails;
+
+  /**
+   * Contract-mismatch fallback. The whole-response parse failed somewhere, so
+   * re-parse the record and each details section through its own schema: one
+   * bad field then hides only its section, not the page. A section that fails
+   * is left out, and the template shows a notice in its place. Nothing reaches
+   * the template without passing a schema.
+   */
+  const partial = computed(() => {
+    if (userMismatch.value === null) return null;
+    const raw = (userMismatch.value.payload ?? {}) as {
+      record?: unknown;
+      details?: Record<string, unknown> | null;
+    };
+    const recordResult = colonelUserDetailRecordSchema.safeParse(raw.record);
+    const sections: Partial<Record<DetailSection, unknown>> = {};
+    const shape = colonelUserDetailsSchema.shape;
+    for (const key of Object.keys(shape) as DetailSection[]) {
+      const result = shape[key].safeParse(raw.details?.[key]);
+      if (result.success) sections[key] = result.data;
+    }
+    return {
+      record: recordResult.success ? recordResult.data : null,
+      details: sections as Partial<ColonelUserDetails>,
+    };
+  });
+
+  const record = computed(() => userData.value?.record ?? partial.value?.record ?? null);
+  const details = computed<Partial<ColonelUserDetails> | null>(
+    () => userData.value?.details ?? partial.value?.details ?? null
+  );
+
+  /**
+   * A non-404 network/HTTP failure, or a contract mismatch in the record
+   * itself. A mismatch confined to details sections degrades those sections.
+   */
+  const loadFailed = computed(
+    () =>
+      (userError.value !== null && !userNotFound.value) ||
+      (userValidationError.value !== null && record.value === null)
+  );
+
+  // ---- Guarded actions ------------------------------------------------------
+
+  type ActionKey =
+    | 'setRole'
+    | 'verify'
+    | 'unverify'
+    | 'suspend'
+    | 'unsuspend'
+    | 'impersonate'
+    | 'purge';
+
+  /** Assignable roles, mirrored from the backend SetRole::VALID_ROLES. */
+  const ROLE_OPTIONS = ['colonel', 'admin', 'staff', 'customer'] as const;
+
+  const dialogOpen = ref(false);
+  const activeAction = ref<ActionKey | null>(null);
+  const pendingRole = ref('');
+  /** Optional operator-supplied suspension reason (sent with the suspend POST). */
+  const suspendReason = ref('');
+  /** REQUIRED operator reason for impersonation (the API 422s without one). */
+  const impersonateReason = ref('');
+  /**
+   * Where the server says the console must go once impersonation starts,
+   * captured from the ack and consumed by the hard navigation in onConfirm.
+   */
+  const impersonateRedirect = ref<string | null>(null);
+
+  // Keep the role selector in sync with the loaded record.
+  watch(
+    record,
+    (value) => {
+      pendingRole.value = value?.role ?? '';
+    },
+    { immediate: true }
+  );
+
+  /**
+   * POST/DELETE a colonel mutation endpoint, then run the response through the
+   * shared ack schema so it stays a live tripwire. A 2xx means the mutation
+   * succeeded server-side regardless of ack shape (we refresh the record after),
+   * so a schema mismatch is reported by gracefulParse but does not fail the action.
+   */
+  async function callMutation(
+    method: 'post' | 'delete',
+    path: string,
+    opts: {
+      body?: unknown;
+      /** DELETE-only operator reason (#4338); a POST merges it into `body`. */
+      reason?: string;
+      /** The #4326 confirmation token's header, when the verb is gated. */
+      headers?: Record<string, string>;
+    } = {}
+  ): Promise<unknown> {
+    // POST -> body, DELETE -> query string (see operatorReason.ts). The
+    // confirmation token rides the HEADER either way, so the two compose.
+    const headerConfig = opts.headers ? { headers: opts.headers } : undefined;
+    const [reasonConfig] = reasonQueryArgs(opts.reason);
+    // With no reason the call keeps its exact pre-#4338 shape.
+    const deleteConfig = reasonConfig ? { ...headerConfig, ...reasonConfig } : headerConfig;
+    const response =
+      method === 'delete'
+        ? await $api.delete(path, deleteConfig)
+        : await $api.post(path, opts.body ?? {}, headerConfig);
+    gracefulParse(colonelUserMutationResponseSchema, response.data, 'ColonelUserMutationResponse');
+    return response.data;
+  }
+
+  function humanizeLifecycleKey(value: string): string {
+    return value.replaceAll('_', ' ');
+  }
+
+  function formatLifecycleValue(value: unknown): string | null {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    if (Array.isArray(value)) {
+      const values = value
+        .map(formatLifecycleValue)
+        .filter((item): item is string => item !== null);
+      return values.length ? values.join(', ') : null;
+    }
+    return null;
+  }
+
+  /** Preserve every scalar remediation detail supplied by the backend. */
+  function formatLifecycleItem(item: ColonelUserPurgeLifecycleItem): string {
+    const summary = item.message ?? humanizeLifecycleKey(item.code ?? item.type ?? 'unknown');
+    const details = Object.entries(item).flatMap(([key, value]) => {
+      if (['message', 'code', 'type'].includes(key)) return [];
+      const formatted = formatLifecycleValue(value);
+      return formatted ? [`${humanizeLifecycleKey(key)}: ${formatted}`] : [];
+    });
+    return details.length ? `${summary} (${details.join('; ')})` : summary;
+  }
+
+  function resolvePurgeLifecycle(
+    primary: ColonelUserPurgeLifecycleResult,
+    fallback: ColonelUserPurgeLifecycleResult
+  ) {
+    return {
+      status: primary.status ?? fallback.status,
+      blockers: primary.blockers ?? fallback.blockers ?? [],
+      actions: primary.actions ?? fallback.actions ?? [],
+      plannedActions: primary.planned_actions ?? fallback.planned_actions ?? [],
+      stage: primary.stage ?? fallback.stage,
+      completedStages: primary.completed_stages ?? fallback.completed_stages ?? [],
+      deleted: primary.deleted ?? fallback.deleted,
+    };
+  }
+
+  function purgeMessageKey(status: string | undefined): string {
+    if (status === 'partial') return 'web.admin.customers.actions.purge.partial';
+    if (status === 'refused') return 'web.admin.customers.actions.purge.refused';
+    return 'web.admin.customers.actions.purge.incomplete';
+  }
+
+  function translatedResult(key: string, params: Record<string, string>, fallback: string): string {
+    const translated = t(key, params);
+    return translated === key ? fallback : translated;
+  }
+
+  /**
+   * Return an operator-facing failure for every explicit non-success lifecycle
+   * result. A missing status remains compatible with the legacy 2xx purge ack;
+   * once a status is present, unknown values fail closed rather than navigating
+   * away from a customer whose teardown may be incomplete.
+   */
+  /**
+   * One list section of the failure message. Blockers, planned cleanup,
+   * completed cleanup and completed stages differ only in their i18n key and
+   * argument name, so they share one renderer.
+   */
+  function lifecycleListPart(
+    items: string[],
+    key: string,
+    argName: string,
+    label: string
+  ): string | null {
+    if (!items.length) return null;
+    const value = items.join('; ');
+    return translatedResult(
+      `web.admin.customers.actions.purge.${key}`,
+      { [argName]: value },
+      `${label}: ${value}.`
+    );
+  }
+
+  function purgeLifecycleFailure(
+    primary: ColonelUserPurgeLifecycleResult,
+    fallback: ColonelUserPurgeLifecycleResult = {}
+  ): string | null {
+    const lifecycle = resolvePurgeLifecycle(primary, fallback);
+    if (!lifecycle.status && lifecycle.blockers.length === 0) return null;
+    if (lifecycle.status === 'success' && lifecycle.deleted !== false) return null;
+
+    const parts = [t(purgeMessageKey(lifecycle.status), { status: lifecycle.status ?? 'unknown' })];
+    if (lifecycle.stage) {
+      parts.push(
+        translatedResult(
+          'web.admin.customers.actions.purge.resultStage',
+          { stage: lifecycle.stage },
+          `Stopped at stage: ${lifecycle.stage}.`
+        )
+      );
+    }
+
+    const sections = [
+      lifecycleListPart(
+        lifecycle.blockers.map(formatLifecycleItem),
+        'resultBlockers',
+        'blockers',
+        'Blockers'
+      ),
+      lifecycleListPart(
+        lifecycle.plannedActions.map(formatLifecycleItem),
+        'resultPlannedActions',
+        'actions',
+        'Planned cleanup'
+      ),
+      lifecycleListPart(
+        lifecycle.actions.map(formatLifecycleItem),
+        'resultActions',
+        'actions',
+        'Completed cleanup'
+      ),
+      lifecycleListPart(
+        lifecycle.completedStages,
+        'resultCompletedStages',
+        'stages',
+        'Completed stages'
+      ),
+    ];
+    parts.push(...sections.filter((part): part is string => part !== null));
+
+    return parts.join(' ');
+  }
+
+  function purgeOutcomeFailure(response: ColonelUserPurgeResponse): string | null {
+    return purgeLifecycleFailure(response.record, response.details);
+  }
+
+  /** Extract lifecycle details from a structured non-2xx purge response. */
+  function purgeFailureFromError(error: unknown): string | null {
+    if (typeof error !== 'object' || error === null || !('response' in error)) return null;
+    const response = (error as { response?: { data?: unknown } }).response;
+    if (typeof response?.data !== 'object' || response.data === null) return null;
+    const details = (response.data as { details?: unknown }).details;
+    const parsed = colonelUserPurgeLifecycleResultSchema.safeParse(details);
+    if (!parsed.success || !parsed.data.status) return null;
+    return purgeLifecycleFailure(parsed.data);
+  }
+
+  async function purgeCustomer(
+    reason: string | undefined,
+    headers: Record<string, string> | undefined
+  ): Promise<void> {
+    if (purgeBlocked.value) throw new Error(purgeBlockedReason.value);
+
+    let payload: unknown;
+    try {
+      payload = await callMutation('delete', userUrl(), { reason, headers });
+    } catch (error) {
+      const lifecycleFailure = purgeFailureFromError(error);
+      if (lifecycleFailure) throw new Error(lifecycleFailure);
+      throw error;
+    }
+
+    const parsed = gracefulParse(
+      colonelUserPurgeResponseSchema,
+      payload,
+      'ColonelUserPurgeResponse'
+    );
+    if (!parsed.ok) throw new Error(t('web.admin.customers.actions.purge.unreadableResult'));
+
+    const failure = purgeOutcomeFailure(parsed.data);
+    if (failure) throw new Error(failure);
+  }
+
+  /**
+   * Start an impersonation and remember where the console must go next.
+   *
+   * Extracted from the mutation switch rather than inlined because its ack is
+   * not the shared mutation ack: it carries the new marker plus a redirect.
+   * A 2xx means the session ALREADY carries the marker, so a schema mismatch
+   * must NOT fail the action — it degrades to a null redirect and hardNavigate
+   * falls back to the app root.
+   */
+  async function startImpersonation(headers: Record<string, string> | undefined): Promise<void> {
+    // Last line of the fail-closed gate: the reason is required by the API and
+    // the button is disabled without one, but never POST without it.
+    const reason = impersonateReason.value.trim();
+    if (!impersonateAvailable.value || !reason) throw new Error(impersonateBlockedReason.value);
+
+    const response = await $api.post(`${userUrl()}/impersonate`, { reason }, { headers });
+    const parsed = gracefulParse(
+      colonelImpersonateResponseSchema,
+      response.data,
+      'ColonelImpersonateResponse'
+    );
+    impersonateRedirect.value = parsed.ok ? (parsed.data.record.redirect ?? null) : null;
+  }
+
+  const {
+    loading: mutationLoading,
+    error: mutationError,
+    run: runMutation,
+    reset: resetMutation,
+    useElevateThenOpen,
+  } = useAdminDestructiveMutation(async (reason?: string) => {
+    // Every DANGER action is gated server-side (#4326) on the SAME token the
+    // dialog asks the operator to retype. A missing one is a bug, not a
+    // fallback: sending no header is a 403 the operator cannot act on.
+    const confirm = confirmTokenFor(activeAction.value ?? 'verify');
+    const headers = confirm ? confirmHeaders(confirm) : undefined;
+
+    switch (activeAction.value) {
+      case 'setRole':
+        return callMutation('post', `${userUrl()}/role`, {
+          body: { role: pendingRole.value, ...reasonBody(reason) },
+          headers,
+        });
+      case 'verify':
+        return callMutation('post', `${userUrl()}/verify`);
+      case 'unverify':
+        return callMutation('post', `${userUrl()}/unverify`, { headers });
+      case 'suspend':
+        // Suspend keeps its own on-page reason field (it predates #4338 and is
+        // also stored on the customer row, not only in the trail), so the
+        // dialog does not ask a second time — see REASON_ACTIONS.
+        return callMutation('post', `${userUrl()}/suspend`, {
+          body: reasonBody(suspendReason.value),
+          headers,
+        });
+      case 'unsuspend':
+        // A RELEASE has no on-page field, and unsuspending CLEARS the row's
+        // who/when/why stamps — so the audit event is the only place its why
+        // can live. Hence the dialog asks here.
+        return callMutation('post', `${userUrl()}/unsuspend`, { body: reasonBody(reason) });
+      case 'impersonate':
+        return startImpersonation(headers);
+      case 'purge':
+        // Last line of the fail-closed gate: no typed token, no DELETE — even
+        // if the dialog were somehow reached with a blank one.
+        return purgeCustomer(reason, headers);
+      default:
+        throw new Error('No active action');
+    }
+  });
+
+  /**
+   * The i18n key segment per action. `setRole` maps to `role` to match the
+   * existing translation tree.
+   */
+  const ACTION_I18N_KEY: Record<ActionKey, string> = {
+    setRole: 'role',
+    verify: 'verify',
+    unverify: 'unverify',
+    suspend: 'suspend',
+    unsuspend: 'unsuspend',
+    impersonate: 'impersonate',
+    purge: 'purge',
+  };
+
+  /**
+   * Destructive actions gate confirm behind a typed-confirmation token.
+   *
+   * `setRole` and `unverify` joined this list with #4326. Promotion to colonel
+   * is privilege-granting, and unverifying an account STRIPS colonel
+   * eligibility (system roles require a verified email) — neither belongs
+   * behind a one-click confirm.
+   */
+  const DANGER_ACTIONS: readonly ActionKey[] = [
+    'purge',
+    'suspend',
+    'setRole',
+    'unverify',
+    'impersonate',
+  ];
+
+  /**
+   * Actions whose confirm dialog collects an OPTIONAL operator reason (#4338).
+   *
+   * `suspend` is deliberately ABSENT: it already has its own reason input on
+   * the page (it is stored on the customer row as well as in the trail), and
+   * two reason fields in one flow is worse than one. Verify/unverify are
+   * reversible bookkeeping with nothing to explain.
+   */
+  const REASON_ACTIONS: readonly ActionKey[] = ['purge', 'setRole', 'unsuspend'];
+
+  /**
+   * The exact string the operator must retype, AND the token sent in
+   * X-OTS-Confirm — one value, so the gate cannot ask for one thing while
+   * accepting another.
+   *
+   * It is the account's EMAIL (its public id only when the account has none),
+   * mirroring the server's `account_confirm_token` for all four danger actions.
+   * That is the identifier an operator can check against the ticket they are
+   * working, rather than an id they just copied off this page — and it is not
+   * the id the URL already carries.
+   *
+   * FAILS CLOSED: an unloaded record yields undefined, and the action is then
+   * UNAVAILABLE rather than silently dropping AdminConfirmDialog into one-click
+   * simple-confirm mode.
+   */
+  function confirmTokenFor(action: ActionKey): string | undefined {
+    if (!DANGER_ACTIONS.includes(action)) return undefined;
+    return accountConfirmToken(record.value);
+  }
+
+  /** True when purge must be unavailable: no token to type as confirmation. */
+  const purgeBlocked = computed(() => !confirmTokenFor('purge'));
+
+  /**
+   * Is the record on screen the acting colonel's own account? (#4328)
+   *
+   * Compared on the PUBLIC id the bootstrap payload already carries. This is
+   * defence in depth, exactly like {@link purgeBlocked} — the server refuses
+   * self-demotion, self-unverify and self-revoke with a 422 whatever the
+   * browser does; disabling here just keeps the operator from typing a
+   * confirmation token for an action that cannot succeed.
+   */
+  const isSelf = computed(
+    () => !!record.value?.extid && record.value.extid === bootstrapStore.cust?.extid
+  );
+
+  /**
+   * A DEMOTION of your own account: the one role change the server refuses.
+   * Raising your own role is not a lockout risk and stays available.
+   */
+  const selfDemoteBlocked = computed(
+    () => isSelf.value && !!pendingRole.value && pendingRole.value !== 'colonel'
+  );
+
+  /** Unverifying yourself strips your own colonel eligibility — also refused. */
+  const selfUnverifyBlocked = computed(() => isSelf.value);
+
+  /** Why the role apply button is disabled, when it is for this reason. */
+  const selfDemoteReason = computed(() => t('web.admin.customers.actions.role.selfDemote'));
+
+  /**
+   * Advisory (not a gate): demoting or unverifying SOMEONE ELSE'S colonel
+   * account can still be refused server-side when they are the last remaining
+   * one. The console cannot know the roster — that answer is deliberately not
+   * exposed, because it would be an oracle — so this warns rather than blocks.
+   */
+  const demotingAnotherColonel = computed(
+    () =>
+      !isSelf.value &&
+      record.value?.role === 'colonel' &&
+      !!pendingRole.value &&
+      pendingRole.value !== 'colonel'
+  );
+
+  const unverifyingAnotherColonel = computed(
+    () => !isSelf.value && record.value?.role === 'colonel' && !!record.value?.verified
+  );
+
+  /**
+   * The token the session-revoke verbs are gated on (#4326) — the same account
+   * identifier, resolved here because the sessions section only knows the
+   * route's public id. Falls back to that id, which is what the server resolves
+   * an account with no email to.
+   */
+  const sessionsConfirmToken = computed(() => accountConfirmToken(record.value) ?? publicId.value);
+
+  /** Why purge is unavailable — rendered beside the disabled button. */
+  const purgeBlockedReason = computed(() =>
+    t(
+      'web.admin.customers.actions.purge.unavailable',
+      'Purge is unavailable: this account has no email address to retype as confirmation.'
+    )
+  );
+
+  /**
+   * True when this account can be impersonated.
+   *
+   * Mirrors the operation's own guards (PrivilegedTarget / AnonymousTarget /
+   * SuspendedTarget) so the operator is told BEFORE the POST rather than by a
+   * 422. The server remains the authority — this is a UI affordance, not the
+   * enforcement point.
+   *
+   * The anonymous customer is identified by the sentinel id 'anon' (the same
+   * value AdminSecrets treats as an anonymous owner); a record with no email
+   * or no public id is treated as anonymous too, because those are the fields
+   * the impersonated session would have to present.
+   */
+  const impersonateAvailable = computed(() => {
+    const r = record.value;
+    if (!r) return false;
+    if (r.role === 'colonel') return false;
+    if (r.suspended) return false;
+    const extid = r.extid?.trim();
+    const email = r.email?.trim();
+    if (!extid || extid === 'anon') return false;
+    if (!email || email === 'anon') return false;
+    return true;
+  });
+
+  /** Why impersonation is unavailable — rendered beside the disabled button. */
+  const impersonateBlockedReason = computed(() =>
+    t(
+      'web.admin.customers.actions.impersonate.unavailable',
+      'Impersonation is unavailable for colonel, anonymous, and suspended accounts.'
+    )
+  );
+
+  const dialogConfig = computed(() => {
+    const action = activeAction.value;
+    const blank = {
+      title: '',
+      description: undefined,
+      confirmToken: undefined,
+      variant: 'default' as const,
+      confirmText: undefined,
+      requestReason: false,
+    };
+    if (!action) return blank;
+
+    const key = ACTION_I18N_KEY[action];
+    // The role confirmation interpolates the selected role; email is harmless elsewhere.
+    const args: Record<string, string> = { email: record.value?.email ?? '' };
+    if (action === 'setRole') {
+      args.role = t(`web.admin.customers.roles.${pendingRole.value}`, pendingRole.value);
+    }
+    const isDanger = DANGER_ACTIONS.includes(action);
+    return {
+      title: t(`web.admin.customers.actions.${key}.confirmTitle`),
+      description: t(`web.admin.customers.actions.${key}.confirmDescription`, args),
+      confirmToken: confirmTokenFor(action),
+      variant: isDanger ? ('danger' as const) : ('default' as const),
+      confirmText: isDanger ? t(`web.admin.customers.actions.${key}.button`) : undefined,
+      requestReason: REASON_ACTIONS.includes(action),
+    };
+  });
+
+  /**
+   * Prompt copy above the typed-confirmation input. Purge names the email
+   * explicitly; everything else falls back to the kit's generic prompt.
+   */
+  function promptFor(token: string | undefined): string {
+    const args = { token: token ?? '' };
+    return activeAction.value === 'purge'
+      ? t('web.admin.customers.actions.purge.typePrompt', args)
+      : t('web.admin.kit.confirmDialog.typePrompt', args);
+  }
+
+  const successMessageKey: Record<ActionKey, string> = {
+    setRole: 'web.admin.customers.actions.role.success',
+    verify: 'web.admin.customers.actions.verify.success',
+    unverify: 'web.admin.customers.actions.unverify.success',
+    suspend: 'web.admin.customers.actions.suspend.success',
+    unsuspend: 'web.admin.customers.actions.unsuspend.success',
+    impersonate: 'web.admin.customers.actions.impersonate.success',
+    purge: 'web.admin.customers.actions.purge.success',
+  };
+
+  /**
+   * The TIER 1 verbs on this page (SetUserRole, PurgeUser in
+   * ColonelAPI::DestructiveActions). Their openers prove the step-up
+   * credential BEFORE the dialog collects the token and reason; the TIER 2 and
+   * un-gated verbs here open straight away.
+   */
+  const ELEVATED_ACTIONS: readonly ActionKey[] = ['setRole', 'purge'];
+
+  const { open: requestAction, opening: actionOpening } = useElevateThenOpen(
+    (key: ActionKey) => {
+      activeAction.value = key;
+      resetMutation();
+      dialogOpen.value = true;
+    },
+    {
+      target: () => publicId.value,
+      canOpen: (key) => {
+        if (!record.value || dialogOpen.value || mutationLoading.value) return false;
+        // A blank danger token would turn typed confirmation into one click.
+        if (DANGER_ACTIONS.includes(key) && !confirmTokenFor(key)) return false;
+        if (key === 'unverify' && selfUnverifyBlocked.value) return false;
+        if (key === 'setRole') {
+          return (
+            !!pendingRole.value &&
+            pendingRole.value !== record.value.role &&
+            !selfDemoteBlocked.value
+          );
+        }
+        if (key === 'impersonate') {
+          return impersonateAvailable.value && !!impersonateReason.value.trim();
+        }
+        return true;
+      },
+      requiresElevation: (key) => ELEVATED_ACTIONS.includes(key),
+    }
+  );
+
+  /**
+   * Open the impersonation confirm. Refuses when the target is ineligible or
+   * the reason is blank — the two conditions the button is disabled on,
+   * re-checked here so a keyboard/DOM path cannot open a dialog whose confirm
+   * would fail server-side.
+   */
+  function requestImpersonate(): void {
+    if (!impersonateAvailable.value || !impersonateReason.value.trim()) return;
+    void requestAction('impersonate');
+  }
+
+  async function requestSetRole(): Promise<void> {
+    // No-op guard: ignore if the role is unchanged (nothing to confirm).
+    if (!pendingRole.value || pendingRole.value === record.value?.role) return;
+    // Fail closed on the interlocks the server enforces (#4328).
+    if (selfDemoteBlocked.value) return;
+    await requestAction('setRole');
+  }
+
+  async function onConfirm(reason?: string): Promise<void> {
+    const key = activeAction.value;
+    if (!key) return;
+
+    const ok = await runMutation(reason);
+    if (!ok) return; // Failure message stays in the dialog for retry/cancel.
+
+    dialogOpen.value = false;
+    notifications.show(t(successMessageKey[key]), 'success');
+
+    if (key === 'impersonate') {
+      // HARD navigation, not router.push: the session now presents as the
+      // target, the console is a separate bundle, and /colonel* is blocked
+      // outright while a marker is active — an in-SPA push would land on a
+      // 403. The document load also re-reads the bootstrap, which is what
+      // raises the ImpersonationBanner.
+      hardNavigate(impersonateRedirect.value, '/');
+      return;
+    }
+
+    if (key === 'purge') {
+      // The record no longer exists — return to the list.
+      router.push({ name: 'AdminCustomers' });
+    } else {
+      if (key === 'suspend') suspendReason.value = '';
+      await refreshUser().catch(() => {});
+    }
+    activeAction.value = null;
+  }
+
+  function onCancel(): void {
+    dialogOpen.value = false;
+    activeAction.value = null;
+    resetMutation();
+  }
+
+  // ---- Read-out tables ------------------------------------------------------
+
+  const secretColumns = computed<DataTableColumn<ColonelUserDetailSecret>[]>(() => [
+    { key: 'shortid', label: t('web.admin.customers.detail.secretColumns.shortId') },
+    { key: 'state', label: t('web.admin.customers.detail.secretColumns.state') },
+    { key: 'created', label: t('web.admin.customers.detail.secretColumns.created') },
+    { key: 'expiration', label: t('web.admin.customers.detail.secretColumns.expiration') },
+  ]);
+
+  const receiptColumns = computed<DataTableColumn<ColonelUserDetailReceipt>[]>(() => [
+    { key: 'shortid', label: t('web.admin.customers.detail.receiptColumns.shortId') },
+    { key: 'state', label: t('web.admin.customers.detail.receiptColumns.state') },
+    { key: 'created', label: t('web.admin.customers.detail.receiptColumns.created') },
+  ]);
+
+  const profileFields = computed(() => {
+    const r = record.value;
+    if (!r) return [];
+    return [
+      { key: 'email', label: t('web.admin.customers.detail.fields.email'), value: r.email },
+      { key: 'publicId', label: t('web.admin.customers.detail.fields.publicId'), value: r.extid },
+      {
+        key: 'role',
+        label: t('web.admin.customers.detail.fields.role'),
+        value: t(`web.admin.customers.roles.${r.role}`, r.role),
+      },
+      {
+        key: 'verified',
+        label: t('web.admin.customers.detail.fields.verified'),
+        value: r.verified
+          ? t('web.admin.customers.detail.yes')
+          : t('web.admin.customers.detail.no'),
+      },
+      {
+        key: 'locale',
+        label: t('web.admin.customers.detail.fields.locale'),
+        value: r.locale || t('web.admin.customers.detail.none'),
+      },
+      {
+        key: 'created',
+        label: t('web.admin.customers.detail.fields.created'),
+        value: formatDisplayDateTime(r.created),
+      },
+      {
+        key: 'updated',
+        label: t('web.admin.customers.detail.fields.updated'),
+        value: r.updated ? formatDisplayDateTime(r.updated) : t('web.admin.customers.detail.never'),
+      },
+      {
+        key: 'lastLogin',
+        label: t('web.admin.customers.detail.fields.lastLogin'),
+        value: r.last_login
+          ? formatDisplayDateTime(r.last_login)
+          : t('web.admin.customers.detail.never'),
+      },
+      // Suspension context, only while suspended (who / when / why).
+      ...(r.suspended
+        ? [
+            {
+              key: 'suspendedAt',
+              label: t('web.admin.customers.detail.fields.suspendedAt'),
+              value: r.suspended_at
+                ? formatDisplayDateTime(r.suspended_at)
+                : t('web.admin.customers.detail.none'),
+            },
+            {
+              key: 'suspendedBy',
+              label: t('web.admin.customers.detail.fields.suspendedBy'),
+              value: r.suspended_by || t('web.admin.customers.detail.none'),
+            },
+            {
+              key: 'suspendedReason',
+              label: t('web.admin.customers.detail.fields.suspendedReason'),
+              value: r.suspended_reason || t('web.admin.customers.detail.none'),
+            },
+          ]
+        : []),
+    ];
+  });
+
+  function goBack(): void {
+    router.push({ name: 'AdminCustomers' });
+  }
+
+  onMounted(() => {
+    loadUser().catch(() => {});
+  });
+</script>
+
+<template>
+  <div class="mx-auto max-w-5xl">
+    <!-- Back link -->
+    <button
+      type="button"
+      class="mb-4 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 focus:ring-2 focus:ring-brand-500 focus:outline-none dark:text-gray-400 dark:hover:text-gray-200"
+      data-testid="detail-back"
+      @click="goBack">
+      <OIcon
+        collection="heroicons"
+        name="arrow-left"
+        size="4" />
+      {{ t('web.admin.customers.detail.backToList') }}
+    </button>
+
+    <!-- Loading -->
+    <div
+      v-if="userLoading && !record"
+      class="flex items-center justify-center py-24 text-gray-500 dark:text-gray-400"
+      data-testid="detail-loading">
+      <OIcon
+        collection="heroicons"
+        name="arrow-path"
+        size="6"
+        class="animate-spin motion-reduce:animate-none" />
+      <span class="ml-3 text-sm">{{ t('web.COMMON.loading') }}</span>
+    </div>
+
+    <!-- Not found -->
+    <div
+      v-else-if="userNotFound"
+      class="rounded-lg border border-gray-200 bg-white px-6 py-16 text-center dark:border-gray-800 dark:bg-gray-900"
+      data-testid="detail-not-found">
+      <OIcon
+        collection="heroicons"
+        name="user-minus"
+        size="8"
+        class="mx-auto text-gray-400 dark:text-gray-600" />
+      <h3 class="mt-3 text-lg font-medium text-gray-900 dark:text-white">
+        {{ t('web.admin.customers.detail.notFound') }}
+      </h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        {{ t('web.admin.customers.detail.notFoundDescription') }}
+      </p>
+      <button
+        type="button"
+        class="mt-4 inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-brand-500 focus:outline-none dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+        @click="goBack">
+        {{ t('web.admin.customers.detail.backToList') }}
+      </button>
+
+      <!-- "No customer record" is itself a diagnosis, not the end of the road:
+           the identifier may still name an orphaned auth-database accounts row
+           (the customers list links such rows here by email), and the
+           diagnostics endpoint answers for an orphan by email, extid and
+           Rodauth id. Mounting the read-out under the not-found panel is what
+           makes that link worth following. -->
+      <div class="mt-8 text-left">
+        <AdminAccountDiagnosticsSection :user-id="publicId" />
+      </div>
+    </div>
+
+    <!-- Load error (network/HTTP non-404, or contract mismatch) -->
+    <div
+      v-else-if="loadFailed"
+      class="rounded-lg border border-red-200 bg-red-50 px-6 py-16 text-center dark:border-red-900/50 dark:bg-red-900/20"
+      role="alert"
+      data-testid="detail-error">
+      <OIcon
+        collection="heroicons"
+        name="exclamation-triangle"
+        size="8"
+        class="mx-auto text-red-500 dark:text-red-400" />
+      <p class="mt-3 text-sm text-red-800 dark:text-red-200">
+        {{ t('web.admin.customers.detail.loadError') }}
+      </p>
+      <SchemaIssueList
+        v-if="userMismatch"
+        :issues="userMismatch.issues"
+        class="mx-auto mt-4 max-w-2xl text-left text-red-800 dark:text-red-200" />
+      <button
+        type="button"
+        class="mt-4 inline-flex items-center gap-1 rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-100 focus:ring-2 focus:ring-red-500 focus:outline-none dark:border-red-800 dark:text-red-200 dark:hover:bg-red-900/40"
+        @click="loadUser().catch(() => {})">
+        <OIcon
+          collection="heroicons"
+          name="arrow-path"
+          size="4" />
+        {{ t('web.admin.customers.detail.retry') }}
+      </button>
+    </div>
+
+    <!-- Loaded -->
+    <div
+      v-else-if="record && details"
+      class="space-y-6"
+      data-testid="detail-content">
+      <!-- Contract mismatch confined to details sections: the page renders
+           what validated and names the fields that did not. -->
+      <div
+        v-if="partial"
+        class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200"
+        role="status"
+        data-testid="detail-contract-mismatch">
+        <p class="flex items-start gap-2 text-sm font-medium">
+          <OIcon
+            collection="heroicons"
+            name="exclamation-triangle"
+            size="5"
+            class="shrink-0" />
+          {{ t('web.admin.customers.detail.contractMismatch.title') }}
+        </p>
+        <p class="mt-1 text-sm">
+          {{ t('web.admin.customers.detail.contractMismatch.body') }}
+        </p>
+        <SchemaIssueList
+          :issues="userMismatch?.issues ?? []"
+          class="mt-2" />
+      </div>
+
+      <!-- Header -->
+      <div
+        class="flex flex-wrap items-center gap-3 border-b-2 border-gray-900 pb-4 dark:border-gray-100">
+        <h2 class="font-brand text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <RevealEmail :email="record.email" />
+        </h2>
+        <span
+          class="inline-flex rounded px-2 py-0.5 text-xs font-medium"
+          :class="
+            record.role === 'colonel' || record.role === 'admin'
+              ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200'
+              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+          ">
+          {{ t(`web.admin.customers.roles.${record.role}`, record.role) }}
+        </span>
+        <!-- Verification state, both ways: the action panel only offers the verb
+             that matches this, so it must never be ambiguous. Amber (attention),
+             not red — red stays reserved for destructive/suspended. -->
+        <span
+          v-if="record.verified"
+          class="inline-flex items-center gap-1 rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-200"
+          data-testid="verified-badge">
+          <OIcon
+            collection="heroicons"
+            name="check-circle"
+            size="3" />
+          {{ t('web.admin.customers.verification.verified') }}
+        </span>
+        <span
+          v-else
+          class="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+          data-testid="unverified-badge">
+          <OIcon
+            collection="heroicons"
+            name="exclamation-triangle"
+            size="3" />
+          {{ t('web.admin.customers.verification.unverified') }}
+        </span>
+        <span
+          v-if="record.suspended"
+          class="inline-flex items-center gap-1 rounded bg-red-100 px-2 py-0.5 text-xs font-semibold tracking-wide text-red-800 uppercase dark:bg-red-900/40 dark:text-red-200"
+          data-testid="suspended-badge">
+          <OIcon
+            collection="heroicons"
+            name="no-symbol"
+            size="3" />
+          {{ t('web.admin.customers.suspended.badge') }}
+        </span>
+        <span class="font-mono text-xs text-gray-400 dark:text-gray-500">{{ record.extid }}</span>
+        <!-- Outbound deep link to this customer's Rodauth account in the
+             standalone admin (read-only external_id join). The server sends
+             null unless full auth mode AND RODAUTH_ADMIN_URL are set, and then
+             the public id above is all there is. Nothing is fetched from it. -->
+        <a
+          v-if="details.rodauth_admin_account_url"
+          :href="details.rodauth_admin_account_url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+          data-testid="rodauth-admin-link">
+          {{ t('web.admin.customers.detail.rodauthAdmin.open') }}
+          <OIcon
+            collection="heroicons"
+            name="arrow-top-right-on-square"
+            size="3" />
+        </a>
+      </div>
+
+      <!-- Stat tiles -->
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <StatCard
+          :label="t('web.admin.customers.detail.sections.secrets')"
+          :value="details.secrets?.count ?? '—'"
+          icon="key"
+          testid="stat-secrets" />
+        <StatCard
+          :label="t('web.admin.customers.detail.sections.receipts')"
+          :value="details.receipts?.count ?? '—'"
+          icon="receipt-percent"
+          testid="stat-receipts" />
+        <StatCard
+          :label="t('web.admin.customers.detail.stats.secretsCreated')"
+          :value="details.stats?.secrets_created ?? '—'" />
+        <StatCard
+          :label="t('web.admin.customers.detail.stats.secretsShared')"
+          :value="details.stats?.secrets_shared ?? '—'" />
+        <StatCard
+          :label="t('web.admin.customers.detail.stats.emailsSent')"
+          :value="details.stats?.emails_sent ?? '—'" />
+      </div>
+
+      <!-- Profile + Actions -->
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <!-- Profile -->
+        <section
+          class="rounded-lg border border-gray-200 bg-white shadow-sm lg:col-span-2 dark:border-gray-800 dark:bg-gray-900">
+          <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+              {{ t('web.admin.customers.detail.sections.profile') }}
+            </h3>
+          </div>
+          <dl class="grid grid-cols-1 gap-x-6 gap-y-4 px-6 py-5 sm:grid-cols-2">
+            <div
+              v-for="field in profileFields"
+              :key="field.key"
+              :data-testid="`profile-${field.key}`">
+              <dt
+                class="text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                {{ field.label }}
+              </dt>
+              <dd class="mt-1 text-sm break-words text-gray-900 dark:text-gray-100">
+                <RevealEmail
+                  v-if="field.key === 'email'"
+                  :email="record.email" />
+                <template v-else>
+                  {{ field.value }}
+                </template>
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Action panel -->
+        <section
+          class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+          data-testid="action-panel">
+          <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+              {{ t('web.admin.customers.detail.sections.actions') }}
+            </h3>
+          </div>
+          <div class="space-y-4 px-6 py-5">
+            <!-- Change role -->
+            <div>
+              <label
+                for="detail-role-select"
+                class="block text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                {{ t('web.admin.customers.actions.role.label') }}
+              </label>
+              <div class="mt-2 flex gap-2">
+                <select
+                  id="detail-role-select"
+                  v-model="pendingRole"
+                  data-testid="role-select"
+                  class="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                  <option
+                    v-for="role in ROLE_OPTIONS"
+                    :key="role"
+                    :value="role">
+                    {{ t(`web.admin.customers.roles.${role}`) }}
+                  </option>
+                </select>
+                <button
+                  type="button"
+                  data-testid="role-apply"
+                  :disabled="
+                    pendingRole === record.role ||
+                    selfDemoteBlocked ||
+                    actionOpening ||
+                    dialogOpen ||
+                    mutationLoading
+                  "
+                  :aria-describedby="selfDemoteBlocked ? 'self-demote-reason' : undefined"
+                  class="inline-flex shrink-0 items-center rounded-md bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-brand-500 dark:hover:bg-brand-600"
+                  @click="requestSetRole">
+                  {{ t('web.admin.customers.actions.role.apply') }}
+                </button>
+              </div>
+              <!-- Client-side mirror of the server interlock (#4328): a colonel
+                   cannot demote their own account. Stated, not just disabled —
+                   a dead button with no explanation reads as a bug. -->
+              <p
+                v-if="selfDemoteBlocked"
+                id="self-demote-reason"
+                class="mt-2 text-xs text-amber-700 dark:text-amber-400"
+                data-testid="self-demote-reason">
+                {{ selfDemoteReason }}
+              </p>
+              <p
+                v-else-if="demotingAnotherColonel"
+                class="mt-2 text-xs text-amber-700 dark:text-amber-400"
+                data-testid="last-colonel-warning">
+                {{ t('web.admin.customers.actions.role.lastColonel') }}
+              </p>
+            </div>
+
+            <!-- Verify / unverify -->
+            <button
+              v-if="!record.verified"
+              type="button"
+              data-testid="verify-button"
+              :disabled="actionOpening || dialogOpen || mutationLoading"
+              class="inline-flex w-full items-center justify-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-brand-500 focus:outline-none dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              @click="requestAction('verify')">
+              <OIcon
+                collection="heroicons"
+                name="check-circle"
+                size="4" />
+              {{ t('web.admin.customers.actions.verify.button') }}
+            </button>
+            <div v-else>
+              <button
+                type="button"
+                data-testid="unverify-button"
+                :disabled="selfUnverifyBlocked || actionOpening || dialogOpen || mutationLoading"
+                :aria-describedby="selfUnverifyBlocked ? 'self-unverify-reason' : undefined"
+                class="inline-flex w-full items-center justify-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-brand-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                @click="requestAction('unverify')">
+                <OIcon
+                  collection="heroicons"
+                  name="x-circle"
+                  size="4" />
+                {{ t('web.admin.customers.actions.unverify.button') }}
+              </button>
+              <!-- Verification is a prerequisite for the colonel role, so
+                   unverifying yourself is a self-demotion (#4328). -->
+              <p
+                v-if="selfUnverifyBlocked"
+                id="self-unverify-reason"
+                class="mt-2 text-xs text-amber-700 dark:text-amber-400"
+                data-testid="self-unverify-reason">
+                {{ t('web.admin.customers.actions.unverify.selfUnverify') }}
+              </p>
+              <p
+                v-else-if="unverifyingAnotherColonel"
+                class="mt-2 text-xs text-amber-700 dark:text-amber-400"
+                data-testid="unverify-last-colonel-warning">
+                {{ t('web.admin.customers.actions.unverify.lastColonel') }}
+              </p>
+            </div>
+
+            <!-- Suspend / unsuspend (reversible trust & safety pause).
+                 Colonel accounts cannot be suspended (privilege guard); the
+                 backend refuses too — hiding the block avoids a dead button. -->
+            <div
+              v-if="record.suspended || record.role !== 'colonel'"
+              class="space-y-3 border-t border-gray-200 pt-4 dark:border-gray-800">
+              <template v-if="!record.suspended">
+                <template v-if="record.role !== 'colonel'">
+                  <div>
+                    <label
+                      for="suspend-reason-input"
+                      class="block text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                      {{ t('web.admin.customers.actions.suspend.reasonLabel') }}
+                    </label>
+                    <input
+                      id="suspend-reason-input"
+                      v-model="suspendReason"
+                      type="text"
+                      maxlength="255"
+                      data-testid="suspend-reason"
+                      :placeholder="t('web.admin.customers.actions.suspend.reasonPlaceholder')"
+                      class="mt-2 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:placeholder:text-gray-500" />
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="suspend-button"
+                    :disabled="actionOpening || dialogOpen || mutationLoading"
+                    class="inline-flex w-full items-center justify-center gap-1 rounded-md border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 focus:ring-2 focus:ring-red-500 focus:outline-none dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900/30"
+                    @click="requestAction('suspend')">
+                    <OIcon
+                      collection="heroicons"
+                      name="no-symbol"
+                      size="4" />
+                    {{ t('web.admin.customers.actions.suspend.button') }}
+                  </button>
+                </template>
+              </template>
+              <button
+                v-else
+                type="button"
+                data-testid="unsuspend-button"
+                :disabled="actionOpening || dialogOpen || mutationLoading"
+                class="inline-flex w-full items-center justify-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-brand-500 focus:outline-none dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                @click="requestAction('unsuspend')">
+                <OIcon
+                  collection="heroicons"
+                  name="arrow-uturn-left"
+                  size="4" />
+                {{ t('web.admin.customers.actions.unsuspend.button') }}
+              </button>
+            </div>
+
+            <!-- Impersonate (time-boxed, READ-ONLY support session). Amber,
+                 not red: nothing is destroyed, but the operator leaves the
+                 console and continues as this customer, so it is set apart
+                 from the reversible actions above. Reason is REQUIRED — it is
+                 what the audit entry carries — and the button stays disabled
+                 (with a stated reason) for colonel, anonymous and suspended
+                 targets, which the API refuses anyway. -->
+            <div class="space-y-3 border-t border-gray-200 pt-4 dark:border-gray-800">
+              <div>
+                <label
+                  for="impersonate-reason-input"
+                  class="block text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                  {{ t('web.admin.customers.actions.impersonate.reasonLabel') }}
+                </label>
+                <input
+                  id="impersonate-reason-input"
+                  v-model="impersonateReason"
+                  type="text"
+                  maxlength="500"
+                  required
+                  aria-required="true"
+                  :disabled="!impersonateAvailable"
+                  data-testid="impersonate-reason"
+                  :placeholder="t('web.admin.customers.actions.impersonate.reasonPlaceholder')"
+                  class="mt-2 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:placeholder:text-gray-500" />
+              </div>
+              <button
+                type="button"
+                data-testid="impersonate-button"
+                :disabled="
+                  !impersonateAvailable ||
+                  !impersonateReason.trim() ||
+                  actionOpening ||
+                  dialogOpen ||
+                  mutationLoading
+                "
+                :aria-describedby="!impersonateAvailable ? 'impersonate-blocked-reason' : undefined"
+                class="inline-flex w-full items-center justify-center gap-1 rounded-md border border-amber-400 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50 focus:ring-2 focus:ring-amber-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                @click="requestImpersonate">
+                <OIcon
+                  collection="heroicons"
+                  name="eye"
+                  size="4" />
+                {{ t('web.admin.customers.actions.impersonate.button') }}
+              </button>
+              <p
+                v-if="!impersonateAvailable"
+                id="impersonate-blocked-reason"
+                class="text-xs text-amber-700 dark:text-amber-400"
+                data-testid="impersonate-blocked-reason">
+                {{ impersonateBlockedReason }}
+              </p>
+            </div>
+
+            <!-- Purge (destructive, typed-confirm). Disabled with a stated
+                 reason when there is no email to retype: a destructive gate
+                 must fail closed, and a dead button with no explanation reads
+                 as a bug. -->
+            <div class="border-t border-gray-200 pt-4 dark:border-gray-800">
+              <button
+                type="button"
+                data-testid="purge-button"
+                :disabled="purgeBlocked || actionOpening || dialogOpen || mutationLoading"
+                :aria-describedby="purgeBlocked ? 'purge-blocked-reason' : undefined"
+                class="inline-flex w-full items-center justify-center gap-1 rounded-md border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 focus:ring-2 focus:ring-red-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900/30"
+                @click="requestAction('purge')">
+                <OIcon
+                  collection="heroicons"
+                  name="trash"
+                  size="4" />
+                {{ t('web.admin.customers.actions.purge.button') }}
+              </button>
+              <p
+                v-if="purgeBlocked"
+                id="purge-blocked-reason"
+                class="mt-2 text-xs text-amber-700 dark:text-amber-400"
+                data-testid="purge-blocked-reason">
+                {{ purgeBlockedReason }}
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Organizations, with this customer's default marked and the control
+           that moves the default to another organization in the list. -->
+      <AdminCustomerOrganizationsSection
+        :user-id="publicId"
+        :organizations="details.organizations"
+        :confirm-token="accountConfirmToken(record) ?? ''"
+        @changed="refreshUser().catch(() => {})" />
+
+      <!-- Secrets -->
+      <section
+        class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            {{ t('web.admin.customers.detail.sections.secrets') }}
+            <span
+              v-if="details.secrets"
+              class="ml-1 text-sm font-normal text-gray-500 dark:text-gray-400"
+              >({{ details.secrets.count }})</span
+            >
+          </h3>
+          <!-- The server told us this list is PARTIAL. Say so plainly — the
+               count beside the heading is what is on screen, not the total. -->
+          <p
+            v-if="details.secrets?.truncated"
+            class="mt-1.5 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400"
+            data-testid="secrets-truncated">
+            <OIcon
+              collection="heroicons"
+              name="exclamation-triangle"
+              size="4"
+              class="mt-px shrink-0" />
+            <span>{{
+              t('web.admin.customers.detail.secrets.partial', { count: details.secrets.count })
+            }}</span>
+          </p>
+        </div>
+        <p
+          v-if="!details.secrets"
+          class="px-6 py-8 text-center text-sm text-amber-700 dark:text-amber-400"
+          data-testid="section-invalid-secrets">
+          {{ t('web.admin.customers.detail.sectionInvalid') }}
+        </p>
+        <DataTable
+          v-else
+          :columns="secretColumns"
+          :rows="details.secrets.items"
+          row-key="secret_id"
+          :empty-text="t('web.admin.customers.detail.secrets.empty')"
+          testid="secrets-table">
+          <template #cell-created="{ row }">
+            {{ formatDisplayDateTime(row.created) }}
+          </template>
+          <template #cell-expiration="{ row }">
+            {{
+              row.expiration
+                ? formatDisplayDateTime(row.expiration)
+                : t('web.admin.customers.detail.never')
+            }}
+          </template>
+        </DataTable>
+      </section>
+
+      <!-- Receipts -->
+      <section
+        class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            {{ t('web.admin.customers.detail.sections.receipts') }}
+            <span
+              v-if="details.receipts"
+              class="ml-1 text-sm font-normal text-gray-500 dark:text-gray-400"
+              >({{ details.receipts.count }})</span
+            >
+          </h3>
+          <p
+            v-if="details.receipts?.truncated"
+            class="mt-1.5 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400"
+            data-testid="receipts-truncated">
+            <OIcon
+              collection="heroicons"
+              name="exclamation-triangle"
+              size="4"
+              class="mt-px shrink-0" />
+            <span>{{
+              t('web.admin.customers.detail.receipts.partial', { count: details.receipts.count })
+            }}</span>
+          </p>
+        </div>
+        <p
+          v-if="!details.receipts"
+          class="px-6 py-8 text-center text-sm text-amber-700 dark:text-amber-400"
+          data-testid="section-invalid-receipts">
+          {{ t('web.admin.customers.detail.sectionInvalid') }}
+        </p>
+        <DataTable
+          v-else
+          :columns="receiptColumns"
+          :rows="details.receipts.items"
+          row-key="receipt_id"
+          :empty-text="t('web.admin.customers.detail.receipts.empty')"
+          testid="receipts-table">
+          <template #cell-created="{ row }">
+            {{ formatDisplayDateTime(row.created) }}
+          </template>
+        </DataTable>
+      </section>
+
+      <!-- Active sessions (SIDECAR view — SessionMetadata safe_dump, no token/
+           payload can appear). Guarded per-row revoke logs the user out. -->
+      <AdminCustomerSessionsSection
+        :user-id="publicId"
+        :confirm-token="sessionsConfirmToken"
+        :is-self="isSelf" />
+
+      <!-- Account auth diagnostics (READ-ONLY) — why can't this user log in /
+           sign up. Same read-out as `bin/ots customers diagnose`. -->
+      <AdminAccountDiagnosticsSection :user-id="publicId" />
+    </div>
+
+    <!-- Shared guarded-action dialog (typed-confirm for purge + suspend). -->
+    <AdminConfirmDialog
+      v-model:open="dialogOpen"
+      :title="dialogConfig.title"
+      :description="dialogConfig.description"
+      :confirm-token="dialogConfig.confirmToken"
+      :variant="dialogConfig.variant"
+      :confirm-text="dialogConfig.confirmText"
+      :request-reason="dialogConfig.requestReason"
+      :loading="mutationLoading"
+      :error="mutationError"
+      @confirm="onConfirm"
+      @cancel="onCancel">
+      <template #prompt="{ token }">
+        {{ promptFor(token) }}
+      </template>
+    </AdminConfirmDialog>
+  </div>
+</template>

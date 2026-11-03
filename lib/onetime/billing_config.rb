@@ -1,0 +1,342 @@
+# lib/onetime/billing_config.rb
+#
+# frozen_string_literal: true
+
+# Optional billing configuration loader
+# Returns empty config if billing.yaml doesn't exist
+#
+# Supports environment-specific config files:
+# - etc/billing.test.yaml (when RACK_ENV=test)
+# - etc/billing.yaml (default)
+
+require 'yaml'
+require 'erb'
+require 'singleton'
+require_relative 'utils/config_resolver'
+require_relative 'utils/enumerables'
+
+module Onetime
+  class BillingConfig
+    include Singleton
+
+    # Bare-host shape for a Stripe custom Checkout domain, mirroring the
+    # frontend allowlist rule in src/utils/redirect.ts (setAllowedCheckoutHost):
+    # DNS labels with an optional :port and nothing else — no scheme, userinfo,
+    # path, query, or fragment. Anything the frontend would reject at navigation
+    # time must fail here at boot instead.
+    CHECKOUT_HOST_RE = /\A
+      (?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)          # first DNS label
+      (?:\.(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?))*   # additional labels
+      (?::\d{1,5})?                                # optional port
+    \z/ix
+
+    attr_reader :config, :path, :environment
+
+    def initialize
+      @environment = ENV['RACK_ENV'] || 'development'
+      @path        = Onetime::Utils::ConfigResolver.resolve('billing')
+      load_config
+    end
+
+    # Whether billing is enabled
+    # Returns false if file doesn't exist or enabled is not set.
+    # ENV['BILLING_ENABLED'] overrides config whenever it is present —
+    # including when it is blank, which resolves to false (billing off)
+    # rather than falling back to the config file. Only an absent variable
+    # reaches the config key. Accepts the shared boolean token vocabulary
+    # (Utils::Strings::TRUTHY_VALUES/FALSEY_VALUES, case-insensitive); any
+    # other set value raises Onetime::ConfigError rather than silently
+    # disabling billing (BILLING_ENABLED=1 used to mean "off").
+    def enabled?
+      env_val = ENV.fetch('BILLING_ENABLED', nil)
+      return Onetime::Utils::Strings.strict_bool!('BILLING_ENABLED', env_val, default: false) unless env_val.nil?
+
+      Onetime::Utils::Strings.strict_bool!("billing.yaml 'enabled'", config['enabled'], default: false)
+    end
+
+    # Stripe API key
+    #
+    # Checks ENV['STRIPE_API_KEY'] first, then falls back to config file.
+    # This allows environment-based configuration to override file config.
+    def stripe_key
+      env_key    = ENV.fetch('STRIPE_API_KEY', nil)
+      config_key = config['stripe_key']
+      result     = env_key || config_key
+
+      # Debug logging on first access only (avoid log spam)
+      unless @stripe_key_logged
+        @stripe_key_logged = true
+        OT.ld '[BillingConfig.stripe_key] Key resolution',
+          {
+            env_present: !env_key.to_s.strip.empty?,
+            config_present: !config_key.to_s.strip.empty?,
+            source: if env_key
+          'ENV'
+          else
+          (config_key ? 'config' : 'none')
+          end,
+            result_prefix: result&.slice(0, 8),
+          }
+      end
+
+      result
+    end
+
+    # Stripe webhook signing secret
+    def webhook_signing_secret
+      config['webhook_signing_secret']
+    end
+
+    # Stripe API version
+    def stripe_api_version
+      config['stripe_api_version']
+    end
+
+    # Stripe custom Checkout domain host (bare host, no scheme).
+    # Empty/nil unless a Stripe "custom domain" is configured for Checkout.
+    #
+    # Checks ENV['STRIPE_CHECKOUT_HOST'] first, then falls back to config file,
+    # mirroring stripe_key. This keeps the host available even when billing.yaml
+    # is absent (the deployment contract sets STRIPE_CHECKOUT_HOST directly).
+    def checkout_host
+      ENV.fetch('STRIPE_CHECKOUT_HOST', nil) || config['checkout_host']
+    end
+
+    # Whether the configured checkout_host is a well-formed bare host.
+    # Empty/nil counts as valid — the custom-domain feature is simply off.
+    #
+    # The port, when present, must fall in the real TCP range (1..65535). The
+    # frontend derives the origin with `new URL()`, which rejects out-of-range
+    # ports; enforcing the same bound here keeps a value like
+    # "pay.example.com:99999" from booting the backend only to be silently
+    # dropped (fail-closed) by the browser guard and break checkout later.
+    def valid_checkout_host?
+      host = checkout_host.to_s.strip
+      return true if host.empty?
+      return false unless CHECKOUT_HOST_RE.match?(host)
+
+      port = host[/:(\d+)\z/, 1]
+      return true if port.nil?
+
+      (1..65_535).cover?(port.to_i)
+    end
+
+    # Boot-time enforcement: raise when checkout_host is set but malformed.
+    #
+    # Without this, a bad STRIPE_CHECKOUT_HOST (scheme prefix, userinfo,
+    # path, whitespace-in-the-middle) is silently dropped by the frontend
+    # guard (fail-closed), so custom-domain checkout breaks only when a
+    # customer clicks Upgrade — hours or days after the bad deploy. Failing
+    # here turns that into a loud boot failure the deploy can catch.
+    def validate_checkout_host!
+      return if valid_checkout_host?
+
+      raise Onetime::ConfigError, <<~MSG.strip
+        STRIPE_CHECKOUT_HOST (or billing.yaml checkout_host) is not a bare host: #{checkout_host.to_s.strip.inspect}
+
+        It must be a bare host with an optional port — no scheme, no path, no userinfo. Examples:
+          valid:   pay.onetimesecret.com
+          valid:   pay.onetimesecret.com:8443       (optional port)
+          invalid: https://pay.onetimesecret.com   (drop the scheme)
+          invalid: pay.onetimesecret.com/checkout  (drop the path)
+
+        Leave it unset unless a Stripe custom Checkout domain is configured.
+      MSG
+    end
+
+    # Whether Stripe automatic tax is enabled for checkout sessions.
+    #
+    # Deployment-level policy, not a per-checkout choice. Checks
+    # ENV['STRIPE_AUTOMATIC_TAX'] first, then the config file key
+    # 'automatic_tax', mirroring checkout_host and enabled?. Accepts the
+    # shared boolean token vocabulary (case-insensitive). A blank ENV value
+    # resolves to false rather than falling back to the config file; only an
+    # absent variable reaches the config key. Any
+    # other set value raises Onetime::ConfigError — before this,
+    # STRIPE_AUTOMATIC_TAX=yes silently disabled tax collection on every
+    # checkout, which is a compliance exposure, not a default.
+    #
+    # Requires Stripe Tax to be configured in the Dashboard (Settings → Tax:
+    # tax registrations + product tax codes) before enabling.
+    def automatic_tax?
+      raw = ENV.fetch('STRIPE_AUTOMATIC_TAX', nil)
+      return Onetime::Utils::Strings.strict_bool!('STRIPE_AUTOMATIC_TAX', raw, default: false) unless raw.nil?
+
+      Onetime::Utils::Strings.strict_bool!("billing.yaml 'automatic_tax'", config['automatic_tax'], default: false)
+    end
+
+    # Stripe payment method configuration ID (pmc_...).
+    #
+    # Pins checkout sessions to a specific payment method configuration
+    # rather than the Dashboard default. Checks
+    # ENV['STRIPE_PAYMENT_METHOD_CONFIGURATION'] first, then falls back
+    # to billing.yaml 'payment_method_configuration'.
+    #
+    # Leave unset to use the Dashboard default. Blank or whitespace-only
+    # values are treated as unset and return nil; a blank ENV value counts
+    # as explicitly unset and does not fall back to the billing.yaml key.
+    def payment_method_configuration
+      value = ENV.fetch('STRIPE_PAYMENT_METHOD_CONFIGURATION', nil) || config['payment_method_configuration']
+      value = value.to_s.strip
+      value.empty? ? nil : value
+    end
+
+    # Boot-time validation for the payment method configuration.
+    #
+    # Two deterministic local checks (ADR-033):
+    #
+    # 1. Raise when the resolved value does not look like a Stripe payment
+    #    method configuration ID (pmc_...). A typo or a pasted ID of the
+    #    wrong type (e.g. price_...) would otherwise surface as a Stripe
+    #    error at a customer's first checkout; failing the boot names the
+    #    offending source instead. Only the pmc_ prefix is checked —
+    #    Stripe may evolve the suffix charset. Whether the ID actually
+    #    exists is a remote-API question left to first use.
+    #
+    # 2. Warn (never raise) when the value is blank-but-set. A blank
+    #    ENV['STRIPE_PAYMENT_METHOD_CONFIGURATION'] is truthy through the
+    #    `||` in #payment_method_configuration, so it masks any
+    #    billing.yaml 'payment_method_configuration' value instead of
+    #    falling back to it — the pin is dropped and checkout reverts to
+    #    the Stripe Dashboard default. That is deliberate (blank ENV means
+    #    explicitly unset), but an operator who meant to paste a pmc_...
+    #    ID should hear about it at boot, not when a customer reaches
+    #    checkout. Reads the raw values because the accessor collapses
+    #    every blank case to nil. When the value resolves to a real pin,
+    #    no warning applies — checkout IS pinned, whatever a blank
+    #    lower-precedence source holds.
+    def validate_payment_method_configuration!
+      env_value  = ENV.fetch('STRIPE_PAYMENT_METHOD_CONFIGURATION', nil)
+      yaml_value = config['payment_method_configuration']
+      resolved   = payment_method_configuration
+
+      unless resolved.nil?
+        return if resolved.start_with?('pmc_')
+
+        # A blank ENV value never resolves (it collapses to nil above), so
+        # a non-nil resolved value came from ENV whenever ENV is set at all.
+        source = env_value.nil? ? "billing.yaml 'payment_method_configuration'" : 'STRIPE_PAYMENT_METHOD_CONFIGURATION'
+        raise Onetime::ConfigError,
+          "#{source} is #{resolved.inspect} — not a payment method configuration ID. " \
+          'Use a pmc_... ID (Stripe Dashboard → Settings → Payments → Payment methods), or leave unset.'
+      end
+
+      # Past here the value resolved to nil — the only cases worth a warning.
+      env_blank  = !env_value.nil? && env_value.to_s.strip.empty?
+      yaml_blank = !yaml_value.nil? && yaml_value.to_s.strip.empty?
+
+      if env_blank && !yaml_value.to_s.strip.empty?
+        OT.lw '[BillingConfig] STRIPE_PAYMENT_METHOD_CONFIGURATION is set but blank, masking ' \
+              "billing.yaml payment_method_configuration #{yaml_value.to_s.strip.inspect}; " \
+              'checkout will use the Stripe Dashboard default payment method configuration'
+      elsif env_blank || yaml_blank
+        OT.lw '[BillingConfig] payment_method_configuration is blank and treated as unset; ' \
+              'checkout will use the Stripe Dashboard default payment method configuration'
+      end
+    end
+
+    # Schema version
+    def schema_version
+      config['schema_version']
+    end
+
+    # App identifier used in Stripe metadata matching
+    def app_identifier
+      config['app_identifier']
+    end
+
+    # Entitlements configuration
+    def entitlements
+      config['entitlements'] || {}
+    end
+
+    # Plans configuration (includes legacy plans with `legacy: true` flag)
+    def plans
+      config['plans'] || {}
+    end
+
+    # Stripe metadata schema
+    def stripe_metadata_schema
+      config['stripe_metadata_schema'] || {}
+    end
+
+    # Currency for billing catalog
+    #
+    # All products and prices in this billing configuration use this currency.
+    # Defaults to 'cad' when not set.
+    def currency
+      val = config['currency']
+      return 'cad' if val.to_s.strip.empty?
+
+      val.to_s.strip.downcase
+    end
+
+    # Region / jurisdiction for catalog isolation
+    #
+    # When set (e.g. 'NZ', 'CA'), only Stripe products whose region metadata
+    # matches this value will be imported. Returns nil when unset, which means
+    # all regions are accepted (backward-compatible pass-through).
+    #
+    # There is intentionally no "global" default. A deployment either operates
+    # in a specific region or regionalization is not applicable (nil).
+    # See Billing::RegionNormalizer for the authoritative normalization rules.
+    def region
+      val = config['region']
+      return nil if val.to_s.strip.empty?
+
+      val.to_s.strip.upcase
+    end
+
+    # Payment links configuration
+    def payment_links
+      config['payment_links'] || {}
+    end
+
+    # Reload configuration (useful for testing)
+    # Also picks up any changes to BillingConfig.path
+    def reload!
+      @environment = ENV['RACK_ENV'] || 'development'
+      @path        = resolve_config_file
+      load_config
+      self
+    end
+
+    private
+
+    def load_config
+      unless @path && File.exist?(@path)
+        @config = {}
+        return
+      end
+
+      defaults_file = Onetime::Utils::ConfigResolver.defaults_path('billing')
+      base_config   = if defaults_file && defaults_file != @path
+        load_yaml_from(defaults_file)
+      else
+        {}
+      end
+
+      env_config = load_yaml_from(@path)
+
+      @config = if base_config.empty?
+        env_config
+      else
+        Onetime::Utils::Enumerables.deep_merge(base_config, env_config, preserve_nils: false)
+      end
+    rescue StandardError => ex
+      OT.le "[BillingConfig] Error loading billing config: #{ex.message}"
+      @config = {}
+    end
+
+    def load_yaml_from(path)
+      erb_template = ERB.new(File.read(path))
+      yaml_content = erb_template.result
+      YAML.safe_load(yaml_content, symbolize_names: false) || {}
+    end
+  end
+
+  # Convenience method for accessing billing configuration
+  def self.billing_config
+    BillingConfig.instance
+  end
+end

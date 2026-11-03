@@ -1,0 +1,366 @@
+{
+  "web.footer.api_docs": {
+    "text": "API-dokumentation",
+    "source_hash": "f4137804"
+  },
+  "web.footer.branding_guide": {
+    "text": "Brandinggguide",
+    "source_hash": "53f994c5"
+  },
+  "web.footer.customize": {
+    "text": "Tilpas",
+    "source_hash": "c5276e27"
+  },
+  "web.footer.plans": {
+    "text": "Abonnementer",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.footer.security": {
+    "text": "Sikkerhed",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.footer.learn_about_our_security_measures": {
+    "text": "Lær om vores sikkerhedsforanstaltninger",
+    "source_hash": "16c8adae"
+  },
+  "web.footer.view_our_terms_and_conditions": {
+    "text": "Se vores vilkår og betingelser",
+    "source_hash": "0dde60b7"
+  },
+  "web.footer.terms": {
+    "text": "Vilkår",
+    "source_hash": "ede54899"
+  },
+  "web.footer.privacy": {
+    "text": "Privatliv",
+    "source_hash": "54a57c31"
+  },
+  "web.footer.contact": {
+    "text": "Kontakt",
+    "source_hash": "2b5c3d26"
+  },
+  "web.footer.support": {
+    "text": "Support",
+    "source_hash": "be91940b"
+  },
+  "web.footer.legals": {
+    "text": "Juridisk",
+    "source_hash": "0a410c78"
+  },
+  "web.feedback.when_you_submit_feedback_well_see": {
+    "text": "Når du sender feedback, kan vi se:",
+    "source_hash": "fe77172e"
+  },
+  "web.footer.read_our_privacy_policy": {
+    "text": "Læs vores privatlivspolitik",
+    "source_hash": "eb443229"
+  },
+  "web.footer.check_our_service_status": {
+    "text": "Tjek vores servicestatus",
+    "source_hash": "1f04937e"
+  },
+  "web.footer.explore_our_api_documentation": {
+    "text": "Udforsk vores API-dokumentation",
+    "source_hash": "45beb8f8"
+  },
+  "web.footer.docs": {
+    "text": "Dokumentation",
+    "source_hash": "7af023c4"
+  },
+  "web.footer.access_our_documentation": {
+    "text": "Få adgang til vores dokumentation",
+    "source_hash": "37686da2"
+  },
+  "web.footer.view_our_source_code_on_github": {
+    "text": "Se vores kildekode på GitHub",
+    "source_hash": "d5def0ab"
+  },
+  "web.footer.resources": {
+    "text": "Ressourcer",
+    "source_hash": "e89b30aa"
+  },
+  "web.footer.blog": {
+    "text": "Blog",
+    "source_hash": "8c6bc099"
+  },
+  "web.footer.read_our_latest_blog_posts": {
+    "text": "Læs vores seneste blogindlæg",
+    "source_hash": "77468d43"
+  },
+  "web.footer.view_our_subscription_pricing": {
+    "text": "Se vores abonnementspriser",
+    "source_hash": "55f1f590"
+  },
+  "web.footer.learn_about_our_company": {
+    "text": "Lær om vores virksomhed",
+    "source_hash": "780e18cd"
+  },
+  "web.footer.company": {
+    "text": "Virksomhed",
+    "source_hash": "de4743c8"
+  },
+  "web.footer.product": {
+    "text": "Produkt",
+    "source_hash": "fb9ef894"
+  },
+  "web.footer.source_code_purveyor": {
+    "text": "Kildekode",
+    "source_hash": "bc47da66"
+  },
+  "web.navigation.billing": {
+    "text": "Fakturering",
+    "source_hash": "3ac8bbca"
+  },
+  "web.navigation.billingOverview": {
+    "text": "Oversigt",
+    "source_hash": "d4b1ea57"
+  },
+  "web.navigation.organizations": {
+    "text": "Organisationer",
+    "source_hash": "2730183d"
+  },
+  "web.site.website_version": {
+    "text": "Webstedsversion",
+    "source_hash": "4d4a570f"
+  },
+  "web.meta.were_making_onetime_secret_available_in_multiple": {
+    "text": "Vi gør {onetime-secret} tilgængelig på flere sprog. Da dette er en ny funktion, kan du støde på oversættelsesfejl eller akavede formuleringer. Din feedback hjælper os med at forbedre os - hvis du opdager problemer, bedes du {send-feedback}",
+    "source_hash": "3b482d7f"
+  },
+  "web.meta.translations_are_new_spotted_an_error": {
+    "text": "Oversættelserne er nye. Har du opdaget en fejl? {send-feedback}",
+    "source_hash": "31eca08d"
+  },
+  "web.meta.we_recently_added_translations": {
+    "text": "Vi har for nylig tilføjet oversættelser. Fundet en fejl? {send-feedback}",
+    "source_hash": "6e2455c1"
+  },
+  "web.meta.privacy_and_security_should_be_accessible": {
+    "text": "Privatliv og sikkerhed bør være tilgængeligt for alle, uanset sprog. Vi tilføjer oversættelser for at hjælpe både vores brugere og deres meddelelsesmodtagere med bedre at forstå, hvordan de sikkert kan bruge og få adgang til sikre meddelelser og links. Da dette er en ny funktion, kan du støde på nogle oversættelsesfejl eller uklare instruktioner. For at hjælpe os med at forbedre klarheden og nøjagtigheden af vores oversættelser, især for kritisk sikkerhedsrelateret indhold, bedes du {send-feedback}, hvis du ser nogen problemer.",
+    "source_hash": "1b8bb38f"
+  },
+  "web.help.learn_more": {
+    "text": "Lær mere",
+    "source_hash": "1445799c"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.title": {
+    "text": "Hvad ser jeg på?",
+    "source_hash": "b9766df3"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.description": {
+    "text": "Du ser en sikker besked, der blev delt med dig via {product_name}. Dette indhold vises kun én gang og bliver derefter permanent slettet fra vores servere.",
+    "source_hash": "7a4e9d16"
+  },
+  "web.help.secret_view_faq.can_i_view_again.title": {
+    "text": "Kan jeg se denne besked igen senere?",
+    "source_hash": "c8c2c9da"
+  },
+  "web.help.secret_view_faq.can_i_view_again.description": {
+    "text": "Nej. Af sikkerhedsmæssige årsager kan denne besked kun ses én gang. Efter du lukker denne side, vil indholdet blive permanent slettet og kan ikke gendannes af nogen, inklusive os.",
+    "source_hash": "4bf980a4"
+  },
+  "web.help.secret_view_faq.how_to_copy.title": {
+    "text": "Hvordan gemmer jeg disse oplysninger?",
+    "source_hash": "90deddbb"
+  },
+  "web.help.secret_view_faq.how_to_copy.description": {
+    "text": "Brug knappen 'Kopier til udklipsholder' for at kopiere hele beskeden. Ved længere beskeder skal du sikre dig, at du har kopieret hele indholdet, før du forlader denne side.",
+    "source_hash": "440aa828"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.title": {
+    "text": "Spores min visning af denne besked?",
+    "source_hash": "90145e28"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.description": {
+    "text": "Afsenderen vil få besked om at deres besked er blevet set, men vi sporer ikke hvem der så den eller fra hvilken lokation. Dit privatliv er beskyttet.",
+    "source_hash": "70737473"
+  },
+  "web.help.secret_view_faq.one_time_warning": {
+    "text": "Når du forlader eller opdaterer denne side, vil beskeden blive permanent slettet og kan ikke gendannes af nogen.",
+    "source_hash": "47feab6e"
+  },
+  "web.layout.go_back_to_previous_page": {
+    "text": "Gå tilbage til forrige side",
+    "source_hash": "1778f2e7"
+  },
+  "web.layout.site_footer": {
+    "text": "Sidefod",
+    "source_hash": "6ca09429"
+  },
+  "web.layout.toggle_dark_mode": {
+    "text": "Skift mørk tilstand",
+    "source_hash": "ffe32a00"
+  },
+  "web.layout.provide_feedback": {
+    "text": "Giv feedback",
+    "source_hash": "a70766ae"
+  },
+  "web.layout.company_logo": {
+    "text": "Virksomhedslogo",
+    "source_hash": "87a86135"
+  },
+  "web.layout.brand_logo": {
+    "text": "Brand-logo",
+    "source_hash": "e458e2b5"
+  },
+  "web.layout.dashboard_navigation": {
+    "text": "Oversigtsnavigation",
+    "source_hash": "da5c1c43"
+  },
+  "web.layout.mobile_navigation": {
+    "text": "Mobilnavigation",
+    "source_hash": "ccea1730"
+  },
+  "web.layout.main_navigation": {
+    "text": "Hovednavigation",
+    "source_hash": "56ea852a"
+  },
+  "web.layout.mobile_nav_item_count": {
+    "text": "{count} elementer",
+    "source_hash": "f65216b3"
+  },
+  "web.layout.release_notes": {
+    "text": "Udgivelsesnoter",
+    "source_hash": "bd4702c1"
+  },
+  "web.layout.loading_settings_content": {
+    "text": "Indlæser indstillingsindhold...",
+    "source_hash": "81a2a30e"
+  },
+  "web.layout.settings_sections_0": {
+    "text": "Indstillingssektioner",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.close_settings": {
+    "text": "Luk indstillinger",
+    "source_hash": "0ccfef82"
+  },
+  "web.layout.settings_sections": {
+    "text": "Indstillingssektioner",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.customize_your_app_preferences_and_settings": {
+    "text": "Tilpas dine app-præferencer og -indstillinger",
+    "source_hash": "00d74c98"
+  },
+  "web.layout.return_home": {
+    "text": "Gå til forsiden",
+    "source_hash": "bbcc935e"
+  },
+  "web.layout.return_to_home_page": {
+    "text": "Gå tilbage til forsiden",
+    "source_hash": "8d27b81d"
+  },
+  "web.layout.return_to_home": {
+    "text": "Gå til forsiden",
+    "source_hash": "299291b0"
+  },
+  "web.layout.view_privacy_policy": {
+    "text": "Se privatlivspolitik",
+    "source_hash": "377733b6"
+  },
+  "web.layout.view_terms_of_service": {
+    "text": "Se servicevilkår",
+    "source_hash": "e2f124cd"
+  },
+  "web.layout.visit_onetime_secret_homepage": {
+    "text": "Besøg {product_name}-hjemmesiden",
+    "source_hash": "87802af5"
+  },
+  "web.layout.footer_navigation": {
+    "text": "Sidefodnavigation",
+    "source_hash": "76363a64"
+  },
+  "web.layout.terms_of_service": {
+    "text": "Servicevilkår",
+    "source_hash": "4afa55bf"
+  },
+  "web.layout.privacy_policy": {
+    "text": "Privatlivspolitik",
+    "source_hash": "506ff394"
+  },
+  "web.layout.icon_library": {
+    "text": "Ikonbibliotek",
+    "source_hash": "a73f4c07"
+  },
+  "web.layout.google_material": {
+    "text": "Google Material",
+    "source_hash": "7c7afa99"
+  },
+  "web.layout.material_design_icons": {
+    "text": "Material Design Icons",
+    "source_hash": "0fb27437"
+  },
+  "web.layout.heroicons": {
+    "text": "Heroicons",
+    "source_hash": "5e7cc07e"
+  },
+  "web.layout.carbon": {
+    "text": "Carbon",
+    "source_hash": "694c87c2"
+  },
+  "web.layout.font_awesome_6": {
+    "text": "Font Awesome 6",
+    "source_hash": "d4eedb15"
+  },
+  "web.layout.view_source_on_github": {
+    "text": "Se kildekode på GitHub",
+    "source_hash": "75e96614"
+  },
+  "web.layout.website_version_v_ot_version": {
+    "text": "Webstedsversion: v{0}",
+    "source_hash": "343f57de"
+  },
+  "web.layout.current_language_is_currentlocal": {
+    "text": "Skift sprog. Nuværende sprog er {0}",
+    "source_hash": "77f9c322"
+  },
+  "web.layout.language_changed_to_newlocale": {
+    "text": "Sprog ændret til {0}",
+    "source_hash": "1680f4fe"
+  },
+  "web.layout.reset_to_default_language": {
+    "text": "Nulstil til {0}",
+    "source_hash": "c0cfa9b2"
+  },
+  "web.layout.switch_to_blank_mode": {
+    "text": "Skift til {0}-tilstand",
+    "source_hash": "c8b909e0"
+  },
+  "web.layout.blank_mode_enabled": {
+    "text": "{0}-tilstand aktiveret",
+    "source_hash": "e1d200cb"
+  },
+  "web.layout.workspace": {
+    "text": "Arbejdsområde",
+    "source_hash": "87bb59ba"
+  },
+  "web.layout.workspace_context": {
+    "text": "Arbejdsområdekontekst",
+    "source_hash": "dc6fa4f5"
+  },
+  "web.footer.workspace": {
+    "text": "Arbejdsområde",
+    "source_hash": "87bb59ba"
+  },
+  "web.help.default_content": {
+    "text": "Kontakt venligst support for at få hjælp",
+    "source_hash": "752bca14"
+  },
+  "web.layout.colonels_only_badge": {
+    "text": "Kun Colonels",
+    "source_hash": "3f1e2dbd"
+  },
+  "web.footer.dpa": {
+    "text": "Databehandleraftale",
+    "source_hash": "112eae6b"
+  },
+  "web.footer.cookie_policy": {
+    "text": "Cookiepolitik",
+    "source_hash": "ee290b3d"
+  },
+  "web.footer.acceptable_use": {
+    "text": "Politik for acceptabel brug",
+    "source_hash": "34aa287a"
+  }
+}

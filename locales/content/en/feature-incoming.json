@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "Send a Secret",
+    "content_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "Share sensitive information securely with our support team",
+    "content_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "Loading...",
+    "content_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "Failed to load configuration",
+    "content_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "Feature Not Available",
+    "content_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "This feature is currently disabled. Please contact support for assistance.",
+    "content_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "Memo",
+    "content_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "Brief description (e.g., Password reset request)",
+    "content_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "Help us route your message to the right person",
+    "content_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "Send to",
+    "content_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "Select a recipient",
+    "content_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "Select a recipient for this secret",
+    "content_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "Choose who will receive this secure message",
+    "content_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "No recipients are available",
+    "content_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "Secret Information",
+    "content_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "Paste sensitive information here (passwords, keys, etc.)",
+    "content_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "This information will be encrypted and only viewable once",
+    "content_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "Send Secret",
+    "content_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "Send Secret",
+    "content_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "Sending...",
+    "content_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "Sending...",
+    "content_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "Clear Form",
+    "content_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "Clear Form",
+    "content_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "Sent Successfully",
+    "content_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "Your secure message has been delivered.",
+    "content_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "Reference ID",
+    "content_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "What happens next?",
+    "content_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "The recipient will be able to view this secret only once. After they view it, the secret will be permanently deleted.",
+    "content_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "Send Another Secret",
+    "content_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "Share sensitive information securely",
+    "content_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "Keep passwords and private data out of email and chat logs",
+    "content_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "Save your {receipt} for your records.",
+    "content_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "receipt",
+    "content_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "Upgrade Required",
+    "content_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "This feature requires a plan upgrade. Please contact the account owner to enable incoming secrets.",
+    "content_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "Memo must be {max} characters or less",
+    "content_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "Secret content is required",
+    "content_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "Please select a recipient",
+    "content_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "Incoming secrets feature is not enabled",
+    "content_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "Please check the form for errors",
+    "content_hash": "9056e064"
+  }
+}

@@ -1,0 +1,177 @@
+# apps/api/colonel/logic/colonel/get_colonel_info.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/refinements/stripe_refinements'
+require 'onetime/operations/sessions/store'
+
+require_relative '../base'
+
+module ColonelAPI
+  module Logic
+    module Colonel
+      # Get Colonel Info
+      #
+      # @api Returns the admin dashboard overview including recent customers,
+      #   feedback (today, yesterday, older), aggregate counts for sessions,
+      #   customers, secrets, receipts, and Redis memory info. Requires
+      #   colonel role.
+      class GetColonelInfo < ColonelAPI::Logic::Base
+        SCHEMAS = { response: 'colonelInfo' }.freeze
+
+        using Familia::Refinements::TimeLiterals
+
+        attr_reader :billing_enabled,
+          :title,
+          :session_count,
+          :today_feedback,
+          :yesterday_feedback,
+          :older_feedback,
+          :feedback_count,
+          :today_feedback_count,
+          :yesterday_feedback_count,
+          :older_feedback_count,
+          :recent_customers,
+          :customer_count,
+          :recent_customer_count,
+          :receipt_count,
+          :secret_count,
+          :secrets_created,
+          :secrets_shared,
+          :emails_sent,
+          :split_tests,
+          :has_split_tests,
+          :redis_info
+
+        def process_params
+          OT.conf.fetch('site', {})
+          @billing_enabled = OT.billing_config.enabled?
+        end
+
+        def raise_concerns
+          verify_one_of_roles!(colonel: true)
+        end
+
+        def process
+          @title = 'Home'
+
+          # Real count of session keys via the sessions store's bounded scan —
+          # the same key definition GET /api/colonel/sessions lists. This was
+          # hardcoded to 0 after session tracking moved to Rack::Session
+          # middleware (QA 2026-07-07: dashboard reported 0 with live sessions).
+          @session_count = Onetime::Operations::Sessions::Store.count(Familia.dbclient)
+
+          process_feedback
+          process_customers
+          process_statistics
+
+          @redis_info = redis_info
+
+          success_data
+        end
+
+        def process_feedback
+          now                 = OT.now.to_i
+          @today_feedback     = process_feedback_for_period(24.hours, now)
+          @yesterday_feedback = process_feedback_for_period(48.hours, now - 24.hours)
+          @older_feedback     = process_feedback_for_period(14.days, now - 48.hours)
+
+          @feedback_count           = Onetime::Feedback.instances.size
+          @today_feedback_count     = @today_feedback.size
+          @yesterday_feedback_count = @yesterday_feedback.size
+          @older_feedback_count     = @older_feedback.size
+        end
+        private :process_feedback
+
+        def process_feedback_for_period(period, end_time)
+          Onetime::Feedback.recent(period, end_time).collect do |k, v|
+            { msg: k, stamp: v }
+          end.reverse
+        end
+        private :process_feedback_for_period
+
+        def process_customers
+          @recent_customers = Onetime::Customer.recent.collect do |this_cust|
+            next if this_cust.nil?
+
+            {
+              user_id: this_cust.objid,
+              colonel: this_cust.role?(:colonel),
+              # Counters are Familia::Counter objects (familia 2.8); coerce
+              # to Integer before serialization so JSON's Enumerable path
+              # doesn't try to .each over an opaque Counter.
+              secrets_created: this_cust.secrets_created.to_i,
+              secrets_shared: this_cust.secrets_shared.to_i,
+              emails_sent: this_cust.emails_sent.to_i,
+              verified: this_cust.verified?,
+              created: this_cust.created,
+            }
+          end.compact.reverse
+
+          @customer_count        = Onetime::Customer.instances.size
+          @recent_customer_count = @recent_customers.size
+        end
+        private :process_customers
+
+        def process_statistics
+          # Use O(1) ZCARD-based count via Familia instances instead of O(N) blocking KEYS
+          @receipt_count = Onetime::Receipt.count
+          @secret_count  = Onetime::Secret.count
+
+          # Global lifetime counters (Familia class-level counters maintained at the
+          # creation/send chokepoints). Previously stubbed; now sourced from the real
+          # counters so the dashboard never reports fabricated values. See
+          # GetColonelStats#process_statistics for the backfill note (forward-only).
+          @secrets_created = Onetime::Customer.secrets_created.to_i
+          @secrets_shared  = Onetime::Customer.secrets_shared.to_i
+          @emails_sent     = Onetime::Customer.emails_sent.to_i
+        end
+        private :process_statistics
+
+        def redis_info
+          # Fetch Redis INFO
+          info = Familia.dbclient.info
+
+          # Extract relevant information
+          db_info     = info.select { |key, _| key.start_with?('db') }
+          memory_info = info.slice('used_memory', 'used_memory_human', 'used_memory_peak', 'used_memory_peak_human')
+
+          # Combine the extracted information
+          filtered_info = db_info.merge(memory_info)
+
+          # Convert to YAML and print
+          filtered_info.to_yaml
+        end
+        private :redis_info
+
+        def success_data
+          {
+            record: {},
+            details: {
+              recent_customers: recent_customers,
+              today_feedback: today_feedback,
+              yesterday_feedback: yesterday_feedback,
+              older_feedback: older_feedback,
+              dbclient_info: @redis_info,
+              billing_enabled: billing_enabled,
+              counts: {
+                session_count: session_count,
+                customer_count: customer_count,
+                recent_customer_count: recent_customer_count,
+                receipt_count: receipt_count,
+                secret_count: secret_count,
+                secrets_created: secrets_created,
+                secrets_shared: secrets_shared,
+                emails_sent: emails_sent,
+                feedback_count: feedback_count,
+                today_feedback_count: today_feedback_count,
+                yesterday_feedback_count: yesterday_feedback_count,
+                older_feedback_count: older_feedback_count,
+              },
+            },
+          }
+        end
+      end
+    end
+  end
+end

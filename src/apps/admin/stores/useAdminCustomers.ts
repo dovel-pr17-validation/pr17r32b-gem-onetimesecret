@@ -1,0 +1,255 @@
+// src/apps/admin/stores/useAdminCustomers.ts
+
+import type { AxiosInstance } from 'axios';
+import { defineStore } from 'pinia';
+import type { z } from 'zod';
+import { ref } from 'vue';
+
+import {
+  usePaginatedFetch,
+  type PageMeta,
+  type PageResult,
+} from '@/apps/admin/composables/usePaginatedFetch';
+import { reasonQueryArgs } from '@/apps/admin/utils/operatorReason';
+import {
+  colonelUserMutationResponseSchema,
+  colonelUsersResponseSchema,
+} from '@/schemas/api/internal/responses/colonel';
+import type { ColonelOrphanedAccount, ColonelUser } from '@/schemas/api/internal/responses/colonel';
+import { confirmHeaders } from '@/apps/admin/utils/confirmHeader';
+import { useApi } from '@/shared/composables/useApi';
+import { gracefulParse } from '@/utils/schemaValidation';
+
+type ColonelUsersResponse = z.infer<typeof colonelUsersResponseSchema>;
+
+/** One page of customers plus the address search's orphaned-account sidecar. */
+interface CustomersPageResult extends PageResult<ColonelUser> {
+  orphanedAccounts: ColonelOrphanedAccount[];
+}
+
+/**
+ * Single-customer colonel URL, keyed by the row's PUBLIC id (`row.extid`,
+ * 'ur…'). Never `row.user_id`: that is the internal objid, and a URL path ends
+ * up in server logs and browser history.
+ */
+function userUrl(extid: string): string {
+  return `/api/colonel/users/${encodeURIComponent(extid)}`;
+}
+
+/**
+ * Ack tripwire for the mutation endpoints: reports contract drift without ever
+ * failing the action (a 2xx means it already happened server-side).
+ */
+function parseMutationAck(data: unknown): void {
+  gracefulParse(colonelUserMutationResponseSchema, data, 'ColonelUserMutationResponse');
+}
+
+/**
+ * Replace one row (matched by public id) with a patched copy, so the table cell
+ * and any open drawer re-render off the ack instead of waiting for a re-read.
+ *
+ * @returns the new array plus the patched row, or the array unchanged and a
+ *   null row when that customer is not on the current page.
+ */
+function replaceRow(
+  rows: ColonelUser[],
+  extid: string,
+  patch: Partial<ColonelUser>
+): { rows: ColonelUser[]; updated: ColonelUser | null } {
+  const index = rows.findIndex((row) => row.extid === extid);
+  if (index === -1) return { rows, updated: null };
+  const updated: ColonelUser = { ...rows[index], ...patch };
+  return { rows: [...rows.slice(0, index), updated, ...rows.slice(index + 1)], updated };
+}
+
+/**
+ * Per-resource admin store for customers/users (CONTRACT 3).
+ *
+ * Backed by the `GET /api/colonel/users` endpoint and
+ * `colonelUsersResponseSchema`. The endpoint supports an optional server-side
+ * `search` param (email lookup via a bounded index scan) alongside the `role`
+ * filter; the view drives both through {@link fetchPage}. Owns ONLY this
+ * resource — loading/page/error come from the shared paginated-fetch
+ * composable, so adding the next resource is a copy of this ~40-line file, not
+ * an edit to a shared god-store.
+ *
+ * Also owns the two row-scoped operator mutations the list drawer offers
+ * ({@link setVerification} and {@link purge}) so the drawer never has to reach
+ * for a raw HTTP client: both go through the injected Axios instance, ack-parse
+ * as a tripwire, and patch local state so the open drawer reflects the new
+ * server state without a page reload. Audit is written SERVER-SIDE by the
+ * operation — nothing here logs it.
+ *
+ * Isolation: this module has ZERO import edge into `src/apps/colonel/*` or
+ * `src/shared/stores/colonelInfoStore.ts` (enforced by an architecture test),
+ * so it never drags the retiring legacy tree into the admin bundle.
+ */
+/**
+ * POST verify/unverify. UNVERIFY is gated server-side (#4326): it strips colonel
+ * eligibility, so it must carry the account identifier in X-OTS-Confirm. VERIFY
+ * is the restorative arm and sends nothing.
+ */
+async function requestVerification(
+  $api: AxiosInstance,
+  extid: string,
+  verified: boolean,
+  confirm?: string
+): Promise<void> {
+  const verb = verified ? 'verify' : 'unverify';
+  const config = verified || !confirm ? undefined : { headers: confirmHeaders(confirm) };
+  const response = await $api.post(`${userUrl(extid)}/${verb}`, {}, config);
+  parseMutationAck(response.data);
+}
+
+/**
+ * DELETE one account, carrying the confirmation token the server requires
+ * (#4326) and, when the operator gave one, the reason (#4338). A DELETE, so the
+ * reason rides the QUERY STRING; a blank one contributes nothing at all, leaving
+ * the request byte-identical to its pre-#4338 shape.
+ */
+async function requestPurge(
+  $api: AxiosInstance,
+  extid: string,
+  confirm: string,
+  reason?: string
+): Promise<void> {
+  const [reasonConfig] = reasonQueryArgs(reason);
+  const response = await $api.delete(userUrl(extid), {
+    headers: confirmHeaders(confirm),
+    ...reasonConfig,
+  });
+  parseMutationAck(response.data);
+}
+
+export const useAdminCustomers = defineStore('adminCustomers', () => {
+  /** Rows for the current page only (one server page — never accumulated). */
+  const customers = ref<ColonelUser[]>([]);
+  const pagination = ref<PageMeta | null>(null);
+  /**
+   * Auth-database accounts rows the address search matched that have NO
+   * customer record (full auth mode only). Rides the same response as the
+   * page, so it is set and cleared in lockstep with `customers`: an orphan
+   * is a per-search fact, never something to carry across a re-read.
+   */
+  const orphanedAccounts = ref<ColonelOrphanedAccount[]>([]);
+
+  const $api = useApi();
+
+  /** Replace the page state wholesale; `null` empties it (mismatch, failure, reset). */
+  function applyPage(result: CustomersPageResult | null): void {
+    customers.value = result?.items ?? [];
+    pagination.value = result?.pagination ?? null;
+    orphanedAccounts.value = result?.orphanedAccounts ?? [];
+  }
+
+  const pager = usePaginatedFetch<ColonelUsersResponse, ColonelUser, CustomersPageResult>({
+    url: '/api/colonel/users',
+    schema: colonelUsersResponseSchema,
+    context: 'ColonelUsersResponse',
+    select: (data) => ({
+      items: data.details?.users ?? [],
+      pagination: data.details?.pagination ?? null,
+      orphanedAccounts: data.details?.orphaned_accounts ?? [],
+    }),
+  });
+
+  /**
+   * Fetch one page of customers.
+   *
+   * @param targetPage 1-based page (defaults to the current page).
+   * @param roleFilter optional `role` server filter (e.g. 'colonel').
+   * @param search optional email search term (server-side, bounded index scan).
+   * @returns the page result, or null on a schema mismatch (see validationError).
+   * @throws the underlying network/HTTP error (state is cleared first).
+   */
+  async function fetchPage(
+    targetPage: number = pager.page.value,
+    roleFilter?: string,
+    search?: string
+  ): Promise<CustomersPageResult | null> {
+    try {
+      // Empty/undefined params are dropped by the pager, so both filters can be
+      // passed unconditionally.
+      const result = await pager.fetchPage(targetPage, { role: roleFilter, search });
+      // A null result is a schema mismatch: degrade to empty; pager.validationError
+      // names the schema.
+      applyPage(result);
+      return result;
+    } catch (err) {
+      // Network/HTTP failure: clear stale rows and rethrow for the view to handle.
+      applyPage(null);
+      throw err;
+    }
+  }
+
+  /**
+   * Manually verify / unverify one account
+   * (POST /api/colonel/users/:user_id/verify | /unverify).
+   *
+   * On a 2xx the row is replaced in place with `verified` flipped, so the open
+   * drawer and the table cell both show the new state immediately — no refetch,
+   * no page reload. The ack is schema-checked as a live tripwire but never fails
+   * the action (a 2xx means it happened server-side).
+   *
+   * @param extid the customer's public id (`row.extid`, 'ur…').
+   * @param verified the target state.
+   * @param confirm the account identifier for X-OTS-Confirm; required by the
+   *   server on the UNVERIFY arm only (#4326).
+   * @returns the patched row, or null when it is not on the current page.
+   * @throws the network/HTTP error, for `useAdminMutation` to classify.
+   */
+  async function setVerification(
+    extid: string,
+    verified: boolean,
+    confirm?: string
+  ): Promise<ColonelUser | null> {
+    await requestVerification($api, extid, verified, confirm);
+    const patched = replaceRow(customers.value, extid, { verified });
+    customers.value = patched.rows;
+    return patched.updated;
+  }
+
+  /**
+   * Purge one account (DELETE /api/colonel/users/:user_id) — irreversible, so
+   * the view gates it behind the typed-confirmation dialog.
+   *
+   * Drops the row ONLY after a 2xx: the drop is sequenced after the awaited
+   * DELETE, so a failure throws before it and the row stays. Callers still
+   * refetch the page afterwards (totals/pagination move server-side).
+   *
+   * @param extid the customer's public id (`row.extid`, 'ur…').
+   * @param confirm the account identifier (email, extid when it has none) the
+   *   server requires in X-OTS-Confirm (#4326).
+   * @param reason OPTIONAL operator-supplied why (#4338) — query string, since
+   *   this is a DELETE. Omitted entirely when blank.
+   * @throws the network/HTTP error, for `useAdminMutation` to classify.
+   */
+  async function purge(extid: string, confirm: string, reason?: string): Promise<void> {
+    await requestPurge($api, extid, confirm, reason);
+    customers.value = customers.value.filter((row) => row.extid !== extid);
+  }
+
+  /** Explicit manual reset — setup stores have no built-in $reset. */
+  function $reset(): void {
+    applyPage(null);
+    pager.reset();
+  }
+
+  return {
+    // State
+    customers,
+    pagination,
+    orphanedAccounts,
+    // Fetch state (owned by the shared composable)
+    loading: pager.loading,
+    error: pager.error,
+    validationError: pager.validationError,
+    page: pager.page,
+    perPage: pager.perPage,
+    // Actions
+    fetchPage,
+    setVerification,
+    purge,
+    $reset,
+  };
+});

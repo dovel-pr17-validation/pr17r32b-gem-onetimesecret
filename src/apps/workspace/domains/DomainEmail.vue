@@ -1,0 +1,277 @@
+<!-- src/apps/workspace/domains/DomainEmail.vue -->
+
+<script setup lang="ts">
+/**
+ * Domain Email Configuration Page
+ *
+ * Page-level component that wires together the email config composable,
+ * form component, and DNS records display. Follows the DomainSso page
+ * structure: header -> entitlement gate -> fallback notice -> form -> DNS.
+ */
+import DomainHeader from '@/apps/workspace/components/dashboard/DomainHeader.vue';
+import DomainEmailConfigForm from '@/apps/workspace/components/domains/DomainEmailConfigForm.vue';
+import DomainEmailDnsRecords from '@/apps/workspace/components/domains/DomainEmailDnsRecords.vue';
+import SettingsSkeleton from '@/shared/components/closet/SettingsSkeleton.vue';
+import BasicFormAlerts from '@/shared/components/forms/BasicFormAlerts.vue';
+import OIcon from '@/shared/components/icons/OIcon.vue';
+import { useDomain } from '@/shared/composables/useDomain';
+import {
+  useEmailConfig,
+  buildDomainEmailDefaults,
+  type EmailConfigFormState,
+} from '@/shared/composables/useEmailConfig';
+import { useEntitlements } from '@/shared/composables/useEntitlements';
+import { useUnsavedRouteGuard } from '@/shared/composables/useUnsavedRouteGuard';
+import { useOrganizationStore } from '@/shared/stores/organizationStore';
+import { ENTITLEMENTS } from '@/types/organization';
+import { storeToRefs } from 'pinia';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+
+const { t } = useI18n();
+const router = useRouter();
+
+const props = defineProps<{
+  orgid: string;
+  extid: string;
+}>();
+
+// ---------------------------------------------------------------------------
+// Domain data
+// ---------------------------------------------------------------------------
+
+const {
+  domain: customDomainRecord,
+  isLoading: domainLoading,
+  error: domainError,
+  initialize: initializeDomain,
+} = useDomain(props.extid);
+
+// ---------------------------------------------------------------------------
+// Entitlement check
+// ---------------------------------------------------------------------------
+
+const organizationStore = useOrganizationStore();
+const { organizations } = storeToRefs(organizationStore);
+const organization = computed(() =>
+  organizations.value.find((o) => o.extid === props.orgid) ?? null
+);
+const { can } = useEntitlements(organization);
+const hasEntitlement = computed(() => can(ENTITLEMENTS.CUSTOM_MAIL_SENDER));
+const hasFlexibleFromDomain = computed(() => can(ENTITLEMENTS.FLEXIBLE_FROM_DOMAIN));
+const billingRoute = computed(() => `/billing/${props.orgid}/plans`);
+const displayDomain = computed(() => customDomainRecord.value?.display_domain);
+
+/**
+ * Sender defaults for a domain that has no saved email config yet, derived by
+ * the shared `buildDomainEmailDefaults` helper (pre-fills `no-reply@<domain>`
+ * and the organization name). Both fields remain editable before saving.
+ */
+const emailDefaults = computed(() =>
+  buildDomainEmailDefaults(displayDomain.value, organization.value?.display_name)
+);
+
+// ---------------------------------------------------------------------------
+// Email config composable
+// ---------------------------------------------------------------------------
+
+const {
+  isLoading: emailLoading,
+  isInitialized,
+  isSaving,
+  isValidating,
+  isDeleting,
+  isTesting,
+  testResult,
+  testError,
+  error: emailError,
+  emailConfig,
+  formState,
+  isConfigured,
+  dnsRecords,
+  validationStatus,
+  lastValidatedAt,
+  dnsCheckCompletedAt,
+  providerCheckCompletedAt,
+  lastError,
+  hasUnsavedChanges,
+  initialize: initializeEmailConfig,
+  saveConfig,
+  deleteConfig,
+  validateDomain,
+  sendTestEmail,
+  discardChanges,
+} = useEmailConfig(props.extid);
+
+// ---------------------------------------------------------------------------
+// Form state handler
+// ---------------------------------------------------------------------------
+
+const handleFormStateUpdate = (state: EmailConfigFormState) => {
+  formState.value = state;
+};
+
+// The primary Save ("Update") lives in the page header. The form owns validity,
+// so it emits `can-save`; the header's Save button is disabled unless it's true.
+const formCanSave = ref(false);
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+
+const handleBack = () => {
+  router.push(`/org/${props.orgid}/domains/${props.extid}`);
+};
+
+// Unsaved changes guard
+useUnsavedRouteGuard(hasUnsavedChanges);
+
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
+
+onMounted(async () => {
+  await initializeDomain();
+
+  // Initialize email config if entitlement is already available
+  if (hasEntitlement.value) {
+    await initializeEmailConfig(emailDefaults.value);
+  }
+});
+
+// Handle race condition: organizations may load after onMounted runs.
+// Watch for entitlement to become true and initialize if needed.
+watch(hasEntitlement, async (entitled) => {
+  if (entitled && !isInitialized.value) {
+    await initializeEmailConfig(emailDefaults.value);
+  }
+});
+</script>
+
+<template>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Header Section. Back folded into the header row (opt-in affordance),
+         so there's no separate Back row above it. -->
+    <div class="sticky top-0 z-30">
+      <DomainHeader
+        :domain="customDomainRecord"
+        :has-unsaved-changes="hasUnsavedChanges"
+        :orgid="props.orgid"
+        external-path="/"
+        back-visible
+        :save-visible="hasEntitlement && isInitialized"
+        :save-disabled="!formCanSave"
+        :save-loading="isSaving"
+        @back="handleBack"
+        @save="saveConfig" />
+    </div>
+
+    <!-- Content -->
+    <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <!-- Loading State -->
+      <SettingsSkeleton v-if="domainLoading" />
+
+      <!-- Error State -->
+      <div v-else-if="domainError" class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+        <BasicFormAlerts :error="domainError.message" />
+      </div>
+
+      <!-- Access Denied / Upgrade Banner -->
+      <div
+        v-else-if="!hasEntitlement"
+        class="rounded-lg border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
+        <OIcon
+          collection="heroicons"
+          name="lock-closed"
+          class="mx-auto size-12 text-gray-400"
+          aria-hidden="true" />
+        <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+          {{ t('web.domains.email.access_denied') }}
+        </h3>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          {{ t('web.domains.email.upgrade_to_configure') }}
+        </p>
+        <RouterLink
+          :to="billingRoute"
+          class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300">
+          {{ t('web.billing.overview.view_plans_action') }}
+          <OIcon
+            collection="heroicons"
+            name="arrow-right"
+            class="size-4"
+            aria-hidden="true" />
+        </RouterLink>
+      </div>
+
+      <!-- Main Content (entitled users) -->
+      <template v-else>
+        <!-- Card wrapper -->
+        <div class="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+          <!-- Card header -->
+          <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+            <div class="flex items-center gap-3">
+              <div class="flex size-10 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-900/30">
+                <OIcon
+                  collection="heroicons"
+                  name="envelope"
+                  class="size-5 text-brand-600 dark:text-brand-400"
+                  aria-hidden="true" />
+              </div>
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  {{ t('web.domains.email.title') }}
+                </h2>
+                <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                  {{ t('web.domains.email.config_description') }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-8 p-6">
+            <!-- Email config loading -->
+            <SettingsSkeleton
+              v-if="emailLoading && !isInitialized"
+              :heading="false" />
+
+            <template v-else>
+              <!-- Email Configuration Form -->
+              <DomainEmailConfigForm
+                :form-state="formState"
+                :is-configured="isConfigured"
+                :is-saving="isSaving"
+                :is-deleting="isDeleting"
+                :is-testing="isTesting"
+                :has-unsaved-changes="hasUnsavedChanges"
+                :provider="emailConfig?.provider"
+                :test-result="testResult"
+                :test-error="testError"
+                :error="emailError?.message"
+                :display-domain="displayDomain"
+                :flexible-from-domain="hasFlexibleFromDomain"
+                @update:form-state="handleFormStateUpdate"
+                @save="saveConfig"
+                @discard="discardChanges"
+                @delete="deleteConfig"
+                @test="sendTestEmail"
+                @can-save="formCanSave = $event" />
+
+              <!-- DNS Records Section (shown when config exists) -->
+              <DomainEmailDnsRecords
+                v-if="isConfigured"
+                :dns-records="dnsRecords"
+                :validation-status="validationStatus"
+                :last-validated-at="lastValidatedAt"
+                :dns-check-completed-at="dnsCheckCompletedAt"
+                :provider-check-completed-at="providerCheckCompletedAt"
+                :last-error="lastError"
+                :is-validating="isValidating"
+                @validate="validateDomain" />
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</template>

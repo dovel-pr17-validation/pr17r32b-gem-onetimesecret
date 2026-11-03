@@ -1,0 +1,345 @@
+# apps/web/billing/lib/checkout_target_resolver.rb
+#
+# frozen_string_literal: true
+
+require_relative '../../auth/operations/ensure_default_workspace'
+
+module Billing
+  # Resolves the organization a completed checkout belongs to.
+  #
+  # The resolution order lives here so every completion path uses the same
+  # target-selection policy.
+  #
+  # This module answers "which existing organization is this checkout for" and
+  # returns nil when none resolves; callers own their creation policy.
+  module CheckoutTargetResolver
+    extend self
+
+    # Resolve the target organization from an already-authorized checkout.
+    #
+    # Priority:
+    # 1. orgid from subscription metadata (explicit org that initiated checkout)
+    # 2. Org already linked to this Stripe customer (idempotent replay)
+    # 3. Customer's own, live org (legacy/fallback — ownership required)
+    #
+    # AUTHORIZATION, and why it applies at step 3 only:
+    #
+    # Step 1 needs no ownership check: it uses the checkout's explicit target.
+    # Re-deriving authority after payment would be weaker, not stronger, because
+    # roles may have changed.
+    #
+    # Step 2 is not an ownership question: it recovers the organization already
+    # bound to the session's Stripe customer. Requiring ownership would abandon
+    # that target and mint a duplicate on replay.
+    #
+    # Step 3 IS an ownership question, and the only one. It infers a target
+    # from memberships, which can include organizations the customer does not
+    # own. Without the filter, a legacy checkout can overwrite another
+    # organization's Stripe customer.
+    #
+    # ARCHIVED STATUS is a separate axis from authorization, and the two
+    # steps that consult it disagree on purpose:
+    #
+    # Step 1 REJECTS archived. Archiving can happen between checkout-session
+    # creation and payment completion (a tenant SSO event archives the
+    # personal workspace), so the explicit target may no longer be a live
+    # billing target by the time we get here. This does not weaken the
+    # rationale above: the caller who started checkout WAS authorized then,
+    # and we still do not re-derive their authority — an archived
+    # organization simply is not somewhere a paid subscription can land.
+    # Falling through to step 2 / step 3 / the caller's create gives the
+    # customer a usable workspace instead of a dead one.
+    #
+    # Step 2 does NOT reject archived, deliberately. It recovers a PRIOR
+    # BINDING rather than inferring a target, and stripe_customer_id is a
+    # unique index: an archived organization still holds its claim. Returning
+    # nil there would fall through to a create that takes the same claim,
+    # which raises Familia::RecordExistsError and lands back on the very same
+    # archived organization via {.adopt_claimed_workspace} — a loud failure
+    # or a loop, plus a risk of duplicate workspaces, in place of a
+    # recoverable state. It is logged at warn instead: an archived
+    # organization holding a live Stripe binding is an operator-visible
+    # anomaly, not something this resolver can fix.
+    #
+    # Step 3 also rejects archived: archived organizations are not live
+    # billing targets.
+    #
+    # @param customer [Onetime::Customer] customer named by the subscription
+    # @param metadata [Stripe::StripeObject, Hash] subscription metadata
+    # @param stripe_customer_id [String, nil] the session's Stripe customer
+    # @param logger [#info, #warn] billing logger
+    # @param label [String] log prefix identifying the calling surface
+    # @return [Onetime::Organization, nil] nil when nothing resolves — the
+    #   caller decides what to create (their step 4)
+    def resolve(customer:, metadata:, stripe_customer_id:, logger:, label:)
+      from_metadata(metadata, logger, label) ||
+        from_stripe_customer(stripe_customer_id, logger, label) ||
+        from_owned_orgs(customer, logger, label)
+    end
+
+    # The customer's live organizations that they own, in membership order.
+    #
+    # Ownership is the ACTIVE 'owner' membership row (Organization#owner?),
+    # the sole authority per ADR-012; the deprecated owner_id field is
+    # deliberately not consulted. When the two disagree there is no way to
+    # know which is right, so this predicate takes the recoverable branch:
+    # fall through to the caller's create path (a spurious workspace) rather
+    # than resolve to an org the customer may no longer own.
+    #
+    # @param customer [Onetime::Customer]
+    # @return [Array<Onetime::Organization>]
+    def owned_live_orgs(customer)
+      Onetime::Application::OrganizationLoader.owned_organizations(customer)
+    end
+
+    # Create the organization a checkout's subscription will land on.
+    #
+    # contact_email is a unique index and an archived organization still
+    # holds its reservation — precisely the caller who gets here, since their
+    # own orgs are archived (@see try/unit/models/organization/race_condition_try.rb).
+    # Retry without a contact_email rather than raise: it is not the billing
+    # address of record — billing_email / stripe_customer_id are, and
+    # update_from_stripe_subscription sets those moments later.
+    #
+    # The workspace is born holding the stripe_customer_id claim so two
+    # surfaces completing the SAME checkout cannot both create one; see
+    # {.adopt_claimed_workspace} and the "concurrent completion" examples in
+    # apps/web/billing/spec/lib/checkout_target_resolver_spec.rb.
+    #
+    # @param customer [Onetime::Customer]
+    # @param logger [#warn] billing logger
+    # @param label [String] log prefix identifying the calling surface
+    # @param stripe_customer_id [String, nil] the checkout's Stripe customer
+    # @return [Onetime::Organization]
+    def create_billing_workspace(customer, logger:, label:, stripe_customer_id: nil)
+      begin
+        new_workspace(customer, customer.email, stripe_customer_id)
+      rescue Onetime::OrganizationExists
+        logger.warn "#{label} contact_email already reserved, creating workspace without one",
+          { customer_extid: customer.extid }
+        new_workspace(customer, nil, stripe_customer_id)
+      end
+    rescue Familia::RecordExistsError => ex
+      adopt_claimed_workspace(ex, logger: logger, label: label)
+    end
+
+    # Create the workspace a completed checkout lands on, when {.resolve}
+    # found no existing target.
+    #
+    # This is step 4 for BOTH completion surfaces — the
+    # checkout.session.completed webhook and the browser redirect. They used
+    # to disagree: the webhook ran Auth::Operations::EnsureDefaultWorkspace
+    # first and the redirect went straight to {.create_billing_workspace}, so
+    # the same checkout produced a differently-named workspace and a different
+    # federation outcome depending on which surface won the race (#4212).
+    #
+    # Two creates, in this order, because they fail on opposite inputs:
+    #
+    # 1. EnsureDefaultWorkspace, the canonical create — orphan adoption,
+    #    is_default, the whole signup policy. It returns nil when the customer
+    #    already has ANY organization, archived ones included.
+    # 2. {.create_billing_workspace} for exactly that nil: the caller who
+    #    reaches step 4 with archived orgs has a paid subscription and nowhere
+    #    live to put it. Without this fallback it is dropped on the floor.
+    #
+    # The federated-subscription claim is declined (see the
+    # claim_pending_federation: kwarg): this caller is holding a paid LOCAL
+    # subscription it applies moments later, so consuming the customer's
+    # cross-region pending record here would destroy it to deliver a benefit
+    # they already have.
+    #
+    # @param customer [Onetime::Customer]
+    # @param logger [#info, #warn] billing logger
+    # @param label [String] log prefix identifying the calling surface
+    # @param stripe_customer_id [String, nil] the checkout's Stripe customer
+    # @return [Onetime::Organization]
+    def create_checkout_workspace(customer, logger:, label:, stripe_customer_id: nil)
+      org = canonical_workspace(customer, stripe_customer_id, logger, label)
+      return org if org
+
+      create_billing_workspace(
+        customer,
+        logger: logger,
+        label: label,
+        stripe_customer_id: stripe_customer_id,
+      )
+    rescue Familia::RecordExistsError => ex
+      # Lost the stripe_customer_id claim inside EnsureDefaultWorkspace
+      # (create_billing_workspace adopts on its own).
+      adopt_claimed_workspace(ex, logger: logger, label: label)
+    end
+
+    # Adopt the workspace that won the stripe_customer_id claim.
+    #
+    # The checkout's Stripe customer is the only identifier both completion
+    # surfaces hold BEFORE either of them writes, and its unique index claim
+    # is a server-side CAS — so it elects one creator without a lock. Losing
+    # the claim means the other surface already created this checkout's
+    # workspace: adopt it rather than mint a duplicate.
+    #
+    # @param error [Familia::RecordExistsError] raised by the losing create
+    # @param logger [#warn] billing logger
+    # @param label [String] log prefix identifying the calling surface
+    # @return [Onetime::Organization]
+    # @raise [Onetime::Problem] when the winner cannot be loaded — the caller
+    #   must fail loudly (and, on the webhook, be retried) rather than fall
+    #   through to a second create.
+    def adopt_claimed_workspace(error, logger:, label:)
+      winner = error.existing_id && Onetime::Organization.load(error.existing_id)
+      unless winner
+        raise Onetime::Problem,
+          "#{label} lost the stripe_customer_id claim to #{error.existing_id.inspect}, which could not be loaded"
+      end
+
+      logger.warn "#{label} adopting workspace created concurrently for this checkout",
+        { orgid: winner.objid, extid: winner.extid }
+      winner
+    end
+
+    private
+
+    # The canonical create, plus the half of the concurrent-creation race the
+    # stripe_customer_id CAS does NOT elect.
+    #
+    # Organization.create! reserves contact_email with HSETNX *before* the save
+    # that takes the stripe_customer_id claim, so when the two completion
+    # surfaces create for the same customer at the same moment, the loser
+    # raises Onetime::OrganizationExists — not Familia::RecordExistsError.
+    # EnsureDefaultWorkspace converts the reservation failure into that error
+    # and re-raises it whenever the reserving org already has members, which is
+    # the normal outcome. Unrescued it is a 500 on the webhook; Stripe's retry
+    # recovers, so the symptom is noise rather than a lost subscription.
+    #
+    # @return [Onetime::Organization, nil] nil falls through to the
+    #   billing-workspace create, which survives a reserved contact_email by
+    #   creating without one.
+    def canonical_workspace(customer, stripe_customer_id, logger, label)
+      result = Auth::Operations::EnsureDefaultWorkspace.new(
+        customer: customer,
+        stripe_customer_id: stripe_customer_id,
+        claim_pending_federation: false,
+      ).call
+      result&.dig(:organization)
+    rescue Onetime::OrganizationExists
+      adopt_email_reserved_workspace(customer, stripe_customer_id, logger, label)
+    end
+
+    # Re-resolve the organization that took the contact_email reservation.
+    #
+    # Two lookups, in this order, because the winner can hold either claim:
+    #
+    # 1. stripe_customer_id. {.resolve} already looked there and found nothing,
+    #    so a hit now means the concurrent creator saved in the window between
+    #    that read and our reservation failure. That org IS this checkout's
+    #    workspace.
+    # 2. contact_email. A winner that carries no Stripe customer (a plain
+    #    signup completing concurrently) is reachable only this way; lookup 1
+    #    would refuse forever.
+    #
+    # The email lookup is ownership-checked and lookup 1 is not, for the reason
+    # given at the step 2 / step 3 split above: the Stripe binding is this
+    # checkout's own identifier, while contact_email is a global reservation
+    # any organization may hold, so adopting on it alone would let an unrelated
+    # org capture a paid subscription.
+    #
+    # nil is a legitimate answer (the reservation belongs to an org this
+    # customer does not own) and is NOT a loop: the caller then creates a
+    # workspace with no contact_email at all.
+    #
+    # @return [Onetime::Organization, nil]
+    def adopt_email_reserved_workspace(customer, stripe_customer_id, logger, label)
+      if stripe_customer_id.is_a?(String) && stripe_customer_id.start_with?('cus_')
+        claimed = Onetime::Organization.find_by_stripe_customer_id(stripe_customer_id)
+        if claimed
+          logger.warn "#{label} adopting workspace created concurrently for this checkout",
+            { orgid: claimed.objid, extid: claimed.extid }
+          return claimed
+        end
+      end
+
+      reserving = Onetime::Organization.find_by_contact_email(customer.email)
+      if reserving&.owner?(customer)
+        logger.warn "#{label} adopting the customer's org holding their contact_email reservation",
+          { orgid: reserving.objid, extid: reserving.extid }
+        return reserving
+      end
+
+      logger.warn "#{label} contact_email is reserved by an org this customer does not own; " \
+                  'the billing workspace will be created without a contact_email',
+        { customer_extid: customer.extid, orgid: reserving&.objid }
+      nil
+    end
+
+    # Step 1. The explicit target, rejected when it is no longer live — the
+    # org can be archived between checkout-session creation and completion.
+    def from_metadata(metadata, logger, label)
+      orgid = metadata['orgid']
+      return nil unless orgid
+
+      org = Onetime::Organization.load(orgid)
+      unless org
+        logger.warn "#{label} orgid in metadata not found", { orgid: orgid }
+        return nil
+      end
+
+      if org.archived?
+        logger.warn "#{label} orgid in metadata is archived, not a billing target",
+          { orgid: orgid, extid: org.extid }
+        return nil
+      end
+
+      logger.info "#{label} Found org from subscription metadata",
+        { orgid: orgid, extid: org.extid }
+      org
+    end
+
+    # Step 2. The prior binding. Archived orgs are returned here on purpose
+    # (see the ARCHIVED STATUS note above) and logged as the anomaly they are.
+    def from_stripe_customer(stripe_customer_id, logger, label)
+      return nil unless stripe_customer_id.is_a?(String)
+      return nil unless stripe_customer_id.start_with?('cus_')
+
+      org = Onetime::Organization.find_by_stripe_customer_id(stripe_customer_id)
+      return nil unless org
+
+      if org.archived?
+        logger.warn "#{label} stripe_customer_id is bound to an archived org (still the target)",
+          { stripe_customer_id: stripe_customer_id, orgid: org.objid, extid: org.extid }
+      end
+
+      logger.info "#{label} Found org by stripe_customer_id",
+        { stripe_customer_id: stripe_customer_id, extid: org.extid }
+      org
+    end
+
+    # Prefer the explicit default, then the default-marked organization, then
+    # any owned live organization.
+    def from_owned_orgs(customer, logger, label)
+      owned = owned_live_orgs(customer)
+
+      if customer.default_org_id.to_s.length.positive?
+        explicit = owned.find { |org| org.objid == customer.default_org_id }
+        if explicit
+          logger.info "#{label} Using customer default_org_id (fallback)", { extid: explicit.extid }
+          return explicit
+        end
+      end
+
+      org = owned.find(&:is_default) || owned.first
+      return nil unless org
+
+      logger.info "#{label} Using customer default org (fallback)", { extid: org.extid }
+      org
+    end
+
+    def new_workspace(customer, contact_email, stripe_customer_id)
+      Onetime::Organization.create!(
+        "#{customer.email}'s Workspace",
+        customer,
+        contact_email,
+        is_default: true,
+        **Onetime::Organization.stripe_claim_fields(stripe_customer_id),
+      )
+    end
+  end
+end

@@ -1,0 +1,165 @@
+// src/schemas/errors/classifier.ts
+
+import { NavigationFailure, NavigationFailureType } from 'vue-router';
+import { ZodError } from 'zod';
+
+import { HTTP_STATUS_CODES } from './constants';
+import { errorGuards } from './guards';
+import type { ApplicationError, ErrorType, ErrorSeverity, HttpErrorLike } from './types';
+import { wrapError } from './wrapper';
+
+/**
+ * Classifies errors into application-specific categories based on their properties.
+ *
+ * Error Type Classification:
+ * - Security: Status codes in SECURITY_STATUS_CODES (auth/rate-limit issues)
+ * - Human: Status codes in HUMAN_STATUS_CODES (user-facing resource issues)
+ * - Technical: System errors and unclassified status codes
+ *
+ * @param error - The error to classify
+ * @returns ApplicationError with appropriate type and severity
+ */
+export const errorClassifier = {
+  classify(error: unknown): ApplicationError {
+    if (errorGuards.isApplicationError(error)) return error;
+
+    if (errorGuards.isHttpError(error)) {
+      return this.classifyHttp(error);
+    }
+
+    if (errorGuards.isRouterError(error)) {
+      return this.classifyRouter(error);
+    }
+
+    if (errorGuards.isValidationError(error)) {
+      return this.classifyValidation(error);
+    }
+
+    return wrapError(
+      error instanceof Error ? error.message : String(error),
+      'technical',
+      'error',
+      error instanceof Error ? error : null
+    );
+  },
+
+  classifyHttp(error: HttpErrorLike): ApplicationError {
+    if (!error.response) {
+      return wrapError(
+        error.message || 'Network Error',
+        'technical',
+        'error',
+        error as Error,
+        error.status
+      );
+    }
+
+    const status = error.status || error.response?.status;
+    const rawDetails = error.response?.data || {};
+    const details =
+      typeof rawDetails === 'object' && rawDetails !== null ? rawDetails : { raw: rawDetails };
+    const userMessage = this.extractUserMessage(details, error);
+    const type = this.determineHttpErrorType(status, details);
+
+    return wrapError(userMessage, type, 'error', error as Error, status, details);
+  },
+
+  extractUserMessage(details: any, error: HttpErrorLike): string {
+    // API responses put the user-facing message in 'error' field
+    // Example: { "error": "Please enter a domain", "error_type": "FormError" }
+    return details.error || error.message || 'HTTP Error';
+  },
+
+  determineHttpErrorType(status: number | undefined, details: any): ErrorType {
+    if (!status) return 'technical';
+
+    // If backend provides field-level errors, it's always a human error (form validation)
+    if (details['field-error']) {
+      return 'human';
+    }
+
+    // Heuristic: If backend sends a user-friendly message for a client error (4xx),
+    // it's signaling that this error is user-actionable. This applies even to
+    // security status codes (401, 403, 429) when the backend provides a clear message.
+    //
+    // Examples:
+    // - 403 with "Guest API access is disabled" -> human (show message)
+    // - 403 with no message -> security (show generic)
+    // - 401 with "Invalid credentials" -> human (show message)
+    // - 429 with "Too many requests" -> human (show message)
+    const hasUserMessage = Boolean(details.error);
+    const isClientError = status >= 400 && status < 500;
+
+    if (hasUserMessage && isClientError) {
+      // Backend is signaling this error is user-actionable by providing a message
+      return 'human';
+    }
+
+    // For security status codes without user messages, classify as security
+    // This ensures silent auth failures don't leak information
+    if (HTTP_STATUS_CODES.SECURITY.has(status)) {
+      return 'security';
+    }
+
+    // Fall back to status-based classification
+    return this.getTypeFromStatus(status);
+  },
+
+  classifyRouter(error: NavigationFailure): ApplicationError {
+    return wrapError(
+      error.message || 'Navigation Error',
+      'human',
+      'error',
+      error,
+      NavigationFailureType[error.type] || 'NAVIGATION_ERROR'
+    );
+  },
+
+  classifyValidation(error: ZodError): ApplicationError {
+    // Get a developer-friendly message from the ZodError
+    const formattedMessage = this.formatZodError(error);
+
+    // Zod validation errors are technical issues (API/schema mismatch),
+    // not user-caused errors. They should be logged for debugging.
+    return wrapError(formattedMessage, 'technical', 'error', error);
+  },
+
+  formatZodError(error: ZodError): string {
+    if (!error.issues || error.issues.length === 0) {
+      return 'Validation Error';
+    }
+
+    // Get the first error message
+    const firstError = error.issues[0];
+
+    if (firstError.code === 'invalid_type') {
+      // Format the invalid_type error nicely
+      const expected = (firstError as any).expected;
+      const received = (firstError as any).received;
+      return `Invalid data received. Expected ${expected} but got ${received}.`;
+    }
+
+    // Default to the error message
+    return firstError.message || 'Validation Error';
+  },
+
+  getTypeFromStatus(status: number): ErrorType {
+    if (HTTP_STATUS_CODES.SECURITY.has(status)) return 'security';
+    if (HTTP_STATUS_CODES.HUMAN.has(status)) return 'human';
+    return 'technical';
+  },
+};
+
+// Convenience function for external use
+export function classifyError(error: unknown): ApplicationError {
+  return errorClassifier.classify(error as Error);
+}
+
+export function createError(
+  message: string,
+  type: ErrorType,
+  severity: ErrorSeverity = 'error',
+  details?: Record<string, unknown>
+): ApplicationError {
+  return wrapError(message, type, severity, null, null, details);
+}

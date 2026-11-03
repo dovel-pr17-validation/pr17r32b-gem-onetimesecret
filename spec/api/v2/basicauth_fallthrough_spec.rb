@@ -1,0 +1,367 @@
+# spec/api/v2/basicauth_fallthrough_spec.rb
+#
+# frozen_string_literal: true
+
+# =============================================================================
+# TEST TYPE: Integration (Rack-level, real Otto strategy chain)
+# =============================================================================
+#
+# Regression guard for the silent anonymous fallback
+# (docs/security/audits/2026-07-29-api.md item 1).
+#
+# V2 secrets routes declare auth=basicauth,noauth and Otto's RouteAuthWrapper
+# treats the list as OR logic. Before the fix, a request presenting INVALID
+# Basic credentials (wrong key, unknown username, UUIDv7 owner_id used as
+# username, wrong scheme) fell through to NoAuthStrategy and succeeded as
+# anonymous — a silent 200 with null owner instead of a 401.
+#
+# Fixed behavior (fail closed):
+#   1. Authorization header present + credentialed strategy rejects it -> 401
+#   2. No Authorization header -> anonymous path unchanged
+#   3. Valid credentials -> authenticated, unchanged
+#
+# Control case: GET /api/v2/receipt/recent is basicauth-ONLY (no noauth) and
+# must keep 401ing on bad or missing credentials exactly as before.
+#
+# RUN:
+#   bundle exec rspec spec/api/v2/basicauth_fallthrough_spec.rb
+#
+# Requires Valkey on port 2163 (pnpm run test:database:start).
+#
+# =============================================================================
+
+require_relative '../../spec_helper'
+require_relative '../../integration/integration_spec_helper'
+require 'json'
+require 'base64'
+require 'securerandom'
+
+RSpec.describe 'API v2 Basic auth anonymous fallthrough (fail closed)', type: :integration do
+  include Rack::Test::Methods
+
+  def app
+    @app ||= Onetime::Application::Registry.generate_rack_url_map
+  end
+
+  before(:all) do
+    require 'onetime'
+    Onetime.boot! :test
+    # Populate V1/V2/V3 mount mappings; without this Rack::URLMap has no
+    # /api/v2 entry and every request 404s at the map level, masking the
+    # auth behavior under test.
+    Onetime::Application::Registry.prepare_application_registry
+  end
+
+  def basic_header(username, password)
+    "Basic #{Base64.strict_encode64("#{username}:#{password}")}"
+  end
+
+  def json_get(path, authorization: nil)
+    header 'Content-Type', nil
+    header 'Accept', 'application/json'
+    header 'Authorization', authorization
+    get path
+  end
+
+  def json_post(path, body = {}, authorization: nil)
+    header 'Content-Type', 'application/json'
+    header 'Accept', 'application/json'
+    header 'Authorization', authorization
+    post path, JSON.generate(body)
+  end
+
+  # An identifier that does not resolve to a stored secret. Anonymous callers
+  # get 404 (MissingSecret) on it — which is exactly the point: reaching the
+  # logic layer at all proves the request was allowed through as anonymous.
+  let(:unknown_secret_path) { "/api/v2/secret/nosuchsecret#{SecureRandom.hex(8)}" }
+
+  # ---------------------------------------------------------------------------
+  # 1. Invalid presented credentials on a basicauth,noauth route -> 401
+  # ---------------------------------------------------------------------------
+  describe 'GET /api/v2/secret/:identifier (auth=basicauth,noauth) with bad credentials' do
+    it 'returns 401 for an unknown username (no anonymous fallthrough)' do
+      json_get unknown_secret_path,
+        authorization: basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      expect(last_response.status).to eq(401)
+    end
+
+    it 'returns 401 for a UUIDv7 used as the Basic username (real-world trigger)' do
+      # The incident that surfaced this: a customer used a UUIDv7 owner_id as
+      # the Basic username. Only customer extid or email resolve, so auth
+      # failed — and the request previously proceeded as anonymous with 200s.
+      json_get unknown_secret_path,
+        authorization: basic_header('0190b6f0-7d1a-7c3e-8f4a-2b9c1d0e5a6b', 'some_api_key')
+      expect(last_response.status).to eq(401)
+    end
+
+    it 'returns 401 for an unrecognized Authorization scheme (Bearer)' do
+      json_get unknown_secret_path, authorization: 'Bearer some_token_here'
+      expect(last_response.status).to eq(401)
+    end
+
+    it 'surfaces the credential failure in the JSON error body' do
+      json_get unknown_secret_path,
+        authorization: basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      body = JSON.parse(last_response.body)
+      expect(body['message']).to include('CREDENTIALS_INVALID')
+    end
+
+    # #4469: a rejected API credential is answered in the `credential` scope,
+    # never as a statement about the customer session (#4462). The 401 body
+    # is otherwise exactly as Otto renders it: the pair is additive.
+    it 'carries the api_key_invalid code in the credential scope (not a session verdict)' do
+      json_get unknown_secret_path,
+        authorization: basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      body = JSON.parse(last_response.body)
+      expect(body.keys).to contain_exactly('error', 'message', 'timestamp', 'code', 'code_scope')
+      expect(body['error']).to eq('Authentication Required')
+      expect(body).to include('code' => 'api_key_invalid', 'code_scope' => 'credential')
+    end
+
+    # A rejected header is challenged with the scheme the client presented
+    # (RFC 9110 §15.5.2, RFC 7617); the cookie surfaces get `Session`.
+    it 'challenges a rejected API key with Basic' do
+      json_get unknown_secret_path,
+        authorization: basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      expect(last_response.headers['www-authenticate']).to eq('Basic realm="onetimesecret"')
+    end
+
+    it 'codes an unrecognized Authorization scheme the same way (no more granular than the message)' do
+      json_get unknown_secret_path, authorization: 'Bearer some_token_here'
+      body = JSON.parse(last_response.body)
+      expect(body['message']).to include('AUTH_TYPE_INVALID')
+      expect(body).to include('code' => 'api_key_invalid', 'code_scope' => 'credential')
+      expect(last_response.headers['www-authenticate']).to eq('Basic realm="onetimesecret"')
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # 1b. Valid session + rejected Authorization header -> session outranks it.
+  #     A logged-in browser that also carries a stale cached Basic credential
+  #     (or a reverse proxy forwarding its own htpasswd header) must NOT be
+  #     401'd: the credentialed strategy fails NON-terminally when a valid
+  #     session identity is present, so Otto's chain reaches NoAuthStrategy and
+  #     the session wins. Regression guard for the terminal-AuthFailure move
+  #     (the old env-marker guard refused only when the session was anonymous).
+  # ---------------------------------------------------------------------------
+  describe 'GET /api/v2/secret/:identifier with a valid session AND bad Basic credentials' do
+    let(:session_email) { "fallthrough_session_#{SecureRandom.uuid}@example.com" }
+
+    before do
+      @session_customer = Onetime::Customer.new(email: session_email)
+      @session_customer.save
+    end
+
+    after do
+      @session_customer&.delete!
+    end
+
+    it 'is not 401 — the chain falls through to the session-resolving noauth strategy' do
+      # Inject a valid authenticated session the same way the colonel session
+      # integration tryout does (pre-set env['rack.session']). The surface
+      # marker matches what DomainStrategy classifies rack-test's default host
+      # (example.org) as — canonical — so CustomerSessionEvaluator's
+      # SessionSurface.matches_request? gate resolves the identity instead of
+      # refusing on :surface_mismatch (rejected verdict = header stays terminal
+      # = the very 401 this test guards against).
+      session = {
+        'authenticated' => true,
+        'external_id' => @session_customer.extid,
+        'email' => session_email,
+        'authenticated_surface' => { 'kind' => 'canonical' },
+      }
+      header 'Accept', 'application/json'
+      header 'Authorization',
+        basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      get unknown_secret_path, {}, { 'rack.session' => session }
+      expect(last_response.status).not_to eq(401)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # 2. No Authorization header -> anonymous path unchanged
+  # ---------------------------------------------------------------------------
+  describe 'GET /api/v2/secret/:identifier without an Authorization header' do
+    it 'reaches the logic layer as anonymous (404 for unknown secret, not 401)' do
+      json_get unknown_secret_path
+      expect(last_response.status).to eq(404)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # 3. Valid credentials -> authenticated, unchanged
+  # ---------------------------------------------------------------------------
+  describe 'GET /api/v2/secret/:identifier with valid credentials' do
+    let(:test_email) { "fallthrough_spec_#{SecureRandom.uuid}@example.com" }
+    let(:test_apikey) { SecureRandom.hex(20) }
+
+    before do
+      @test_customer = Onetime::Customer.new(email: test_email)
+      @test_customer.save
+      @test_customer.apitoken = test_apikey
+      @test_customer.save
+    end
+
+    after do
+      @test_customer&.delete!
+    end
+
+    it 'is not rejected by the auth layer (no 401)' do
+      json_get unknown_secret_path, authorization: basic_header(test_email, test_apikey)
+      expect(last_response.status).not_to eq(401)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # 4. POST /secret/conceal — the route that motivated the fix. Before it,
+  #    invalid credentials fell through to anonymous and CREATED a secret whose
+  #    receipt was silently orphaned from the caller's account.
+  # ---------------------------------------------------------------------------
+  describe 'POST /api/v2/secret/conceal (auth=basicauth,noauth) with bad credentials' do
+    let(:conceal_body) { { secret: { secret: "fallthrough spec #{SecureRandom.hex(8)}", ttl: 3600 } } }
+
+    it 'returns 401 for an unknown username (no anonymous record creation)' do
+      json_post '/api/v2/secret/conceal', conceal_body,
+        authorization: basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      expect(last_response.status).to eq(401)
+    end
+
+    it 'surfaces the credential failure in the JSON error body' do
+      json_post '/api/v2/secret/conceal', conceal_body,
+        authorization: basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      body = JSON.parse(last_response.body)
+      expect(body['message']).to include('CREDENTIALS_INVALID')
+    end
+
+    context 'when the customer exists but the API token is wrong' do
+      let(:test_email) { "fallthrough_conceal_#{SecureRandom.uuid}@example.com" }
+
+      before do
+        @test_customer = Onetime::Customer.new(email: test_email)
+        @test_customer.save
+        @test_customer.apitoken = SecureRandom.hex(20)
+        @test_customer.save
+      end
+
+      after do
+        @test_customer&.delete!
+      end
+
+      it 'returns 401 (no anonymous fallthrough for a real account)' do
+        json_post '/api/v2/secret/conceal', conceal_body,
+          authorization: basic_header(test_email, 'definitely_the_wrong_token')
+        expect(last_response.status).to eq(401)
+      end
+
+      # The wrong-key and unknown-account cases share one code, as they share
+      # one message and one constant-time path (#4469).
+      it 'carries the same api_key_invalid code as an unknown account' do
+        json_post '/api/v2/secret/conceal', conceal_body,
+          authorization: basic_header(test_email, 'definitely_the_wrong_token')
+        expect(JSON.parse(last_response.body)).to include('code' => 'api_key_invalid', 'code_scope' => 'credential')
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # 5. POST /secret/conceal without credentials -> anonymous path unchanged
+  # ---------------------------------------------------------------------------
+  describe 'POST /api/v2/secret/conceal without an Authorization header' do
+    let(:conceal_body) { { secret: { secret: "fallthrough spec #{SecureRandom.hex(8)}", ttl: 3600 } } }
+
+    it 'reaches the logic layer as anonymous and creates the secret (200, not 401)' do
+      json_post '/api/v2/secret/conceal', conceal_body
+      expect(last_response.status).to eq(200)
+      body = JSON.parse(last_response.body)
+      expect(body['record']).to be_a(Hash)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # 6. POST /secret/conceal with valid credentials -> authenticated, unchanged
+  # ---------------------------------------------------------------------------
+  describe 'POST /api/v2/secret/conceal with valid credentials' do
+    let(:conceal_body) { { secret: { secret: "fallthrough spec #{SecureRandom.hex(8)}", ttl: 3600 } } }
+    let(:test_email) { "fallthrough_conceal_ok_#{SecureRandom.uuid}@example.com" }
+    let(:test_apikey) { SecureRandom.hex(20) }
+
+    before do
+      @test_customer = Onetime::Customer.new(email: test_email)
+      @test_customer.save
+      @test_customer.apitoken = test_apikey
+      @test_customer.save
+    end
+
+    after do
+      @test_customer&.delete!
+    end
+
+    it 'is not rejected by the auth layer (no 401)' do
+      json_post '/api/v2/secret/conceal', conceal_body,
+        authorization: basic_header(test_email, test_apikey)
+      expect(last_response.status).not_to eq(401)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # 7. POST /secret/generate — same auth=basicauth,noauth chain as conceal
+  # ---------------------------------------------------------------------------
+  describe 'POST /api/v2/secret/generate (auth=basicauth,noauth) with bad credentials' do
+    it 'returns 401 for an unknown username (no anonymous fallthrough)' do
+      json_post '/api/v2/secret/generate', { secret: { ttl: 3600 } },
+        authorization: basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      expect(last_response.status).to eq(401)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Control: basicauth-ONLY route keeps its pre-existing behavior
+  # ---------------------------------------------------------------------------
+  describe 'GET /api/v2/receipt/recent (auth=basicauth, no noauth)' do
+    it 'returns 401 on invalid credentials (unchanged)' do
+      json_get '/api/v2/receipt/recent',
+        authorization: basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      expect(last_response.status).to eq(401)
+    end
+
+    it 'returns 401 with no Authorization header (unchanged)' do
+      json_get '/api/v2/receipt/recent'
+      expect(last_response.status).to eq(401)
+    end
+
+    # RISK-2026-10-03-4C3C. The sessionless /api/ CSRF-token exemption
+    # (registry.rb) is only safe while a browser cannot acquire a replayable
+    # Basic credential to forge with — and a browser caches one only after a
+    # `WWW-Authenticate: Basic` response. This basicauth-only route is the one
+    # that COULD applicably challenge Basic (RFC 9110 §15.5.2), so it is where
+    # the invariant is most likely to regress: an unprompted (headerless)
+    # request must never be answered with Basic. Here it carries no challenge at
+    # all, which is also safe; the load-bearing assertion is the negative. A bad
+    # credential — a header the client chose to send — is challenged with Basic,
+    # confirming the challenge path still works.
+    it 'never challenges a headerless request with Basic (RISK-2026-10-03-4C3C)' do
+      json_get '/api/v2/receipt/recent'
+      expect(last_response.status).to eq(401)
+      expect(last_response.headers['www-authenticate']).not_to eq('Basic realm="onetimesecret"')
+
+      json_get '/api/v2/receipt/recent',
+        authorization: basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      expect(last_response.headers['www-authenticate']).to eq('Basic realm="onetimesecret"')
+    end
+
+    # No session strategy is in this chain, so nothing examined the customer
+    # session and the refusal makes no statement about it (#4462). A missing
+    # header is not a rejected credential either, so it stays uncoded; a
+    # presented one is coded in the credential scope (#4469).
+    it 'carries no code without credentials, and api_key_invalid with rejected ones' do
+      json_get '/api/v2/receipt/recent'
+      expect(JSON.parse(last_response.body).keys).to contain_exactly('error', 'message', 'timestamp')
+
+      json_get '/api/v2/receipt/recent',
+        authorization: basic_header("nobody_#{SecureRandom.uuid}@example.com", 'not_a_real_key')
+      body = JSON.parse(last_response.body)
+      expect(body.keys).to contain_exactly('error', 'message', 'timestamp', 'code', 'code_scope')
+      expect(body).to include('code' => 'api_key_invalid', 'code_scope' => 'credential')
+    end
+  end
+end

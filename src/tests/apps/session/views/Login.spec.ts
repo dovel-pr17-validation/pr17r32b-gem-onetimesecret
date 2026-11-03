@@ -1,0 +1,650 @@
+// src/tests/apps/session/views/Login.spec.ts
+
+/**
+ * Login View Tests - Auth Error Handling
+ *
+ * Tests the error display functionality when users are redirected back
+ * to the login page with an auth_error query parameter (e.g., after
+ * SSO failure or magic link expiration).
+ *
+ * Error codes map to i18n keys in locales/content/en/session-auth.json:
+ * - sso_failed -> web.login.errors.sso_failed
+ * - token_missing -> web.login.errors.token_missing
+ * - token_expired -> web.login.errors.token_expired
+ * - token_invalid -> web.login.errors.token_invalid
+ * - missing_email -> web.login.errors.missing_email
+ * - invalid_email -> web.login.errors.invalid_email
+ * - domain_not_allowed -> web.login.errors.domain_not_allowed
+ * - account_exists_link_required -> web.login.errors.account_exists_link_required
+ * - org_join_failed -> web.login.errors.org_join_failed
+ * - account_closing -> web.login.errors.account_closing
+ *
+ * Unrecognized codes fall back to the generic sso_failed message so the page
+ * never renders blank (issue #3478 — the "frozen loading screen").
+ */
+
+import Login from '@/apps/session/views/Login.vue';
+import { SIGNIN_VERIFIED_STATE_KEY } from '@/shared/constants/signin';
+import { createTestingPinia } from '@pinia/testing';
+import { createTestI18n } from '@tests/setup';
+import { flushPromises, mount, VueWrapper } from '@vue/test-utils';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { useRealRouter } from '@/tests/utils/routerSetup';
+import { nextTick } from 'vue';
+import { createMemoryHistory, createRouter, Router } from 'vue-router';
+
+// Mounts with a real router; see useRealRouter.
+useRealRouter();
+
+// Mock child components to isolate Login view testing
+vi.mock('@/apps/session/components/AuthMethodSelector.vue', async () => {
+  const { defineComponent } = await import('vue');
+  return {
+    default: defineComponent({
+      name: 'AuthMethodSelector',
+      // Expose initialMode so tests can assert the password-tab default is passed.
+      props: ['locale', 'initialMode'],
+      // Declared so a test can drive the mode-takeover signal the real component
+      // emits when a magic link is issued.
+      emits: ['mode-change', 'link-sent'],
+      template:
+        '<div data-testid="auth-method-selector" :data-initial-mode="initialMode">AuthMethodSelector</div>',
+    }),
+  };
+});
+
+vi.mock('@/apps/session/components/AuthView.vue', async () => {
+  const { defineComponent } = await import('vue');
+  return {
+    default: defineComponent({
+      name: 'AuthView',
+      // Render named slots to allow testing slot content
+      template: `<div data-testid="auth-view">
+      <slot name="form" />
+      <slot name="footer" />
+      <slot />
+    </div>`,
+      props: [
+        'heading',
+        'headingId',
+        'withSubheading',
+        'hideIcon',
+        'hideBackgroundIcon',
+        'showReturnHome',
+      ],
+    }),
+  };
+});
+
+// Mock feature detection. isPasswordSignInOffered is a spy so cases can put the
+// page on a restrict_to domain where the password form is withheld.
+const { mockIsPasswordSignInOffered } = vi.hoisted(() => ({
+  mockIsPasswordSignInOffered: vi.fn(() => true),
+}));
+
+vi.mock('@/utils/features', () => ({
+  hasPasswordlessMethods: () => false,
+  isPasswordSignInOffered: mockIsPasswordSignInOffered,
+}));
+
+vi.mock('@/shared/components/icons/OIcon.vue', () => ({
+  default: {
+    name: 'OIcon',
+    template: '<span class="o-icon" :data-icon-name="name" />',
+    props: ['collection', 'name', 'size'],
+  },
+}));
+
+// Mock stores
+vi.mock('@/shared/stores/languageStore', () => ({
+  useLanguageStore: () => ({
+    currentLocale: 'en',
+  }),
+}));
+
+const i18n = createTestI18n();
+
+describe('Login.vue auth_error handling', () => {
+  let router: Router;
+  let wrapper: VueWrapper;
+
+  const createWrapper = async (
+    query: Record<string, string> = {},
+    initialState: Record<string, unknown> = {},
+    historyState: Record<string, unknown> | null = null
+  ) => {
+    router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/signin', name: 'signin', component: Login },
+        { path: '/signup', name: 'signup', component: { template: '<div />' } },
+      ],
+    });
+
+    await router.push({ path: '/signin', query });
+    await router.isReady();
+
+    // The post-verification signal arrives via browser History state (as
+    // useAuth.verifyAccount hands it over — window.history.state, never the
+    // URL). Memory history does not touch window.history, so seed it directly;
+    // the afterEach hook clears it between cases.
+    if (historyState) {
+      window.history.replaceState(historyState, '');
+    }
+
+    return mount(Login, {
+      global: {
+        plugins: [
+          router,
+          i18n,
+          createTestingPinia({
+            createSpy: vi.fn,
+            stubActions: false,
+            initialState,
+          }),
+        ],
+        stubs: {
+          teleport: true,
+        },
+      },
+    });
+  };
+
+  afterEach(() => {
+    wrapper?.unmount();
+    // window.history is shared across tests in the jsdom environment; reset the
+    // handed-over verified flag AND the address bar (the query-param cleanup
+    // cases seed it) so neither bleeds into the next case.
+    window.history.replaceState(null, '', '/');
+    mockIsPasswordSignInOffered.mockReturnValue(true);
+  });
+
+  describe('error code handling', () => {
+    it('displays SSO error when auth_error=sso_failed', async () => {
+      wrapper = await createWrapper({ auth_error: 'sso_failed' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.sso_failed');
+    });
+
+    it('displays calm cancellation copy when auth_error=sso_cancelled', async () => {
+      wrapper = await createWrapper({ auth_error: 'sso_cancelled' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.sso_cancelled');
+      // A cancel at the IdP must not render as the generic failure message.
+      expect(alert.text()).not.toContain('web.login.errors.sso_failed');
+    });
+
+    it('displays the misconfigured-provider copy when auth_error=sso_issuer_mismatch', async () => {
+      wrapper = await createWrapper({ auth_error: 'sso_issuer_mismatch' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.sso_issuer_mismatch');
+      expect(alert.text()).not.toContain('web.login.errors.sso_failed');
+    });
+
+    it('displays token expired error', async () => {
+      wrapper = await createWrapper({ auth_error: 'token_expired' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.token_expired');
+    });
+
+    it('displays token missing error', async () => {
+      wrapper = await createWrapper({ auth_error: 'token_missing' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.token_missing');
+    });
+
+    it('displays token invalid error', async () => {
+      wrapper = await createWrapper({ auth_error: 'token_invalid' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.token_invalid');
+    });
+
+    it('displays missing_email separately from malformed email and domain policy errors', async () => {
+      wrapper = await createWrapper({ auth_error: 'missing_email' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.missing_email');
+      expect(alert.text()).not.toContain('web.login.errors.invalid_email');
+      expect(alert.text()).not.toContain('web.login.errors.domain_not_allowed');
+      expect(alert.text()).not.toContain('web.login.errors.sso_failed');
+    });
+
+    it('displays domain_not_allowed for an SSO domain policy rejection', async () => {
+      wrapper = await createWrapper({ auth_error: 'domain_not_allowed' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.domain_not_allowed');
+      expect(alert.text()).not.toContain('web.login.errors.missing_email');
+      expect(alert.text()).not.toContain('web.login.errors.invalid_email');
+    });
+
+    it('displays invalid_email error from SSO (issue #3478)', async () => {
+      wrapper = await createWrapper({ auth_error: 'invalid_email' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.invalid_email');
+    });
+
+    it('displays account_exists_link_required error from SSO (#3840)', async () => {
+      wrapper = await createWrapper({ auth_error: 'account_exists_link_required' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.account_exists_link_required');
+    });
+
+    it('displays identity_connect_conflict error from SSO connect (#3840)', async () => {
+      wrapper = await createWrapper({ auth_error: 'identity_connect_conflict' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.identity_connect_conflict');
+    });
+
+    // The tenant surface refuses for a different reason than the platform one and
+    // has no self-service way out, so it must NOT collapse onto the platform copy
+    // (which points at Connected Identities) or onto the generic sso_failed
+    // fallback. See #3849 for the real fix.
+    it('displays tenant_sso_link_unavailable error from tenant SSO sign-in', async () => {
+      wrapper = await createWrapper({ auth_error: 'tenant_sso_link_unavailable' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.tenant_sso_link_unavailable');
+      expect(alert.text()).not.toContain('web.login.errors.account_exists_link_required');
+    });
+
+    it('displays identity_connect_wrong_domain error from tenant SSO connect', async () => {
+      wrapper = await createWrapper({ auth_error: 'identity_connect_wrong_domain' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.identity_connect_wrong_domain');
+      expect(alert.text()).not.toContain('web.login.errors.identity_connect_conflict');
+    });
+
+    it('displays org_join_failed error from tenant SSO', async () => {
+      wrapper = await createWrapper({ auth_error: 'org_join_failed' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.org_join_failed');
+    });
+
+    it('displays account_closing when an SSO sign-in meets an unfinished closure', async () => {
+      wrapper = await createWrapper({ auth_error: 'account_closing' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.account_closing');
+      expect(alert.text()).not.toContain('web.login.errors.sso_failed');
+    });
+
+    it('displays the unusable-config copy when auth_error=sso_config_unusable', async () => {
+      // A tenant SSO record that exists but cannot produce a login (e.g. an
+      // expired IdP certificate) must not read as "not configured".
+      wrapper = await createWrapper({ auth_error: 'sso_config_unusable' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.sso_config_unusable');
+      expect(alert.text()).not.toContain('web.login.errors.sso_not_configured');
+    });
+
+    it('displays the pending-verification copy when auth_error=sso_domain_unverified', async () => {
+      // Tenant SSO on a custom domain whose ownership is not verified yet is
+      // refused before the IdP (#4579): it is neither missing nor broken, and
+      // must not read as the generic SSO failure.
+      wrapper = await createWrapper({ auth_error: 'sso_domain_unverified' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.sso_domain_unverified');
+      expect(alert.text()).not.toContain('web.login.errors.sso_failed');
+      expect(alert.text()).not.toContain('web.login.errors.sso_not_configured');
+    });
+
+    it('displays the domain-unavailable copy when auth_error=domain_unavailable', async () => {
+      // The custom domain record for the request host could not be read
+      // (#4668): the auth backend refuses sign-in on it with one general
+      // message, which must not read as the generic SSO failure or as SSO
+      // being unconfigured.
+      wrapper = await createWrapper({ auth_error: 'domain_unavailable' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.domain_unavailable');
+      expect(alert.text()).not.toContain('web.login.errors.sso_failed');
+      expect(alert.text()).not.toContain('web.login.errors.sso_not_configured');
+    });
+
+    it('shows a generic error for unknown codes (never a blank page)', async () => {
+      // Regression guard for issue #3478: an auth_error code this bundle does
+      // not recognize (e.g. from a backend newer than the deployed frontend)
+      // must still render an error rather than a silent/frozen page.
+      wrapper = await createWrapper({ auth_error: 'unknown_error_code' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.sso_failed');
+    });
+
+    it('does not display error when no auth_error param', async () => {
+      wrapper = await createWrapper({});
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(false);
+    });
+  });
+
+  // Cleanup happens on the ADDRESS BAR only (window.history.replaceState), not
+  // through the router: App.vue keys <router-view> by $route.fullPath, so a
+  // router.replace() dropping the param would remount this view and discard the
+  // banner it just set. Assert both halves of that contract — the param is gone
+  // from window.location, its siblings survive, and the banner is still on
+  // screen. The specs use memory history, so seed the address bar explicitly.
+  describe('query param cleanup', () => {
+    const seedAddressBar = (search: string) =>
+      window.history.replaceState(window.history.state, '', `/signin${search}`);
+
+    it('removes auth_error from the address bar after displaying', async () => {
+      seedAddressBar('?auth_error=sso_failed');
+      wrapper = await createWrapper({ auth_error: 'sso_failed' });
+      await flushPromises();
+      await nextTick();
+
+      expect(new URLSearchParams(window.location.search).has('auth_error')).toBe(false);
+      // The banner must survive the strip — this is the regression the
+      // replaceState switch fixes.
+      expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+    });
+
+    it('preserves other query params when clearing auth_error', async () => {
+      seedAddressBar('?auth_error=sso_failed&redirect=%2Fdashboard');
+      wrapper = await createWrapper({
+        auth_error: 'sso_failed',
+        redirect: '/dashboard',
+      });
+      await flushPromises();
+      await nextTick();
+
+      const params = new URLSearchParams(window.location.search);
+      expect(params.has('auth_error')).toBe(false);
+      expect(params.get('redirect')).toBe('/dashboard');
+      expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+    });
+
+    it('preserves email param when clearing auth_error', async () => {
+      seedAddressBar('?auth_error=token_expired&email=user%40example.com');
+      wrapper = await createWrapper({
+        auth_error: 'token_expired',
+        email: 'user@example.com',
+      });
+      await flushPromises();
+      await nextTick();
+
+      const params = new URLSearchParams(window.location.search);
+      expect(params.has('auth_error')).toBe(false);
+      expect(params.get('email')).toBe('user@example.com');
+      expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+    });
+
+    it('leaves the router route untouched so the view is not remounted', async () => {
+      seedAddressBar('?auth_error=sso_failed');
+      wrapper = await createWrapper({ auth_error: 'sso_failed' });
+      await flushPromises();
+      await nextTick();
+
+      // A router navigation here would change fullPath and, via App.vue's
+      // keyed <router-view>, throw away the instance holding the banner.
+      expect(router.currentRoute.value.query.auth_error).toBe('sso_failed');
+    });
+  });
+
+  describe('error display styling', () => {
+    it('uses alert role for accessibility', async () => {
+      wrapper = await createWrapper({ auth_error: 'sso_failed' });
+      await flushPromises();
+
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Per-domain sign-in disable (#3415)
+  //
+  // features.signin is the resolved availability for the current domain
+  // context (AND of global AUTH_SIGNIN and the domain SigninConfig). An
+  // explicit false renders a friendly "not available" panel instead of
+  // the auth form; true or absent (older backends) renders the form.
+  // ---------------------------------------------------------------------
+
+  describe('per-domain sign-in disabled (features.signin === false)', () => {
+    const disabledState = { bootstrap: { features: { signin: false } } };
+
+    it('renders the disabled panel instead of the auth form', async () => {
+      wrapper = await createWrapper({}, disabledState);
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="signin-disabled-panel"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="auth-method-selector"]').exists()).toBe(false);
+    });
+
+    it('shows the not-available message', async () => {
+      wrapper = await createWrapper({}, disabledState);
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('web.login.signin_disabled_message');
+    });
+
+    it('switches the page heading and enables the return-home affordance', async () => {
+      wrapper = await createWrapper({}, disabledState);
+      await flushPromises();
+
+      const authView = wrapper.findComponent({ name: 'AuthView' });
+      expect(authView.props('heading')).toBe('web.login.signin_disabled_heading');
+      expect(authView.props('showReturnHome')).toBe(true);
+    });
+
+    it('hides the footer sign-in options', async () => {
+      wrapper = await createWrapper({}, disabledState);
+      await flushPromises();
+
+      expect(wrapper.find('nav[aria-label="Additional sign-in options"]').exists()).toBe(false);
+    });
+
+    it('still shows the auth_error banner on the disabled page', async () => {
+      // A failed read of the request host's custom-domain record (#4668) both
+      // redirects here with auth_error=domain_unavailable AND turns
+      // features.signin off, so the alert has to render outside the
+      // disabled-panel conditional or the visitor never sees why.
+      wrapper = await createWrapper({ auth_error: 'domain_unavailable' }, disabledState);
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="signin-disabled-panel"]').exists()).toBe(true);
+      const alert = wrapper.find('[role="alert"]');
+      expect(alert.exists()).toBe(true);
+      expect(alert.text()).toContain('web.login.errors.domain_unavailable');
+    });
+
+    it('renders the auth form when features.signin is true', async () => {
+      wrapper = await createWrapper({}, { bootstrap: { features: { signin: true } } });
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="auth-method-selector"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="signin-disabled-panel"]').exists()).toBe(false);
+
+      const authView = wrapper.findComponent({ name: 'AuthView' });
+      expect(authView.props('showReturnHome')).toBe(false);
+    });
+
+    it('renders the auth form when features.signin is absent (older backends)', async () => {
+      wrapper = await createWrapper({});
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="auth-method-selector"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="signin-disabled-panel"]').exists()).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Post-verification return (browser History state)
+  //
+  // After clicking the link in the welcome email, useAuth.verifyAccount()
+  // sends the user here with a one-shot "verified" flag in window.history
+  // .state (SIGNIN_VERIFIED_STATE_KEY), never the URL. The page shows a
+  // persistent success banner (rather than relying on the transient toast)
+  // and defaults the auth UI to the password tab so the user re-enters the
+  // password they just chose during signup.
+  // ---------------------------------------------------------------------
+
+  describe('post-verification return (history state)', () => {
+    const verifiedState = { [SIGNIN_VERIFIED_STATE_KEY]: true };
+
+    it('shows the persistent verified success banner', async () => {
+      wrapper = await createWrapper({}, {}, verifiedState);
+      await flushPromises();
+
+      const notice = wrapper.find('[data-testid="signin-verified-notice"]');
+      expect(notice.exists()).toBe(true);
+      expect(notice.text()).toContain('web.login.verified_notice');
+    });
+
+    it('defaults the auth selector to the password tab', async () => {
+      wrapper = await createWrapper({}, {}, verifiedState);
+      await flushPromises();
+
+      const selector = wrapper.find('[data-testid="auth-method-selector"]');
+      expect(selector.attributes('data-initial-mode')).toBe('password');
+    });
+
+    it('never puts verified in the URL and clears the one-shot flag after showing the banner', async () => {
+      wrapper = await createWrapper({}, {}, verifiedState);
+      await flushPromises();
+
+      // The banner shows, but the flag never enters the URL...
+      expect(wrapper.find('[data-testid="signin-verified-notice"]').exists()).toBe(true);
+      expect(router.currentRoute.value.query.verified).toBeUndefined();
+      expect(router.currentRoute.value.fullPath).toBe('/signin');
+      // ...and it is consumed once: cleared from history state so a refresh
+      // (which re-reads window.history.state) would not re-trigger it.
+      expect(
+        (window.history.state as Record<string, unknown> | null)?.[SIGNIN_VERIFIED_STATE_KEY]
+      ).toBeUndefined();
+    });
+
+    it('retires the banner once the auth section reports a magic link was sent', async () => {
+      wrapper = await createWrapper({}, {}, verifiedState);
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="signin-verified-notice"]').exists()).toBe(true);
+
+      // The auth section has replaced its form with "check your email": a
+      // past-tense "you can now sign in" above that reads as a contradiction,
+      // and no route change happens here to remount this view and clear it.
+      wrapper.findComponent({ name: 'AuthMethodSelector' }).vm.$emit('link-sent');
+      await nextTick();
+
+      expect(wrapper.find('[data-testid="signin-verified-notice"]').exists()).toBe(false);
+    });
+
+    it('does not show the banner or force a mode without the verified flag', async () => {
+      wrapper = await createWrapper({});
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="signin-verified-notice"]').exists()).toBe(false);
+      const selector = wrapper.find('[data-testid="auth-method-selector"]');
+      // No contextual override — the selector falls back to its own default.
+      expect(selector.attributes('data-initial-mode')).toBeUndefined();
+    });
+
+    it('sends no mode default where the password form is withheld', async () => {
+      // restrict_to 'email_auth' / 'webauthn': there is no password tab to land
+      // on, so a 'password' default would silently resolve to whatever tab is
+      // first. Send nothing and let the selector's own precedence decide.
+      mockIsPasswordSignInOffered.mockReturnValue(false);
+
+      wrapper = await createWrapper({}, {}, verifiedState);
+      await flushPromises();
+
+      // The banner still belongs — only the tab default is context-dependent.
+      expect(wrapper.find('[data-testid="signin-verified-notice"]').exists()).toBe(true);
+      const selector = wrapper.find('[data-testid="auth-method-selector"]');
+      expect(selector.attributes('data-initial-mode')).toBeUndefined();
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Informational notices (auth_notice query param)
+  // ---------------------------------------------------------------------
+
+  describe('auth_notice handling', () => {
+    it('shows the notice banner for a known code and strips the param', async () => {
+      wrapper = await createWrapper({ auth_notice: 'link_verification_sent' });
+      await flushPromises();
+
+      const notice = wrapper.find('[data-testid="signin-auth-notice"]');
+      expect(notice.exists()).toBe(true);
+      expect(notice.text()).toContain('web.login.notices.link_verification_sent');
+      expect(window.location.search).not.toContain('auth_notice');
+    });
+
+    it('ignores an unrecognized notice code', async () => {
+      wrapper = await createWrapper({ auth_notice: 'not_a_real_notice' });
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="signin-auth-notice"]').exists()).toBe(false);
+    });
+
+    it('retires the notice once the auth section reports a magic link was sent', async () => {
+      wrapper = await createWrapper({ auth_notice: 'link_verification_sent' });
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="signin-auth-notice"]').exists()).toBe(true);
+
+      // link_verification_sent is itself a "check your inbox" prompt: keeping it
+      // above the magic-link panel stacks two inbox instructions for two
+      // different emails.
+      wrapper.findComponent({ name: 'AuthMethodSelector' }).vm.$emit('link-sent');
+      await nextTick();
+
+      expect(wrapper.find('[data-testid="signin-auth-notice"]').exists()).toBe(false);
+    });
+  });
+});

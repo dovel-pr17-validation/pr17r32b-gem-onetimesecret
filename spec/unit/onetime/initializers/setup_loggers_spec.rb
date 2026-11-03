@@ -1,0 +1,1484 @@
+# spec/unit/onetime/initializers/setup_loggers_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+require_relative '../../../support/lane_probe'
+require 'fileutils'
+require 'json'
+require 'open3'
+require 'tmpdir'
+
+# rubocop:disable RSpec/SpecFilePathFormat
+# File name matches implementation file setup_loggers.rb
+RSpec.describe Onetime::Initializers::SetupLoggers do
+  # These tests use mocks to avoid requiring full SemanticLogger configuration
+
+  let(:instance) { described_class.new }
+
+  describe '#cleanup' do
+    context 'when SemanticLogger is defined' do
+      before do
+        stub_const('SemanticLogger', Class.new) unless defined?(SemanticLogger)
+        allow(SemanticLogger).to receive(:flush)
+      end
+
+      it 'calls SemanticLogger.flush' do
+        instance.cleanup
+        expect(SemanticLogger).to have_received(:flush)
+      end
+
+      it 'does not raise on success' do
+        expect { instance.cleanup }.not_to raise_error
+      end
+
+      context 'when flush raises an error' do
+        before do
+          allow(SemanticLogger).to receive(:flush)
+            .and_raise(StandardError.new('Flush failed'))
+        end
+
+        it 'does not raise error' do
+          expect { instance.cleanup }.not_to raise_error
+        end
+
+        it 'logs warning to stderr' do
+          expect { instance.cleanup }.to output(/SetupLoggers.*Error during cleanup.*Flush failed/).to_stderr
+        end
+
+        it 'is idempotent' do
+          expect { instance.cleanup }.not_to raise_error
+          expect { instance.cleanup }.not_to raise_error
+        end
+      end
+    end
+
+    context 'when SemanticLogger is not defined' do
+      before do
+        hide_const('SemanticLogger') if defined?(SemanticLogger)
+      end
+
+      it 'does not raise error' do
+        expect { instance.cleanup }.not_to raise_error
+      end
+
+      it 'handles gracefully' do
+        # Should complete without attempting to call undefined constant
+        instance.cleanup
+        # Test passes if no NameError is raised
+      end
+    end
+  end
+
+  describe '#reconnect' do
+    context 'when SemanticLogger is defined' do
+      before do
+        stub_const('SemanticLogger', Class.new) unless defined?(SemanticLogger)
+        allow(SemanticLogger).to receive(:reopen)
+      end
+
+      it 'calls SemanticLogger.reopen' do
+        instance.reconnect
+        expect(SemanticLogger).to have_received(:reopen)
+      end
+
+      it 'does not raise on success' do
+        expect { instance.reconnect }.not_to raise_error
+      end
+
+      context 'when reopen raises an error' do
+        before do
+          allow(SemanticLogger).to receive(:reopen)
+            .and_raise(StandardError.new('Reopen failed'))
+        end
+
+        it 'does not raise error' do
+          expect { instance.reconnect }.not_to raise_error
+        end
+
+        it 'logs warning to stderr' do
+          expect { instance.reconnect }.to output(/SetupLoggers.*Error during reconnect.*Reopen failed/).to_stderr
+        end
+
+        it 'is idempotent' do
+          expect { instance.reconnect }.not_to raise_error
+          expect { instance.reconnect }.not_to raise_error
+        end
+      end
+    end
+
+    context 'when SemanticLogger is not defined' do
+      before do
+        hide_const('SemanticLogger') if defined?(SemanticLogger)
+      end
+
+      it 'does not raise error' do
+        expect { instance.reconnect }.not_to raise_error
+      end
+
+      it 'handles gracefully' do
+        # Should complete without attempting to call undefined constant
+        instance.reconnect
+        # Test passes if no NameError is raised
+      end
+    end
+  end
+
+  # #4334 — the OPTIONAL second destination for the operator audit sink. Every
+  # ColonelAuditEvent already rides the console appender (stdout); this ships a
+  # copy to syslog for operators who want the audit stream separated from
+  # application logs. Default OFF, and never allowed to break boot.
+  describe '#configure_audit_syslog_appender' do
+    before { allow(SemanticLogger).to receive(:add_appender) }
+
+    def configure(settings)
+      instance.send(:configure_audit_syslog_appender, { 'audit' => { 'syslog' => settings } })
+    end
+
+    it 'does nothing when the config section is absent' do
+      instance.send(:configure_audit_syslog_appender, {})
+
+      expect(SemanticLogger).not_to have_received(:add_appender)
+    end
+
+    it 'is DEFAULT OFF: an unset or false enabled flag adds no appender' do
+      configure({})
+      configure('enabled' => false)
+      configure('enabled' => 'no')
+
+      expect(SemanticLogger).not_to have_received(:add_appender)
+    end
+
+    it 'adds a syslog appender FILTERED to the audit category when enabled' do
+      configure('enabled' => true, 'url' => 'tcp://loghost:514', 'level' => 'info', 'facility' => 'local3')
+
+      expect(SemanticLogger).to have_received(:add_appender).once.with(
+        hash_including(
+          appender: :syslog,
+          url: 'tcp://loghost:514',
+          level: :info,
+          facility: ::Syslog::LOG_LOCAL3,
+        ),
+      )
+    end
+
+    # A loose filter would quietly start copying unrelated categories into the
+    # operator's audit destination.
+    it 'filters on the audit category name EXACTLY' do
+      configure('enabled' => true)
+
+      expect(SemanticLogger).to have_received(:add_appender)
+        .with(hash_including(filter: /\AColonelAudit\z/))
+    end
+
+    # The appender's own level_map DEFAULT autoloads a formatter that requires
+    # the third-party syslog_protocol gem — even for local syslog. Supplying the
+    # map explicitly is what keeps the local path dependency-free.
+    it 'supplies the level map explicitly so the local path needs no extra gem' do
+      configure('enabled' => true)
+
+      expect(SemanticLogger).to have_received(:add_appender).with(
+        hash_including(level_map: hash_including(info: ::Syslog::LOG_NOTICE, error: ::Syslog::LOG_ERR)),
+      )
+    end
+
+    it 'defaults the URL to the local syslog daemon (no third-party gem)' do
+      configure('enabled' => true, 'url' => '')
+
+      expect(SemanticLogger).to have_received(:add_appender)
+        .with(hash_including(url: 'syslog://localhost'))
+    end
+
+    it 'falls back to LOG_USER for an unrecognised facility rather than raising' do
+      configure('enabled' => true, 'facility' => 'not-a-facility')
+
+      expect(SemanticLogger).to have_received(:add_appender)
+        .with(hash_including(facility: ::Syslog::LOG_USER))
+    end
+
+    it 'is idempotent: a second pass does not stack a duplicate appender' do
+      # allocate, not instance_double: the guard matches on the CLASS NAME (the
+      # constant only exists once add_appender has loaded the appender file), and
+      # a verifying double's class name is RSpec's, not the appender's.
+      allow(SemanticLogger).to receive(:appenders)
+        .and_return([SemanticLogger::Appender::Syslog.allocate])
+
+      configure('enabled' => true)
+
+      expect(SemanticLogger).not_to have_received(:add_appender)
+    end
+
+    # An optional log destination must never cost the process its boot: the
+    # audit stream still reaches stdout, so only the second copy is lost.
+    it 'warns instead of raising when the appender cannot be built' do
+      # The real shape of this: a tcp:// or udp:// URL, which ships to a REMOTE
+      # syslog server and needs the syslog_protocol gem this repo does not
+      # bundle.
+      allow(SemanticLogger).to receive(:add_appender).and_raise(LoadError, 'syslog_protocol missing')
+
+      expect { configure('enabled' => true, 'url' => 'udp://loghost:514') }
+        .to output(/SetupLoggers.*audit syslog appender not enabled.*syslog_protocol missing/).to_stderr
+    end
+  end
+
+  # The global URI scrub (Onetime::LogScrubber) is an on_log subscriber. It
+  # must be in place before the first appender, and re-running the
+  # initializer must not stack a second copy.
+  describe '#execute log scrubber registration' do
+    let(:scrubber) { Onetime::LogScrubber }
+    let(:appender_steps) { %i[configure_console_appender configure_file_appender configure_audit_syslog_appender] }
+
+    around do |example|
+      was_registered = scrubber.registered?
+      SemanticLogger::Logger.subscribers&.delete(scrubber)
+      example.run
+    ensure
+      SemanticLogger::Logger.subscribers&.delete(scrubber)
+      scrubber.register! if was_registered
+    end
+
+    before do
+      # Everything with process-wide side effects is stubbed; only the
+      # registration and the order of the steps are real.
+      allow(instance).to receive_messages(load_logging_config: {}, create_cached_loggers: {})
+      %i[configure_default_level configure_console_appender configure_file_appender
+         configure_audit_syslog_appender ensure_audit_destination!
+         apply_env_overrides configure_external_loggers].each { |step| allow(instance).to receive(step) }
+      allow(Onetime).to receive(:logging_conf=)
+      allow(Onetime::Runtime).to receive(:update_infrastructure)
+    end
+
+    it 'registers the scrubber before any appender is added' do
+      registered_at = {}
+      appender_steps.each do |step|
+        allow(instance).to receive(step) { registered_at[step] = scrubber.registered? }
+      end
+
+      instance.execute(nil)
+
+      expect(registered_at).to eq(appender_steps.to_h { |step| [step, true] })
+    end
+
+    # The same holds for a process that installs the destinations without
+    # running the initializer, as a spec helper does.
+    it 'registers the scrubber when only the destinations are installed' do
+      registered_at = {}
+      appender_steps.each do |step|
+        allow(instance).to receive(step) { registered_at[step] = scrubber.registered? }
+      end
+
+      instance.install_destinations({})
+
+      expect(registered_at).to eq(appender_steps.to_h { |step| [step, true] })
+    end
+
+    it 'registers once when the initializer runs twice' do
+      2.times { instance.execute(nil) }
+
+      expect(SemanticLogger::Logger.subscribers.count { |s| s.equal?(scrubber) }).to eq(1)
+    end
+  end
+
+  describe '#backtrace_limit' do
+    before do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('BACKTRACE_LINES').and_return(nil)
+      allow(ENV).to receive(:fetch).and_call_original
+    end
+
+    def with_rack_env(value)
+      allow(ENV).to receive(:fetch).with('RACK_ENV', 'production').and_return(value)
+    end
+
+    # Onetime.mode is the entry point (:app, :cli, :test, ...), never the
+    # environment name, so the limit has to come from RACK_ENV.
+    it 'limits backtraces to 20 lines in production, whatever the mode' do
+      with_rack_env('production')
+
+      expect(Onetime.mode).not_to eq('production')
+      expect(described_class::PRODUCTION_BACKTRACE_LINES).to eq(20)
+      expect(instance.send(:backtrace_limit)).to eq(20)
+    end
+
+    it 'is unlimited outside production' do
+      %w[development testing staging].each do |env|
+        with_rack_env(env)
+        expect(instance.send(:backtrace_limit)).to be_nil
+      end
+    end
+
+    # Onetime.env raises on these; setting up the loggers must not.
+    it 'applies the production limit under a RACK_ENV it does not recognize' do
+      ['', ' test', 'prodution'].each do |env|
+        with_rack_env(env)
+        expect(instance.send(:backtrace_limit)).to eq(20), env.inspect
+      end
+    end
+
+    it 'lets BACKTRACE_LINES override the environment default' do
+      allow(ENV).to receive(:[]).with('BACKTRACE_LINES').and_return('7')
+
+      with_rack_env('production')
+      expect(instance.send(:backtrace_limit)).to eq(7)
+
+      with_rack_env('development')
+      expect(instance.send(:backtrace_limit)).to eq(7)
+    end
+
+    # How an operator gets full backtraces back in production. A negative
+    # count would otherwise reach Array#first and raise in the formatter.
+    it 'is unlimited in production when BACKTRACE_LINES is 0 or not a positive integer' do
+      with_rack_env('production')
+
+      %w[0 -1 all].each do |value|
+        allow(ENV).to receive(:[]).with('BACKTRACE_LINES').and_return(value)
+        expect(instance.send(:backtrace_limit)).to be_nil, value
+      end
+    end
+
+    it 'treats a blank BACKTRACE_LINES as unset' do
+      allow(ENV).to receive(:[]).with('BACKTRACE_LINES').and_return('  ')
+
+      with_rack_env('production')
+      expect(instance.send(:backtrace_limit)).to eq(20)
+
+      with_rack_env('development')
+      expect(instance.send(:backtrace_limit)).to be_nil
+    end
+  end
+
+  describe '#create_cached_loggers' do
+    let(:repo_root) { File.expand_path('../../../..', __dir__) }
+
+    def configured_logger_names(relative_path)
+      yaml = ERB.new(File.read(File.join(repo_root, relative_path))).result
+      YAML.safe_load(yaml, permitted_classes: [Symbol, Date, Time], aliases: true).fetch('loggers').keys
+    end
+
+    it 'applies the configured level of every category under loggers:' do
+      config = { 'loggers' => { 'Chores' => 'info', 'CLI' => 'debug', 'SetupLoggersSpecAdHoc' => 'trace' } }
+      cache  = instance.send(:create_cached_loggers, config)
+
+      expect(cache['Chores'].level).to eq(:info)
+      expect(cache['CLI'].level).to eq(:debug)
+      expect(cache['SetupLoggersSpecAdHoc'].level).to eq(:trace)
+    end
+
+    it 'gives a defined category the config does not name the default level' do
+      cache = instance.send(:create_cached_loggers, { 'loggers' => {} })
+
+      expect(cache.keys).to match_array(described_class.logger_definitions.keys)
+      expect(cache['App'].level).to eq(SemanticLogger.default_level)
+    end
+
+    # A category the shipped configs name but the initializer does not define
+    # has no DEBUG_* flag and no entry in the lane runner's --quiet floor
+    # (spec/unit/lanes/quiet_log_floor_spec.rb pins that list to
+    # logger_definitions).
+    it 'defines every category the shipped logging configs name' do
+      %w[etc/defaults/logging.defaults.yaml spec/logging.test.yaml].each do |path|
+        expect(described_class.logger_definitions.keys).to include(*configured_logger_names(path)), path
+      end
+    end
+  end
+
+  # The production console formatter: build_formatter wraps the configured
+  # formatter in a proc that renders a copy of the event with a shortened
+  # exception backtrace.
+  describe 'production formatter output' do
+    let(:secret) { 's3cret' }
+    let(:io) { StringIO.new }
+    let(:appenders) { [] }
+
+    around do |example|
+      was_registered = Onetime::LogScrubber.registered?
+      Onetime::LogScrubber.register!
+      example.run
+    ensure
+      appenders.each { |appender| SemanticLogger.remove_appender(appender) }
+      SemanticLogger::Logger.subscribers&.delete(Onetime::LogScrubber) unless was_registered
+    end
+
+    it 'writes a scrubbed, backtrace-truncated line through the color formatter' do
+      allow(instance).to receive(:backtrace_limit).and_return(1)
+      formatter = instance.send(:build_formatter, { 'formatter' => 'color' })
+      appenders << SemanticLogger.add_appender(io: io, formatter: formatter, level: :trace, filter: /\ASetupLoggersSpec\z/)
+      ex        = begin
+        raise IOError, "down redis://u:#{secret}@db/0?password=#{secret}"
+      rescue IOError => e
+        e
+      end
+
+      SemanticLogger['SetupLoggersSpec'].tap { |l| l.level = :trace }.error("failed at https://u:#{secret}@h.example/x?t=1", exception: ex)
+      SemanticLogger.flush
+
+      expect(io.string).to include('failed at https://***@h.example/x?***', 'down redis://***@db/0?***', 'more lines)')
+      expect(io.string).not_to include(secret)
+    end
+
+    # SemanticLogger hands one Log to every appender, and the exception is
+    # the caller's: it may still be re-raised or reported to Sentry.
+    it 'truncates for its own appender only, leaving the exception and later appenders whole' do
+      allow(instance).to receive(:backtrace_limit).and_return(1)
+      full_io   = StringIO.new
+      formatter = instance.send(:build_formatter, { 'formatter' => 'default' })
+      appenders << SemanticLogger.add_appender(io: io, formatter: formatter, level: :trace, filter: /\ASetupLoggersSpec\z/)
+      appenders << SemanticLogger.add_appender(io: full_io, formatter: :default, level: :trace, filter: /\ASetupLoggersSpec\z/)
+      ex        = begin
+        raise IOError, 'down'
+      rescue IOError => e
+        e
+      end
+      backtrace = ex.backtrace.dup
+
+      SemanticLogger['SetupLoggersSpec'].tap { |l| l.level = :trace }.error('failed', exception: ex)
+      SemanticLogger.flush
+
+      expect(backtrace.size).to be > 1
+      expect(io.string).to include(backtrace.first, "... (#{backtrace.size - 1} more lines)")
+      expect(io.string).not_to include(backtrace.last)
+      expect(ex.backtrace).to eq(backtrace)
+      expect(full_io.string).to include(*backtrace)
+      expect(full_io.string).not_to include('more lines)')
+    end
+
+    # The limit backtrace_limit itself gives in production, not a stubbed one.
+    it 'prints the first 20 lines of a longer backtrace by default in production' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('BACKTRACE_LINES').and_return(nil)
+      allow(ENV).to receive(:fetch).and_call_original
+      allow(ENV).to receive(:fetch).with('RACK_ENV', 'production').and_return('production')
+      formatter = instance.send(:build_formatter, { 'formatter' => 'default' })
+      appenders << SemanticLogger.add_appender(io: io, formatter: formatter, level: :trace, filter: /\ASetupLoggersSpec\z/)
+      backtrace = Array.new(25) { |i| "/app/lib/frame_#{format('%02d', i)}.rb:1:in 'call'" }
+      ex        = IOError.new('down').tap { |e| e.set_backtrace(backtrace.dup) }
+
+      SemanticLogger['SetupLoggersSpec'].tap { |l| l.level = :trace }.error('failed', exception: ex)
+      SemanticLogger.flush
+
+      expect(io.string).to include(*backtrace.first(20), '... (5 more lines)')
+      expect(io.string).not_to include(backtrace[20])
+      expect(ex.backtrace).to eq(backtrace)
+    end
+  end
+
+  # The console and file destinations (#4683), end to end: real appenders,
+  # real formatters and filters, a real file. Every appender the process
+  # already has is set aside for the example and put back afterwards (the
+  # shared context), so each example starts from an empty appender list and
+  # leaves the suite's own logging as it found it.
+  describe 'log destinations' do
+    include_context 'with isolated log appenders'
+
+    let(:tmpdir) { Dir.mktmpdir('setup_loggers_spec') }
+    let(:log_path) { File.join(tmpdir, 'app.log') }
+    let(:console_io) { StringIO.new }
+    let(:unrelated_io) { StringIO.new }
+    let(:registry) { described_class.owned_appenders }
+    let(:secret) { 's3cret' }
+    let(:shipped_defaults) do
+      path = File.expand_path('../../../../etc/defaults/logging.defaults.yaml', __dir__)
+      YAML.safe_load(ERB.new(File.read(path)).result, permitted_classes: [Symbol, Date, Time], aliases: true)
+    end
+
+    after { FileUtils.remove_entry(tmpdir) if File.directory?(tmpdir) }
+
+    # The console device is a StringIO unless an example asks for the real one.
+    before { allow(instance).to receive(:log_device).and_return(console_io) }
+
+    def config(console: {}, file: nil, audit_syslog: false, audit_syslog_level: nil)
+      {
+        'formatter' => 'default',
+        'destinations' => {
+          'console' => console,
+          'file' => file ? { 'enabled' => true, 'path' => log_path }.merge(file) : { 'enabled' => false },
+        },
+        'audit' => { 'syslog' => { 'enabled' => audit_syslog, 'level' => audit_syslog_level }.compact },
+      }
+    end
+
+    def install(**)
+      instance.install_destinations(config(**))
+    end
+
+    # SemanticLogger[] returns a new logger each call, so the level set here
+    # is this emitter's category level and nobody else's.
+    def emitter(level = :trace, name: 'SetupLoggersSpec')
+      SemanticLogger[name].tap { |logger| logger.level = level }
+    end
+
+    def audit_emitter
+      emitter(:info, name: described_class::AUDIT_SINK_LOGGER_NAME)
+    end
+
+    def file_log(path = log_path)
+      File.read(path)
+    end
+
+    def console_log
+      console_io.string
+    end
+
+    def file_sinks
+      SemanticLogger.appenders.grep(described_class::FileSink)
+    end
+
+    def add_unrelated_appender
+      SemanticLogger.add_appender(io: unrelated_io, formatter: :default, level: :trace, filter: /\ASetupLoggersSpec\z/)
+    end
+
+    def use_real_console(cli:)
+      allow(instance).to receive(:log_device).and_call_original
+      allow(Onetime).to receive(:mode?).and_call_original
+      allow(Onetime).to receive(:mode?).with(:cli).and_return(cli)
+    end
+
+    def stub_syslog
+      require 'syslog'
+      lines = []
+      allow(Syslog).to receive(:opened?).and_return(false)
+      allow(Syslog).to receive(:open)
+      allow(Syslog).to receive(:log) { |_priority, line| lines << line }
+      lines
+    end
+
+    def raised_error
+      raise IOError, 'down'
+    rescue IOError => ex
+      ex
+    end
+
+    # What a formatter made of a line: :json, :color (ANSI escapes) or
+    # :default (plain text).
+    def shape_of(line)
+      JSON.parse(line).is_a?(Hash) ? :json : :default
+    rescue JSON::ParserError
+      line.include?("\e[") ? :color : :default
+    end
+
+    # What the real console streams received while the block ran.
+    def real_console_output(cli:)
+      use_real_console(cli: cli)
+      saved   = [$stdout, $stderr]
+      $stdout = StringIO.new
+      $stderr = StringIO.new
+      yield
+      [$stdout.string, $stderr.string]
+    ensure
+      $stdout, $stderr = saved if saved
+    end
+
+    # Every File opened on +path+ from here on, so that an example can see a
+    # sink let go of its file without reaching into the sink.
+    def files_opened_on(path)
+      opened = []
+      allow(File).to receive(:open).and_wrap_original do |original, *args, **kwargs, &block|
+        original.call(*args, **kwargs, &block).tap do |file|
+          opened << file if file.is_a?(File) && args.first.to_s == path
+        end
+      end
+      opened
+    end
+
+    describe 'the shipped defaults' do
+      # One console appender, with no threshold (a trace event is written)
+      # and the shipped formatter.
+      it 'add the one console appender on stdout in server modes, as before' do
+        stdout, stderr = real_console_output(cli: false) do
+          instance.install_destinations(shipped_defaults)
+          emitter.trace('to the console')
+        end
+
+        expect(SemanticLogger.appenders.size).to eq(1)
+        expect(stdout).to include('to the console')
+        expect(shape_of(stdout)).to eq(shipped_defaults['formatter'].to_sym)
+        expect(stderr).to be_empty
+      end
+
+      it 'add the one console appender on stderr under the CLI, as before' do
+        stdout, stderr = real_console_output(cli: true) do
+          instance.install_destinations(shipped_defaults)
+          emitter.trace('to the console')
+        end
+
+        expect(SemanticLogger.appenders.size).to eq(1)
+        expect(stderr).to include('to the console')
+        expect(shape_of(stderr)).to eq(:color)
+        expect(stdout).to be_empty
+      end
+
+      it 'leave the file destination off' do
+        expect(shipped_defaults.dig('destinations', 'file')).to include('enabled' => false, 'path' => nil)
+
+        instance.install_destinations(shipped_defaults)
+
+        expect(file_sinks).to be_empty
+        expect(registry.keys).to eq([:console])
+      end
+
+      # A path alone does not turn the destination on.
+      it 'leave a file destination with a path closed unless it is enabled' do
+        [{}, { 'enabled' => false }, { 'enabled' => nil }].each do |enabled|
+          file = { 'path' => log_path, 'level' => 'trace' }.merge(enabled)
+          instance.install_destinations(shipped_defaults.merge('destinations' => { 'console' => {}, 'file' => file }))
+
+          expect(file_sinks).to be_empty, enabled.inspect
+        end
+        emitter.error('an error')
+
+        expect(registry.keys).to eq([:console])
+        expect(File.exist?(log_path)).to be(false)
+        expect(console_log).to include('an error')
+      end
+
+      it 'behave exactly as a config without a destinations block' do
+        instance.install_destinations(shipped_defaults.except('destinations'))
+
+        expect(registry.fetch(:console).identity)
+          .to eq(instance.send(:console_destination, shipped_defaults))
+        expect(registry.keys).to eq([:console])
+      end
+    end
+
+    # The formatter selection that predates the destinations block: the
+    # top-level `formatter` in server modes, color under the CLI, and the
+    # backtrace-truncating wrapper when a limit applies.
+    # The wrapper that shortens backtraces is the console's whatever the
+    # formatter: 'writes the full backtrace to the file while the console
+    # shortens its own copy' below.
+    describe 'console formatter selection' do
+      def console_shape(settings, cli:)
+        allow(Onetime).to receive(:mode?).and_call_original
+        allow(Onetime).to receive(:mode?).with(:cli).and_return(cli)
+        instance.install_destinations(settings)
+        emitter.warn('formatter probe')
+        shape_of(console_log)
+      end
+
+      it 'uses the top-level formatter in server modes' do
+        expect(console_shape({ 'formatter' => 'json' }, cli: false)).to eq(:json)
+      end
+
+      it 'defaults to color in server modes' do
+        expect(console_shape({}, cli: false)).to eq(:color)
+      end
+
+      it 'uses color under the CLI whatever the top-level formatter says' do
+        expect(console_shape({ 'formatter' => 'json' }, cli: true)).to eq(:color)
+      end
+
+      it 'uses destinations.console.formatter in every mode when it is set' do
+        settings = { 'formatter' => 'color', 'destinations' => { 'console' => { 'formatter' => 'json' } } }
+
+        expect(console_shape(settings, cli: true)).to eq(:json)
+      end
+    end
+
+    describe 'destination thresholds' do
+      it 'writes an event its category admits to the file while the console threshold rejects it' do
+        install(console: { 'level' => 'warn' }, file: {})
+
+        emitter(:info).info('routine detail')
+        emitter(:info).warn('needs attention')
+
+        expect(file_log).to include('routine detail', 'needs attention')
+        expect(console_log).to include('needs attention')
+        expect(console_log).not_to include('routine detail')
+      end
+
+      it 'applies the file threshold independently of the console' do
+        install(file: { 'level' => 'error' })
+
+        emitter.warn('needs attention')
+        emitter.error('broke')
+
+        expect(console_log).to include('needs attention', 'broke')
+        expect(file_log).to include('broke')
+        expect(file_log).not_to include('needs attention')
+      end
+
+      it 'accepts a level in any case and with surrounding space' do
+        install(console: { 'level' => ' WARN ' })
+
+        emitter.info('routine detail')
+        emitter.warn('needs attention')
+
+        expect(console_log).to include('needs attention')
+        expect(console_log).not_to include('routine detail')
+      end
+
+      it 'writes plain text to the file unless a formatter is set' do
+        install(file: {})
+        emitter.warn('plain line')
+        install(file: { 'formatter' => 'json' })
+        emitter.warn('json line')
+
+        lines = file_log.lines
+        expect(shape_of(lines.find { |line| line.include?('plain line') })).to eq(:default)
+        expect(shape_of(lines.find { |line| line.include?('json line') })).to eq(:json)
+      end
+    end
+
+    describe 'with the console disabled and the file enabled' do
+      it 'captures an error in the file and writes nothing to the console' do
+        use_real_console(cli: false)
+
+        expect do
+          expect do
+            install(console: { 'enabled' => false }, file: {})
+            emitter.error('expected failure')
+          end.not_to output.to_stdout
+        end.not_to output.to_stderr
+
+        expect(SemanticLogger.appenders.to_a).to eq(file_sinks)
+        expect(file_log).to include('expected failure')
+      end
+
+      it 'removes a console appender an earlier run added' do
+        install(file: {})
+        install(console: { 'enabled' => false }, file: {})
+
+        emitter.error('expected failure')
+
+        expect(registry.keys).to eq([:file])
+        expect(console_log).to be_empty
+        expect(file_log).to include('expected failure')
+      end
+    end
+
+    # ColonelAudit emits at info and is the durable copy of each audit
+    # event. A destination threshold never drops it, and a configuration
+    # with nowhere to write it does not start.
+    describe 'audit events' do
+      it 'ride the console by default, as in production' do
+        use_real_console(cli: false)
+
+        expect do
+          instance.install_destinations(shipped_defaults)
+          audit_emitter.info('operator action')
+        end.to output(/ColonelAudit.*operator action/).to_stdout
+
+        expect(SemanticLogger.appenders.size).to eq(1)
+      end
+
+      it 'reach the console and the audit syslog appender, which gets nothing else' do
+        syslog_lines = stub_syslog
+        install(audit_syslog: true)
+
+        audit_emitter.info('operator action')
+        emitter.error('application error')
+
+        expect(console_log).to include('operator action', 'application error')
+        expect(syslog_lines.size).to eq(1)
+        expect(syslog_lines.first).to include('operator action')
+      end
+
+      it 'pass a console threshold above their level' do
+        install(console: { 'level' => 'error' })
+
+        audit_emitter.info('operator action')
+        emitter(:info).info('routine detail')
+
+        expect(console_log).to include('operator action')
+        expect(console_log).not_to include('routine detail')
+      end
+
+      it 'pass a file threshold above their level' do
+        install(console: { 'level' => 'fatal' }, file: { 'level' => 'fatal' })
+
+        audit_emitter.info('operator action')
+
+        expect(file_log).to include('operator action')
+        expect(console_log).to include('operator action')
+      end
+
+      it 'go to the file when the console is disabled' do
+        install(console: { 'enabled' => false }, file: { 'level' => 'error' })
+
+        audit_emitter.info('operator action')
+
+        expect(file_log).to include('operator action')
+      end
+
+      it 'go to syslog when the console and the file are both disabled' do
+        syslog_lines = stub_syslog
+        install(console: { 'enabled' => false }, audit_syslog: true)
+
+        audit_emitter.info('operator action')
+
+        expect(syslog_lines.size).to eq(1)
+        expect(syslog_lines.first).to include('operator action')
+      end
+
+      it 'refuse a configuration that leaves them no destination' do
+        expect { install(console: { 'enabled' => false }) }
+          .to raise_error(Onetime::ConfigError, /no destination for audit events/)
+      end
+
+      # The syslog appender is optional and its failure is only a warning,
+      # which is safe only while another destination exists.
+      it 'refuse a configuration whose only destination, syslog, could not be added' do
+        allow(SemanticLogger).to receive(:add_appender).and_call_original
+        allow(SemanticLogger).to receive(:add_appender)
+          .with(hash_including(appender: :syslog)).and_raise(LoadError, 'syslog_protocol missing')
+
+        expect do
+          expect { install(console: { 'enabled' => false }, audit_syslog: true) }
+            .to raise_error(Onetime::ConfigError, /no destination for audit events/)
+        end.to output(/audit syslog appender not enabled/).to_stderr
+      end
+
+      # The sink emits at info, and unlike the console and the file the
+      # syslog appender applies its level to audit events.
+      it 'refuse a configuration whose only destination, syslog, is set above their level' do
+        stub_syslog
+
+        expect { install(console: { 'enabled' => false }, audit_syslog: true, audit_syslog_level: 'error') }
+          .to raise_error(Onetime::ConfigError, /no destination for audit events/)
+      end
+
+      it 'accept a syslog appender set above their level while the console takes them' do
+        syslog_lines = stub_syslog
+        install(audit_syslog: true, audit_syslog_level: 'error')
+
+        audit_emitter.info('operator action')
+
+        expect(console_log).to include('operator action')
+        expect(syslog_lines).to be_empty
+      end
+    end
+
+    describe 'running setup again' do
+      it 'adds nothing when the settings are unchanged' do
+        unrelated = add_unrelated_appender
+        install(console: { 'level' => 'warn' }, file: {})
+        appenders = SemanticLogger.appenders.to_a
+
+        install(console: { 'level' => 'warn' }, file: {})
+        emitter.warn('once')
+
+        expect(SemanticLogger.appenders.to_a).to eq(appenders)
+        expect(appenders).to include(unrelated)
+        expect([file_log, console_log, unrelated_io.string].map { |log| log.scan('once').size }).to eq([1, 1, 1])
+      end
+
+      # Boot builds a new initializer instance each time; the record of what
+      # was added is shared by all of them.
+      it 'adds nothing when another initializer instance runs it' do
+        install(console: { 'enabled' => false }, file: {})
+        sink = registry.fetch(:file).appender
+
+        described_class.new.install_destinations(config(console: { 'enabled' => false }, file: {}))
+
+        expect(SemanticLogger.appenders.to_a).to eq([sink])
+      end
+
+      it 'closes the old file and writes to the new one when the path changes' do
+        unrelated  = add_unrelated_appender
+        other_path = File.join(tmpdir, 'other.log')
+        old_files  = files_opened_on(log_path)
+        install(file: {})
+        emitter.warn('before the change')
+
+        install(file: { 'path' => other_path })
+        emitter.warn('after the change')
+
+        expect(old_files).not_to be_empty
+        expect(old_files).to all(be_closed)
+        expect(file_sinks.map(&:file_name)).to eq([other_path])
+        expect(file_log).to include('before the change')
+        expect(file_log).not_to include('after the change')
+        expect(file_log(other_path)).to include('after the change')
+        expect(SemanticLogger.appenders.to_a).to include(unrelated)
+        expect(unrelated_io.string).to include('before the change', 'after the change')
+      end
+
+      it 'replaces the console appender when its threshold changes' do
+        unrelated = add_unrelated_appender
+        install
+        first     = registry.fetch(:console).appender
+
+        install(console: { 'level' => 'error' })
+        emitter.warn('needs attention')
+
+        expect(SemanticLogger.appenders.to_a).to contain_exactly(unrelated, registry.fetch(:console).appender)
+        expect(registry.fetch(:console).appender).not_to be(first)
+        expect(console_log).to be_empty
+        expect(unrelated_io.string).to include('needs attention')
+      end
+
+      it 'removes and closes the file sink when the file is disabled' do
+        files = files_opened_on(log_path)
+        install(file: {})
+
+        install
+        emitter.warn('console only')
+
+        expect(files).not_to be_empty
+        expect(files).to all(be_closed)
+        expect(file_sinks).to be_empty
+        expect(registry.keys).to eq([:console])
+        expect(file_log).to be_empty
+      end
+
+      it 'keeps the current file sink when the new one cannot be opened' do
+        install(file: {})
+        sink = registry.fetch(:file).appender
+
+        expect { install(file: { 'path' => File.join(tmpdir, 'missing', 'app.log') }) }
+          .to raise_error(Onetime::ConfigError)
+        emitter.warn('still captured')
+
+        expect(file_sinks).to eq([sink])
+        expect(file_log).to include('still captured')
+      end
+
+      it 'adds a fresh appender when the one it added was removed elsewhere' do
+        install(file: {})
+        SemanticLogger.appenders.to_a.each { |appender| SemanticLogger.remove_appender(appender) }
+
+        install(file: {})
+        emitter.warn('after the reset')
+
+        expect(SemanticLogger.appenders.size).to eq(2)
+        expect(file_log).to include('after the reset')
+        expect(console_log).to include('after the reset')
+      end
+
+      # A tryout's `add_appender(io: $stdout)`. SemanticLogger refuses a
+      # second console appender, so ours is not requested.
+      it 'leaves a console appender someone else added as the console' do
+        use_real_console(cli: false)
+        allow(SemanticLogger).to receive(:add_appender).and_call_original
+
+        expect do
+          foreign = SemanticLogger.add_appender(io: $stdout, formatter: :default)
+          instance.install_destinations(shipped_defaults)
+          audit_emitter.info('operator action')
+
+          expect(SemanticLogger.appenders.to_a).to eq([foreign])
+        end.to output(/operator action/).to_stdout
+
+        expect(SemanticLogger).to have_received(:add_appender).once
+        expect(registry).to be_empty
+      end
+    end
+
+    describe 'a file that cannot be opened' do
+      it 'raises at setup, naming the path, when the directory is missing' do
+        path = File.join(tmpdir, 'missing', 'app.log')
+
+        expect { install(file: { 'path' => path }) }
+          .to raise_error(Onetime::ConfigError, /#{Regexp.escape(path)}/)
+        expect(file_sinks).to be_empty
+        expect(registry.keys).to eq([:console])
+      end
+
+      it 'raises at setup when the path is a directory' do
+        expect { install(file: { 'path' => tmpdir }) }
+          .to raise_error(Onetime::ConfigError, /#{Regexp.escape(tmpdir)}/)
+        expect(file_sinks).to be_empty
+      end
+
+      it 'raises at setup when the file is enabled without a path' do
+        expect { install(file: { 'path' => ' ' }) }
+          .to raise_error(Onetime::ConfigError, /destinations\.file\.path/)
+        expect(SemanticLogger.appenders).to be_empty
+      end
+
+      it 'resolves a relative path against the application root' do
+        expect(instance.send(:file_destination, config(file: { 'path' => 'log/app.log' })))
+          .to include(path: File.join(Onetime::HOME, 'log', 'app.log'))
+      end
+
+      it 'appends to an existing file instead of truncating it' do
+        File.write(log_path, "earlier run\n")
+
+        install(file: {})
+        emitter.warn('this run')
+
+        expect(file_log).to start_with("earlier run\n")
+        expect(file_log).to include('this run')
+      end
+    end
+
+    describe 'invalid destination settings' do
+      it 'rejects an unknown level without changing any appender' do
+        install
+        appenders = SemanticLogger.appenders.to_a
+
+        expect { install(console: { 'level' => 'loud' }, file: {}) }
+          .to raise_error(Onetime::ConfigError, /destinations\.console\.level/)
+        expect(SemanticLogger.appenders.to_a).to eq(appenders)
+      end
+
+      it 'rejects an unrecognized enabled value' do
+        expect { install(file: { 'enabled' => 'maybe' }) }
+          .to raise_error(Onetime::ConfigError, /destinations\.file\.enabled/)
+      end
+
+      it 'rejects an unknown formatter' do
+        expect { install(file: { 'formatter' => 'sparkles' }) }
+          .to raise_error(Onetime::ConfigError, /destinations\.file\.formatter/)
+      end
+    end
+
+    it 'scrubs the event before it reaches the file' do
+      install(file: {})
+
+      emitter.error("failed at https://u:#{secret}@h.example/x?t=1", target: "redis://u:#{secret}@db/0")
+
+      expect(file_log).to include('failed at https://***@h.example/x?***', 'redis://***@db/0')
+      expect(file_log).not_to include(secret)
+      expect(console_log).not_to include(secret)
+    end
+
+    # One Log goes to every appender, and the exception is the caller's.
+    it 'writes the full backtrace to the file while the console shortens its own copy' do
+      allow(instance).to receive(:backtrace_limit).and_return(1)
+      install(file: {})
+      exception = raised_error
+      backtrace = exception.backtrace.dup
+
+      emitter.error('failed', exception: exception)
+
+      expect(backtrace.size).to be > 1
+      expect(console_log).to include(backtrace.first, "... (#{backtrace.size - 1} more lines)")
+      expect(console_log).not_to include(backtrace.last)
+      expect(file_log).to include(*backtrace)
+      expect(file_log).not_to include('more lines)')
+      expect(exception.backtrace).to eq(backtrace)
+    end
+
+    describe 'process lifecycle' do
+      it 'flushes the file sink on cleanup' do
+        install(file: {})
+        sink = registry.fetch(:file).appender
+        allow(sink).to receive(:flush).and_call_original
+        emitter.error('before the fork')
+
+        instance.cleanup
+
+        expect(sink).to have_received(:flush)
+        expect(file_log).to include('before the fork')
+      end
+
+      # reopen is what a forked worker calls. A rotated-away file shows that
+      # the sink really holds a new handle on its path afterwards.
+      it 'reopens the file sink on reconnect' do
+        install(file: {})
+        rotated = "#{log_path}.1"
+        emitter.error('first handle')
+        File.rename(log_path, rotated)
+
+        instance.reconnect
+        emitter.error('second handle')
+
+        expect(file_log(rotated)).to include('first handle')
+        expect(file_log).to include('second handle')
+        expect(file_log).not_to include('first handle')
+      end
+
+      it 'appends from a forked child that reconnects, alongside the parent', skip: !Process.respond_to?(:fork) do
+        install(console: { 'enabled' => false }, file: {})
+        emitter.error('parent before the fork')
+        instance.cleanup
+
+        pid = fork do
+          status = 1
+          instance.reconnect
+          emitter.error('child after the fork')
+          status = 0
+        ensure
+          exit!(status) # never run the suite's at_exit hooks in the child
+        end
+        _, status = Process.wait2(pid)
+        emitter.error('parent after the fork')
+
+        expect(status).to be_success
+        expect(file_log.lines.size).to eq(3)
+        expect(file_log).to include('parent before the fork', 'child after the fork', 'parent after the fork')
+      end
+
+      # Production logs asynchronously; this suite does not. A separate
+      # process shows that an event still queued at exit reaches the file.
+      it 'writes queued events to the file on a normal exit' do
+        script = <<~RUBY
+          require 'onetime'
+          Onetime::Initializers::SetupLoggers.install_destinations(
+            'destinations' => {
+              'console' => { 'enabled' => false },
+              'file' => { 'enabled' => true, 'path' => ARGV.fetch(0) },
+            },
+          )
+          abort 'expected asynchronous logging' if SemanticLogger.sync?
+          SemanticLogger['SetupLoggersSpec'].error('queued at exit')
+        RUBY
+
+        stdout, stderr, status = Open3.capture3(RbConfig.ruby, '-I', File.join(Onetime::HOME, 'lib'), '-e', script, log_path)
+
+        expect(status).to be_success, stderr
+        expect(file_log).to include('queued at exit')
+        expect(stdout + stderr).not_to include('queued at exit')
+      end
+    end
+
+    describe 'FileSink' do
+      it 'closes its file, and reopens it when logged to again' do
+        files = files_opened_on(log_path)
+        install(console: { 'enabled' => false }, file: {})
+        sink = registry.fetch(:file).appender
+
+        sink.close
+        sink.close
+        emitter.error('after close')
+
+        expect(files.first).to be_closed
+        expect(file_log).to include('after close')
+      end
+
+      # A write to the open file that fails. SemanticLogger rescues what an
+      # appender raises and prints one "Failed to log to appender" line per
+      # event on its internal logger, for any exception at all; the sink
+      # reports the I/O errors itself.
+      describe 'a write that fails' do
+        include LaneProbe::FailingWrites
+
+        let(:listener_calls) { [] }
+
+        def failing_sink(error)
+          install(console: { 'enabled' => false }, file: {})
+          break_file_sink(registry.fetch(:file).appender, error)
+        end
+
+        def listen
+          described_class::FileSink.write_failure_listeners << ->(file_name, error) { listener_calls << [file_name, error.class] }
+        end
+
+        it 'says so once per process on standard error, naming the file and the error' do
+          sink   = failing_sink(Errno::ENOSPC.new('probe'))
+          prefix = Regexp.escape("#{described_class::FileSink::WRITE_FAILURE_PREFIX} #{log_path}: Errno::ENOSPC: ")
+
+          expect(log_through(sink, Errno::ENOSPC)).to match(/\A#{prefix}.*probe.*\n\z/)
+          expect(log_through(sink, Errno::ENOSPC)).to be_empty
+        end
+
+        # A forked child inherits the sink, and with it the parent's record
+        # of having reported.
+        it 'says so again in another process' do
+          sink = failing_sink(Errno::ENOSPC.new('probe'))
+          log_through(sink, Errno::ENOSPC)
+
+          allow(Process).to receive(:pid).and_return(Process.pid + 1)
+
+          expect(log_through(sink, Errno::ENOSPC)).to include(log_path)
+        end
+
+        it 'calls each listener with the path and the error, for every failed write' do
+          listen
+          sink = failing_sink(IOError.new('closed stream'))
+
+          2.times { log_through(sink, IOError) }
+
+          expect(listener_calls).to eq([[log_path, IOError], [log_path, IOError]])
+        end
+
+        # Bunny raises ShutdownSignal (a StandardError) into its reader
+        # thread when a session closes, and the thread may be inside an
+        # appender at that moment. That is not a failed write.
+        it 'does not report an error that is not an I/O error' do
+          listen
+          interrupted = Class.new(StandardError)
+          sink        = failing_sink(interrupted.new('interrupted while logging'))
+
+          expect(log_through(sink, interrupted)).to be_empty
+          expect(listener_calls).to be_empty
+        end
+
+        it 'raises the write error when a listener raises' do
+          described_class::FileSink.write_failure_listeners << ->(*) { raise 'listener failed' }
+          listen
+          sink = failing_sink(Errno::EIO.new('probe'))
+
+          log_through(sink, Errno::EIO)
+
+          expect(listener_calls).to eq([[log_path, Errno::EIO]])
+        end
+
+        # The line on standard error is the best-effort half of the report.
+        # A process whose standard error is closed still has to tell its
+        # listeners: the lane runner's marker file comes from one.
+        it 'calls the listeners when standard error cannot be written to' do
+          listen
+          sink     = failing_sink(Errno::ENOSPC.new('probe'))
+          original = $stderr
+          $stderr  = StringIO.new.tap(&:close)
+
+          begin
+            expect { sink.log(failing_event) }.to raise_error(Errno::ENOSPC)
+          ensure
+            $stderr = original
+          end
+
+          expect(listener_calls).to eq([[log_path, Errno::ENOSPC]])
+        end
+
+        it 'reports nothing for a write that succeeds' do
+          listen
+          install(console: { 'enabled' => false }, file: {})
+
+          expect { emitter.error('written') }.not_to output.to_stderr
+          expect(listener_calls).to be_empty
+          expect(file_log).to include('written')
+        end
+      end
+    end
+
+    # Category levels and the default level decide which events exist;
+    # destinations only route them. The levels and the variables that set
+    # them are process-wide, so both are put back after each example. A lane
+    # run with --quiet exports LOG_LEVEL and DEBUG_LOGGERS; each example
+    # starts with neither.
+    describe 'levels' do
+      around do |example|
+        saved_default   = SemanticLogger.default_level
+        saved_backtrace = SemanticLogger.backtrace_level
+        saved_env       = ENV.to_h
+        ['LOG_LEVEL', 'DEBUG_LOGGERS', *described_class.logger_definitions.values].each { |name| ENV.delete(name) }
+        example.run
+      ensure
+        ENV.replace(saved_env)
+        SemanticLogger.default_level   = saved_default
+        SemanticLogger.backtrace_level = saved_backtrace
+      end
+
+      before { allow(Onetime).to receive(:debug?).and_return(false) }
+
+      def default_level_for(config)
+        instance.send(:configure_default_level, config)
+        SemanticLogger.default_level
+      end
+
+      def cached_loggers(config)
+        instance.send(:create_cached_loggers, config).tap { |cache| instance.send(:apply_env_overrides, cache) }
+      end
+
+      it 'default to info, then the config default_level, then LOG_LEVEL' do
+        expect(default_level_for({})).to eq(:info)
+        expect(default_level_for('default_level' => 'error')).to eq(:error)
+
+        ENV['LOG_LEVEL'] = 'debug'
+
+        expect(default_level_for('default_level' => 'error')).to eq(:debug)
+      end
+
+      it 'go to debug for a category whose DEBUG_* flag is set, and only that one' do
+        ENV['DEBUG_SEQUEL'] = '1'
+
+        levels = cached_loggers('loggers' => { 'Sequel' => 'warn', 'Auth' => 'info' }).transform_values(&:level)
+
+        expect(levels).to include('Sequel' => :debug, 'Auth' => :info)
+      end
+
+      it 'take the level DEBUG_LOGGERS names, in either separator, over the config and the flag' do
+        ENV['DEBUG_AUTH']    = '1'
+        ENV['DEBUG_LOGGERS'] = 'Auth:error, Secret=trace,Malformed,SetupLoggersSpecAdHoc:fatal'
+
+        cache = cached_loggers('loggers' => { 'Auth' => 'info', 'Secret' => 'info', 'HTTP' => 'warn' })
+
+        expect(cache.transform_values(&:level)).to include(
+          'Auth' => :error, 'Secret' => :trace, 'HTTP' => :warn, 'SetupLoggersSpecAdHoc' => :fatal
+        )
+        expect(cache.keys).not_to include('Malformed')
+      end
+
+      # install_destinations is all of the appender handling: the default
+      # level and the loggers it finds keep the levels they had, whatever
+      # thresholds the destinations set.
+      it 'are not changed by installing destinations' do
+        SemanticLogger.default_level = :warn
+        cache  = cached_loggers(shipped_defaults)
+        before = [SemanticLogger.default_level, cache.transform_values(&:level)]
+
+        install(console: { 'level' => 'fatal' }, file: { 'level' => 'trace' })
+
+        expect([SemanticLogger.default_level, cache.transform_values(&:level)]).to eq(before)
+      end
+
+      # The audit sink emits through Onetime::ColonelAuditEvent.sink_logger,
+      # whose level the model pins at info. 'audit events' above use a
+      # stand-in logger of the same name; these use the model's.
+      describe "with every level raised, audit events through the model's logger" do
+        let(:model) { Onetime::ColonelAuditEvent }
+
+        def boot(settings)
+          instance.send(:configure_default_level, settings)
+          instance.install_destinations(settings)
+          cached_loggers(settings)
+        end
+
+        def emit_audit_event
+          model.sink_logger.public_send(model::SINK_LEVEL, model::SINK_MESSAGE, { 'verb' => 'setup_loggers.spec' })
+        end
+
+        it 'still reach the console' do
+          ENV['LOG_LEVEL'] = 'fatal'
+          raised = described_class.logger_definitions.keys.to_h { |name| [name, 'fatal'] }
+          cache  = boot(config(console: { 'level' => 'fatal' }).merge('loggers' => raised))
+
+          emit_audit_event
+          cache.each_value { |logger| logger.error('category error') }
+
+          expect(console_log).to include(model::SINK_MESSAGE, 'setup_loggers.spec')
+          expect(console_log).not_to include('category error')
+        end
+
+        # DEBUG_LOGGERS sets the level on a logger of that name it creates
+        # itself; the model keeps its own.
+        it 'still reach the console when DEBUG_LOGGERS names their category at fatal' do
+          ENV['DEBUG_LOGGERS'] = "#{described_class::AUDIT_SINK_LOGGER_NAME}:fatal"
+
+          boot(config.merge('default_level' => 'fatal'))
+          emit_audit_event
+
+          expect(console_log).to include(model::SINK_MESSAGE, 'setup_loggers.spec')
+        end
+      end
+    end
+
+    # spec/logging.test.yaml turns LANES_APP_LOG_CONSOLE / LANES_APP_LOG_FILE
+    # into a `destinations` block, and ConfigResolver resolves it only when
+    # RACK_ENV is exactly `test`. Here it is copied into a throwaway
+    # application root beside the shipped defaults, with etc/logging.yaml a
+    # copy of those defaults, and both variables are set as a captured lane
+    # run sets them.
+    describe 'the lane capture variables' do
+      let(:home) { File.join(tmpdir, 'home') }
+      let(:captured) { File.join(tmpdir, 'captured.log') }
+      let(:etc_yaml) { File.join(home, 'etc', 'logging.yaml') }
+
+      around do |example|
+        saved_env = ENV.to_h
+        example.run
+      ensure
+        ENV.replace(saved_env)
+      end
+
+      before do
+        defaults = File.join(Onetime::HOME, 'etc', 'defaults', 'logging.defaults.yaml')
+        test_yaml = File.join(Onetime::HOME, 'spec', 'logging.test.yaml')
+        FileUtils.mkdir_p([File.join(home, 'etc', 'defaults'), File.join(home, 'spec')])
+        FileUtils.cp(defaults, File.join(home, 'etc', 'defaults', 'logging.defaults.yaml'))
+        FileUtils.cp(defaults, etc_yaml)
+        FileUtils.cp(test_yaml, File.join(home, 'spec', 'logging.test.yaml'))
+        stub_const('Onetime::HOME', home)
+
+        ENV['LANES_APP_LOG_CONSOLE'] = 'off'
+        ENV['LANES_APP_LOG_FILE']    = captured
+      end
+
+      def loaded_destinations
+        instance.send(:load_logging_config).fetch('destinations')
+      end
+
+      # The control: the same files turn the console off and the file on
+      # under RACK_ENV=test, so the examples below are not passing on a
+      # fixture that could never bite.
+      it 'turn the console off and the file on under RACK_ENV=test' do
+        ENV['RACK_ENV'] = 'test'
+
+        expect(loaded_destinations).to include(
+          'console' => include('enabled' => false),
+          'file' => include('enabled' => true, 'path' => captured),
+        )
+      end
+
+      # Unset, another environment, or a near miss of `test`; and with no
+      # etc/logging.yaml, where the test file must not be the fallback.
+      it 'change nothing under any other RACK_ENV' do
+        [nil, 'production', 'TEST', ' test', 'testing'].each do |value|
+          value.nil? ? ENV.delete('RACK_ENV') : ENV['RACK_ENV'] = value
+
+          expect(loaded_destinations).to eq(shipped_defaults.fetch('destinations')), "RACK_ENV=#{value.inspect}"
+        end
+
+        FileUtils.rm(etc_yaml)
+
+        expect(loaded_destinations).to eq(shipped_defaults.fetch('destinations')), 'without etc/logging.yaml'
+      end
+
+      it 'leave the console on and open no file outside a test run' do
+        ENV['RACK_ENV'] = 'production'
+
+        instance.install_destinations
+        emitter.error('an error')
+
+        expect(registry.keys).to eq([:console])
+        expect(File.exist?(captured)).to be(false)
+        expect(console_log).to include('an error')
+      end
+    end
+
+    describe '.install_destinations' do
+      it 'installs the destinations of the given config' do
+        described_class.install_destinations(config(console: { 'enabled' => false }, file: {}))
+
+        emitter.error('through the class method')
+
+        expect(registry.keys).to eq([:file])
+        expect(file_log).to include('through the class method')
+      end
+
+      it 'loads the logging config files when no config is given' do
+        initializer = described_class.new
+        allow(described_class).to receive(:new).and_return(initializer)
+        allow(initializer).to receive(:load_logging_config)
+          .and_return(config(console: { 'enabled' => false }, file: {}))
+
+        described_class.install_destinations
+
+        expect(file_sinks.map(&:file_name)).to eq([log_path])
+      end
+    end
+  end
+
+  # The audit syslog appender exactly as configure_audit_syslog_appender
+  # builds it (real appender, real default formatter, real filter), with the
+  # libc boundary stubbed: ::Syslog.open and ::Syslog.log are the only calls
+  # the appender makes for a syslog:// URL, so capturing ::Syslog.log sees
+  # the finished line without writing to the host's syslog.
+  describe 'audit syslog appender output' do
+    let(:syslog_lines) { [] }
+    let(:secret) { 's3cret' }
+
+    around do |example|
+      was_registered = Onetime::LogScrubber.registered?
+      Onetime::LogScrubber.register!
+      example.run
+    ensure
+      SemanticLogger.appenders.select { |a| a.class.name.to_s.end_with?('Appender::Syslog') }
+        .each { |appender| SemanticLogger.remove_appender(appender) }
+      SemanticLogger::Logger.subscribers&.delete(Onetime::LogScrubber) unless was_registered
+    end
+
+    before do
+      require 'syslog'
+      allow(Syslog).to receive(:opened?).and_return(false)
+      allow(Syslog).to receive(:open)
+      allow(Syslog).to receive(:log) { |_priority, line| syslog_lines << line }
+    end
+
+    it 'ships the scrubbed audit event' do
+      expect(SemanticLogger.appenders.map { |a| a.class.name.to_s }).not_to include(end_with('Appender::Syslog'))
+      instance.send(:configure_audit_syslog_appender, { 'audit' => { 'syslog' => { 'enabled' => true } } })
+
+      audit = SemanticLogger[described_class::AUDIT_SINK_LOGGER_NAME].tap { |l| l.level = :trace }
+      audit.info("operator action via https://ops:#{secret}@admin.example/run?token=#{secret}", target: "redis://u:#{secret}@db/0")
+      SemanticLogger.flush
+
+      expect(syslog_lines.size).to eq(1)
+      expect(syslog_lines.first).to include('https://***@admin.example/run?***', 'redis://***@db/0')
+      expect(syslog_lines.first).not_to include(secret)
+    end
+  end
+end

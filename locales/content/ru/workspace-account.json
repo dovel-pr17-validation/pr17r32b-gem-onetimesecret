@@ -1,0 +1,726 @@
+{
+  "web.account.settings": {
+    "text": "Настройки",
+    "source_hash": "74a883a0"
+  },
+  "web.account.change_password": {
+    "text": "Изменить пароль",
+    "source_hash": "a949f462"
+  },
+  "web.account.close_account": {
+    "text": "Закрыть аккаунт",
+    "source_hash": "e1513814"
+  },
+  "web.account.verify_account": {
+    "text": "Подтвердить аккаунт",
+    "source_hash": "2f3ea760"
+  },
+  "web.account.subscription_title": {
+    "text": "Подписка",
+    "source_hash": "4999c6c6"
+  },
+  "web.account.manage_subscription": {
+    "text": "Управление подпиской",
+    "source_hash": "cbc4ef92"
+  },
+  "web.account.customer_information": {
+    "text": "Информация о клиенте",
+    "source_hash": "8258db6d"
+  },
+  "web.account.customer_since": {
+    "text": "Клиент с:",
+    "source_hash": "0b37cff3"
+  },
+  "web.account.email": {
+    "text": "Электронная почта:",
+    "source_hash": "17507dcf"
+  },
+  "web.account.region": {
+    "text": "Регион",
+    "source_hash": "d3a008ef"
+  },
+  "web.account.account_balance": {
+    "text": "Баланс:",
+    "source_hash": "e0351221"
+  },
+  "web.account.default_payment_method": {
+    "text": "Способ оплаты по умолчанию",
+    "source_hash": "c60f014b"
+  },
+  "web.account.card_ending": {
+    "text": "оканчивается на",
+    "source_hash": "0195bccf"
+  },
+  "web.account.subscriptions_title": {
+    "text": "Подписки",
+    "source_hash": "a151f2e9"
+  },
+  "web.account.quantity": {
+    "text": "Количество:",
+    "source_hash": "d4b2cb96"
+  },
+  "web.account.next_billing_date": {
+    "text": "Следующая дата оплаты:",
+    "source_hash": "8e6f9cfe"
+  },
+  "web.account.changePassword.username": {
+    "text": "Имя пользователя",
+    "source_hash": "e3b89e9d"
+  },
+  "web.account.changePassword.currentPassword": {
+    "text": "Текущий пароль",
+    "source_hash": "8ac76099"
+  },
+  "web.account.changePassword.newPassword": {
+    "text": "Новый пароль",
+    "source_hash": "7c451e0f"
+  },
+  "web.account.changePassword.confirmPassword": {
+    "text": "Подтверждение",
+    "source_hash": "eebdd24a"
+  },
+  "web.account.changePassword.updatePassword": {
+    "text": "Обновить пароль",
+    "source_hash": "557be0da"
+  },
+  "web.account.changePassword.updating": {
+    "text": "Обновление...",
+    "source_hash": "0a4e0b71"
+  },
+  "web.account.timezone": {
+    "text": "Часовой пояс",
+    "source_hash": "4ceca1d5"
+  },
+  "web.account.customer_id": {
+    "text": "ID клиента",
+    "source_hash": "62566c64"
+  },
+  "web.account.account_id_customerid": {
+    "text": "ID аккаунта",
+    "source_hash": "919bb4cb"
+  },
+  "web.account.created_windowprops_cust_secrets_created_secrets": {
+    "text": "Создано {0} секретов с {1}.",
+    "source_hash": "8cb99810"
+  },
+  "web.account.delete_account": {
+    "text": "Удалить аккаунт",
+    "source_hash": "c031bf99"
+  },
+  "web.account.api_key": {
+    "text": "API-ключ",
+    "source_hash": "23189d55"
+  },
+  "web.account.account_type_windowprops_plan_options_name": {
+    "text": "Тип учётной записи: {0}",
+    "source_hash": "617bfe67"
+  },
+  "web.account.your_account": {
+    "text": "Ваш аккаунт",
+    "source_hash": "89e60bfb"
+  },
+  "web.account.support_details": {
+    "text": "Детали поддержки",
+    "source_hash": "cbad8751"
+  },
+  "web.account.back_to_details": {
+    "text": "Вернуться к деталям",
+    "source_hash": "f6f841b9"
+  },
+  "web.account.customer_id_cust_custid": {
+    "text": "ID клиента: {0}",
+    "source_hash": "7e2d4201"
+  },
+  "web.account.token_generated": {
+    "text": "Токен сгенерирован.",
+    "source_hash": "05986d95"
+  },
+  "web.account.keep_this_token_secure_it_provides_full_access_t": {
+    "text": "Храните этот токен в безопасности. Он может использоваться для создания секретов и управления ими через API.",
+    "source_hash": "a63cc8ec"
+  },
+  "web.account.confirm_with_your_password": {
+    "text": "Подтвердите паролем",
+    "source_hash": "ff2147fd"
+  },
+  "web.account.are_you_sure_you_want_to_permanently_delete_your": {
+    "text": "Вы уверены, что хотите безвозвратно удалить Вашу учётную запись? Это действие нельзя отменить.",
+    "source_hash": "4fa3e4b8"
+  },
+  "web.account.confirm_account_deletion": {
+    "text": "Подтвердите удаление аккаунта",
+    "source_hash": "bb3fc7e5"
+  },
+  "web.account.deleting_cust_custid": {
+    "text": "Удаление {0}",
+    "source_hash": "81d21828"
+  },
+  "web.account.deleting_ellipsis": {
+    "text": "Удаление...",
+    "source_hash": "685ecb98"
+  },
+  "web.account.permanently_delete_account": {
+    "text": "Безвозвратно удалить аккаунт",
+    "source_hash": "f894e42c"
+  },
+  "web.account.permanent_and_non_reversible": {
+    "text": "необратимым действием.",
+    "source_hash": "6121225e"
+  },
+  "web.account.deleting_your_account_is": {
+    "text": "Удаление Вашего аккаунта является",
+    "source_hash": "ec31577b"
+  },
+  "web.account.burn_them_before_continuing": {
+    "text": "уничтожьте их перед продолжением",
+    "source_hash": "f89a5794"
+  },
+  "web.account.any_secrets_you_wish_to_remove": {
+    "text": "Секреты, которые хотите удалить,",
+    "source_hash": "b45e2dd5"
+  },
+  "web.account.secrets_will_remain_active_until_they_expire": {
+    "text": "Секреты будут оставаться активными до истечения срока их действия.",
+    "source_hash": "ddb4e2b5"
+  },
+  "web.account.please_be_advised": {
+    "text": "Обратите внимание:",
+    "source_hash": "086020fd"
+  },
+  "web.account.account_deleted_successfully": {
+    "text": "Аккаунт успешно удалён.",
+    "source_hash": "afcfdd58"
+  },
+  "web.account.deactivate": {
+    "text": "Деактивировать",
+    "source_hash": "fb1e6fa5"
+  },
+  "web.account.are_you_sure_you_want_to_deactivate_your_account": {
+    "text": "Вы уверены, что хотите деактивировать Вашу учётную запись? Все Ваши данные будут безвозвратно удалены с наших серверов. Это действие нельзя отменить.",
+    "source_hash": "4940e20a"
+  },
+  "web.account.deactivate_account": {
+    "text": "Деактивировать аккаунт",
+    "source_hash": "5e31b73d"
+  },
+  "web.settings.title": {
+    "text": "Настройки",
+    "source_hash": "74a883a0"
+  },
+  "web.settings.description": {
+    "text": "Управление настройками и предпочтениями аккаунта",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.manage_your_account_settings_and_preferences": {
+    "text": "Управляйте настройками Вашей учётной записи и предпочтениями",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.back_to_dashboard": {
+    "text": "Вернуться в панель управления",
+    "source_hash": "97ba1d39"
+  },
+  "web.settings.sections.account": {
+    "text": "Аккаунт",
+    "source_hash": "7e1b0d56"
+  },
+  "web.settings.sections.billing": {
+    "text": "Оплата",
+    "source_hash": "3ac8bbca"
+  },
+  "web.settings.sections.advanced": {
+    "text": "Дополнительно",
+    "source_hash": "9f088dbe"
+  },
+  "web.settings.general": {
+    "text": "Общие",
+    "source_hash": "c910d474"
+  },
+  "web.settings.preferences": {
+    "text": "Предпочтения",
+    "source_hash": "66962f72"
+  },
+  "web.settings.appearance": {
+    "text": "Внешний вид",
+    "source_hash": "3907fa7f"
+  },
+  "web.settings.theme.title": {
+    "text": "Тема",
+    "source_hash": "efb52e71"
+  },
+  "web.settings.theme.description": {
+    "text": "Выберите светлую или тёмную тему",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.theme.choose_light_or_dark_theme": {
+    "text": "Выберите светлую или тёмную тему",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.language.title": {
+    "text": "Язык",
+    "source_hash": "a4fe6526"
+  },
+  "web.settings.language.description": {
+    "text": "Выберите предпочитаемый язык",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.language.select_your_preferred_language": {
+    "text": "Выберите предпочитаемый язык",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.security_settings_description": {
+    "text": "Управление аутентификацией и безопасностью аккаунта",
+    "source_hash": "945109d1"
+  },
+  "web.settings.profile_settings_description": {
+    "text": "Управление информацией об аккаунте",
+    "source_hash": "4a23a29f"
+  },
+  "web.settings.profile.title": {
+    "text": "Профиль",
+    "source_hash": "d696a35b"
+  },
+  "web.settings.profile.change_email": {
+    "text": "Изменить почту",
+    "source_hash": "18c3f2d5"
+  },
+  "web.settings.profile.current_email": {
+    "text": "Текущая почта",
+    "source_hash": "5f1cab64"
+  },
+  "web.settings.profile.current_password": {
+    "text": "Текущий пароль",
+    "source_hash": "8ac76099"
+  },
+  "web.settings.profile.new_email": {
+    "text": "Новая почта",
+    "source_hash": "5bafb4be"
+  },
+  "web.settings.profile.enter_password_to_confirm": {
+    "text": "Введите текущий пароль",
+    "source_hash": "27814c03"
+  },
+  "web.settings.profile.password_required_for_security": {
+    "text": "Пароль требуется в целях безопасности",
+    "source_hash": "d18f62f2"
+  },
+  "web.settings.profile.verification_email_notice": {
+    "text": "Письмо для подтверждения будет отправлено на новый адрес",
+    "source_hash": "575082a1"
+  },
+  "web.settings.profile.update_email": {
+    "text": "Обновить почту",
+    "source_hash": "6ec61b2e"
+  },
+  "web.settings.profile.change_email_description": {
+    "text": "Обновите адрес электронной почты, связанный с Вашим аккаунтом",
+    "source_hash": "636abb16"
+  },
+  "web.settings.profile.all_fields_required": {
+    "text": "Все поля обязательны",
+    "source_hash": "04814271"
+  },
+  "web.settings.profile.invalid_email": {
+    "text": "Введите корректный адрес электронной почты",
+    "source_hash": "b00f7e3a"
+  },
+  "web.settings.profile.email_same_as_current": {
+    "text": "Новая почта должна отличаться от текущей",
+    "source_hash": "f7cfed6e"
+  },
+  "web.settings.profile.email_change_success": {
+    "text": "Письмо для подтверждения отправлено. Пожалуйста, проверьте свой новый почтовый ящик и нажмите на ссылку подтверждения, чтобы завершить изменение.",
+    "source_hash": "45f0a4b5"
+  },
+  "web.settings.profile.email_change_error": {
+    "text": "Не удалось обновить почту. Попробуйте ещё раз.",
+    "source_hash": "aeba6591"
+  },
+  "web.settings.sessions.title": {
+    "text": "Активные сессии",
+    "source_hash": "b58fa4e0"
+  },
+  "web.settings.sessions.description": {
+    "text": "Управление активными сессиями",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.sessions.manage_active_sessions": {
+    "text": "Управление активными сессиями",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.password.title": {
+    "text": "Пароль",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.settings.password.description": {
+    "text": "Обновить пароль аккаунта",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.password.update_account_password": {
+    "text": "Обновить пароль аккаунта",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.delete_account.title": {
+    "text": "Удалить аккаунт",
+    "source_hash": "c031bf99"
+  },
+  "web.settings.delete_account.description": {
+    "text": "Безвозвратно удалить аккаунт и все данные",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.delete_account.permanently_delete_your_account": {
+    "text": "Безвозвратно удалить аккаунт и все данные",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.security.security_score": {
+    "text": "Оценка безопасности",
+    "source_hash": "02d2f374"
+  },
+  "web.settings.security.score_description": {
+    "text": "Общее состояние безопасности Вашего аккаунта",
+    "source_hash": "cf20935e"
+  },
+  "web.settings.security.excellent": {
+    "text": "Отлично",
+    "source_hash": "0dc8ee55"
+  },
+  "web.settings.security.good": {
+    "text": "Хорошо",
+    "source_hash": "c939327c"
+  },
+  "web.settings.security.fair": {
+    "text": "Средне",
+    "source_hash": "f7b19afc"
+  },
+  "web.settings.security.weak": {
+    "text": "Слабо",
+    "source_hash": "8d6cea25"
+  },
+  "web.settings.security.improve_security": {
+    "text": "Улучшите свою безопасность",
+    "source_hash": "c38bcbf5"
+  },
+  "web.settings.security.enable_mfa_recommendation": {
+    "text": "Включите двухфакторную аутентификацию для лучшей защиты",
+    "source_hash": "6beda528"
+  },
+  "web.settings.security.generate_recovery_codes_recommendation": {
+    "text": "Сгенерируйте коды восстановления в качестве резервной копии",
+    "source_hash": "eb5f3ebd"
+  },
+  "web.settings.security.configured": {
+    "text": "Настроено",
+    "source_hash": "84aebc69"
+  },
+  "web.settings.security.change": {
+    "text": "Изменить",
+    "source_hash": "c0bf75bd"
+  },
+  "web.settings.security.manage": {
+    "text": "Управление",
+    "source_hash": "5a234448"
+  },
+  "web.settings.security.enable": {
+    "text": "Включить",
+    "source_hash": "5342e09f"
+  },
+  "web.settings.security.codes_available": {
+    "text": "{0} кодов доступно",
+    "source_hash": "76d6236d"
+  },
+  "web.settings.security.no_codes": {
+    "text": "Коды не сгенерированы",
+    "source_hash": "3b2eae20"
+  },
+  "web.settings.security.active_sessions": {
+    "text": "{0} активная сессия | {0} активных сессий",
+    "source_hash": "30737484"
+  },
+  "web.settings.security.best_practices": {
+    "text": "Лучшие практики безопасности",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.security.use_strong_unique_password": {
+    "text": "Используйте надёжный уникальный пароль для аккаунта",
+    "source_hash": "5fc8cbf4"
+  },
+  "web.settings.security.enable_mfa_for_protection": {
+    "text": "Включите двухфакторную аутентификацию для дополнительной защиты",
+    "source_hash": "107e4898"
+  },
+  "web.settings.security.save_recovery_codes_safely": {
+    "text": "Сохраните коды восстановления в надёжном месте",
+    "source_hash": "605513fc"
+  },
+  "web.settings.security.review_sessions_regularly": {
+    "text": "Регулярно проверяйте и отзывайте неиспользуемые сессии",
+    "source_hash": "efe59445"
+  },
+  "web.settings.security.view_details": {
+    "text": "Просмотреть детали",
+    "source_hash": "d1bf045b"
+  },
+  "web.settings.api.title": {
+    "text": "API и интеграции",
+    "source_hash": "21fc84f3"
+  },
+  "web.settings.api.description": {
+    "text": "Управление API-ключами и интеграциями",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.manage_api_keys": {
+    "text": "Управление API-ключами и интеграциями",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.documentation": {
+    "text": "Документация API",
+    "source_hash": "1cc77e60"
+  },
+  "web.settings.api.documentation_description": {
+    "text": "Узнайте, как интегрировать {product_name} в Ваши приложения",
+    "source_hash": "9bba1ae8"
+  },
+  "web.settings.api.rest_api_reference": {
+    "text": "Справочник REST API",
+    "source_hash": "26a5af61"
+  },
+  "web.settings.api.complete_api_documentation": {
+    "text": "Полная документация API и эндпоинты",
+    "source_hash": "c1c87ad8"
+  },
+  "web.settings.api.code_examples": {
+    "text": "Примеры кода",
+    "source_hash": "216d28e4"
+  },
+  "web.settings.api.example_code_and_libraries": {
+    "text": "Примеры кода и клиентские библиотеки",
+    "source_hash": "61c5956f"
+  },
+  "web.settings.api.security_best_practices": {
+    "text": "Лучшие практики безопасности",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.api.never_commit_api_keys": {
+    "text": "Никогда не фиксируйте API-ключи в системе контроля версий",
+    "source_hash": "cc8c327e"
+  },
+  "web.settings.api.use_environment_variables": {
+    "text": "Используйте переменные окружения для хранения API-ключей",
+    "source_hash": "c05e8802"
+  },
+  "web.settings.api.rotate_keys_regularly": {
+    "text": "Регулярно обновляйте API-ключи для безопасности",
+    "source_hash": "eda6a5db"
+  },
+  "web.settings.api.use_https_only": {
+    "text": "Всегда используйте HTTPS при выполнении API-запросов",
+    "source_hash": "b3f405ef"
+  },
+  "web.settings.api.monitor_api_usage": {
+    "text": "Отслеживайте использование API и настройте оповещения",
+    "source_hash": "abb08beb"
+  },
+  "web.settings.api.important_notice": {
+    "text": "Важное замечание",
+    "source_hash": "03d3ba93"
+  },
+  "web.settings.api.regenerating_key_warning": {
+    "text": "Перегенерация API-ключа сделает текущий ключ недействительным. Обновите все приложения, использующие старый ключ.",
+    "source_hash": "ab168f83"
+  },
+  "web.settings.privacy.title": {
+    "text": "Настройки конфиденциальности",
+    "source_hash": "eefad6ba"
+  },
+  "web.settings.privacy.manage_privacy_settings": {
+    "text": "Управление настройками конфиденциальности",
+    "source_hash": "add087da"
+  },
+  "web.settings.privacy.your_privacy": {
+    "text": "Ваша конфиденциальность",
+    "source_hash": "cad972db"
+  },
+  "web.settings.privacy.non_negotiable": {
+    "text": "Не обсуждается",
+    "source_hash": "ad090a29"
+  },
+  "web.settings.privacy.not_a_setting": {
+    "text": "Не настройка",
+    "source_hash": "41278ece"
+  },
+  "web.settings.privacy.no_analytics_statement": {
+    "text": "Никакой аналитики. Никакого отслеживания. Точка.",
+    "source_hash": "3e154b1c"
+  },
+  "web.settings.privacy.explanation": {
+    "text": "Это не настройка, потому что нечего включать или выключать. Ваша конфиденциальность встроена в то, как мы работаем.",
+    "source_hash": "ed943792"
+  },
+  "web.settings.notifications.title": {
+    "text": "Настройки уведомлений",
+    "source_hash": "07a063ca"
+  },
+  "web.settings.notifications.description": {
+    "text": "Управление способами получения уведомлений",
+    "source_hash": "148c5ff6"
+  },
+  "web.settings.notifications.error_updating": {
+    "text": "Не удалось обновить настройку уведомлений. Попробуйте ещё раз.",
+    "source_hash": "c08abc04"
+  },
+  "web.settings.notifications.reveal_notifications.title": {
+    "text": "Уведомления о просмотре секретов",
+    "source_hash": "c0fb2e25"
+  },
+  "web.settings.notifications.reveal_notifications.description": {
+    "text": "Получать письмо, когда кто-то просматривает Ваш секрет",
+    "source_hash": "a3a67095"
+  },
+  "web.settings.notifications.reveal_notifications.help": {
+    "text": "Вы будете получать уведомление каждый раз, когда получатель раскрывает один из Ваших секретов",
+    "source_hash": "ba93106d"
+  },
+  "web.settings.notifications.privacy_note": {
+    "text": "Уведомления по электронной почте содержат только время и ID секрета. Информация о том, кто просмотрел, не включается.",
+    "source_hash": "7aac282f"
+  },
+  "web.settings.caution.title": {
+    "text": "Зона осторожных решений",
+    "source_hash": "fe27a3a8"
+  },
+  "web.settings.caution.description": {
+    "text": "Расширенные настройки и управление данными",
+    "source_hash": "223ee55d"
+  },
+  "web.settings.caution.data_export": {
+    "text": "Экспорт данных",
+    "source_hash": "bdcea052"
+  },
+  "web.settings.caution.export_your_data": {
+    "text": "Экспортировать данные аккаунта",
+    "source_hash": "dc5ffcb0"
+  },
+  "web.settings.caution.export_description": {
+    "text": "Запросите полную копию данных аккаунта в машиночитаемом формате",
+    "source_hash": "369c3391"
+  },
+  "web.settings.caution.request_data_export": {
+    "text": "Запросить экспорт данных",
+    "source_hash": "902394be"
+  },
+  "web.settings.caution.export_info": {
+    "text": "Время обработки экспорта",
+    "source_hash": "2ebb2d44"
+  },
+  "web.settings.caution.export_info_description": {
+    "text": "Экспорт обрабатывается в течение 24 часов и отправляется на Ваш адрес электронной почты",
+    "source_hash": "a2f81e3b"
+  },
+  "web.settings.caution.deletion_warning_title": {
+    "text": "Удаление аккаунта приведёт к:",
+    "source_hash": "17a8a676"
+  },
+  "web.settings.caution.deletion_warning_secrets": {
+    "text": "Безвозвратному удалению всех секретов",
+    "source_hash": "974ccdb9"
+  },
+  "web.settings.caution.deletion_warning_metadata": {
+    "text": "Удалению всех метаданных и истории секретов",
+    "source_hash": "ec4ee372"
+  },
+  "web.settings.caution.deletion_warning_api_keys": {
+    "text": "Сделает все API-ключи недействительными",
+    "source_hash": "7581333b"
+  },
+  "web.settings.caution.deletion_warning_irreversible": {
+    "text": "Это действие нельзя отменить",
+    "source_hash": "02ccc074"
+  },
+  "web.settings.profile.confirm_email_change_title": {
+    "text": "Адрес электронной почты обновлён",
+    "source_hash": "cf02eb0c"
+  },
+  "web.settings.profile.email_confirmed_success": {
+    "text": "Ваш адрес электронной почты успешно обновлён. Пожалуйста, войдите с новым адресом.",
+    "source_hash": "a84efcea"
+  },
+  "web.settings.profile.email_confirm_verifying": {
+    "text": "Проверка Вашего нового адреса электронной почты...",
+    "source_hash": "a6a4745f"
+  },
+  "web.settings.profile.email_confirm_error_title": {
+    "text": "Ошибка смены электронной почты",
+    "source_hash": "953f3936"
+  },
+  "web.settings.profile.email_confirm_invalid": {
+    "text": "Эта ссылка для подтверждения недействительна или срок её действия истёк.",
+    "source_hash": "f54594c2"
+  },
+  "web.settings.profile.email_confirm_back_to_settings": {
+    "text": "Вернуться к настройкам аккаунта",
+    "source_hash": "fd49b66b"
+  },
+  "web.settings.profile.redirecting_to_signin": {
+    "text": "Перенаправление на страницу входа...",
+    "source_hash": "c65f7dcc"
+  },
+  "web.settings.profile.resend_confirmation": {
+    "text": "Отправить письмо для подтверждения повторно",
+    "source_hash": "c617fff7"
+  },
+  "web.settings.profile.resend_confirmation_success": {
+    "text": "Письмо для подтверждения успешно отправлено повторно.",
+    "source_hash": "2287783b"
+  },
+  "web.settings.profile.resend_confirmation_sending": {
+    "text": "Отправка...",
+    "source_hash": "286a3af7"
+  },
+  "web.settings.profile.email_change_pending": {
+    "text": "Письмо для подтверждения отправлено. Проверьте входящие и перейдите по ссылке для подтверждения.",
+    "source_hash": "5806c93f"
+  },
+  "web.settings.profile.didnt_receive_email": {
+    "text": "Не получили письмо?",
+    "source_hash": "fe3ac3ad"
+  },
+  "web.settings.api.api_disabled_notice": {
+    "text": "API отключён для этого экземпляра.",
+    "source_hash": "66d12d6b"
+  },
+  "web.settings.security.sso_managed_title": {
+    "text": "Безопасность управляется через SSO",
+    "source_hash": "1f6c9472"
+  },
+  "web.settings.security.sso_managed_description": {
+    "text": "Ваш аккаунт проходит аутентификацию через поставщика единого входа (SSO) Вашей организации. Пароль, многофакторная аутентификация и коды восстановления управляются Вашим поставщиком идентификации.",
+    "source_hash": "cd0cf39f"
+  },
+  "web.settings.api.api_username": {
+    "text": "Имя пользователя API",
+    "source_hash": "0b3e483e"
+  },
+  "web.settings.api.api_username_description": {
+    "text": "Ваше имя пользователя для HTTP Basic аутентификации",
+    "source_hash": "f3e65de3"
+  },
+  "web.settings.api.basic_auth_hint": {
+    "text": "Для HTTP Basic аутентификации используйте Ваш email аккаунта или этот ID в качестве имени пользователя, а Ваш API-токен — в качестве пароля.",
+    "source_hash": "cfa3806d"
+  },
+  "web.settings.security.set": {
+    "text": "Установлен",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.settings.security.not_set": {
+    "text": "Не установлен",
+    "source_hash": "4895f731"
+  },
+  "web.settings.security.set_password_title": {
+    "text": "Установить пароль",
+    "source_hash": "4e411687"
+  },
+  "web.settings.security.set_password_description": {
+    "text": "Добавьте пароль к Вашему аккаунту, чтобы Вы также могли входить без поставщика удостоверений",
+    "source_hash": "a6970402"
+  }
+}

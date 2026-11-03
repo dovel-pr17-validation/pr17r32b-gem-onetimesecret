@@ -1,0 +1,1033 @@
+# apps/web/auth/spec/integration/domain_sso_join_organization_spec.rb
+#
+# frozen_string_literal: true
+
+# =============================================================================
+# TEST TYPE: Integration Tests for Tenant-SSO Org Membership (Issue #3114)
+# =============================================================================
+#
+# Issue: #3114 - Tenant-SSO users not added to org due to session lifecycle
+#
+# Background
+# ----------
+# When a user signs in via tenant-SSO on a custom domain, two hooks coordinate
+# to join them to the domain's primary organization:
+#
+#   - after_omniauth_create_account (omniauth.rb) — owns NEW accounts.
+#       Reads & deletes :validated_omniauth_domain_id; calls JoinDomainOrganization
+#       with the freshly created customer.
+#   - after_login (login.rb) — owns EXISTING accounts.
+#       Reads & deletes :validated_omniauth_domain_id; if present (i.e., the
+#       create-hook did not consume it), looks up the customer via extid and
+#       calls JoinDomainOrganization.
+#
+# The :validated_omniauth_domain_id key is set by the before_omniauth_callback_route
+# hook in omniauth_tenant.rb after the cross-tenant validation passes. Before
+# the fix, downstream hooks read :omniauth_tenant_domain_id, which had already
+# been deleted by the validation hook — so JoinDomainOrganization was never
+# invoked and tenant-SSO users only got a Default Workspace.
+#
+# These tests cover three layers:
+#
+#   1. Operation-level: JoinDomainOrganization correctness against real fixtures.
+#   2. Hook-contract: the session-key handoff between validation and consumer hooks.
+#   3. End-to-end: real OAuth callback flow asserting tenant org membership.
+#
+# REQUIREMENTS:
+# - Valkey running on port 2163: pnpm run test:database:start
+# - AUTH_DATABASE_URL set (SQLite or PostgreSQL)
+# - AUTHENTICATION_MODE=full
+#
+# RUN:
+#   source .env.test && pnpm run test:rspec apps/web/auth/spec/integration/domain_sso_join_organization_spec.rb
+#
+# =============================================================================
+
+require_relative '../../spec_helper'
+require_relative '../../support/tenant_test_fixtures'
+require_relative '../../support/domain_sso_test_fixtures'
+require_relative '../../support/oauth_flow_helper'
+
+RSpec.describe 'Tenant-SSO Join Domain Organization (issue #3114)', type: :integration do
+  include TenantTestFixtures
+  include DomainSsoTestFixtures
+
+  # Registered custom-domain hosts must classify :custom, which only happens
+  # with the domains axis ON and a PARSEABLE canonical host installed. Both
+  # used to be inherited from the ambient DOMAINS_ENABLED of whatever shell
+  # ran the suite; declaring it here makes the file green in either.
+  include_context 'domains enabled'
+
+  before(:all) do
+    require 'onetime' unless defined?(Onetime)
+    Onetime.boot! :test unless Onetime.ready?
+    require_relative '../../../operations/join_domain_organization'
+  end
+
+  let(:test_run_id) { SecureRandom.hex(8) }
+  let(:tenant_domain) { "secrets-#{test_run_id}.acme-corp.example.com" }
+
+  # Build domain + organization fixtures directly so each describe block
+  # controls its own lifecycle without relying on shared_context wiring.
+  let!(:tenant_org_owner) do
+    owner = Onetime::Customer.new(email: "owner-#{test_run_id}@tenant.example.com")
+    owner.save
+    owner
+  end
+
+  let!(:tenant_organization) do
+    Onetime::Organization.create!(
+      "Tenant Org #{test_run_id}",
+      tenant_org_owner,
+      "contact-#{test_run_id}@tenant.example.com",
+    )
+  end
+
+  let!(:tenant_custom_domain) do
+    domain = Onetime::CustomDomain.new(
+      display_domain: tenant_domain,
+      org_id: tenant_organization.org_id,
+    )
+    # TXT-verified: tenant SSO is unavailable (:domain_unverified) on an unproven domain (#4517).
+    domain.verified = true
+    domain.save
+    Onetime::CustomDomain.display_domain_index.put(tenant_domain, domain.domainid)
+    domain
+  end
+
+  # An SSO customer (the user signing in via tenant SSO on the custom domain).
+  let!(:sso_customer) do
+    customer = Onetime::Customer.new(email: "user-#{test_run_id}@tenant.example.com")
+    customer.save
+    customer
+  end
+
+  after do
+    sso_customer&.destroy! rescue nil
+    Onetime::CustomDomain.display_domain_index.remove(tenant_domain) rescue nil
+    tenant_custom_domain&.destroy! rescue nil
+    tenant_organization&.destroy! rescue nil
+    tenant_org_owner&.destroy! rescue nil
+  end
+
+  # ==========================================================================
+  # Operation-level: JoinDomainOrganization correctness
+  # ==========================================================================
+
+  # :shared_db_state opts these examples out of the per-each Valkey flush.
+  # The fixtures above are built in per-example `let!` hooks, not before(:all),
+  # so the tag name is a slight misnomer here — but the guard is exactly what we
+  # need: the integration flush hooks live in three helpers (this app's
+  # spec_helper, the core integration_spec_helper, and the top-level
+  # spec_helper). Their before(:each) ordering relative to this group's `let!`
+  # is incidental to load order; under some orderings the core
+  # integration_spec_helper flush runs AFTER `let!` and wipes the freshly-saved
+  # CustomDomain before the example body reads it ("Domain not found"). Skipping
+  # the flush makes the group order-proof: each example uses a unique
+  # `test_run_id`, builds its own fixtures, and tears them down in `after`.
+  describe 'JoinDomainOrganization operation', :shared_db_state do
+    it 'adds the customer to the tenant organization as a member' do
+      result = Auth::Operations::JoinDomainOrganization.new(
+        customer: sso_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(result[:joined]).to be(true), "Expected new user to be joined, got: #{result.inspect}"
+      expect(result[:reason]).to eq('added_via_sso')
+      expect(result[:organization]&.objid).to eq(tenant_organization.objid)
+      expect(tenant_organization.member?(sso_customer)).to be(true),
+        'Customer must be a member of the tenant organization after join'
+    end
+
+    it 'is idempotent: returning user already in org gets no-op' do
+      # First call adds membership
+      first = Auth::Operations::JoinDomainOrganization.new(
+        customer: sso_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+      expect(first[:joined]).to be(true)
+
+      # Second call is a no-op. Although the production hooks no longer
+      # double-invoke this op on a single request (after_omniauth_create_account
+      # consumes the validated key for new accounts), the operation's
+      # idempotency guarantee is what makes the consolidation safe across
+      # subsequent SSO logins by the same returning user.
+      second = Auth::Operations::JoinDomainOrganization.new(
+        customer: sso_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(second[:joined]).to be(false)
+      expect(second[:reason]).to eq('already_member')
+      expect(second[:organization]&.objid).to eq(tenant_organization.objid)
+    end
+
+    # The invited-then-SSO sub-case: a pending org-scoped invitation is accepted
+    # *through* the SSO join path. ensure_membership takes its accept! branch,
+    # which carries the invitation's own (nil) domain_scope_id — the SSO-supplied
+    # domain_scope_id is ignored. The member therefore stays org-scoped: broader
+    # access than domain-scoped, not a leak. This test pins that as intended
+    # behavior and asserts the invite is consumed (not duplicated) and that
+    # provisioning_source: 'sso' threads through accept!/activate!.
+    it 'accepts a pending org-scoped invitation via SSO and stays org-scoped' do
+      invitation = Onetime::OrganizationMembership.create_invitation!(
+        organization: tenant_organization,
+        email: sso_customer.email,
+        role: 'member',
+        inviter: tenant_org_owner,
+      )
+      expect(invitation.pending?).to be(true)
+      expect(tenant_organization.pending_invitation_count).to eq(1)
+
+      result = Auth::Operations::JoinDomainOrganization.new(
+        customer: sso_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(result[:joined]).to be(true), "Expected invited user to be joined, got: #{result.inspect}"
+      expect(result[:reason]).to eq('added_via_sso')
+      expect(tenant_organization.member?(sso_customer)).to be(true)
+
+      # Invite consumed, not duplicated.
+      expect(tenant_organization.pending_invitation_count).to eq(0)
+
+      membership = result[:membership]
+      expect(membership).not_to be_nil
+      # SSO lifecycle attribution survives the accept! path.
+      expect(membership.provisioning_source).to eq('sso')
+      # Scope invariant: invite's nil scope wins over the SSO domain_scope_id.
+      expect(membership.org_scoped?).to be(true),
+        "Expected membership to stay org-scoped, got domain_scope_id=#{membership.domain_scope_id.inspect}"
+      expect(membership.domain_scope_id.to_s).to be_empty
+    end
+  end
+
+  # ==========================================================================
+  # Hook contract: session-key handoff
+  # ==========================================================================
+
+  describe 'session-key handoff (post-fix invariants)' do
+    it 'after_omniauth_create_account consumes the validated key (new accounts)' do
+      # Mirror what the production hook does at omniauth.rb:219
+      session = { validated_omniauth_domain_id: tenant_custom_domain.identifier }
+      domain_id = session.delete(:validated_omniauth_domain_id)
+
+      expect(domain_id).to eq(tenant_custom_domain.identifier)
+      expect(session).not_to have_key(:validated_omniauth_domain_id),
+        'after_omniauth_create_account must consume the key so after_login skips for new accounts'
+    end
+
+    it 'after_login skips when create-hook already consumed the key' do
+      # New-account path: create-hook ran first, deleted the key.
+      # Mirror what login.rb:154 does — should see nil and skip.
+      session = {} # Already consumed upstream
+
+      domain_id = session.delete(:validated_omniauth_domain_id)
+      expect(domain_id).to be_nil
+
+      # Hook guard `if domain_id` → skipped → no duplicate op call
+      called = false
+      if domain_id
+        called = true
+        Auth::Operations::JoinDomainOrganization.new(
+          customer: sso_customer,
+          domain_id: domain_id,
+        ).call
+      end
+      expect(called).to be(false), 'after_login must not invoke JoinDomainOrganization for new accounts'
+    end
+
+    it 'after_login handles existing accounts when create-hook did not run' do
+      # Existing-account path: no create-hook fired (account already exists).
+      # The validated key is still in session; after_login consumes it.
+      session = { validated_omniauth_domain_id: tenant_custom_domain.identifier }
+
+      domain_id = session.delete(:validated_omniauth_domain_id)
+      expect(domain_id).to eq(tenant_custom_domain.identifier)
+      expect(session).not_to have_key(:validated_omniauth_domain_id),
+        'after_login must also consume the key to prevent leakage into later requests'
+    end
+
+    it 'hooks skip when no validated key in session (platform-level or password auth)' do
+      session = {}
+
+      domain_id = session.delete(:validated_omniauth_domain_id)
+      expect(domain_id).to be_nil,
+        'Without tenant SSO context, the validated key is never set → both hooks short-circuit'
+    end
+  end
+
+  # ==========================================================================
+  # Regression: tenant SSO must NOT create a default workspace (issue #3326)
+  # ==========================================================================
+  #
+  # Before the fix, after_omniauth_create_account called EnsureDefaultWorkspace
+  # BEFORE JoinDomainOrganization, resulting in tenant SSO users getting BOTH
+  # a default workspace AND membership in the tenant org. This violated the
+  # principle that tenant SSO users should only belong to the tenant org.
+  #
+  # The fix made the paths mutually exclusive:
+  #   - if domain_id present  → JoinDomainOrganization only (tenant SSO)
+  #   - if domain_id absent   → EnsureDefaultWorkspace only (canonical SSO)
+  #
+  describe 'tenant SSO does not create default workspace (issue #3326)', :shared_db_state do
+    # Fresh customer with no organizations
+    let!(:fresh_sso_customer) do
+      customer = Onetime::Customer.new(email: "fresh-#{test_run_id}@tenant.example.com")
+      customer.save
+      customer
+    end
+
+    after do
+      # Clean up any orgs created during tests
+      fresh_sso_customer&.organization_instances&.each do |org|
+        org.destroy! rescue nil
+      end
+      fresh_sso_customer&.destroy! rescue nil
+    end
+
+    it 'tenant SSO user joins only the tenant org, no default workspace created' do
+      # Precondition: user has no organizations
+      expect(fresh_sso_customer.organization_instances.count).to eq(0),
+        'Fresh customer should have no organizations before SSO'
+
+      # Simulate tenant SSO path: domain_id is present
+      result = Auth::Operations::JoinDomainOrganization.new(
+        customer: fresh_sso_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(result[:joined]).to be(true)
+
+      # Reload participation data
+      orgs = fresh_sso_customer.organization_instances.to_a
+
+      # Critical assertion: user should have exactly ONE organization (the tenant org)
+      expect(orgs.count).to eq(1),
+        "Tenant SSO user should have exactly 1 org, got #{orgs.count}: #{orgs.map(&:display_name)}"
+
+      # And that org should be the tenant org, not a default workspace
+      expect(orgs.first.objid).to eq(tenant_organization.objid),
+        'The single org should be the tenant org, not a default workspace'
+      expect(orgs.first.is_default).to be_falsey,
+        'Tenant org should not be marked as default workspace'
+    end
+
+    it 'canonical SSO user gets default workspace, not tenant org membership' do
+      # Simulate canonical SSO path: no domain_id (SSO on main domain)
+      # EnsureDefaultWorkspace should run
+
+      # Precondition: user has no organizations
+      expect(fresh_sso_customer.organization_instances.count).to eq(0)
+
+      # This is what happens when domain_id is nil in the hook
+      Auth::Operations::EnsureDefaultWorkspace.new(customer: fresh_sso_customer).call
+
+      orgs = fresh_sso_customer.organization_instances.to_a
+
+      expect(orgs.count).to eq(1),
+        "Canonical SSO user should have exactly 1 org (default workspace)"
+      expect(orgs.first.is_default).to be(true),
+        'The org should be marked as default workspace'
+      expect(orgs.first.member?(fresh_sso_customer)).to be(true)
+
+      # And they should NOT be in the tenant org
+      expect(tenant_organization.member?(fresh_sso_customer)).to be(false),
+        'Canonical SSO user should not be added to tenant org'
+    end
+
+    it 'fallback: creates default workspace when JoinDomainOrganization fails silently' do
+      # Mirrors the safety-net branch added to after_omniauth_create_account:
+      #   if customer.organization_instances.to_a.empty?
+      #     EnsureDefaultWorkspace.new(customer: customer).call
+      #   end
+      #
+      # A bad domain_id causes JoinDomainOrganization to return {joined: false}
+      # without raising (find_by_identifier returns nil, never raises). The hook wraps
+      # the call in safe_execute, so either way the customer ends up with zero
+      # orgs -- triggering the fallback.
+
+      # Precondition: user has no organizations
+      expect(fresh_sso_customer.organization_instances.count).to eq(0),
+        'Fresh customer should have no organizations before SSO'
+
+      # Simulate the hook's tenant-SSO branch with a domain_id that will fail lookup
+      bogus_domain_id = 'nonexistent_domain_id'
+
+      # Step 1: JoinDomainOrganization fails silently (mirrors safe_execute wrapper)
+      Onetime::ErrorHandler.safe_execute(
+        'join_domain_organization_omniauth',
+        external_id: fresh_sso_customer.extid,
+        domain_id: bogus_domain_id,
+      ) do
+        Auth::Operations::JoinDomainOrganization.new(
+          customer: fresh_sso_customer,
+          domain_id: bogus_domain_id,
+        ).call
+      end
+
+      # Intermediate state: join failed, customer still has zero orgs
+      expect(fresh_sso_customer.organization_instances.to_a).to be_empty,
+        'After failed join, customer should still have zero organizations'
+
+      # Step 2: Fallback triggers because org count is zero
+      if fresh_sso_customer.organization_instances.to_a.empty?
+        Auth::Operations::EnsureDefaultWorkspace.new(customer: fresh_sso_customer).call
+      end
+
+      # Customer should now have exactly 1 org (the fallback workspace)
+      orgs = fresh_sso_customer.organization_instances.to_a
+      expect(orgs.count).to eq(1),
+        "After fallback, customer should have exactly 1 org, got #{orgs.count}"
+      expect(orgs.first.is_default).to be(true),
+        'Fallback org should be a default workspace'
+      expect(orgs.first.member?(fresh_sso_customer)).to be(true),
+        'Customer should be a member of the fallback workspace'
+    end
+
+    it 'mutually exclusive: cannot get both default workspace and tenant org' do
+      # This test mirrors the bug scenario from #3326:
+      # If both operations ran, user would end up in 2 orgs
+
+      # Step 1: Join tenant org (tenant SSO path)
+      Auth::Operations::JoinDomainOrganization.new(
+        customer: fresh_sso_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      # Step 2: EnsureDefaultWorkspace should now be a no-op
+      # because workspace_already_exists? returns true
+      result = Auth::Operations::EnsureDefaultWorkspace.new(customer: fresh_sso_customer).call
+
+      expect(result).to be_nil,
+        'EnsureDefaultWorkspace should return nil when user already has an org'
+
+      orgs = fresh_sso_customer.organization_instances.to_a
+      expect(orgs.count).to eq(1),
+        "User should still have only 1 org after both operations attempted"
+
+      # No default workspace should exist
+      expect(orgs.none?(&:is_default)).to be(true),
+        'No default workspace should have been created for tenant SSO user'
+    end
+  end
+
+  # ==========================================================================
+  # Self-heal: repoint default_org to the domain org (#3336, #4717 PR 2)
+  # ==========================================================================
+  #
+  # When a legacy customer with a personal default workspace signs in via
+  # domain SSO for the first time, JoinDomainOrganization should:
+  #   1. Add them to the domain org (existing behavior)
+  #   2. Repoint customer.default_org_id to the domain org
+  #
+  # And nothing else. Login never archives (#4717 PR 2): the personal
+  # workspace stays live, and routing does not need it gone — the loader
+  # takes the domain org on the tenant host and follows the explicit pointer
+  # on the canonical host, so the live workspace never shadows the domain org.
+  # Retiring a workspace is an operator decision (Onetime::Operations::Org).
+  #
+  describe 'self-heal: repoint default_org to the domain org, never archive (#3336, #4717)', :shared_db_state do
+    # Legacy customer who already has a personal default workspace
+    let!(:legacy_customer) do
+      customer = Onetime::Customer.new(email: "legacy-#{test_run_id}@tenant.example.com")
+      customer.save
+      customer
+    end
+
+    # Create a personal default workspace for the legacy customer
+    let!(:personal_workspace) do
+      result = Auth::Operations::EnsureDefaultWorkspace.new(customer: legacy_customer).call
+      result[:organization]
+    end
+
+    after do
+      legacy_customer&.organization_instances&.each do |org|
+        org.destroy! rescue nil
+      end
+      legacy_customer&.destroy! rescue nil
+    end
+
+    it 'repoints default_org_id to the domain org on first domain join and leaves the workspace live' do
+      # Precondition: customer has a personal workspace with is_default flag
+      expect(personal_workspace.is_default).to be_truthy,
+        'Personal workspace should have is_default flag'
+      expect(personal_workspace.owner?(legacy_customer)).to be(true),
+        'Legacy customer should own the personal workspace'
+      expect(personal_workspace.archived?).to be(false),
+        'Personal workspace should not be archived yet'
+
+      # Set default_org_id to point to personal workspace (simulates legacy state)
+      legacy_customer.default_org_id = personal_workspace.objid
+      legacy_customer.save
+
+      # Domain SSO join
+      result = Auth::Operations::JoinDomainOrganization.new(
+        customer: legacy_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(result[:joined]).to be(true), "Expected join to succeed, got: #{result.inspect}"
+
+      # Adoption is a pointer-only repoint.
+      expect(result[:adoption]).not_to be_nil, 'Expected adoption result'
+      expect(result[:adoption]).to include(adopted: true, previous_default_org_id: personal_workspace.objid)
+      expect(result[:adoption]).not_to have_key(:archived_org_id)
+
+      # Reload customer to verify default_org_id was repointed
+      reloaded_customer = Onetime::Customer.load(legacy_customer.objid)
+      expect(reloaded_customer.default_org_id).to eq(tenant_organization.objid),
+        'default_org_id should now point to the domain org'
+
+      # The personal workspace stays live (#4717 PR 2: login never archives).
+      reloaded_workspace = Onetime::Organization.load(personal_workspace.objid)
+      expect(reloaded_workspace.archived?).to be(false),
+        'login must not archive the personal workspace'
+      expect(reloaded_workspace.archived_at.to_s).to be_empty
+      expect(reloaded_workspace.archived_comment.to_s).to be_empty
+    end
+
+    it 'adopts the domain org even when default_org_id is not explicitly set, leaving the workspace live' do
+      # Customer has a personal workspace but default_org_id is not set.
+      # OrganizationLoader would fall through to step 4 (is_default flag).
+      expect(legacy_customer.default_org_id.to_s).to be_empty,
+        'default_org_id should not be set initially'
+      expect(personal_workspace.is_default).to be_truthy
+
+      result = Auth::Operations::JoinDomainOrganization.new(
+        customer: legacy_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(result[:joined]).to be(true)
+      expect(result[:adoption]).not_to be_nil, 'Expected adoption even without explicit default_org_id'
+      expect(result[:adoption]).to include(adopted: true, previous_default_org_id: personal_workspace.objid)
+      expect(result[:adoption]).not_to have_key(:archived_org_id)
+
+      # default_org_id should now be set to domain org
+      reloaded_customer = Onetime::Customer.load(legacy_customer.objid)
+      expect(reloaded_customer.default_org_id).to eq(tenant_organization.objid)
+
+      # Personal workspace stays live
+      expect(Onetime::Organization.load(personal_workspace.objid).archived?).to be(false),
+        'login must not archive the personal workspace'
+    end
+
+    it 'does not adopt when customer does not own the personal workspace' do
+      # Transfer ownership of personal workspace to someone else
+      personal_workspace.owner_id = tenant_org_owner.custid
+      personal_workspace.save
+
+      # Repair membership so owner? check uses membership role
+      membership = Onetime::OrganizationMembership.find_by_org_customer(
+        personal_workspace.objid, legacy_customer.objid,
+      )
+      membership.role = 'member' if membership
+      membership&.save
+
+      legacy_customer.default_org_id = personal_workspace.objid
+      legacy_customer.save
+
+      result = Auth::Operations::JoinDomainOrganization.new(
+        customer: legacy_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(result[:joined]).to be(true)
+      expect(result[:adoption]).to be_nil,
+        'Should not adopt when customer is not owner of personal workspace'
+
+      # default_org_id should remain unchanged
+      reloaded_customer = Onetime::Customer.load(legacy_customer.objid)
+      expect(reloaded_customer.default_org_id).to eq(personal_workspace.objid),
+        'default_org_id should not have been changed'
+    end
+
+    it 'skips adoption on already_member when default_org already repointed' do
+      legacy_customer.default_org_id = personal_workspace.objid
+      legacy_customer.save
+
+      # First join: should adopt
+      first_result = Auth::Operations::JoinDomainOrganization.new(
+        customer: legacy_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+      expect(first_result[:joined]).to be(true)
+      expect(first_result[:adoption]&.dig(:adopted)).to be(true)
+
+      # Second join: already_member, adoption retried but nil because the
+      # pointer now names the tenant org, which is not an is_default
+      # workspace, so resolve_personal_default_org finds no candidate. (The
+      # #4717 same-org guard is not reached here; it covers the case where the
+      # domain org IS the owner's default workspace.)
+      second_result = Auth::Operations::JoinDomainOrganization.new(
+        customer: legacy_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+      expect(second_result[:joined]).to be(false)
+      expect(second_result[:reason]).to eq('already_member')
+      expect(second_result[:adoption]).to be_nil,
+        'Adoption should be nil when the pointer already names the domain org'
+      expect(Onetime::Organization.load(personal_workspace.objid).archived?).to be(false),
+        'the personal workspace stays live across both logins'
+    end
+
+    # The already_member retry (decision D1, #4717): a member whose pointer
+    # has drifted back to their own default workspace is repointed on the next
+    # login. Pointer only — the workspace is left live.
+    it 'retries the repoint on already_member when the pointer names the personal workspace again' do
+      legacy_customer.default_org_id = personal_workspace.objid
+      legacy_customer.save
+
+      first_result = Auth::Operations::JoinDomainOrganization.new(
+        customer: legacy_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+      expect(first_result[:joined]).to be(true)
+      expect(first_result[:adoption]).to include(adopted: true)
+      expect(Onetime::Customer.load(legacy_customer.objid).default_org_id).to eq(tenant_organization.objid)
+
+      # The pointer drifts back (support, the account page, a stale client).
+      legacy_customer.default_org_id = personal_workspace.objid
+      legacy_customer.save
+
+      second_result = Auth::Operations::JoinDomainOrganization.new(
+        customer: legacy_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+      expect(second_result[:joined]).to be(false)
+      expect(second_result[:reason]).to eq('already_member')
+      expect(second_result[:adoption]).to include(adopted: true, previous_default_org_id: personal_workspace.objid)
+      expect(second_result[:adoption]).not_to have_key(:archived_org_id)
+
+      expect(Onetime::Customer.load(legacy_customer.objid).default_org_id).to eq(tenant_organization.objid)
+      expect(Onetime::Organization.load(personal_workspace.objid).archived?).to be(false),
+        'the retry repoints only; the workspace stays live'
+    end
+
+    it 'does not adopt when default_org_id points to a non-default org' do
+      # Create a second non-default org owned by customer
+      second_org = Onetime::Organization.create!(
+        "Second Org #{test_run_id}",
+        legacy_customer,
+        "second-#{test_run_id}@example.com",
+      )
+      # is_default is NOT set on this org
+
+      legacy_customer.default_org_id = second_org.objid
+      legacy_customer.save
+
+      result = Auth::Operations::JoinDomainOrganization.new(
+        customer: legacy_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(result[:joined]).to be(true)
+      expect(result[:adoption]).to be_nil,
+        'Should not adopt when default org is not a personal workspace (is_default: false)'
+
+      # default_org_id unchanged
+      reloaded_customer = Onetime::Customer.load(legacy_customer.objid)
+      expect(reloaded_customer.default_org_id).to eq(second_org.objid)
+
+      # Cleanup
+      second_org.destroy! rescue nil
+    end
+
+    # ------------------------------------------------------------------------
+    # The routing claim that makes archival redundant (#4717 PR 2, item 7).
+    # ------------------------------------------------------------------------
+    #
+    # OrganizationLoader.load_organization_context(customer, session, env) is
+    # the auth-phase entry point (determine_organization is private behind
+    # it). It reads the request's custom domains from env: the raw Host
+    # header's record (step 2, domain-based selection) and the record
+    # DomainStrategy published for the display domain. A canonical-host
+    # request has no custom domain, so steps 3-4 follow customer.default_org_id.
+    # Env is built the way spec/unit/organization_loader_cache_scope_spec.rb
+    # builds it; no O-Organization-ID header and an empty session, so the
+    # header override and the explicit selection (step 1) stay out of the way.
+    describe 'routing after adoption' do
+      let(:tenant_env) do
+        {
+          'HTTP_HOST'                 => tenant_domain,
+          'onetime.display_domain'    => tenant_domain,
+          'onetime.domain_strategy'   => :custom,
+          'onetime.custom_domain'     => tenant_custom_domain,
+          Onetime::CustomDomain::Lookup::ENV_KEY =>
+            Onetime::CustomDomain::Lookup.found(tenant_domain, tenant_custom_domain),
+        }
+      end
+
+      let(:canonical_env) do
+        {
+          'HTTP_HOST'               => canonical_host,
+          'onetime.display_domain'  => canonical_host,
+          'onetime.domain_strategy' => :canonical,
+        }
+      end
+
+      before do
+        legacy_customer.default_org_id = personal_workspace.objid
+        legacy_customer.save
+
+        result = Auth::Operations::JoinDomainOrganization.new(
+          customer: legacy_customer,
+          domain_id: tenant_custom_domain.identifier,
+        ).call
+        expect(result[:joined]).to be(true)
+        expect(result[:adoption]).to include(adopted: true)
+      end
+
+      it 'the live personal workspace does not shadow the domain org on either host' do
+        expect(Onetime::Organization.load(personal_workspace.objid).archived?).to be(false),
+          'precondition for the claim: the personal workspace is live after adoption'
+        customer = Onetime::Customer.load(legacy_customer.objid)
+        expect(customer.default_org_id).to eq(tenant_organization.objid)
+
+        on_tenant = Onetime::Application::OrganizationLoader.load_organization_context(customer, {}, tenant_env)
+        expect(on_tenant[:organization]&.objid).to eq(tenant_organization.objid),
+          "tenant host must route to the domain org, got #{on_tenant.inspect}"
+        expect(on_tenant[:domain_scope_refused]).to be_nil
+
+        on_canonical = Onetime::Application::OrganizationLoader.load_organization_context(customer, {}, canonical_env)
+        expect(on_canonical[:organization]&.objid).to eq(tenant_organization.objid),
+          "canonical host must follow the explicit pointer to the domain org, got #{on_canonical.inspect}"
+        expect(on_canonical[:scope_domains]).to eq([])
+      end
+    end
+
+    # ------------------------------------------------------------------------
+    # The UX consequence, pinned deliberately (#4717 PR 2, item 8): the
+    # customer's organization list shows BOTH the domain org and their live
+    # personal workspace. ListOrganizations reads the membership snapshot and
+    # drops only archived? organizations.
+    # ------------------------------------------------------------------------
+    describe 'organization listing after adoption' do
+      before(:all) { require 'organizations/logic' }
+
+      let(:strategy_result) do
+        double(
+          'StrategyResult',
+          session: { 'csrf' => 'spec' },
+          user: Onetime::Customer.load(legacy_customer.objid),
+          authenticated?: true,
+          auth_method: :session,
+          metadata: {},
+        )
+      end
+
+      it 'lists both the domain org and the live personal workspace' do
+        legacy_customer.default_org_id = personal_workspace.objid
+        legacy_customer.save
+        result = Auth::Operations::JoinDomainOrganization.new(
+          customer: legacy_customer,
+          domain_id: tenant_custom_domain.identifier,
+        ).call
+        expect(result[:joined]).to be(true)
+
+        logic = OrganizationAPI::Logic::Organizations::ListOrganizations.new(strategy_result, {})
+        logic.raise_concerns
+        logic.process
+
+        expect(logic.organizations.map(&:objid))
+          .to contain_exactly(tenant_organization.objid, personal_workspace.objid)
+        expect(logic.success_data[:count]).to eq(2)
+      end
+    end
+  end
+
+  # ==========================================================================
+  # #4717: the owner's own default organization must survive their login
+  # ==========================================================================
+  #
+  # The tenant org here IS the owner's default workspace (is_default: true):
+  # the auto-created workspace that was later given a custom domain and SSO.
+  # On the owner's tenant SSO login, JoinDomainOrganization takes the
+  # already_member path and retries adoption. Both resolution paths hand the
+  # self-heal the domain org itself (the explicit pointer names it; the
+  # owned-default lookup selects it), and nothing compares candidate to
+  # destination, so the owner's live, billed tenant org was soft-archived on
+  # their login, and again on the first login after any restore (the
+  # self-heal skips an already-archived org). Archival is load-bearing for
+  # routing: every loader and
+  # resolver rejects archived?, so the owner lands on an orphaned account.
+  #
+  describe 'owner signs into their own default organization (#4717)', :shared_db_state do
+    let(:tenant_planid) { 'team_plus_v1' }
+    let(:tenant_stripe_customer_id) { "cus_#{test_run_id}" }
+
+    before do
+      tenant_organization.planid             = tenant_planid
+      tenant_organization.stripe_customer_id = tenant_stripe_customer_id
+      tenant_organization.save
+      tenant_organization.is_default! true
+
+      reloaded = Onetime::Organization.load(tenant_organization.objid)
+      expect(reloaded.is_default).to be_truthy, 'precondition: the tenant org is the owner default workspace'
+      expect(reloaded.owner?(tenant_org_owner)).to be(true), 'precondition: the signing-in customer owns the tenant org'
+      expect(reloaded.archived?).to be(false), 'precondition: the tenant org starts live'
+    end
+
+    after do
+      @personal_workspace&.destroy! rescue nil
+    end
+
+    def join_as_owner
+      Auth::Operations::JoinDomainOrganization.new(
+        customer: tenant_org_owner,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+    end
+
+    # Everything the owner's login must leave exactly as it found it.
+    def expect_tenant_org_untouched(default_org_id:)
+      reloaded = Onetime::Organization.load(tenant_organization.objid)
+      expect(reloaded.archived?).to be(false), 'the owner\'s own default organization must not be archived by their login'
+      expect(reloaded.archived_at.to_s).to be_empty
+      expect(reloaded.archived_comment.to_s).to be_empty
+      expect(reloaded.planid).to eq(tenant_planid)
+      expect(reloaded.stripe_customer_id).to eq(tenant_stripe_customer_id)
+
+      membership = Onetime::OrganizationMembership.find_by_org_customer(tenant_organization.objid, tenant_org_owner.objid)
+      expect(membership).not_to be_nil
+      expect(membership.role).to eq('owner')
+      expect(membership.active?).to be(true)
+
+      domain = Onetime::CustomDomain.find_by_identifier(tenant_custom_domain.identifier)
+      expect(domain.org_id).to eq(tenant_organization.org_id)
+
+      expect(Onetime::Customer.load(tenant_org_owner.objid).default_org_id.to_s).to eq(default_org_id.to_s)
+    end
+
+    it 'with the pointer naming the org: already_member, no adoption, org and pointer unchanged' do
+      tenant_org_owner.default_org_id = tenant_organization.objid
+      tenant_org_owner.save
+
+      result = join_as_owner
+
+      expect(result[:joined]).to be(false)
+      expect(result[:reason]).to eq('already_member')
+      expect_tenant_org_untouched(default_org_id: tenant_organization.objid)
+      expect(result).not_to have_key(:adoption), "no adoption may be reported, got: #{result[:adoption].inspect}"
+    end
+
+    it 'with the pointer empty (implicit path): already_member, no adoption, org and pointer unchanged' do
+      expect(tenant_org_owner.default_org_id.to_s).to be_empty, 'precondition: no explicit default pointer'
+
+      result = join_as_owner
+
+      expect(result[:joined]).to be(false)
+      expect(result[:reason]).to eq('already_member')
+      expect_tenant_org_untouched(default_org_id: '')
+      expect(result).not_to have_key(:adoption), "no adoption may be reported, got: #{result[:adoption].inspect}"
+    end
+
+    # A legitimate adoption (personal workspace A -> tenant org B) is followed
+    # by the next login, where B is now the owned default the pointer names.
+    # The retry must recognise B as the destination, not as a second candidate.
+    it 'after a legitimate adoption, the next login leaves the adopted org live with no second adoption' do
+      @personal_workspace = Onetime::Organization.create!(
+        "Personal #{test_run_id}",
+        tenant_org_owner,
+        "personal-#{test_run_id}@tenant.example.com",
+      )
+      @personal_workspace.is_default! true
+      tenant_org_owner.default_org_id = @personal_workspace.objid
+      tenant_org_owner.save
+
+      first = join_as_owner
+      expect(first[:reason]).to eq('already_member')
+      expect(first[:adoption]).to include(adopted: true, previous_default_org_id: @personal_workspace.objid),
+        "first login should adopt the tenant org, got: #{first.inspect}"
+      expect(Onetime::Customer.load(tenant_org_owner.objid).default_org_id).to eq(tenant_organization.objid)
+      expect(Onetime::Organization.load(tenant_organization.objid).archived?).to be(false),
+        'the adoption destination must stay live'
+
+      second = join_as_owner
+      expect(second[:reason]).to eq('already_member')
+      expect_tenant_org_untouched(default_org_id: tenant_organization.objid)
+      expect(second).not_to have_key(:adoption), "no second adoption may be reported, got: #{second[:adoption].inspect}"
+    end
+  end
+
+  # ==========================================================================
+  # Domain-scoped SSO toggle: grant_org_scope on SsoConfig (#3384)
+  # ==========================================================================
+  #
+  # CustomDomain::SsoConfig.grant_org_scope controls whether SSO-provisioned
+  # members get org-scoped (full org access) or domain-scoped (isolated to
+  # the SSO domain) membership.
+  #
+  #   grant_org_scope: false (default) → domain_scope_id = domain.objid
+  #   grant_org_scope: true            → domain_scope_id = nil (org-scoped)
+  #
+  # The enforcement point is JoinDomainOrganization lines 82-83:
+  #   sso_config = SsoConfig.find_by_domain_id(domain.identifier)
+  #   scope_id = sso_config&.grant_org_scope? ? nil : domain.objid
+  #
+  describe 'grant_org_scope toggle on SsoConfig (#3384)', :shared_db_state do
+    # Fresh SSO customer per example (never pre-joined)
+    let!(:scope_test_customer) do
+      customer = Onetime::Customer.new(email: "scope-#{test_run_id}@tenant.example.com")
+      customer.save
+      customer
+    end
+
+    after do
+      Onetime::CustomDomain::SsoConfig.delete_for_domain!(tenant_custom_domain.identifier) rescue nil
+      scope_test_customer&.destroy! rescue nil
+    end
+
+    it 'grant_org_scope: false (default) creates domain-scoped membership' do
+      # Create SsoConfig with grant_org_scope defaulting to false.
+      # Minimal config: only domain_id needed; grant_org_scope defaults via init.
+      sso_config = Onetime::CustomDomain::SsoConfig.new(
+        domain_id: tenant_custom_domain.identifier,
+      )
+      sso_config.save
+
+      result = Auth::Operations::JoinDomainOrganization.new(
+        customer: scope_test_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(result[:joined]).to be(true), "Expected join to succeed, got: #{result.inspect}"
+
+      membership = result[:membership]
+      expect(membership).not_to be_nil, 'Expected membership in result'
+      expect(membership.domain_scoped?).to be(true),
+        "Expected domain-scoped membership, got domain_scope_id=#{membership.domain_scope_id.inspect}"
+      expect(membership.domain_scope_id).to eq(tenant_custom_domain.objid),
+        "domain_scope_id should equal the domain's objid"
+      expect(membership.org_scoped?).to be(false)
+    end
+
+    it 'grant_org_scope: true creates org-scoped membership' do
+      sso_config = Onetime::CustomDomain::SsoConfig.new(
+        domain_id: tenant_custom_domain.identifier,
+        grant_org_scope: 'true',
+      )
+      sso_config.save
+
+      result = Auth::Operations::JoinDomainOrganization.new(
+        customer: scope_test_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(result[:joined]).to be(true), "Expected join to succeed, got: #{result.inspect}"
+
+      membership = result[:membership]
+      expect(membership).not_to be_nil, 'Expected membership in result'
+      expect(membership.org_scoped?).to be(true),
+        "Expected org-scoped membership, got domain_scope_id=#{membership.domain_scope_id.inspect}"
+      expect(membership.domain_scope_id.to_s).to be_empty,
+        'domain_scope_id should be nil/empty for org-scoped membership'
+      expect(membership.domain_scoped?).to be(false)
+    end
+
+    it 'no SsoConfig record falls back to domain-scoped membership' do
+      # When no SsoConfig exists, find_by_domain_id returns nil.
+      # The op's nil-safe call: sso_config&.grant_org_scope? → nil → falsy
+      # so scope_id = domain.objid (domain-scoped).
+      result = Auth::Operations::JoinDomainOrganization.new(
+        customer: scope_test_customer,
+        domain_id: tenant_custom_domain.identifier,
+      ).call
+
+      expect(result[:joined]).to be(true)
+
+      membership = result[:membership]
+      expect(membership).not_to be_nil
+      expect(membership.domain_scoped?).to be(true),
+        'Without SsoConfig, membership should default to domain-scoped'
+      expect(membership.domain_scope_id).to eq(tenant_custom_domain.objid)
+    end
+  end
+
+  # ==========================================================================
+  # End-to-end: real OAuth callback flow asserting tenant org membership
+  # ==========================================================================
+  #
+  # Drives the actual Rodauth omniauth callback through the Rack stack and
+  # asserts that, after the flow completes, the SSO customer is a member of
+  # the tenant organization. This is the strongest regression guard for
+  # issue #3114 — a refactor that breaks the session-key handoff would
+  # cause this assertion to fail.
+  #
+
+  describe 'end-to-end OAuth callback joins user to tenant org', :oauth_flow do
+    include Rack::Test::Methods
+    include OAuthFlowHelper
+
+    def app
+      Onetime::Application::Registry.generate_rack_url_map
+    end
+
+    let(:e2e_run_id) { "join-e2e-#{SecureRandom.hex(4)}" }
+    let(:e2e_domain_host) { "secrets-#{e2e_run_id}.tenant.example.com" }
+    let(:e2e_user_email) { "new-user-#{e2e_run_id}@tenant.example.com" }
+
+    before do
+      @e2e_fixtures = setup_oauth_test_domain(e2e_domain_host)
+    end
+
+    after do
+      begin
+        Onetime::Customer.find_by_email(e2e_user_email)&.destroy!
+      rescue => e
+        OT.le "[domain_sso_join_organization_spec] Error in after: #{e.message}"
+      end
+      cleanup_oauth_test_fixtures
+    end
+
+    it 'creates customer and joins them to the tenant organization' do
+      OmniAuth.config.test_mode = true
+      OmniAuth.config.allowed_request_methods = %i[get post]
+
+      OmniAuth.config.mock_auth[:oidc] = OmniAuth::AuthHash.new({
+        provider: 'oidc',
+        uid: "uid-#{e2e_run_id}",
+        info: { email: e2e_user_email, name: 'E2E Test User' },
+      })
+
+      begin
+        # Phase 1: initiate from the tenant domain.
+        # omniauth_setup sets session[:omniauth_tenant_domain_id].
+        header 'Host', e2e_domain_host
+        post '/auth/sso/oidc'
+
+        if last_response.status == 404
+          skip "OmniAuth route not registered (OIDC discovery not available at boot for #{e2e_domain_host})"
+        end
+        expect(last_response.status).to eq(302),
+          "Initiation should redirect, got: #{last_response.status}"
+
+        # Phase 2: callback from the same tenant domain.
+        # before_omniauth_callback_route validates and now also sets
+        # :validated_omniauth_domain_id. after_omniauth_create_account
+        # consumes it and calls JoinDomainOrganization.
+        header 'Host', e2e_domain_host
+        post '/auth/sso/oidc/callback'
+
+        expect(last_response.status).not_to eq(403),
+          "Callback failed with 403; body: #{last_response.body}"
+
+        # Strong assertion: the customer exists and is a member of the
+        # tenant organization. Before the fix, this would fail — the
+        # customer existed but was NOT a member of the tenant org.
+        tenant_org = @e2e_fixtures[:org]
+        customer = Onetime::Customer.find_by_email(e2e_user_email)
+
+        expect(customer).not_to be_nil,
+          'Customer should have been created by after_omniauth_create_account'
+        expect(tenant_org.member?(customer)).to be(true),
+          "Customer should be a member of the tenant org after SSO. " \
+          "If this fails, the session-key handoff (issue #3114) is broken again."
+      ensure
+        OmniAuth.config.test_mode = false
+        OmniAuth.config.mock_auth.clear
+      end
+    end
+  end
+end

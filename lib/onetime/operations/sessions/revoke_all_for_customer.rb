@@ -1,0 +1,413 @@
+# lib/onetime/operations/sessions/revoke_all_for_customer.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/operations/sessions/store'
+require 'onetime/session/sidecar'
+require 'onetime/models/session_metadata'
+require 'onetime/models/colonel_audit_event'
+require 'onetime/audited_failure'
+require 'onetime/audit_reason'
+require 'onetime/operations/bulk_audit_context'
+
+module Onetime
+  module Operations
+    module Sessions
+      # Revoke EVERY session for a customer — the offboarding / account-takeover
+      # variant of {RevokeForCustomer} (spec docs/specs/colonel-ui/40-*). Where
+      # single-revoke kills one known sid from the sidecar index, this primitive
+      # must guarantee the account is fully locked out, so it is deliberately
+      # broader (and more expensive) than its sibling in three ways.
+      #
+      # ## 1. Tracked index is the GUARANTEED kill; the scan is best-effort only
+      #
+      # A session dies here by deleting the encrypted `session:<sid>` blob
+      # (adaptation #1). Two mechanisms, in this order of trust:
+      #
+      #   a. GUARANTEED — every sid in Customer#active_sessions is deleted directly
+      #      via `Store.find_key` + `del` (the exact, UNCAPPED primitive single
+      #      revoke uses). These sids are, by construction, this customer's, so no
+      #      identity check is needed and no keyspace walk is involved.
+      #   b. BEST-EFFORT — a bounded {Store.scan_keys} SCAN then sweeps for
+      #      genuinely UNTRACKED blobs (pre-sidecar sessions the index never saw),
+      #      decrypting each with the shared {Onetime::SessionCodec} and deleting
+      #      those whose identity matches. This closes the sidecar's forward-only
+      #      backfill gap — but only within the scan cap.
+      #
+      # Why (b) is NOT the primary path: {Store::MAX_SCAN} caps the scan at 10k
+      # keys in arbitrary slot order, and anonymous CSRF-only sessions dominate the
+      # keyspace (Store.rb). At ~200k accounts the cap can be exhausted before the
+      # target's blobs are reached — so a scan-first design would leave a tracked,
+      # authenticated session LIVE while (c) below destroyed its sidecar, yielding a
+      # live-but-invisible session and a silent "0 killed". Killing the tracked set
+      # directly makes the revoke cap-proof for every session we can name. When the
+      # scan truncates, `scan_capped` is surfaced (Result + audit detail) so a
+      # partial untracked sweep is visible, not silent — the pre-sidecar window it
+      # targets also closes within the 24h blob TTL after the sidecar deploy.
+      #
+      # ## 2. Rodauth SQL index cleared (full mode only)
+      #
+      # Single-revoke leaves the Rodauth `account_active_session_keys` row to
+      # self-expire (it only gates Rodauth-mounted routes). Offboarding wants those
+      # routes locked IMMEDIATELY, so this op deletes the account's rows directly
+      # via Sequel — the ops layer has no bound Rodauth instance, so it cannot call
+      # `rodauth.remove_all_active_sessions_for`; it does the same DELETE that
+      # Auth::Operations::RemoveAuthenticationData does. Guarded on the auth DB being present
+      # (nil in simple mode → skipped).
+      #
+      # ## 3. One audit event with counts
+      #
+      # Exactly one {Onetime::ColonelAuditEvent} (`verb: session.revoke_all`).
+      # This verb genuinely acts on a CUSTOMER, not one session, so target is the
+      # customer's extid — the route param only when it resolves to no customer
+      # (see docs/architecture/audit-logging.md, "Session verbs") — with detail
+      # carrying the kill counts so the operator (and the trail) sees how total
+      # the revoke actually was. Best-effort throughout: a
+      # missing customer or a down auth DB degrades to zero-counts, never a raise
+      # that leaves the account half-revoked.
+      #
+      # Stateless, single `#call`, returns an immutable {Result}.
+      #
+      # Construction rule: pass `customer:` whenever you hold the record;
+      # `custid:` is for id-only entry points (see #initialize for why).
+      class RevokeAllForCustomer
+        include Onetime::AuditedFailure
+        include Onetime::AuditReason
+
+        # Audit verb recorded for every customer-scoped revoke-all.
+        AUDIT_VERB = 'session.revoke_all'
+
+        # A partially-applied revoke-all is exactly the case an operator needs to
+        # see: some sessions killed, then a raise. Records one `result: :failure`
+        # and re-raises. Like {RevokeForCustomer} this op does not delegate to
+        # {Delete}, so there is no nested audited frame to dedupe against.
+        #
+        # target here is the RAW route param, not the resolved extid the success
+        # record prefers: this lambda runs mid-raise, where re-resolving the
+        # customer could itself fail (the raise may BE the datastore), and the
+        # unresolved param is still an honest record of what the operator acted on.
+        # (For a pre-resolved `customer:` it is that record's extid, captured at
+        # construction — see #initialize — so no lookup happens here either.)
+        audit_failures :call,
+          verb: AUDIT_VERB,
+          target: -> { @custid },
+          enabled: -> { audit_enabled? && !@self_service }
+
+        # Session-data identity fields matched against the target's extid.
+        IDENTITY_FIELDS = %w[external_id account_external_id].freeze
+
+        # @!attribute revoked [r] Boolean always true on a completed call
+        # @!attribute blobs_deleted [r] Integer live session blobs deleted (the logouts;
+        #   tracked kills + untracked sweep hits)
+        # @!attribute untracked_deleted [r] Integer of those blobs NOT in the sidecar index
+        #   (pre-sidecar sessions the best-effort scan swept up)
+        # @!attribute rodauth_rows_deleted [r] Integer Rodauth active_session_keys rows
+        #   removed (0 in simple mode / when no auth account exists)
+        # @!attribute scan_capped [r] Boolean the untracked sweep hit {Store::MAX_SCAN}
+        #   — an untracked pre-sidecar session MAY have been missed (tracked kills are
+        #   unaffected; they never touch the scan)
+        Result = Data.define(:revoked, :blobs_deleted, :untracked_deleted, :rodauth_rows_deleted, :scan_capped)
+
+        # Exactly one of `custid:` / `customer:` must be given.
+        #
+        # @param custid [String, nil] the target customer AS ADDRESSED (route
+        #   param / CLI arg; extid, email, or objid). Resolved in #load_customer
+        #   via extid → email → objid; an unresolvable value degrades to a
+        #   zero-count revoke (see class docs, section 3).
+        # @param customer [Onetime::Customer, nil] the target ALREADY RESOLVED.
+        #   Callers that hold the record (Auth::Operations::Customers::Purge)
+        #   must pass it rather than its extid: a re-resolution by extid is not
+        #   guaranteed to agree with the record in hand — the extid index has
+        #   drifted before (#4205, #4217) — and a miss would silently take the
+        #   nil-customer branches, write a `blobs_deleted: 0` success, and let a
+        #   following destroy leave live blobs/sidecars/`active_sessions` behind
+        #   a deleted customer. The record is used as given; only `exists?` is
+        #   still checked.
+        # @param actor [String, #extid] acting colonel's PUBLIC identity (extid).
+        # @param reason [String, nil] OPTIONAL operator-supplied why (#4338),
+        #   recorded in the audit detail. Offboarding and account-takeover
+        #   response look identical in the trail without it. Blank is treated as
+        #   absent and the detail keeps its pre-#4338 shape; see
+        #   {Onetime::AuditReason} for the bound and the optional-now /
+        #   required-later rollout.
+        # @param dbclient [Object, nil] Redis-like client; defaults to Familia.dbclient.
+        # @param sweep_untracked [Boolean] run step (b), the bounded keyspace SCAN
+        #   for pre-sidecar blobs. Every call pays for the whole scan, so a bulk
+        #   purge of accounts idle for months — whose blobs have all expired —
+        #   turns it off rather than walking the keyspace once per account. The
+        #   guaranteed tracked kill (a) and the Rodauth row purge (d) still run.
+        # @param self_service [Boolean] the account itself asked for this via
+        #   Customers::Purge on /auth/close-account (or the simple-mode
+        #   endpoint), or by redeeming its own email-change link
+        #   (Customers::ChangeEmail). Routes the audit write to the security
+        #   trail via {Onetime::ColonelAuditEvent.record_security} (fail-open)
+        #   instead of the count-capped operator trail: a user who can repeat
+        #   the action at will must not be able to evict operator history
+        #   from it.
+        def initialize(actor:, custid: nil, customer: nil, reason: nil, dbclient: nil,
+                       bulk_audit_context: nil, sweep_untracked: true, self_service: false)
+          # Same shape as Operations::VerifyDomain's domain:/domains: guard.
+          if custid.nil? && customer.nil?
+            raise ArgumentError, 'Must provide either custid: or customer:'
+          end
+          if custid && customer
+            raise ArgumentError, 'Cannot provide both custid: and customer:'
+          end
+
+          @customer           = customer
+          # @custid is read by the audit_failures target lambda and by the
+          # success-event target fallback in #call; for a pre-resolved customer
+          # its extid IS the addressed identity, so capture it now rather than
+          # touching the record again mid-raise.
+          @custid             = custid || customer.extid
+          @actor              = actor
+          @reason             = normalize_reason(reason)
+          @dbclient           = dbclient
+          @bulk_audit_context = bulk_audit_context
+          @sweep_untracked    = sweep_untracked
+          @self_service       = self_service
+        end
+
+        # @return [Result]
+        def call
+          db       = @dbclient || Familia.dbclient
+          customer = load_customer
+
+          # Snapshot the sidecar index BEFORE we tidy it — it drives both the
+          # guaranteed kill and the untracked-vs-tracked classification.
+          tracked     = customer ? customer.active_sessions.revrange(0, -1) : []
+          tracked_set = tracked.to_set
+
+          # (a) GUARANTEED: delete every tracked blob directly (exact, uncapped).
+          tracked_deleted                = purge_tracked(db, tracked)
+          # (b) BEST-EFFORT: sweep the keyspace for untracked (pre-sidecar) blobs,
+          #     unless the caller declined the walk (bulk sweeps of idle accounts).
+          untracked_deleted, scan_capped = if @sweep_untracked
+                                             purge_untracked(db, customer, tracked_set)
+                                           else
+                                             [0, false]
+                                           end
+          # (c) Tidy metadata now that the blobs are gone.
+          tidy_sidecars(customer, tracked)
+          # (d) Full mode: clear the Rodauth active-session rows.
+          rodauth_rows_deleted           = purge_rodauth_rows(customer)
+
+          blobs_deleted = tracked_deleted + untracked_deleted
+
+          # Per-customer verb: target is the customer's extid so every audit
+          # event about one customer carries one identifier, however the route
+          # addressed them (extid, email, or objid). Only an unresolvable
+          # customer (this op degrades to a zero-count revoke rather than
+          # raising) falls back to the route param as given.
+          target = customer&.extid.to_s
+          target = @custid if target.empty?
+
+          # FAIL-CLOSED (#4333): a bulk revoke deletes the very blobs and rows
+          # that would otherwise evidence it, so this event is the whole record
+          # of an offboarding/takeover action. An unwritable event raises
+          # Onetime::AuditWriteFailure instead of returning a clean Result.
+          #
+          # Self-service (Customers::Purge on user-triggered close-account, or
+          # Customers::ChangeEmail on a redeemed email-change link) routes to
+          # the security trail (fail-open) instead — the operator trail is
+          # capped and trimmed oldest-first, so a user who can repeat the
+          # action must not be able to write to it.
+          if audit_enabled?
+            counts = audit_counts(
+              blobs_deleted: blobs_deleted,
+              untracked_deleted: untracked_deleted,
+              rodauth_rows_deleted: rodauth_rows_deleted,
+              scan_capped: scan_capped,
+            )
+            record_success_event(target: target, counts: counts)
+          end
+
+          Result.new(
+            revoked: true,
+            blobs_deleted: blobs_deleted,
+            untracked_deleted: untracked_deleted,
+            rodauth_rows_deleted: rodauth_rows_deleted,
+            scan_capped: scan_capped,
+          )
+        end
+
+        private
+
+        def audit_enabled?
+          !Onetime::Operations::BulkAuditContext.verified?(
+            @bulk_audit_context,
+            actor: @actor,
+            verb: AUDIT_VERB,
+            target: @custid,
+            operation: self,
+          )
+        end
+
+        # The detail keeps its established shape; a declined sweep is recorded
+        # as one extra key so `untracked_deleted: 0` cannot read as "swept, none
+        # found".
+        def audit_counts(**counts)
+          @sweep_untracked ? counts : counts.merge(untracked_sweep: 'skipped')
+        end
+
+        # Route the success write to the operator trail (fail-closed) or the
+        # security trail (fail-open) based on whether the call is self-service.
+        # See #initialize for the rationale.
+        def record_success_event(target:, counts:)
+          detail = with_reason(counts)
+
+          if @self_service
+            Onetime::ColonelAuditEvent.record_security(
+              actor: @actor,
+              verb: AUDIT_VERB,
+              target: target,
+              result: :success,
+              detail: detail,
+            )
+          else
+            Onetime::ColonelAuditEvent.record(
+              actor: @actor,
+              verb: AUDIT_VERB,
+              target: target,
+              result: :success,
+              detail: detail,
+              fail_closed: true,
+            )
+          end
+        end
+
+        # GUARANTEED kill: delete each tracked sid's live blob directly. The sids
+        # are, by construction, this customer's (TrackMetadata only ZADDs their own
+        # sessions), so no identity check is needed. Exact + UNCAPPED — the same
+        # `Store.find_key` + `del` primitive single-revoke uses — so it can never be
+        # defeated by the scan cap. Returns the count that had a live blob.
+        #
+        # @return [Integer]
+        def purge_tracked(db, tracked)
+          tracked.count do |sid|
+            key = Store.find_key(db, sid)
+            unless key
+              # No live blob today, but the operator still intends the sid dead:
+              # an in-flight request that loaded the blob earlier can re-SET it
+              # under the same id. Set the ended-marker so the writer's post-SET
+              # {Onetime::SessionEnded.ended?} check takes that copy back out
+              # (RISK-2026-09-19-01).
+              Onetime::SessionEnded.mark(sid, dbclient: db)
+              next false
+            end
+
+            Store.destroy_blob(db, key)
+            # A revoked sid's per-value sidecar keys must die with the blob —
+            # exact registry-derived names, format-gated (legacy non-hex ids
+            # no-op).
+            Onetime::SessionSidecar.purge(sid, dbclient: db)
+            true
+          end
+        end
+
+        # BEST-EFFORT sweep for genuinely UNTRACKED blobs — pre-sidecar sessions the
+        # index never saw. Bounded SCAN → decrypt (shared codec, NOT close_account's
+        # legacy base64/JSON split, which no longer matches an AES-256-GCM blob) →
+        # delete those whose identity matches, SKIPPING tracked sids (already killed
+        # in purge_tracked). Returns [count, scan_capped].
+        #
+        # A blank extid would make `data[f].to_s == ''` match every anonymous
+        # session and nuke the keyspace, so bail before scanning if we can't
+        # identify the target.
+        #
+        # @return [Array(Integer, Boolean)]
+        def purge_untracked(db, customer, tracked_set)
+          return [0, false] if customer.nil?
+
+          extid = customer.extid.to_s
+          return [0, false] if extid.empty?
+
+          codec   = Onetime::SessionCodec.from_config
+          keys    = Store.scan_keys(db)
+          deleted = 0
+
+          keys.each do |key|
+            sid = Store.extract_id(key)
+            next if tracked_set.include?(sid) # already killed, exactly
+
+            data = Store.load_data(db, key, codec: codec)
+            next unless data.is_a?(Hash)
+            next unless IDENTITY_FIELDS.any? { |f| data[f].to_s == extid }
+
+            Store.destroy_blob(db, key)
+            # Untracked (pre-sidecar-index) sessions can still own per-value
+            # sidecar keys; those must not survive the blob either.
+            Onetime::SessionSidecar.purge(sid, dbclient: db)
+            deleted += 1
+          end
+
+          [deleted, keys.size >= Store::MAX_SCAN]
+        end
+
+        # Destroy every sidecar the index knew about, then clear the index. Blobs
+        # are already gone (purge_tracked); this only reconciles the metadata.
+        def tidy_sidecars(customer, tracked)
+          return if customer.nil?
+
+          tracked.each { |sid| Onetime::SessionMetadata.load(sid)&.destroy! }
+          customer.active_sessions.clear
+        end
+
+        # Delete the account's Rodauth active-session rows (full mode). Returns the
+        # row count removed, or 0 when the auth DB is absent (simple mode) or no
+        # account maps to this extid. Best-effort: a DB error degrades to 0 rather
+        # than aborting a revoke whose blob kill already succeeded — but it is
+        # LOGGED distinctly (OT.le below), so a prod failure is visible and not
+        # silently indistinguishable from "no rows".
+        #
+        # Column names verified against Auth::Operations::RemoveAuthenticationData and
+        # Auth::Routes::ActiveSessions: `accounts.external_id`, `accounts.id`, and
+        # `account_active_session_keys.account_id`. This path is full-mode-only, so
+        # it is covered by inspection, not the (simple-mode) tryout suite.
+        #
+        # @return [Integer]
+        def purge_rodauth_rows(customer)
+          return 0 if customer.nil?
+
+          db = auth_db
+          return 0 if db.nil?
+
+          account = db[:accounts].where(external_id: customer.extid).first
+          return 0 if account.nil?
+
+          db[:account_active_session_keys].where(account_id: account[:id]).delete
+        rescue StandardError => ex
+          OT.le(
+            '[RevokeAllForCustomer] rodauth row purge failed',
+            exception: ex,
+            custid: @custid,
+          )
+          0
+        end
+
+        # The auth (Rodauth) SQL connection, or nil in simple mode. Auth::Database
+        # lives in the auth app; guard on it being loaded so this op stays usable
+        # in contexts where the auth stack isn't required.
+        def auth_db
+          return nil unless defined?(Auth::Database)
+
+          Auth::Database.connection
+        end
+
+        # A pre-resolved `customer:` is used as given — NEVER re-resolved (see
+        # #initialize for why an extid-index miss here would be silent and
+        # destructive). Otherwise the same resolution as ListForCustomer /
+        # RevokeForCustomer: extid → email → objid. nil is tolerated either way
+        # — a missing customer yields a zero-count revoke.
+        def load_customer
+          customer = @customer ||
+                     Onetime::Customer.load_by_extid_or_email(@custid) ||
+                     Onetime::Customer.load(@custid)
+          return nil unless customer&.exists?
+
+          customer
+        end
+      end
+    end
+  end
+end

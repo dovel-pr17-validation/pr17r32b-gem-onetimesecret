@@ -1,0 +1,493 @@
+# lib/onetime/cli/session_command.rb
+#
+# frozen_string_literal: true
+
+#
+# CLI commands for session inspection and debugging
+#
+# Usage:
+#   ots session inspect <session-id>
+#   ots session list [--limit N]
+#   ots session search <email-or-custid>
+#   ots session delete <session-id> [--force]
+#   ots session revoke-all <customer> [--force]
+#
+# `sessions` is an alias of `session`, so every subcommand also resolves under
+# the plural spelling the break-glass runbook uses (`ots sessions revoke-all`).
+#
+
+require 'json'
+
+# The session capability now lives in central operations (epic #40 / D3): the
+# single implementation of the list / inspect / delete verbs. These CLI commands
+# are thin adapters over the ops, and SessionHelpers delegates its Redis/session
+# primitives to Onetime::Operations::Sessions::Store so there is one source of
+# truth. Loaded explicitly because CLI runs don't go through an app autoloader.
+require 'onetime/operations/sessions/store'
+require 'onetime/operations/sessions/list_sessions'
+require 'onetime/operations/sessions/inspect_session'
+require 'onetime/operations/sessions/delete_session'
+require 'onetime/operations/sessions/revoke_all_for_customer'
+
+# Customers::Shared must exist before `include Customers::Shared` below (same
+# explicit require as customers/purge_command.rb, so this file cannot be
+# loaded in a broken order).
+require_relative 'customers/shared'
+
+module Onetime
+  module CLI
+    # Shared helpers for session commands.
+    #
+    # The Redis/session primitives here are thin delegations to
+    # {Onetime::Operations::Sessions::Store} — the single extracted implementation
+    # (epic #40). Behaviour is preserved byte-for-byte, in particular
+    # {#load_session_data}'s JSON-not-Marshal safety guarantee locked in by
+    # spec/cli/session_command_security_spec.rb.
+    module SessionHelpers
+      Store = Onetime::Operations::Sessions::Store
+
+      def session_key_patterns(session_id)
+        Store.key_patterns(session_id)
+      end
+
+      def find_session_in_redis(dbclient, session_id)
+        session_key_patterns(session_id).each do |pattern|
+          if dbclient.exists(pattern) > 0
+            return load_session_data(dbclient, pattern)
+          end
+        end
+        nil
+      end
+
+      def find_session_key(dbclient, session_id)
+        Store.find_key(dbclient, session_id)
+      end
+
+      def load_session_data(dbclient, key)
+        # Inject the shared codec so `bin/ots session inspect/search` decrypt the
+        # value like the colonel console does; without it every field reads nil
+        # and search-by-email never matches (session values are encrypted).
+        Store.load_data(dbclient, key, codec: Onetime::SessionCodec.from_config)
+      end
+
+      def extract_session_id_from_key(key)
+        Store.extract_id(key)
+      end
+
+      def display_session_info(data, session_id)
+        puts 'Session Data:'
+        puts '-' * 80
+
+        # Core session info
+        puts "Session ID: #{session_id}"
+        puts
+
+        # Authentication status
+        puts 'Authentication:'
+        if data['authenticated']
+          puts '  ✓ Authenticated'
+          puts "  Email: #{data['email']}"
+          puts "  External ID: #{data['external_id'] || data['account_external_id']}"
+          puts "  Role: #{data['role']}" if data['role']
+          puts "  Authenticated at: #{format_timestamp(data['authenticated_at'])}"
+          puts "  Authenticated by: #{data['authenticated_by']}" if data['authenticated_by']
+        else
+          puts '  ✗ Not authenticated'
+        end
+        puts
+
+        # Advanced auth info (if using Rodauth)
+        if data['account_id']
+          puts 'Advanced Auth (Rodauth):'
+          puts "  Account ID: #{data['account_id']}"
+          puts "  Active Session ID: #{data['active_session_id']}" if data['active_session_id']
+          puts
+        end
+
+        # Locale and user agent
+        puts 'Session Details:'
+        puts "  Locale: #{data['locale']}" if data['locale']
+        puts "  IP Address: #{data['ip_address']}" if data['ip_address']
+        puts "  User Agent: #{data['user_agent'][0..60]}..." if data['user_agent']
+        puts
+
+        # Redis info
+        dbclient    = Familia.dbclient
+        session_key = find_session_key(dbclient, session_id)
+        if session_key
+          ttl = dbclient.ttl(session_key)
+          puts 'Redis Info:'
+          puts "  Key: #{session_key}"
+          if ttl > 0
+            hours   = ttl / 3600
+            minutes = (ttl % 3600) / 60
+            puts "  TTL: #{ttl}s (#{hours}h #{minutes}m remaining)"
+          elsif ttl == -1
+            puts '  TTL: No expiration'
+          else
+            puts '  TTL: Expired'
+          end
+          puts
+        end
+
+        # All session keys
+        puts "All Session Keys (#{data.keys.size}):"
+        data.keys.sort.each do |key|
+          value         = data[key]
+          display_value = value.is_a?(String) && value.length > 50 ? "#{value[0..47]}..." : value.inspect
+          puts "  #{key.ljust(30)}: #{display_value}"
+        end
+      end
+
+      def matches_search?(session_data, search_term)
+        Store.matches_search?(session_data, search_term)
+      end
+
+      def format_timestamp(timestamp)
+        return 'unknown' unless timestamp
+
+        Time.at(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+      rescue StandardError
+        'invalid timestamp'
+      end
+    end
+
+    # Default session command (shows usage)
+    class SessionCommand < DelayBootCommand
+      desc 'Session management and inspection'
+
+      def call(args: [], **)
+        reject_unknown_subcommand(args)
+
+        puts '=' * 80
+        puts 'Session Inspector'
+        puts '=' * 80
+        puts
+        puts 'Usage: ots session <subcommand> [options]   (alias: ots sessions ...)'
+        puts
+        puts 'Available subcommands:'
+        puts '  inspect <session-id>              Show detailed session information'
+        puts '  list [--limit N]                  List active sessions'
+        puts '  search <email-or-custid>          Find sessions for a user'
+        puts '  delete <session-id> [--force]     Delete a session'
+        puts '  revoke-all <customer> [--force]   Revoke every session for a customer'
+        puts
+      end
+    end
+
+    # Inspect session command
+    class SessionInspectCommand < Command
+      include SessionHelpers
+
+      desc 'Show detailed session information'
+
+      argument :session_id, type: :string, required: false, desc: 'Session ID'
+
+      def call(session_id: nil, **)
+        unless session_id
+          puts 'Error: Session ID required'
+          puts 'Usage: ots session inspect <session-id>'
+          return
+        end
+
+        boot_application!
+
+        puts '=' * 80
+        puts "Session Inspector: #{session_id}"
+        puts '=' * 80
+        puts
+
+        # Route through the extracted inspect op (the single implementation).
+        result = Onetime::Operations::Sessions::Inspect.new(session_id: session_id).call
+
+        unless result.found
+          puts '❌ Session not found in Redis'
+          puts
+          puts 'Searched patterns:'
+          session_key_patterns(session_id).each do |pattern|
+            puts "  - #{pattern}"
+          end
+          puts
+          puts 'Available session keys (first 10):'
+          keys = []
+          begin
+            Familia.dbclient.scan_each(match: '*session*').take(10).each { |k| keys << k }
+          rescue StandardError
+            keys = []
+          end
+          keys.each { |key| puts "  - #{key}" }
+          return
+        end
+
+        # Display session information
+        display_session_info(result.data, session_id)
+      end
+    end
+
+    # List sessions command
+    class SessionListCommand < Command
+      include SessionHelpers
+
+      desc 'List active sessions'
+
+      option :limit,
+        type: :string,
+        default: '20',
+        desc: 'Number of sessions to show (default: 20)'
+
+      def call(limit: '20', **)
+        boot_application!
+
+        puts "Active Sessions (limit: #{limit})"
+        puts '-' * 80
+
+        # Route through the extracted list op (single implementation, bounded
+        # scan). `--limit` maps to one page; the op caps a page at its MAX_PER_PAGE.
+        #
+        # reveal_session_id: the local operator shell is the ONE consumer that
+        # opts in (#4330) — `inspect` and `delete` take a raw sid, so a listing
+        # without one would be useless here. The handle is printed alongside so a
+        # CLI row can be correlated with an admin-console row.
+        result = Onetime::Operations::Sessions::List.new(
+          page: 1, per_page: limit.to_i, reveal_session_id: true,
+        ).call
+
+        if result.sessions.empty?
+          puts 'No sessions found'
+          return
+        end
+
+        puts format('%-40s %-34s %-25s %-15s', 'Session ID', 'Handle', 'Authenticated As', 'Created')
+        puts '-' * 80
+
+        result.sessions.each do |session|
+          session_id  = session[:session_id]
+          handle      = session[:session_handle] || '<n/a>'
+          email       = session[:email] || 'anonymous'
+          external_id = session[:external_id] || '<n/a>'
+          auth        = session[:authenticated] ? '✓' : '✗'
+          created_at  = session[:created_at]
+
+          time_str = if created_at
+            Time.at(created_at).strftime('%Y-%m-%d %H:%M')
+          else
+            'unknown'
+          end
+
+          display_email = OT::Utils.obscure_email(email)
+          puts format(
+            '%-40s %-34s %-25s %s',
+            session_id[0..39],
+            handle,
+            "#{auth} #{display_email} #{external_id}",
+            time_str,
+          )
+        end
+      end
+    end
+
+    # Search sessions command
+    class SessionSearchCommand < Command
+      include SessionHelpers
+
+      desc 'Find sessions for a user'
+
+      argument :search_term, type: :string, required: false, desc: 'Email or customer ID to search'
+
+      def call(search_term: nil, **)
+        unless search_term
+          puts 'Error: Email or customer ID required'
+          puts 'Usage: ots session search <email-or-custid>'
+          return
+        end
+        boot_application!
+
+        puts "Searching for sessions matching: #{search_term}"
+        puts '-' * 80
+
+        # Route through the extracted list op with a search filter (single
+        # implementation, bounded scan). reveal_session_id: the operator shell is
+        # the one opted-in consumer of the raw sid (#4330) — the printed id is
+        # what `inspect` / `delete` take next.
+        result = Onetime::Operations::Sessions::List.new(
+          search: search_term,
+          per_page: Onetime::Operations::Sessions::List::MAX_PER_PAGE,
+          reveal_session_id: true,
+        ).call
+
+        if result.sessions.empty?
+          puts "No sessions found matching '#{search_term}'"
+          return
+        end
+
+        puts "Found #{result.total_count} session(s):"
+        puts
+
+        result.sessions.each do |session|
+          puts "Session: #{session[:session_id]}"
+          puts "  Handle: #{session[:session_handle]}"
+          puts "  Email: #{session[:email]}"
+          puts "  External ID: #{session[:external_id]}"
+          puts "  Authenticated: #{session[:authenticated]}"
+          puts "  Created: #{format_timestamp(session[:created_at])}"
+          puts
+        end
+      end
+    end
+
+    # Delete session command
+    class SessionDeleteCommand < Command
+      include SessionHelpers
+
+      desc 'Delete a session'
+
+      # Audit actor recorded for CLI-initiated revokes. The shell carries no
+      # authenticated colonel identity; a plain, non-secret public sentinel is
+      # used — never an internal objid.
+      CLI_ACTOR = 'cli'
+
+      argument :session_id, type: :string, required: false, desc: 'Session ID'
+
+      # OPTIONAL operator-supplied why (#4338), recorded in the audit detail
+      # of the event this command's op writes. Same flag, same wording and same
+      # blank-means-absent handling as every other destructive CLI verb.
+      option :reason,
+        type: :string,
+        default: nil,
+        desc: 'Operator-supplied reason (recorded in the admin audit trail)'
+      option :force,
+        type: :boolean,
+        default: false,
+        desc: 'Skip confirmation prompt'
+
+      def call(session_id: nil, reason: nil, force: false, **)
+        unless session_id
+          puts 'Error: Session ID required'
+          puts 'Usage: ots session delete <session-id> [--reason TEXT] [--force]'
+          return
+        end
+        boot_application!
+
+        # Resolve + display the target before mutating (EXISTS + GET only, no
+        # TTL) so the confirmation shows the exact session being revoked.
+        dbclient    = Familia.dbclient
+        session_key = find_session_key(dbclient, session_id)
+
+        unless session_key
+          puts "❌ Session not found: #{session_id}"
+          return
+        end
+
+        # Show session info before deleting
+        session_data = load_session_data(dbclient, session_key)
+        puts 'Session to delete:'
+        puts "  ID: #{session_id}"
+        puts "  Email: #{session_data['email']}" if session_data
+        puts "  Authenticated: #{session_data['authenticated']}" if session_data
+        puts
+
+        unless force
+          print 'Delete this session? (y/N): '
+          response = $stdin.gets.chomp
+          unless response.downcase == 'y'
+            puts 'Cancelled'
+            return
+          end
+        end
+
+        # Route the actual deletion through the extracted, audited op (the single
+        # implementation). It re-resolves the key and records one ColonelAuditEvent.
+        Onetime::Operations::Sessions::Delete.new(
+          session_id: session_id,
+          actor: CLI_ACTOR,
+          reason: reason,
+        ).call
+        puts '✓ Session deleted'
+      end
+    end
+
+    # Revoke every session belonging to one customer.
+    class SessionRevokeAllCommand < Command
+      # Customers::Shared#resolve_customer is the one resolver every
+      # customer-targeting CLI verb uses: it strips, normalizes the email
+      # (NFC + case-fold, matching the unique index) and accepts a numeric
+      # Rodauth account id. Resolving from the RAW argument here made a
+      # mixed-case or padded address report "Customer not found" and revoke
+      # nothing.
+      include Customers::Shared
+
+      desc 'Revoke every session for a customer'
+
+      argument :customer,
+        type: :string,
+        required: false,
+        desc: 'Customer email, external ID, Rodauth account ID, or object ID'
+      option :reason,
+        type: :string,
+        default: nil,
+        desc: 'Operator-supplied reason (recorded in the admin audit trail)'
+      option :force,
+        type: :boolean,
+        default: false,
+        desc: 'Skip confirmation prompt'
+
+      def call(customer: nil, reason: nil, force: false, **)
+        # Both error paths exit non-zero: a scripted `--force` run with a typo'd
+        # identifier must not read as a successful revoke. Only the interactive
+        # "Cancelled" below returns 0, matching SessionDeleteCommand.
+        if customer.to_s.strip.empty?
+          puts 'Usage: ots session revoke-all <customer> [--reason TEXT] [--force]'
+          error_exit('Customer required')
+        end
+
+        boot_application!
+
+        # objid fallback kept for parity with the op's own resolution.
+        target = resolve_customer(customer) || Onetime::Customer.load(customer.to_s.strip)
+        error_exit("Customer not found: #{customer}") unless target&.exists?
+
+        unless force
+          print "Revoke every session for #{target.obscure_email} (#{target.extid})? (y/N): "
+          response = $stdin.gets&.chomp
+          unless response&.downcase == 'y'
+            puts 'Cancelled'
+            return
+          end
+        end
+
+        # The record just resolved (and confirmed above) is what gets revoked —
+        # never a re-resolution of its extid (see the op's class docs).
+        result = Onetime::Operations::Sessions::RevokeAllForCustomer.new(
+          customer: target,
+          actor: Customers::Shared::CLI_ACTOR,
+          reason: reason,
+        ).call
+
+        puts "Revoked #{result.blobs_deleted} session(s) for #{target.extid}"
+        puts 'Warning: untracked-session scan reached its safety cap' if result.scan_capped
+      end
+
+      private
+
+      # Same per-command shape as lib/onetime/cli/customers/*_command.rb (minus
+      # their --json branch, which this verb does not offer).
+      def error_exit(message)
+        puts "Error: #{message}"
+        exit 1
+      end
+    end
+
+    # Register session commands. `sessions` (the plural the break-glass runbook
+    # names) is an ALIAS of the `session` node, same pattern as customers_command.rb:
+    # dry-cli attaches aliases to the node itself, so every subcommand resolves
+    # under both spellings. A second `register 'sessions', ...` would instead
+    # create a separate node holding only what is registered beneath it, so
+    # `ots sessions list` fell through to the banner.
+    register 'session', SessionCommand, aliases: ['sessions']
+    register 'session inspect', SessionInspectCommand
+    register 'session list', SessionListCommand
+    register 'session search', SessionSearchCommand
+    register 'session delete', SessionDeleteCommand
+    register 'session revoke-all', SessionRevokeAllCommand
+  end
+end

@@ -1,0 +1,456 @@
+# spec/spec_helper.rb
+#
+# frozen_string_literal: true
+
+# CRITICAL: Set RACK_ENV before anything else loads.
+# This ensures ConfigResolver uses test configs (spec/*.test.yaml) not production configs.
+ENV['RACK_ENV'] = 'test'
+
+# Start code coverage before any application code is required so the whole
+# codebase is tracked. Enabled only when COVERAGE=true (see .simplecov).
+require 'simplecov' if ENV['COVERAGE'] == 'true'
+
+# Debugging helpers for tests
+#
+# To debug tests with IRB console (debugger):
+#   RUBY_DEBUG_IRB_CONSOLE=true pnpm run test:rspec spec/your_test_spec.rb
+#
+# To run specific tests:
+#   pnpm run test:rspec spec/your_test_spec.rb:line_number
+#   pnpm run test:rspec spec/your_test_spec.rb -e "test description"
+#
+# To run tests with focus tag:
+#   Add `focus: true` to your it/describe blocks, then run: pnpm run test:rspec
+#
+# To see full error backtraces:
+#   pnpm run test:rspec --backtrace
+#
+# To run tests in the order they're written (not random):
+#   pnpm run test:rspec --order defined
+#
+# To see detailed output:
+#   pnpm run test:rspec --format documentation
+
+# spec/spec_helper.rb
+# Test harness for Onetime.
+
+# Test database URL: spec/config.test.yaml hardcodes host/port
+# 127.0.0.1:2163 (avoids conflicts with development Redis on 6379). It is
+# not overridable via VALKEY_URL/REDIS_URL; see [#2128] which centralized
+# the test Redis URL in config instead of env vars scattered across spec
+# helpers. The DB index alone varies: LANES_DATASTORE_DB (exported by
+# tests/lanes/run, derived per worktree) selects which database on 2163 a
+# run uses, so concurrent worktrees don't share keys ([#4168]). Unset — the
+# interactive case — it falls back to /0.
+
+require 'rspec'
+require 'yaml'
+require 'tempfile'
+require 'fileutils'
+
+# Redis/Valkey Testing Strategy
+#
+# FakeRedis was removed due to redis 5.x incompatibility. The project uses redis ~> 5.4.0,
+# but fakeredis only supports redis ~> 4.8. Bundler resolved to fakeredis 0.1.4 (from 2013)
+# which had no redis dependency constraint, but this ancient version lacked modern Redis features.
+#
+# Why fakeredis 0.1.4 was used:
+# - fakeredis 0.9.2 (May 2023) → requires redis ~> 4.8 ❌ conflicts
+# - fakeredis 0.5.0-0.8.0 → requires redis ~> 4.x ❌ conflicts
+# - fakeredis 0.1.4 (2013) → no redis dependency ✓ only option
+#
+# Current state per GitHub issue guilleiguaran/fakeredis#268:
+# - FakeRedis doesn't support redis-rb 5.x yet
+# - redis-client (used by redis-rb 5.x) maintainers won't add mocking support
+# - Ecosystem recommendation: use real Redis/Valkey for tests
+#
+# Testing approaches:
+# - Unit tests: Most don't actually need Redis - they test pure Ruby logic
+# - Integration tests: Use real Valkey on port 2163 (see integration_spec_helper.rb)
+#
+# Future alternative if needed:
+# - mock_redis gem supports redis ~> 5.0 and is actively maintained
+# - Add to Gemfile: gem 'mock_redis', require: false
+# - See: https://rubygems.org/gems/mock_redis
+#
+# For now, tests requiring Redis should read from the spec/config.test.yaml
+#   pnpm run test:database:start  # Start Valkey on port 2163
+#   pnpm run test:rspec
+
+# Configure Timecop for time manipulation in tests
+require 'timecop'
+
+# Configure Rack::Test for request specs
+require 'rack/test'
+
+# Block all external HTTP connections by default
+# Tests must use VCR cassettes or explicit stubs for any HTTP calls
+require 'webmock/rspec'
+WebMock.disable_net_connect!(allow_localhost: true)
+# Path setup - do one thing well
+spec_root = File.expand_path(__dir__)
+base_path = File.expand_path('..', spec_root)
+apps_root = File.join(base_path, 'apps').freeze
+
+$LOAD_PATH.unshift(File.join(apps_root, 'api'))
+$LOAD_PATH.unshift(File.join(apps_root, 'web'))
+$LOAD_PATH.unshift(File.join(base_path, 'lib'))
+$LOAD_PATH.unshift(spec_root)
+
+# Load application - fail fast, fail clearly
+begin
+  require 'onetime'
+  require 'onetime/alias'
+
+  # Due to how Familia::Horreum defines model classes we need to create
+  # an instance of each model class to ensure that they are loaded and
+  # available for testing. Part of ##1185.
+  require 'onetime/models'
+
+  require 'onetime/logic'
+  require 'onetime/views'
+
+  # Load API modules for specs that test them
+  require 'account/application'
+  require 'core/application'
+rescue LoadError => ex
+  warn "Load failed: #{ex.message} (pwd: #{Dir.pwd})"
+  exit 1
+end
+
+# generated/locales is gitignored build output (locales/scripts/i18n content
+# compile --all writes it). bin/setup runs this, but a worktree that skips
+# bin/setup — because gems/node_modules already exist elsewhere in a forest of
+# worktrees — boots i18n empty and specs fail with confusing downstream errors
+# (missing translations, nil lookups) instead of a clear cause. Fail fast here.
+if Dir.glob(File.join(Onetime::HOME, 'generated', 'locales', '*.json')).empty?
+  warn 'generated/locales is empty or missing.'
+  warn '  Run: pnpm run locales:sync   (or: bin/setup)'
+  exit 1
+end
+
+# Switch SemanticLogger to synchronous mode for tests.
+# This eliminates race conditions where the async logging thread processes log
+# messages containing mock objects after RSpec has torn down the mock context.
+# The async thread would call .strftime on what should be a Time but is a mock,
+# causing RSpec::Mocks::MockExpectationError.
+#
+# See: https://github.com/reidmorrison/semantic_logger/blob/master/lib/semantic_logger/sync.rb
+require 'semantic_logger/sync'
+
+# Configure test logging levels from spec/logging.test.yaml
+# This ensures consistent quiet logging for all tests, even those that don't call boot!
+# Integration tests that call boot! will have SetupLoggers re-apply this config.
+begin
+  require 'onetime/utils/config_resolver'
+  logging_path = Onetime::Utils::ConfigResolver.resolve('logging')
+  if logging_path && File.exist?(logging_path)
+    logging_config = YAML.load(ERB.new(File.read(logging_path)).result)
+    default_level = logging_config['default_level']&.to_sym || :warn
+    SemanticLogger.default_level = default_level
+  else
+    # Fallback to warn if no config found
+    SemanticLogger.default_level = :warn
+  end
+rescue StandardError => ex
+  warn "Failed to load test logging config: #{ex.message}"
+  SemanticLogger.default_level = :warn
+end
+
+# Log capture for a lane run (`tests/lanes/run --capture-logs`). Nothing
+# happens here unless the runner exported one of its LANES_*_LOG_* names.
+#
+# With LANES_APP_LOG_FILE set, the application log file is installed now
+# rather than at boot, so specs that never boot the application are captured
+# too. Specs that do boot get the same file, and the console the runner asked
+# for, from the `destinations` block in spec/logging.test.yaml. Category
+# levels are not touched: the default level set above, and the per-category
+# levels a boot applies, decide which events exist, as they do without it.
+#
+# With LANES_MAIL_LOG_FILE set, the logger mail backend appends each
+# delivered email to that file instead of printing it. The backend writes
+# outside SemanticLogger, so the logging config does not reach it.
+#
+# A file that cannot be opened, or a value the runner would not have
+# exported, ends the process here with a message.
+#
+# OmniAuth logs through a logger of its own on standard out. Under a captured
+# run it is pointed at the application's logging before each example (it is
+# only loaded once a full-mode application boots, so not here). Without a log
+# file the hook returns at its first line.
+require_relative '../tests/lanes/support/log_capture'
+Lanes::LogCapture.install_or_abort!
+RSpec.configure do |config|
+  config.before { Lanes::LogCapture.route_omniauth_logger }
+end
+
+# Load test utilities
+Dir[File.join(spec_root, 'support', '*.rb')].each { |f| require f }
+Dir[File.join(spec_root, 'support', 'shared_contexts', '*.rb')].each { |f| require f }
+Dir[File.join(spec_root, 'support', 'shared_examples', '*.rb')].each { |f| require f }
+Dir[File.join(spec_root, 'support', 'factories', '*.rb')].each { |f| require f }
+Dir[File.join(spec_root, 'support', 'helpers', '*.rb')].each { |f| require f }
+
+# Test mode
+OT.mode = :test
+
+# Config resolution is handled automatically by Onetime::Utils::ConfigResolver
+# when RACK_ENV=test - it uses spec/{name}.test.yaml files
+
+# Billing isolation for RSpec is handled by apps/web/billing/spec/support/billing_isolation.rb
+# which disables billing before each test and cleans up after tests that enable it.
+# Framework-agnostic helpers live in apps/web/billing/lib/test_support/billing_helpers.rb
+
+# Load the test configuration so OT.conf is available to tests.
+# This is a minimal config load that doesn't run the full boot process.
+# Integration tests that need full boot will call Onetime.boot! separately.
+begin
+  OT::Config.before_load
+  raw_conf       = OT::Config.load
+  processed_conf = OT::Config.after_load(raw_conf)
+  OT.replace_config!(processed_conf)
+
+  # Set Familia.uri from config so integration test hooks can use Familia.dbclient
+  # before boot! runs. Without this, Familia uses default redis://127.0.0.1:6379.
+  redis_uri   = OT.conf.dig('redis', 'uri')
+  Familia.uri = redis_uri if redis_uri
+rescue StandardError => ex
+  warn "Failed to load test config: #{ex.message}"
+  warn 'Tests requiring OT.conf will fail'
+end
+
+# A bounded connection pool for this process. Unit specs never boot, so
+# without this every Familia.dbclient lookup opened a connection of its own
+# (familia 2.12 fallback, delano/familia#456) and one datastore-heavy spec
+# file exhausted the ephemeral ports on macOS. Installs the provider a full
+# boot installs, over a pool created here; connections are made lazily,
+# all against the Familia.uri set above. A spec that boots gets the boot's
+# pool.
+require_relative '../tests/lanes/support/datastore_pool'
+Lanes::DatastorePool.install!(uri: Familia.uri)
+
+# Test helpers module
+module SpecHelpers
+  # Add shared test helpers here
+end
+
+# Truemail requires a verifier_email before regex validation can be used.
+# Without this, Truemail.validate doesn't raise — it returns a result whose
+# error message ("use Truemail.configure before...") gets swallowed by the
+# strategy's own rescue blocks, causing every sender strategy spec to fail
+# with misleading wrong-error-message assertions.
+Truemail.configure do |config|
+  config.verifier_email = 'test@example.com'
+  config.default_validation_type = :regex
+end
+
+RSpec.configure do |config|
+  # ==========================================================================
+  # DIRECTORY-BASED AUTH MODE ISOLATION
+  # ==========================================================================
+  # Integration tests are organized by authentication mode. Each mode runs in
+  # a separate process with the appropriate AUTHENTICATION_MODE env var set.
+  #
+  # Directory structure:
+  #   spec/integration/simple/    -> AUTHENTICATION_MODE=simple
+  #   spec/integration/full/      -> AUTHENTICATION_MODE=full
+  #   spec/integration/disabled/  -> AUTHENTICATION_MODE=disabled
+  #   spec/integration/all/       -> Runs in ALL modes (infrastructure tests)
+  #
+  # Run tests via Rake tasks (recommended):
+  #   bundle exec rake spec:integration:simple
+  #   bundle exec rake spec:integration:full
+  #   bundle exec rake spec:integration:disabled
+  #   bundle exec rake spec:integration:all
+  #
+  # Or via pnpm:
+  #   pnpm test:rspec:integration:simple
+  #   pnpm test:rspec:integration:full
+  #   pnpm test:rspec:integration:disabled
+  #
+  # The Rake tasks run mode-specific tests + all/ tests together, matching
+  # production deployment where only one auth mode exists per instance.
+  #
+  # LANE ENVIRONMENT CONTRACT
+  # Each Rake task is a lane: it starts one process with a fixed environment
+  # (the env hash in lib/tasks/spec.rake), and a spec may rely on exactly
+  # that and nothing else. The full lane, for example, also sets
+  # AUTH_DATABASE_URL=sqlite::memory: and ORGS_SSO_ENABLED=true. A bare
+  # `bundle exec rspec <file>` is NOT a lane: it inherits whatever the shell
+  # exports, so a spec that needs a lane-provided setting fails there in a
+  # way that looks like a product bug. Tag such examples with
+  # `lane_env: { 'NAME' => 'value' }` so they fail naming the lane instead
+  # (spec/support/helpers/lane_env_helpers.rb). Never fix a lane-dependent
+  # spec by stubbing the setting: that tests a process no lane starts.
+  # ==========================================================================
+
+  # Auto-derive auth mode tags from directory structure.
+  # These tags trigger before(:context) hooks in support/ files that set up
+  # mode-specific infrastructure (database mocks, factories, helpers).
+  # See: spec/support/auth_mode_helpers.rb, spec/support/full_mode_suite_database.rb
+  %w[simple full disabled].each do |mode|
+    config.define_derived_metadata(file_path: %r{/integration/#{mode}/}) do |metadata|
+      metadata[:"#{mode}_auth_mode"] = true
+    end
+  end
+
+  # Tests in /integration/all/ run in every mode - tagged for documentation purposes
+  config.define_derived_metadata(file_path: %r{/integration/all/}) do |metadata|
+    metadata[:all_auth_modes] = true
+  end
+
+  config.expect_with :rspec do |expectations|
+    # Use default expectations configuration
+  end
+
+  config.mock_with :rspec do |mocks|
+    mocks.verify_partial_doubles = true
+  end
+
+  # Save critical OT global state before each test to prevent test isolation issues.
+  # Some tests modify these values directly or set them to nil; this ensures
+  # subsequent tests have valid state.
+  config.before(:each) do
+    @__original_ot_conf       = OT.conf
+    # Save Runtime state - this is where locales and other i18n state lives
+    @__original_runtime_i18n  = Onetime::Runtime.internationalization
+    # Save boot state - tests that manipulate boot state need this restored
+    @__original_boot_state    = Onetime.boot_state
+    # ...and whether that boot was full, which decides whether a later
+    # boot!(:test) reuses it or upgrades a partial one (boot_guard!)
+    @__original_boot_db       = Onetime.boot_connected_to_db?
+
+    # Ensure I18n is usable for code paths calling I18n.t — without this,
+    # enforce_available_locales! raises InvalidLocale before default: falls back.
+    # Production runs SetupI18n initializer at boot; unit tests skip boot!.
+    I18n.available_locales = [:en] unless I18n.available_locales.include?(:en)
+    I18n.default_locale = :en
+
+    # AdminNetworkIsolation announces its boot posture — and every WARN about a
+    # gate being off, dark, or unenforceable — through a PROCESS-WIDE ledger, so
+    # the 13 mounted apps built from one config print one line instead of 13.
+    # Production never clears it: a process boots once. A spec process builds a
+    # stack per example, so without this the first example to produce a given
+    # posture is the only one that can ever observe its boot line, and every
+    # later assertion about one sees silence — a green-or-red decided by run
+    # order, with silence as the default. Reset per example so each stack a spec
+    # builds announces itself, exactly as the first one in a real boot does.
+    # Pinned by spec/integration/all/colonel_host_allowlist_spec.rb, which asserts
+    # the same boot WARN in two identical examples.
+    Onetime::Middleware::AdminNetworkIsolation.reset_boot_announcements!
+  end
+
+  # Clean Redis/Valkey database after each integration test to prevent state leakage.
+  # This ensures tests don't pollute each other regardless of which helper they require.
+  # Port 2163 check prevents accidental flush of development/production databases.
+  config.after(:each, type: :integration) do |example|
+    next if example.metadata[:shared_db_state]
+    next if example.metadata[:billing]
+
+    redis_uri_string = OT.conf&.dig('redis', 'uri')
+    if redis_uri_string
+      begin
+        uri = URI.parse(redis_uri_string)
+        Familia.dbclient.flushdb if uri.port == 2163
+      rescue URI::InvalidURIError
+        # Malformed URI wouldn't match the port check, safe to ignore
+      rescue StandardError => e
+        warn "Redis cleanup failed: #{e.message}"
+        warn e.backtrace.join("\n") if ENV['ONETIME_DEBUG']
+      end
+    end
+  end
+
+  # otto 2.10 pins Rack::Request.forwarded_priority from
+  # Otto::Security::Config#trusted_proxy_header and holds every config that
+  # named a family in a process-global registry; a later config naming a
+  # different family raises. Production names one family per process. A spec
+  # process builds a fresh config per example (MiddlewareStack
+  # .ip_privacy_security_config, Otto.new), and examples covering depth mode
+  # with header Forwarded/Both would otherwise fail or pass by run order.
+  # Reset per example, the same way AdminNetworkIsolation's ledger is above.
+  # The reset clears otto's registry AND restores Rack::Request
+  # .forwarded_priority to the value otto captured at load
+  # (otto/security/config.rb, DEFAULT_RACK_FORWARDED_PRIORITY), so examples
+  # that assign the priority directly do not leak `[:forwarded]` into later
+  # spec files either.
+  config.after do
+    Otto::Security::Config.reset_rack_forwarding_family_for_testing! if defined?(Otto::Security::Config)
+  end
+
+  config.after(:each) do
+    # Flush SemanticLogger to ensure all log messages are processed before
+    # moving to the next test. Since we use SemanticLogger.sync! (set above),
+    # this is now a synchronous operation with no race conditions.
+    #
+    # Note: Some tests stub SemanticLogger.flush to test error handling,
+    # so we rescue any errors here.
+    begin
+      SemanticLogger.flush if defined?(SemanticLogger)
+    rescue StandardError => ex
+      # Log but don't fail - this may be a test stub (setup_loggers_spec.rb)
+      # or a real error worth investigating.
+      warn "SemanticLogger.flush failed (possibly stubbed): #{ex.message}"
+    end
+
+    # Restore OT.conf if it was changed during the test
+    if OT.conf != @__original_ot_conf
+      OT.instance_variable_set(:@conf, @__original_ot_conf)
+    end
+    # Restore Runtime internationalization state if changed
+    if Onetime::Runtime.internationalization != @__original_runtime_i18n
+      Onetime::Runtime.internationalization = @__original_runtime_i18n
+    end
+    # Configure Timecop - automatically return to real time after each test
+    Timecop.return
+
+    # Clear thread-local initializer registry to prevent state leakage between tests.
+    # The InitializerRegistry.with_registry pattern saves/restores, but direct assignments
+    # to Thread.current[:initializer_registry] may not be cleaned up.
+    Thread.current[:initializer_registry] = nil
+
+    # Restore boot state if it was changed during the test.
+    # This follows the same save/restore pattern as OT.conf and Runtime.internationalization.
+    # Tests that manipulate boot state (e.g., boot! tests, error handling tests) will have
+    # their changes restored, while tests that depend on persistent boot state (e.g., routes
+    # tests using before(:all)) won't have their state unexpectedly reset.
+    if Onetime.boot_state != @__original_boot_state ||
+       Onetime.boot_connected_to_db? != @__original_boot_db
+      case @__original_boot_state
+      when Onetime::Initializers::BOOT_STARTED
+        Onetime.started!(connected_to_db: @__original_boot_db)
+      when Onetime::Initializers::BOOT_FAILED
+        Onetime.failed!(StandardError.new('Restored from test'))
+      else
+        Onetime.reset_ready!
+      end
+    end
+  end
+
+  # Include Rack::Test::Methods for request specs
+  config.include Rack::Test::Methods, type: :request
+
+  # ACME integration tests run with mocked dependencies (no live database needed)
+
+  config.filter_run_when_matching :focus
+  config.order = :random
+
+  # Example status persistence (`--only-failures`, `--next-failure`), but
+  # only under the lane runner: tests/lanes/run exports this path keyed per
+  # lane and overlay set under tmp/lanes/ (gitignored), so two lanes never
+  # read each other's statuses. Plain rspec outside the runner leaves it
+  # unset and behaves exactly as before — a fixed path here would hand
+  # every worktree and every lane one shared file.
+  if (status_file = ENV.fetch('LANES_RSPEC_STATUS_FILE', nil)) && !status_file.empty?
+    config.example_status_persistence_file_path = status_file
+  end
+
+  # One of :none, :all, :deprecations_only
+  config.warnings = :deprecations_only
+
+  Kernel.srand config.seed
+end
+
+# Load billing isolation support (must be after RSpec.configure)
+# RSpec-specific hooks live in billing_isolation.rb, which requires the shared helpers.
+require_relative '../apps/web/billing/spec/support/billing_isolation'

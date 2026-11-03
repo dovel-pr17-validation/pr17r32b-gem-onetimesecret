@@ -1,0 +1,209 @@
+<!-- src/apps/secret/components/branded/SecretDisplayCase.vue -->
+
+<script setup lang="ts">
+  import BaseSecretDisplay from '@/apps/secret/components/branded/BaseSecretDisplay.vue';
+  import SecretMarkdownContent from '@/apps/secret/components/SecretMarkdownContent.vue';
+  import { SecretDisplayType } from '@/schemas/contracts/secret';
+  import { brandSettingsSchema } from '@/schemas/shapes/v3/custom-domain';
+  import type { Secret, SecretDetails } from '@/schemas/shapes/v3/secret';
+  import { useClipboard } from '@/shared/composables/useClipboard';
+  import { useProductIdentity } from '@/shared/stores/identityStore';
+  import { computed } from 'vue';
+  import { useI18n } from 'vue-i18n';
+
+  // Default brand settings for when no custom branding is configured
+  const defaultBrandSettings = brandSettingsSchema.parse({});
+
+  interface Props {
+    record: Secret | null;
+    details: SecretDetails | null;
+    domainId: string;
+    submissionStatus?: {
+      status: 'idle' | 'submitting' | 'success' | 'error';
+      message?: string;
+    };
+  }
+
+  const props = defineProps<Props>();
+  const i18n = useI18n();
+  const { t } = i18n;
+
+  const isRevealed = computed(() => !!props.record?.secret_value && props.record.secret_value !== '');
+
+  // display_type is the creator's presentation hint (plain text unless they
+  // chose otherwise). The copy button copies the raw value in every mode.
+  const isMarkdown = computed(() => props.record?.display_type === SecretDisplayType.MARKDOWN);
+
+  const productIdentity = useProductIdentity();
+
+  // Use computed properties directly from identityStore (already parsed with v3 schema)
+  const cornerClass = computed(() => productIdentity.cornerClass);
+  const fontFamilyClass = computed(() => productIdentity.fontFamilyClass);
+  const headingFontClass = computed(() => productIdentity.headingFontClass);
+
+  const alertClasses = computed(() => ({
+    'mb-4 p-4 rounded-md': true,
+    'bg-red-50 text-red-700 dark:bg-red-900 dark:text-red-100':
+      props.submissionStatus?.status === 'error',
+    'bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-100':
+      props.submissionStatus?.status === 'success',
+  }));
+
+  const { isCopied, copyToClipboard } = useClipboard();
+
+  const copySecretContent = async () => {
+    if (props.record?.secret_value === undefined) {
+      return;
+    }
+
+    await copyToClipboard(props.record?.secret_value);
+
+    // Announce copy success to screen readers
+    const announcement = document.createElement('div');
+    announcement.setAttribute('role', 'status');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.textContent = t('web.secrets.secret_content_copied_to_clipboard');
+    document.body.appendChild(announcement);
+    setTimeout(() => announcement.remove(), 1000);
+  };
+
+  const isCopiedText = computed(() => isCopied ? t('web.STATUS.copied') : t('web.LABELS.copy_to_clipboard') );
+</script>
+
+<template>
+  <!-- Updated -->
+  <BaseSecretDisplay
+    :default-title="t('web.secrets.you_have_a_message')"
+    :preview-i18n="i18n"
+    :domain-branding="productIdentity.brand ?? defaultBrandSettings"
+    :corner-class="cornerClass"
+    :font-class="fontFamilyClass"
+    :heading-class="headingFontClass"
+    :is-revealed="isRevealed">
+    <!-- Alert display -->
+    <div
+      v-if="
+        submissionStatus?.status === 'error' || submissionStatus?.status === 'success'
+      "
+      :class="alertClasses"
+      role="alert"
+      aria-live="polite">
+      <div class="flex">
+        <div class="shrink-0">
+          <svg
+            v-if="submissionStatus.status === 'error'"
+            class="size-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clip-rule="evenodd" />
+          </svg>
+          <svg
+            v-else
+            class="size-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm">
+            {{
+              submissionStatus.message ||
+                (submissionStatus.status === 'error' ? t('web.COMMON.an_error_occurred') : t('web.STATUS.success'))
+            }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <template #content>
+      <div class="relative size-full p-0">
+        <SecretMarkdownContent
+          v-if="isMarkdown && record?.secret_value"
+          :content="record.secret_value"
+          :content-id="'secret-content-' + record?.identifier"
+          :rows="details?.display_lines ?? 4"
+          :corner-class="cornerClass" />
+        <div
+          v-else
+          :class="[cornerClass, 'size-full overflow-hidden border border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800']">
+          <label
+            :for="'secret-content-' + record?.identifier"
+            class="sr-only">
+            {{ t('web.secrets.secret_content') }}
+          </label>
+          <textarea
+            :id="'secret-content-' + record?.identifier"
+            class="block size-full min-h-32 resize-none border-none bg-transparent font-mono text-base focus:ring-2 focus:ring-brand-500 focus:outline-none sm:min-h-36 dark:text-white"
+            readonly
+            :rows="details?.display_lines ?? 4"
+            :value="record?.secret_value"
+            :aria-label="t('web.secrets.secret_content')"
+            data-testid="secret-content"
+            ref="secretContent"></textarea>
+        </div>
+      </div>
+    </template>
+
+    <template #action-button>
+      <button
+        @click="copySecretContent"
+        :title="isCopiedText"
+        class="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2.5 text-sm font-medium shadow-sm transition-colors duration-150 ease-in-out hover:bg-brand-600 hover:shadow focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        :class="[
+          fontFamilyClass,
+          cornerClass,
+          productIdentity.buttonTextLight ? 'text-white' : 'text-gray-900',
+        ]"
+        aria-live="polite"
+        :aria-label="isCopied ? t('web.COMMON.secret_copied_to_clipboard') : t('web.COMMON.copy_secret_to_clipboard')"
+        :aria-pressed="isCopied">
+        <svg
+          v-if="!isCopied"
+          xmlns="http://www.w3.org/2000/svg"
+          class="mr-2 size-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+        <svg
+          v-else
+          xmlns="http://www.w3.org/2000/svg"
+          class="mr-2 size-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M5 13l4 4L19 7" />
+        </svg>
+        <span>{{ isCopied ? t('web.STATUS.copied') : t('web.LABELS.copy_to_clipboard') }}</span>
+      </button>
+    </template>
+  </BaseSecretDisplay>
+</template>
+
+<style scoped>
+  /* Ensure focus outline is visible in all color schemes */
+  :focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+</style>

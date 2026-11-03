@@ -1,0 +1,403 @@
+# ==============================================================================
+# Compose / docker smoke (install-onboarding testing-strategy §2a)
+# ==============================================================================
+# The #1 self-host funnel: the documented `docker compose up` and `docker run`
+# quick starts. Two jobs:
+#
+#   compose-smoke      (PR on docker/** changes + weekly cron): lint every
+#                      documented compose combo with `config -q`, then bring up
+#                      the simple stack with `--wait` (the app healthcheck is the
+#                      readiness assertion) and run the shared proof-of-life.
+#                      On PRs the bring-up is skipped when the pinned default
+#                      image is not published yet: a release PR bumps the pin
+#                      to a tag the image build publishes only after tagging
+#                      (#4514). On cron/manual an unpublished pin fails the job.
+#   full-stack-smoke   (PR on docker/image changes + weekly cron): build the
+#                      app image and Caddy proxy FROM SOURCE (bake), bring up
+#                      the full stack (proxy + app + valkey + rabbitmq +
+#                      worker + scheduler) with `--wait`, run proof-of-life
+#                      inside the app container, and assert ingress through
+#                      Caddy. Source-built so it guards the repo's Dockerfile
+#                      and compose wiring together (and the /app/data named-
+#                      volume ownership contract), not last release's image.
+#   app-boot-pinned    (weekly cron + manual): boot the app from the full
+#                      compose config with NO OTS_IMAGE_TAG override, so it
+#                      pulls the PUBLISHED pinned image the default names and
+#                      boots it against the current compose file. full-stack-
+#                      smoke builds from source and so can't see when a pinned
+#                      release predates the compose file's runtime contract
+#                      (#3892 — v0.25.11 + the /app/data named volume = root-
+#                      owned mount, sqlite boot migration can't write). Cron/
+#                      manual, not PR: a release PR may bump the pin to a tag
+#                      not published yet (check-version-pins.sh covers PR drift).
+#   docker-run-readme  (weekly cron + manual): the README `docker run` quick
+#                      start, verbatim, against the exact published tag the
+#                      README shows — the only thing that catches "the docs
+#                      point at a broken/missing tag".
+#
+# Reference shape: Supabase smoke-tests its self-host compose with published
+# pinned images on every docker/** PR; Sentry runs its install path on a cron.
+# ==============================================================================
+name: Compose smoke
+
+on:
+  pull_request:
+    paths:
+      - 'docker-compose.yml'
+      - 'docker/compose/**'
+      # Named individually, not globbed: tools/testsuite-installer/ also holds
+      # helpers for five other workflows, and this lane is a ~15min build+up.
+      - 'bin/testsuite-installer'
+      - 'tools/testsuite-installer/testsuite-installer.sh'
+      - 'tools/testsuite-installer/proof-of-life.sh'
+      - 'tools/testsuite-installer/seed-compose-env.sh'
+      - '.github/workflows/compose-smoke.yml'
+      # full-stack-smoke builds from source, so image-definition changes
+      # must exercise it too.
+      - 'Dockerfile'
+      - 'docker/bake.hcl'
+      - 'docker/base.dockerfile'
+      - 'docker/variants/caddy.dockerfile'
+      - 'docker/entrypoints/**'
+  schedule:
+    # Weekly: catches published-image / registry / tag rot with no commit.
+    - cron: '41 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compose-smoke:
+    name: docker compose up (simple)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # Compose interpolates ${SECRET:?...} even for `config`. Interpolation
+      # variables come from the shell environment and the project-directory
+      # .env — NOT from a service's `env_file:` (that only feeds the container
+      # at runtime). Because `-f docker/compose/<file>` shifts the project dir
+      # to docker/compose/, a repo-root .env alone would be missed. So export
+      # SECRET into the job env (satisfies interpolation for every compose
+      # invocation) AND write repo-root .env (the `env_file: ../../.env` target,
+      # which must exist for `up`). Throwaway secret — the stack is torn down.
+      - name: Seed SECRET (interpolation) and .env (env_file target)
+        run: |
+          secret="$(openssl rand -hex 32)"
+          echo "SECRET=$secret" >> "$GITHUB_ENV"
+          echo "SECRET=$secret" > .env
+          # H-2: VALKEY_URL / maindb requirepass now use ${VALKEY_PASSWORD:?...}
+          # (fail-fast required). Supply a throwaway so `config`/`up` interpolate.
+          valkey_password="$(openssl rand -hex 32)"
+          echo "VALKEY_PASSWORD=$valkey_password" >> "$GITHUB_ENV"
+          echo "VALKEY_PASSWORD=$valkey_password" >> .env
+
+      # Zero-cost lint of every documented file combination first (Mattermost
+      # pattern) — a broken include/merge fails here before anything is pulled.
+      - name: Lint all documented compose combos (config -q)
+        # docker-compose.full.yml interpolates ${RABBITMQ_USER:?}/${RABBITMQ_PASS:?}
+        # (fail-fast required, like SECRET/VALKEY_PASSWORD above). This job never
+        # brings the full stack up — it only lints it — so throwaway values are
+        # fine here and scoped to this step.
+        env:
+          RABBITMQ_USER: lint
+          RABBITMQ_PASS: lint
+        run: |
+          set -x
+          docker compose config -q
+          docker compose -f docker/compose/docker-compose.simple.yml config -q
+          docker compose -f docker/compose/docker-compose.full.yml config -q
+          docker compose \
+            -f docker/compose/docker-compose.simple.yml \
+            -f docker/compose/docker-compose.mailpit.yml config -q
+
+      # A release PR bumps `${OTS_IMAGE_TAG:-vX.Y.Z}` to a tag the image build
+      # publishes only after vX.Y.Z is tagged, so `up` cannot pull it yet and
+      # this job fails by construction (#4514). On pull_request, skip the
+      # bring-up and proof-of-life when the pin is unpublished; the pin itself
+      # is still asserted by check-version-pins.sh (Drift guards). On cron or
+      # manual dispatch an unpublished pin is tag rot on main and fails here.
+      # Only "no such manifest" counts as unpublished: any other inspect
+      # failure (rate limit, network) fails the step rather than skipping,
+      # so a registry hiccup cannot turn into a silent green.
+      - name: Is the pinned image published?
+        id: pin
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          tag="$(grep -oE 'OTS_IMAGE_TAG:-v[0-9]+\.[0-9]+\.[0-9]+' \
+            docker/compose/docker-compose.simple.yml | head -n1 | cut -d- -f2)"
+          if [[ -z "$tag" ]]; then
+            echo "::error::no \${OTS_IMAGE_TAG:-vX.Y.Z} default found in docker/compose/docker-compose.simple.yml"
+            exit 1
+          fi
+          image="onetimesecret/onetimesecret:${tag}"
+          if out="$(docker manifest inspect "$image" 2>&1 >/dev/null)"; then
+            echo "Pinned image is published: $image"
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          elif grep -q 'no such manifest' <<<"$out"; then
+            if [[ "$EVENT_NAME" != "pull_request" ]]; then
+              echo "::error::$image is not published; the pin on this branch names a missing tag"
+              exit 1
+            fi
+            echo "::warning::$image is not published yet; skipping bring-up and proof-of-life"
+            echo "compose-smoke: bring-up and proof-of-life skipped, \`$image\` is not published yet" >> "$GITHUB_STEP_SUMMARY"
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::could not query $image: $out"
+            exit 1
+          fi
+
+      # No data-dir prep needed: the simple stack no longer mounts ./data
+      # (CP-5 — simple mode persists everything in the maindb-data volume).
+      - name: Bring up the simple stack (--wait on app healthcheck)
+        if: steps.pin.outputs.published == 'true'
+        run: |
+          docker compose -f docker/compose/docker-compose.simple.yml \
+            up -d --wait --wait-timeout 180 --quiet-pull --renew-anon-volumes
+
+      # POL_CREATE_ACCOUNT (the C4 follow-on): proof-of-life's opt-in step 4
+      # creates a first account via bin/ots inside the app container and
+      # asserts an authenticated /api/v2/receipt/recent round-trip — the
+      # documented "create your first account" path, exercised in simple
+      # auth mode.
+      # docker-run-readme below stays default-off: it runs the published
+      # README tag, which may predate the CLI contract this step depends on.
+      - name: Proof of life (incl. first-account step)
+        if: steps.pin.outputs.published == 'true'
+        env:
+          POL_CREATE_ACCOUNT: '1'
+          POL_EXEC: docker compose -f docker/compose/docker-compose.simple.yml exec -T app
+        run: bin/testsuite-installer proof-of-life http://127.0.0.1:3000
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker/compose/docker-compose.simple.yml logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker/compose/docker-compose.simple.yml down -v
+
+  full-stack-smoke:
+    name: docker compose up (full, source-built)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # Seed throwaway secrets into $GITHUB_ENV (compose interpolation) and
+      # repo-root .env (the `env_file:` target). Shared with app-boot-pinned;
+      # see the script header for what each target covers and why full auth
+      # mode needs AUTH_SECRET / ACCOUNT_ID_SECRET.
+      - name: Seed throwaway secrets (compose interpolation + .env)
+        run: bin/testsuite-installer seed-compose-env
+
+      # Build the app image FROM SOURCE via the same bake config releases
+      # use, tagged so the compose default `onetimesecret/onetimesecret:
+      # ${OTS_IMAGE_TAG}` resolves to it. The default buildx builder on
+      # GitHub runners is the docker driver, so bake output lands in the
+      # local image store without --load.
+      - name: Build app image from source (bake main)
+        run: |
+          docker buildx bake -f docker/bake.hcl main \
+            --set "*.args.ALLOW_DEV_VERSION=true" \
+            --set "main.tags=onetimesecret/onetimesecret:ci-fullstack"
+
+      # The proxy is build-only by design (custom Caddy plugins) — compose
+      # builds it from docker/variants/caddy.dockerfile.
+      - name: Build Caddy proxy (compose build)
+        run: docker compose -f docker/compose/docker-compose.full.yml build proxy
+
+      # The documented Caddyfile forces the ACME issuer (correct for prod:
+      # no silent fallback to a self-signed cert if ACME fails), but
+      # DOMAIN=localhost here structurally can never get a public
+      # certificate — ACME issuance fails outright ("does not qualify for
+      # a public certificate"), so Caddy never presents a cert and the
+      # ingress check below gets a bare TLS handshake failure. CI-only:
+      # swap the `tls { issuer acme {...} }` block for `tls internal` on
+      # the checked-out copy (never the committed file) so this run gets
+      # an instant self-signed cert instead — curl already runs
+      # --insecure to accept it. Structural (brace-depth) match, not a
+      # literal comment match, so a Caddyfile-example edit that leaves the
+      # `tls {` shape intact won't silently break this; the grep guard
+      # below still catches a shape change that does.
+      - name: Swap Caddy TLS issuer to internal CA (localhost has no public cert)
+        run: |
+          caddyfile=etc/examples/Caddyfile-example
+          awk '
+            BEGIN { skipping=0; depth=0; done=0 }
+            !done && /^\ttls \{$/ {
+              print "\ttls internal"
+              depth=1; skipping=1; done=1
+              next
+            }
+            skipping {
+              line=$0
+              o=gsub(/\{/,"{",line)
+              c=gsub(/\}/,"}",line)
+              depth += o - c
+              if (depth<=0) skipping=0
+              next
+            }
+            { print }
+          ' "$caddyfile" > "$caddyfile.tmp"
+          mv "$caddyfile.tmp" "$caddyfile"
+          if ! grep -q '^	tls internal$' "$caddyfile" || grep -q 'issuer acme' "$caddyfile"; then
+            echo "::error::failed to swap Caddy tls issuer to internal — Caddyfile-example's tls {} block shape changed, update the awk pattern in this step"
+            exit 1
+          fi
+
+      # AUTHENTICATION_MODE defaults to full: the app runs its sqlite
+      # auth.db migrations at boot inside /app/data — the named volume must
+      # self-initialize with uid-1001 ownership from the image's shipped
+      # /app/data directory (the Dockerfile contract this lane guards).
+      - name: Bring up the full stack (--wait on healthchecks)
+        env:
+          OTS_IMAGE_TAG: ci-fullstack
+        run: |
+          docker compose -f docker/compose/docker-compose.full.yml \
+            up -d --wait --wait-timeout 300 --quiet-pull
+
+      # The app service publishes no host port (ingress is Caddy-only), so
+      # the shared proof-of-life runs inside the app container via stdin —
+      # same assertions as every other lane. POL_CREATE_ACCOUNT rides along
+      # (POL_EXEC stays empty: bin/ots runs in-container at /app), which
+      # exercises first-account provisioning against the full-mode sqlite
+      # authdb the entrypoint just migrated.
+      - name: Proof of life (inside the app container, incl. first account)
+        run: |
+          bin/testsuite-installer proof-of-life --print-script | \
+            docker compose -f docker/compose/docker-compose.full.yml \
+              exec -T -e POL_CREATE_ACCOUNT=1 app bash -s -- http://127.0.0.1:3000
+
+      # Ingress: Caddy serves {$DOMAIN}:443 (DOMAIN=localhost here) with its
+      # internal CA, static-serving only files that exist under PUBLIC_DIR
+      # (none are mounted) and reverse-proxying everything else to app:3000.
+      - name: Ingress through Caddy (https://localhost)
+        run: |
+          code="$(curl --silent --insecure --output /dev/null \
+            --retry 5 --retry-connrefused --retry-delay 2 --max-time 20 \
+            --write-out '%{http_code}' https://localhost/api/v2/status)"
+          if [ "$code" != "200" ]; then
+            echo "::error::GET https://localhost/api/v2/status through Caddy returned $code (want 200)"
+            exit 1
+          fi
+          echo "Caddy ingress OK (200)"
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker/compose/docker-compose.full.yml logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker/compose/docker-compose.full.yml down -v
+
+  app-boot-pinned:
+    name: docker compose up (app boot, pinned image)
+    # Pulls the PUBLISHED image the compose default names; on a release PR that
+    # bumps the pin, that tag may not exist yet — so cron/manual only, like
+    # docker-run-readme. check-version-pins.sh is the PR-time drift guard.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # Shared with full-stack-smoke — same $GITHUB_ENV + .env seeding, incl.
+      # the full-mode AUTH_SECRET / ACCOUNT_ID_SECRET. See the script header.
+      - name: Seed throwaway secrets (compose interpolation + .env)
+        run: bin/testsuite-installer seed-compose-env
+
+      # No OTS_IMAGE_TAG override and no bake: compose resolves the pinned
+      # default and pulls it from the registry (--quiet-pull). Bring up `app`
+      # (+ its maindb dep), NOT the proxy — the proxy needs a source build and
+      # is unrelated to the boot-migration/volume contract this lane guards.
+      # AUTHENTICATION_MODE defaults to full, so the app runs its sqlite auth.db
+      # migrations at boot inside the app-data named volume; --wait on the app
+      # healthcheck fails here if the volume mount is root-owned (#3892). The
+      # shared-volume contract is identical for worker-email/scheduler.
+      - name: Bring up the app against the pinned published image (--wait)
+        run: |
+          docker compose -f docker/compose/docker-compose.full.yml \
+            up -d --wait --wait-timeout 300 --quiet-pull app
+
+      # POL_CREATE_ACCOUNT stays off (unlike full-stack-smoke): a published
+      # release may predate the bin/ots CLI contract the account step depends
+      # on. Steps 1-3 are HTTP/API-only and stable across releases; a 200 from
+      # /api/v2/status already proves the boot migration wrote to the volume.
+      - name: Proof of life (inside the app container)
+        run: |
+          bin/testsuite-installer proof-of-life --print-script | \
+            docker compose -f docker/compose/docker-compose.full.yml \
+              exec -T app bash -s -- http://127.0.0.1:3000
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker/compose/docker-compose.full.yml logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker/compose/docker-compose.full.yml down -v
+
+  docker-run-readme:
+    name: docker run (README verbatim)
+    # Heavy (pulls the full published image); it guards the published quick
+    # start against tag/registry rot, not per-PR compose wiring — so cron only.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # Read the exact image tag the README documents so this test can never
+      # drift from the docs (the whole point — testing the documented path).
+      - name: Resolve README docker-run image tag
+        id: tag
+        run: |
+          tag="$(grep -oE 'onetimesecret/onetimesecret:v[0-9]+\.[0-9]+\.[0-9]+' README.md | head -n1)"
+          if [[ -z "$tag" ]]; then
+            echo "::error::could not find a pinned onetimesecret/onetimesecret:vX.Y.Z tag in README.md"
+            exit 1
+          fi
+          echo "image=$tag" >> "$GITHUB_OUTPUT"
+          echo "Testing documented image: $tag"
+
+      # The README quick start, run verbatim (the two `docker run` commands and
+      # the secret-file step from README §Quick start).
+      - name: Start Redis (README step 1)
+        run: docker run -p 6379:6379 -d redis:trixie
+
+      - name: Generate persistent secret key (README step 2)
+        run: |
+          openssl rand -hex 32 > .ots_secret
+          chmod 600 .ots_secret
+
+      - name: Run the app container (README step 2, verbatim flags)
+        env:
+          OTS_IMAGE: ${{ steps.tag.outputs.image }}
+        run: |
+          docker run -p 3000:3000 -d \
+            --add-host=host.docker.internal:host-gateway \
+            -e REDIS_URL=redis://host.docker.internal:6379/0 \
+            -e SECRET="$(cat .ots_secret)" \
+            -e HOST=localhost:3000 \
+            -e AUTH_REQUIRED=false \
+            -e SSL=false \
+            "$OTS_IMAGE"
+
+      - name: Proof of life
+        run: bin/testsuite-installer proof-of-life http://127.0.0.1:3000
+
+      - name: Dump container logs on failure
+        if: failure()
+        env:
+          OTS_IMAGE: ${{ steps.tag.outputs.image }}
+        run: |
+          docker ps -a
+          docker logs "$(docker ps -aq --filter "ancestor=$OTS_IMAGE" | head -n1)" || true

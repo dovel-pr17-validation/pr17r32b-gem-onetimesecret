@@ -1,0 +1,726 @@
+{
+  "web.account.settings": {
+    "text": "设置",
+    "source_hash": "74a883a0"
+  },
+  "web.account.change_password": {
+    "text": "更改密码",
+    "source_hash": "a949f462"
+  },
+  "web.account.close_account": {
+    "text": "关闭账户",
+    "source_hash": "e1513814"
+  },
+  "web.account.verify_account": {
+    "text": "验证账户",
+    "source_hash": "2f3ea760"
+  },
+  "web.account.subscription_title": {
+    "text": "订阅",
+    "source_hash": "4999c6c6"
+  },
+  "web.account.manage_subscription": {
+    "text": "管理订阅",
+    "source_hash": "cbc4ef92"
+  },
+  "web.account.customer_information": {
+    "text": "客户信息",
+    "source_hash": "8258db6d"
+  },
+  "web.account.customer_since": {
+    "text": "客户自：",
+    "source_hash": "0b37cff3"
+  },
+  "web.account.email": {
+    "text": "邮箱：",
+    "source_hash": "17507dcf"
+  },
+  "web.account.region": {
+    "text": "区域",
+    "source_hash": "d3a008ef"
+  },
+  "web.account.account_balance": {
+    "text": "余额：",
+    "source_hash": "e0351221"
+  },
+  "web.account.default_payment_method": {
+    "text": "默认支付方式",
+    "source_hash": "c60f014b"
+  },
+  "web.account.card_ending": {
+    "text": "尾号",
+    "source_hash": "0195bccf"
+  },
+  "web.account.subscriptions_title": {
+    "text": "订阅",
+    "source_hash": "a151f2e9"
+  },
+  "web.account.quantity": {
+    "text": "数量：",
+    "source_hash": "d4b2cb96"
+  },
+  "web.account.next_billing_date": {
+    "text": "下次计费日期：",
+    "source_hash": "8e6f9cfe"
+  },
+  "web.account.changePassword.username": {
+    "text": "用户名",
+    "source_hash": "e3b89e9d"
+  },
+  "web.account.changePassword.currentPassword": {
+    "text": "当前密码",
+    "source_hash": "8ac76099"
+  },
+  "web.account.changePassword.newPassword": {
+    "text": "新密码",
+    "source_hash": "7c451e0f"
+  },
+  "web.account.changePassword.confirmPassword": {
+    "text": "确认",
+    "source_hash": "eebdd24a"
+  },
+  "web.account.changePassword.updatePassword": {
+    "text": "更新密码",
+    "source_hash": "557be0da"
+  },
+  "web.account.changePassword.updating": {
+    "text": "更新中...",
+    "source_hash": "0a4e0b71"
+  },
+  "web.account.timezone": {
+    "text": "时区",
+    "source_hash": "4ceca1d5"
+  },
+  "web.account.customer_id": {
+    "text": "客户 ID",
+    "source_hash": "62566c64"
+  },
+  "web.account.account_id_customerid": {
+    "text": "账户 ID",
+    "source_hash": "919bb4cb"
+  },
+  "web.account.created_windowprops_cust_secrets_created_secrets": {
+    "text": "自 {1} 以来已创建 {0} 条机密信息。",
+    "source_hash": "8cb99810"
+  },
+  "web.account.delete_account": {
+    "text": "删除账户",
+    "source_hash": "c031bf99"
+  },
+  "web.account.api_key": {
+    "text": "API 密钥",
+    "source_hash": "23189d55"
+  },
+  "web.account.account_type_windowprops_plan_options_name": {
+    "text": "账户类型：{0}",
+    "source_hash": "617bfe67"
+  },
+  "web.account.your_account": {
+    "text": "您的账户",
+    "source_hash": "89e60bfb"
+  },
+  "web.account.support_details": {
+    "text": "支持详情",
+    "source_hash": "cbad8751"
+  },
+  "web.account.back_to_details": {
+    "text": "返回详情",
+    "source_hash": "f6f841b9"
+  },
+  "web.account.customer_id_cust_custid": {
+    "text": "客户 ID：{0}",
+    "source_hash": "7e2d4201"
+  },
+  "web.account.token_generated": {
+    "text": "令牌已生成。",
+    "source_hash": "05986d95"
+  },
+  "web.account.keep_this_token_secure_it_provides_full_access_t": {
+    "text": "请妥善保管此令牌。它可用于通过 API 创建和管理内容。",
+    "source_hash": "a63cc8ec"
+  },
+  "web.account.confirm_with_your_password": {
+    "text": "使用密码确认",
+    "source_hash": "ff2147fd"
+  },
+  "web.account.are_you_sure_you_want_to_permanently_delete_your": {
+    "text": "您确定要永久删除您的账户吗？此操作无法撤销。",
+    "source_hash": "4fa3e4b8"
+  },
+  "web.account.confirm_account_deletion": {
+    "text": "确认删除账户",
+    "source_hash": "bb3fc7e5"
+  },
+  "web.account.deleting_cust_custid": {
+    "text": "正在删除 {0}",
+    "source_hash": "81d21828"
+  },
+  "web.account.deleting_ellipsis": {
+    "text": "删除中...",
+    "source_hash": "685ecb98"
+  },
+  "web.account.permanently_delete_account": {
+    "text": "永久删除账户",
+    "source_hash": "f894e42c"
+  },
+  "web.account.permanent_and_non_reversible": {
+    "text": "永久且不可逆的。",
+    "source_hash": "6121225e"
+  },
+  "web.account.deleting_your_account_is": {
+    "text": "删除您的账户是",
+    "source_hash": "ec31577b"
+  },
+  "web.account.burn_them_before_continuing": {
+    "text": "请在继续前销毁它们",
+    "source_hash": "f89a5794"
+  },
+  "web.account.any_secrets_you_wish_to_remove": {
+    "text": "如有任何您想移除的内容，",
+    "source_hash": "b45e2dd5"
+  },
+  "web.account.secrets_will_remain_active_until_they_expire": {
+    "text": "机密信息将保持活跃直到过期。",
+    "source_hash": "ddb4e2b5"
+  },
+  "web.account.please_be_advised": {
+    "text": "请注意：",
+    "source_hash": "086020fd"
+  },
+  "web.account.account_deleted_successfully": {
+    "text": "账户已成功删除。",
+    "source_hash": "afcfdd58"
+  },
+  "web.account.deactivate": {
+    "text": "停用",
+    "source_hash": "fb1e6fa5"
+  },
+  "web.account.are_you_sure_you_want_to_deactivate_your_account": {
+    "text": "您确定要停用您的账户吗？您的所有数据将从我们的服务器上永久删除。此操作无法撤销。",
+    "source_hash": "4940e20a"
+  },
+  "web.account.deactivate_account": {
+    "text": "停用账户",
+    "source_hash": "5e31b73d"
+  },
+  "web.settings.title": {
+    "text": "设置",
+    "source_hash": "74a883a0"
+  },
+  "web.settings.description": {
+    "text": "管理您的账户设置和偏好",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.manage_your_account_settings_and_preferences": {
+    "text": "管理您的账户设置和偏好",
+    "source_hash": "2ff0853c"
+  },
+  "web.settings.back_to_dashboard": {
+    "text": "返回控制面板",
+    "source_hash": "97ba1d39"
+  },
+  "web.settings.sections.account": {
+    "text": "账户",
+    "source_hash": "7e1b0d56"
+  },
+  "web.settings.sections.billing": {
+    "text": "账单",
+    "source_hash": "3ac8bbca"
+  },
+  "web.settings.sections.advanced": {
+    "text": "高级",
+    "source_hash": "9f088dbe"
+  },
+  "web.settings.general": {
+    "text": "通用",
+    "source_hash": "c910d474"
+  },
+  "web.settings.preferences": {
+    "text": "偏好设置",
+    "source_hash": "66962f72"
+  },
+  "web.settings.appearance": {
+    "text": "外观",
+    "source_hash": "3907fa7f"
+  },
+  "web.settings.theme.title": {
+    "text": "主题",
+    "source_hash": "efb52e71"
+  },
+  "web.settings.theme.description": {
+    "text": "选择浅色或深色主题",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.theme.choose_light_or_dark_theme": {
+    "text": "选择浅色或深色主题",
+    "source_hash": "ff0ae84f"
+  },
+  "web.settings.language.title": {
+    "text": "语言",
+    "source_hash": "a4fe6526"
+  },
+  "web.settings.language.description": {
+    "text": "选择您偏好的语言",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.language.select_your_preferred_language": {
+    "text": "选择您偏好的语言",
+    "source_hash": "475bba7a"
+  },
+  "web.settings.security_settings_description": {
+    "text": "管理认证和账户安全",
+    "source_hash": "945109d1"
+  },
+  "web.settings.profile_settings_description": {
+    "text": "管理您的账户信息",
+    "source_hash": "4a23a29f"
+  },
+  "web.settings.profile.title": {
+    "text": "个人资料",
+    "source_hash": "d696a35b"
+  },
+  "web.settings.profile.change_email": {
+    "text": "更改邮箱",
+    "source_hash": "18c3f2d5"
+  },
+  "web.settings.profile.current_email": {
+    "text": "当前邮箱",
+    "source_hash": "5f1cab64"
+  },
+  "web.settings.profile.current_password": {
+    "text": "当前密码",
+    "source_hash": "8ac76099"
+  },
+  "web.settings.profile.new_email": {
+    "text": "新邮箱",
+    "source_hash": "5bafb4be"
+  },
+  "web.settings.profile.enter_password_to_confirm": {
+    "text": "输入您的当前密码",
+    "source_hash": "27814c03"
+  },
+  "web.settings.profile.password_required_for_security": {
+    "text": "出于安全考虑需要您的密码",
+    "source_hash": "d18f62f2"
+  },
+  "web.settings.profile.verification_email_notice": {
+    "text": "验证邮件将发送到新地址",
+    "source_hash": "575082a1"
+  },
+  "web.settings.profile.update_email": {
+    "text": "更新邮箱",
+    "source_hash": "6ec61b2e"
+  },
+  "web.settings.profile.change_email_description": {
+    "text": "更新与您账户关联的邮箱地址",
+    "source_hash": "636abb16"
+  },
+  "web.settings.profile.all_fields_required": {
+    "text": "所有字段均为必填",
+    "source_hash": "04814271"
+  },
+  "web.settings.profile.invalid_email": {
+    "text": "请输入有效的邮箱地址",
+    "source_hash": "b00f7e3a"
+  },
+  "web.settings.profile.email_same_as_current": {
+    "text": "新邮箱必须与当前邮箱不同",
+    "source_hash": "f7cfed6e"
+  },
+  "web.settings.profile.email_change_success": {
+    "text": "验证邮件已发送。请检查您的新收件箱并点击确认链接以完成更改。",
+    "source_hash": "45f0a4b5"
+  },
+  "web.settings.profile.email_change_error": {
+    "text": "更新邮箱失败，请重试。",
+    "source_hash": "aeba6591"
+  },
+  "web.settings.sessions.title": {
+    "text": "活跃会话",
+    "source_hash": "b58fa4e0"
+  },
+  "web.settings.sessions.description": {
+    "text": "管理您的活跃会话",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.sessions.manage_active_sessions": {
+    "text": "管理您的活跃会话",
+    "source_hash": "e5646da4"
+  },
+  "web.settings.password.title": {
+    "text": "密码",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.settings.password.description": {
+    "text": "更新您的账户密码",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.password.update_account_password": {
+    "text": "更新您的账户密码",
+    "source_hash": "cb3ae40b"
+  },
+  "web.settings.delete_account.title": {
+    "text": "删除账户",
+    "source_hash": "c031bf99"
+  },
+  "web.settings.delete_account.description": {
+    "text": "永久删除您的账户和所有数据",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.delete_account.permanently_delete_your_account": {
+    "text": "永久删除您的账户和所有数据",
+    "source_hash": "7a3a6da2"
+  },
+  "web.settings.security.security_score": {
+    "text": "安全评分",
+    "source_hash": "02d2f374"
+  },
+  "web.settings.security.score_description": {
+    "text": "您的整体账户安全状况",
+    "source_hash": "cf20935e"
+  },
+  "web.settings.security.excellent": {
+    "text": "极佳",
+    "source_hash": "0dc8ee55"
+  },
+  "web.settings.security.good": {
+    "text": "良好",
+    "source_hash": "c939327c"
+  },
+  "web.settings.security.fair": {
+    "text": "尚可",
+    "source_hash": "f7b19afc"
+  },
+  "web.settings.security.weak": {
+    "text": "弱",
+    "source_hash": "8d6cea25"
+  },
+  "web.settings.security.improve_security": {
+    "text": "提高您的安全性",
+    "source_hash": "c38bcbf5"
+  },
+  "web.settings.security.enable_mfa_recommendation": {
+    "text": "启用双因素认证以获得更强的保护",
+    "source_hash": "6beda528"
+  },
+  "web.settings.security.generate_recovery_codes_recommendation": {
+    "text": "生成恢复代码作为备份",
+    "source_hash": "eb5f3ebd"
+  },
+  "web.settings.security.configured": {
+    "text": "已配置",
+    "source_hash": "84aebc69"
+  },
+  "web.settings.security.change": {
+    "text": "更改",
+    "source_hash": "c0bf75bd"
+  },
+  "web.settings.security.manage": {
+    "text": "管理",
+    "source_hash": "5a234448"
+  },
+  "web.settings.security.enable": {
+    "text": "启用",
+    "source_hash": "5342e09f"
+  },
+  "web.settings.security.codes_available": {
+    "text": "{0} 个代码可用",
+    "source_hash": "76d6236d"
+  },
+  "web.settings.security.no_codes": {
+    "text": "未生成代码",
+    "source_hash": "3b2eae20"
+  },
+  "web.settings.security.active_sessions": {
+    "text": "{0} 个活跃会话 | {0} 个活跃会话",
+    "source_hash": "30737484"
+  },
+  "web.settings.security.best_practices": {
+    "text": "安全最佳实践",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.security.use_strong_unique_password": {
+    "text": "为您的账户使用强且唯一的密码",
+    "source_hash": "5fc8cbf4"
+  },
+  "web.settings.security.enable_mfa_for_protection": {
+    "text": "启用双因素认证以获得额外保护",
+    "source_hash": "107e4898"
+  },
+  "web.settings.security.save_recovery_codes_safely": {
+    "text": "将恢复代码保存在安全的地方",
+    "source_hash": "605513fc"
+  },
+  "web.settings.security.review_sessions_regularly": {
+    "text": "定期检查并撤销未使用的会话",
+    "source_hash": "efe59445"
+  },
+  "web.settings.security.view_details": {
+    "text": "查看详情",
+    "source_hash": "d1bf045b"
+  },
+  "web.settings.api.title": {
+    "text": "API 与集成",
+    "source_hash": "21fc84f3"
+  },
+  "web.settings.api.description": {
+    "text": "管理 API 密钥和集成",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.manage_api_keys": {
+    "text": "管理 API 密钥和集成",
+    "source_hash": "70976099"
+  },
+  "web.settings.api.documentation": {
+    "text": "API 文档",
+    "source_hash": "1cc77e60"
+  },
+  "web.settings.api.documentation_description": {
+    "text": "了解如何将 {product_name} 集成到您的应用程序中",
+    "source_hash": "9bba1ae8"
+  },
+  "web.settings.api.rest_api_reference": {
+    "text": "REST API 参考",
+    "source_hash": "26a5af61"
+  },
+  "web.settings.api.complete_api_documentation": {
+    "text": "完整的 API 文档和端点",
+    "source_hash": "c1c87ad8"
+  },
+  "web.settings.api.code_examples": {
+    "text": "代码示例",
+    "source_hash": "216d28e4"
+  },
+  "web.settings.api.example_code_and_libraries": {
+    "text": "示例代码和客户端库",
+    "source_hash": "61c5956f"
+  },
+  "web.settings.api.security_best_practices": {
+    "text": "安全最佳实践",
+    "source_hash": "fd71b2da"
+  },
+  "web.settings.api.never_commit_api_keys": {
+    "text": "切勿将 API 密钥提交到版本控制",
+    "source_hash": "cc8c327e"
+  },
+  "web.settings.api.use_environment_variables": {
+    "text": "使用环境变量存储 API 密钥",
+    "source_hash": "c05e8802"
+  },
+  "web.settings.api.rotate_keys_regularly": {
+    "text": "定期轮换 API 密钥以确保安全",
+    "source_hash": "eda6a5db"
+  },
+  "web.settings.api.use_https_only": {
+    "text": "发起 API 请求时始终使用 HTTPS",
+    "source_hash": "b3f405ef"
+  },
+  "web.settings.api.monitor_api_usage": {
+    "text": "监控您的 API 使用情况并设置警报",
+    "source_hash": "abb08beb"
+  },
+  "web.settings.api.important_notice": {
+    "text": "重要提示",
+    "source_hash": "03d3ba93"
+  },
+  "web.settings.api.regenerating_key_warning": {
+    "text": "重新生成 API 密钥将使当前密钥失效。请更新所有使用旧密钥的应用程序。",
+    "source_hash": "ab168f83"
+  },
+  "web.settings.privacy.title": {
+    "text": "隐私设置",
+    "source_hash": "eefad6ba"
+  },
+  "web.settings.privacy.manage_privacy_settings": {
+    "text": "管理您的隐私偏好",
+    "source_hash": "add087da"
+  },
+  "web.settings.privacy.your_privacy": {
+    "text": "您的隐私",
+    "source_hash": "cad972db"
+  },
+  "web.settings.privacy.non_negotiable": {
+    "text": "不可商量",
+    "source_hash": "ad090a29"
+  },
+  "web.settings.privacy.not_a_setting": {
+    "text": "这不是设置",
+    "source_hash": "41278ece"
+  },
+  "web.settings.privacy.no_analytics_statement": {
+    "text": "无分析。无追踪。如此简单。",
+    "source_hash": "3e154b1c"
+  },
+  "web.settings.privacy.explanation": {
+    "text": "这不是一个设置，因为没有什么可以开启或关闭。您的隐私已融入我们的运营方式。",
+    "source_hash": "ed943792"
+  },
+  "web.settings.notifications.title": {
+    "text": "通知设置",
+    "source_hash": "07a063ca"
+  },
+  "web.settings.notifications.description": {
+    "text": "管理您接收通知的方式",
+    "source_hash": "148c5ff6"
+  },
+  "web.settings.notifications.error_updating": {
+    "text": "更新通知偏好失败，请重试。",
+    "source_hash": "c08abc04"
+  },
+  "web.settings.notifications.reveal_notifications.title": {
+    "text": "内容查看通知",
+    "source_hash": "c0fb2e25"
+  },
+  "web.settings.notifications.reveal_notifications.description": {
+    "text": "当有人查看您的内容时收到邮件通知",
+    "source_hash": "a3a67095"
+  },
+  "web.settings.notifications.reveal_notifications.help": {
+    "text": "每当接收者查看您的内容时，您都会收到通知",
+    "source_hash": "ba93106d"
+  },
+  "web.settings.notifications.privacy_note": {
+    "text": "通知邮件仅包含时间戳和内容 ID。绝不包含查看者信息。",
+    "source_hash": "7aac282f"
+  },
+  "web.settings.caution.title": {
+    "text": "谨慎操作区",
+    "source_hash": "fe27a3a8"
+  },
+  "web.settings.caution.description": {
+    "text": "高级设置和数据管理",
+    "source_hash": "223ee55d"
+  },
+  "web.settings.caution.data_export": {
+    "text": "数据导出",
+    "source_hash": "bdcea052"
+  },
+  "web.settings.caution.export_your_data": {
+    "text": "导出您的账户数据",
+    "source_hash": "dc5ffcb0"
+  },
+  "web.settings.caution.export_description": {
+    "text": "请求以机器可读格式导出您的账户数据完整副本",
+    "source_hash": "369c3391"
+  },
+  "web.settings.caution.request_data_export": {
+    "text": "请求数据导出",
+    "source_hash": "902394be"
+  },
+  "web.settings.caution.export_info": {
+    "text": "导出处理时间",
+    "source_hash": "2ebb2d44"
+  },
+  "web.settings.caution.export_info_description": {
+    "text": "导出将在 24 小时内处理并发送到您的邮箱地址",
+    "source_hash": "a2f81e3b"
+  },
+  "web.settings.caution.deletion_warning_title": {
+    "text": "删除您的账户将：",
+    "source_hash": "17a8a676"
+  },
+  "web.settings.caution.deletion_warning_secrets": {
+    "text": "永久删除您的所有内容",
+    "source_hash": "974ccdb9"
+  },
+  "web.settings.caution.deletion_warning_metadata": {
+    "text": "删除所有内容的元数据和历史记录",
+    "source_hash": "ec4ee372"
+  },
+  "web.settings.caution.deletion_warning_api_keys": {
+    "text": "使所有 API 密钥失效",
+    "source_hash": "7581333b"
+  },
+  "web.settings.caution.deletion_warning_irreversible": {
+    "text": "此操作无法撤销",
+    "source_hash": "02ccc074"
+  },
+  "web.settings.profile.confirm_email_change_title": {
+    "text": "邮箱地址已更新",
+    "source_hash": "cf02eb0c"
+  },
+  "web.settings.profile.email_confirmed_success": {
+    "text": "邮箱已更新成功。请使用新邮箱地址登录。",
+    "source_hash": "a84efcea"
+  },
+  "web.settings.profile.email_confirm_verifying": {
+    "text": "正在验证您的新邮箱地址...",
+    "source_hash": "a6a4745f"
+  },
+  "web.settings.profile.email_confirm_error_title": {
+    "text": "邮箱更改失败",
+    "source_hash": "953f3936"
+  },
+  "web.settings.profile.email_confirm_invalid": {
+    "text": "此验证链接无效或已过期。",
+    "source_hash": "f54594c2"
+  },
+  "web.settings.profile.email_confirm_back_to_settings": {
+    "text": "返回账户设置",
+    "source_hash": "fd49b66b"
+  },
+  "web.settings.profile.redirecting_to_signin": {
+    "text": "正在跳转至登录页面...",
+    "source_hash": "c65f7dcc"
+  },
+  "web.settings.profile.resend_confirmation": {
+    "text": "重新发送确认邮件",
+    "source_hash": "c617fff7"
+  },
+  "web.settings.profile.resend_confirmation_success": {
+    "text": "确认邮件已重新发送。",
+    "source_hash": "2287783b"
+  },
+  "web.settings.profile.resend_confirmation_sending": {
+    "text": "发送中...",
+    "source_hash": "286a3af7"
+  },
+  "web.settings.profile.email_change_pending": {
+    "text": "验证邮件已发送。请检查收件箱并点击确认链接。",
+    "source_hash": "5806c93f"
+  },
+  "web.settings.profile.didnt_receive_email": {
+    "text": "没有收到邮件？",
+    "source_hash": "fe3ac3ad"
+  },
+  "web.settings.api.api_disabled_notice": {
+    "text": "此实例已禁用 API。",
+    "source_hash": "66d12d6b"
+  },
+  "web.settings.security.sso_managed_title": {
+    "text": "安全设置由 SSO 管理",
+    "source_hash": "1f6c9472"
+  },
+  "web.settings.security.sso_managed_description": {
+    "text": "您的账户通过组织的单点登录提供商进行身份验证。密码、多重身份验证和恢复代码由您的身份提供商管理。",
+    "source_hash": "cd0cf39f"
+  },
+  "web.settings.api.api_username": {
+    "text": "API 用户名",
+    "source_hash": "0b3e483e"
+  },
+  "web.settings.api.api_username_description": {
+    "text": "您用于 HTTP Basic 身份验证的用户名",
+    "source_hash": "f3e65de3"
+  },
+  "web.settings.api.basic_auth_hint": {
+    "text": "使用 HTTP Basic 身份验证时，请将您的账户邮箱或此 ID 作为用户名，并将您的 API 令牌作为密码。",
+    "source_hash": "cfa3806d"
+  },
+  "web.settings.security.set": {
+    "text": "已设置",
+    "source_hash": "b6f6f3ad"
+  },
+  "web.settings.security.not_set": {
+    "text": "未设置",
+    "source_hash": "4895f731"
+  },
+  "web.settings.security.set_password_title": {
+    "text": "设置密码",
+    "source_hash": "4e411687"
+  },
+  "web.settings.security.set_password_description": {
+    "text": "为您的账户添加密码，这样您也可以在不使用身份提供商的情况下登录",
+    "source_hash": "a6970402"
+  }
+}

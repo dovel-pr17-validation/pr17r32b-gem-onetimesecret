@@ -1,0 +1,362 @@
+{
+  "web.admin.billing.title": {
+    "text": "Billing Catalog",
+    "content_hash": "bfde7e68"
+  },
+  "web.admin.billing.description": {
+    "text": "Review subscription plans, included features, and billing configuration.",
+    "content_hash": "48c33c55"
+  },
+  "web.admin.billing.retry": {
+    "text": "Retry",
+    "content_hash": "942087cc"
+  },
+  "web.admin.billing.loadError": {
+    "text": "Could not load the billing catalog.",
+    "content_hash": "c3110f77"
+  },
+  "web.admin.billing.localConfigWarning": {
+    "text": "The Stripe-synced plan cache is empty, so live plans and drift cannot be evaluated. Showing the configured catalog (billing.yaml) only — typical in dev or when Stripe is not configured.",
+    "content_hash": "905d95f8"
+  },
+  "web.admin.billing.stats.configured": {
+    "text": "Configured plans",
+    "content_hash": "4fda4796"
+  },
+  "web.admin.billing.stats.live": {
+    "text": "Live plans",
+    "content_hash": "faaa88d9"
+  },
+  "web.admin.billing.stats.source": {
+    "text": "Source",
+    "content_hash": "0e570ca6"
+  },
+  "web.admin.billing.stats.drift": {
+    "text": "Drift",
+    "content_hash": "8b4c8240"
+  },
+  "web.admin.billing.source.stripe": {
+    "text": "Stripe cache",
+    "content_hash": "b5577327"
+  },
+  "web.admin.billing.source.localConfig": {
+    "text": "Local config",
+    "content_hash": "49de43d2"
+  },
+  "web.admin.billing.inSync": {
+    "text": "In sync",
+    "content_hash": "5701958c"
+  },
+  "web.admin.billing.driftCount": {
+    "text": "{count} difference(s)",
+    "content_hash": "166538f5"
+  },
+  "web.admin.billing.inSyncDetail": {
+    "text": "The configured catalog matches the live plans. No drift detected.",
+    "content_hash": "57ab60a6"
+  },
+  "web.admin.billing.columns.planid": {
+    "text": "Plan ID",
+    "content_hash": "1f0d4dc6"
+  },
+  "web.admin.billing.columns.name": {
+    "text": "Name",
+    "content_hash": "dcd1d522"
+  },
+  "web.admin.billing.columns.tier": {
+    "text": "Tier",
+    "content_hash": "cb9e8664"
+  },
+  "web.admin.billing.columns.status": {
+    "text": "Status",
+    "content_hash": "920e413c"
+  },
+  "web.admin.billing.plans.title": {
+    "text": "Plans",
+    "content_hash": "dfe8b2f0"
+  },
+  "web.admin.billing.plans.empty": {
+    "text": "No plans found in the catalog.",
+    "content_hash": "39db3c13"
+  },
+  "web.admin.billing.plans.viewDiff": {
+    "text": "View diff",
+    "content_hash": "0e5d6873"
+  },
+  "web.admin.billing.status.in_sync": {
+    "text": "In sync",
+    "content_hash": "5701958c"
+  },
+  "web.admin.billing.status.only_config": {
+    "text": "Config only",
+    "content_hash": "15836cba"
+  },
+  "web.admin.billing.status.only_live": {
+    "text": "Live only",
+    "content_hash": "8f4ed495"
+  },
+  "web.admin.billing.status.changed": {
+    "text": "Changed",
+    "content_hash": "2a6141e4"
+  },
+  "web.admin.billing.diff.title": {
+    "text": "Plan diff: {planid}",
+    "content_hash": "bc86e5f7"
+  },
+  "web.admin.billing.diff.subtitle": {
+    "text": "Configured catalog (billing.yaml) vs live Stripe-synced plan, side by side.",
+    "content_hash": "d92e93ae"
+  },
+  "web.admin.billing.diff.config": {
+    "text": "Configured (billing.yaml)",
+    "content_hash": "6bf2ff04"
+  },
+  "web.admin.billing.diff.live": {
+    "text": "Live (Stripe cache)",
+    "content_hash": "4886945d"
+  },
+  "web.admin.billing.diff.absentConfig": {
+    "text": "This plan is not present in the configured catalog.",
+    "content_hash": "0b594c88"
+  },
+  "web.admin.billing.diff.absentLive": {
+    "text": "This plan is not present in the live Stripe-synced cache.",
+    "content_hash": "c53f31c3"
+  },
+  "web.admin.billing.diff.backToCatalog": {
+    "text": "Back to billing catalog",
+    "content_hash": "8532b373"
+  },
+  "web.admin.billing.diff.driftedFields": {
+    "text": "Fields that differ:",
+    "content_hash": "9890c95b"
+  },
+  "web.admin.billing.diff.notFound": {
+    "text": "Plan not in the catalog",
+    "content_hash": "0253898b"
+  },
+  "web.admin.billing.diff.notFoundDescription": {
+    "text": "No plan with the id {planid} was found in the configured catalog or the live Stripe-synced cache.",
+    "content_hash": "2e69551c"
+  },
+  "web.admin.billing.stripeOrgs.title": {
+    "text": "Stripe customers",
+    "content_hash": "0463ae27"
+  },
+  "web.admin.billing.stripeOrgs.description": {
+    "text": "Organizations linked to a Stripe customer record.",
+    "content_hash": "2ab09aec"
+  },
+  "web.admin.billing.stripeOrgs.searchPlaceholder": {
+    "text": "Search by Stripe customer ID",
+    "content_hash": "d5acf08f"
+  },
+  "web.admin.billing.stripeOrgs.empty": {
+    "text": "No organizations have a Stripe customer ID.",
+    "content_hash": "2e373537"
+  },
+  "web.admin.billing.stripeOrgs.emptySearch": {
+    "text": "No Stripe customer ID matches that search.",
+    "content_hash": "75011174"
+  },
+  "web.admin.billing.stripeOrgs.loadError": {
+    "text": "Could not load the Stripe customers list.",
+    "content_hash": "15e2d9a7"
+  },
+  "web.admin.billing.stripeOrgs.unavailable": {
+    "text": "The Stripe customers list is not available on this server yet.",
+    "content_hash": "aab6451a"
+  },
+  "web.admin.billing.stripeOrgs.none": {
+    "text": "None",
+    "content_hash": "dc937b59"
+  },
+  "web.admin.billing.stripeOrgs.capped": {
+    "text": "The index scan hit its limit, so the total is a lower bound — narrow the search to see the rest.",
+    "content_hash": "20bcaa38"
+  },
+  "web.admin.billing.stripeOrgs.stale": {
+    "text": "{count} index entry/entries on this page point at an organization that no longer loads and were skipped.",
+    "content_hash": "51980f83"
+  },
+  "web.admin.billing.stripeOrgs.copyStripeId": {
+    "text": "Copy Stripe customer ID",
+    "content_hash": "a77d18b1"
+  },
+  "web.admin.billing.stripeOrgs.columns.organization": {
+    "text": "Organization",
+    "content_hash": "d764d425"
+  },
+  "web.admin.billing.stripeOrgs.columns.owner": {
+    "text": "Owner",
+    "content_hash": "4b1b8aa3"
+  },
+  "web.admin.billing.stripeOrgs.columns.plan": {
+    "text": "Plan",
+    "content_hash": "fa8ed0bd"
+  },
+  "web.admin.billing.stripeOrgs.columns.subscription": {
+    "text": "Subscription",
+    "content_hash": "4999c6c6"
+  },
+  "web.admin.billing.stripeOrgs.columns.stripeCustomer": {
+    "text": "Stripe customer ID",
+    "content_hash": "7e1d8bbb"
+  },
+  "web.admin.billing.webhookEvents.title": {
+    "text": "Stripe webhook events",
+    "content_hash": "3a7c05f8"
+  },
+  "web.admin.billing.webhookEvents.description": {
+    "text": "Read-only local record of Stripe webhook processing.",
+    "content_hash": "adc1e97f"
+  },
+  "web.admin.billing.webhookEvents.retention": {
+    "text": "Local webhook event records are retained for five days. Older events are not available here.",
+    "content_hash": "de4c2f78"
+  },
+  "web.admin.billing.webhookEvents.loadError": {
+    "text": "Could not load the webhook event list.",
+    "content_hash": "b070d441"
+  },
+  "web.admin.billing.webhookEvents.capped": {
+    "text": "The event scan hit its limit, so the total is a lower bound.",
+    "content_hash": "5b96b15b"
+  },
+  "web.admin.billing.webhookEvents.stale": {
+    "text": "{count} index entry/entries on this page point at a webhook event that no longer loads and were skipped.",
+    "content_hash": "879c2d98"
+  },
+  "web.admin.billing.webhookEvents.empty": {
+    "text": "No locally retained webhook events found.",
+    "content_hash": "7e33e23d"
+  },
+  "web.admin.billing.webhookEvents.viewDetail": {
+    "text": "View details",
+    "content_hash": "d1bf045b"
+  },
+  "web.admin.billing.webhookEvents.columns.eventId": {
+    "text": "Event ID",
+    "content_hash": "3045abaf"
+  },
+  "web.admin.billing.webhookEvents.columns.type": {
+    "text": "Type",
+    "content_hash": "baaddf70"
+  },
+  "web.admin.billing.webhookEvents.columns.status": {
+    "text": "Processing status",
+    "content_hash": "3f6498ae"
+  },
+  "web.admin.billing.webhookEvents.columns.received": {
+    "text": "Received",
+    "content_hash": "49f19bee"
+  },
+  "web.admin.billing.webhookEvents.columns.outcome": {
+    "text": "Outcome",
+    "content_hash": "4e80abb5"
+  },
+  "web.admin.billing.webhookEvents.detail.title": {
+    "text": "Webhook event details",
+    "content_hash": "829b940c"
+  },
+  "web.admin.billing.webhookEvents.detail.notFound": {
+    "text": "This local event is no longer available.",
+    "content_hash": "b029d878"
+  },
+  "web.admin.billing.webhookEvents.detail.loadError": {
+    "text": "Could not load webhook event details.",
+    "content_hash": "39f7a33b"
+  },
+  "web.admin.billing.webhookEvents.detail.received": {
+    "text": "Received at",
+    "content_hash": "1ddb1a75"
+  },
+  "web.admin.billing.webhookEvents.detail.lastAttempt": {
+    "text": "Last processing attempt",
+    "content_hash": "b1325ebb"
+  },
+  "web.admin.billing.webhookEvents.detail.processed": {
+    "text": "Processed at",
+    "content_hash": "2eb2da28"
+  },
+  "web.admin.billing.webhookEvents.detail.attempts": {
+    "text": "Attempts",
+    "content_hash": "06e70139"
+  },
+  "web.admin.billing.webhookEvents.detail.mode": {
+    "text": "Mode",
+    "content_hash": "5e23ec6a"
+  },
+  "web.admin.billing.webhookEvents.detail.live": {
+    "text": "Live",
+    "content_hash": "b64ac05f"
+  },
+  "web.admin.billing.webhookEvents.detail.test": {
+    "text": "Test",
+    "content_hash": "532eaabd"
+  },
+  "web.admin.billing.webhookEvents.detail.apiVersion": {
+    "text": "Stripe API version",
+    "content_hash": "9cd61c6f"
+  },
+  "web.admin.billing.pendingFederated.title": {
+    "text": "Pending federated subscriptions",
+    "content_hash": "8bc81ff7"
+  },
+  "web.admin.billing.pendingFederated.description": {
+    "text": "Subscriptions waiting for a verified account in this region to claim their benefits.",
+    "content_hash": "e4c714c8"
+  },
+  "web.admin.billing.pendingFederated.correlationRetention": {
+    "text": "Pending subscriptions can remain for 90 days, but local webhook records are retained for only five days. An expired or unavailable correlation does not indicate a processing outcome.",
+    "content_hash": "c846410e"
+  },
+  "web.admin.billing.pendingFederated.loadError": {
+    "text": "Could not load pending federated subscriptions.",
+    "content_hash": "a1ecc6cb"
+  },
+  "web.admin.billing.pendingFederated.capped": {
+    "text": "The pending-subscription scan hit its limit, so the total is a lower bound.",
+    "content_hash": "a1e02735"
+  },
+  "web.admin.billing.pendingFederated.stale": {
+    "text": "{count} index entry/entries on this page point at a pending subscription that no longer loads and were skipped.",
+    "content_hash": "56b4bd53"
+  },
+  "web.admin.billing.pendingFederated.empty": {
+    "text": "No pending federated subscriptions found.",
+    "content_hash": "91453fda"
+  },
+  "web.admin.billing.pendingFederated.unresolvedPlan": {
+    "text": "Unresolved",
+    "content_hash": "36afca80"
+  },
+  "web.admin.billing.pendingFederated.columns.status": {
+    "text": "Subscription status",
+    "content_hash": "f0723c4e"
+  },
+  "web.admin.billing.pendingFederated.columns.planid": {
+    "text": "Stored plan ID",
+    "content_hash": "159600ef"
+  },
+  "web.admin.billing.pendingFederated.columns.region": {
+    "text": "Region",
+    "content_hash": "d3a008ef"
+  },
+  "web.admin.billing.pendingFederated.columns.received": {
+    "text": "Received",
+    "content_hash": "49f19bee"
+  },
+  "web.admin.billing.pendingFederated.columns.webhook": {
+    "text": "Source webhook",
+    "content_hash": "e96bd1ef"
+  },
+  "web.admin.billing.pendingFederated.webhook.no_correlation": {
+    "text": "Unavailable — no correlated local webhook was recorded.",
+    "content_hash": "57ed7d3a"
+  },
+  "web.admin.billing.pendingFederated.webhook.expired": {
+    "text": "Unavailable — the correlated local webhook expired after five days.",
+    "content_hash": "6173ad4b"
+  }
+}

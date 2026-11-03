@@ -1,0 +1,221 @@
+# try/integration/api/organizations/member_quota_try.rb
+#
+# frozen_string_literal: true
+
+#
+# Integration test for member quota entitlement checks
+# Verifies that CreateInvitation succeeds at and past the plan count values
+# (total_members_per_org, role_*_per_org), including a value of 0.
+
+require 'rack/test'
+require_relative '../../../support/test_helpers'
+
+OT.boot! :test
+
+require 'onetime/application/registry'
+Onetime::Application::Registry.prepare_application_registry
+
+# Create test instance with Rack::Test::Methods
+@test = Object.new
+@test.extend Rack::Test::Methods
+
+def @test.app
+  Onetime::Application::Registry.generate_rack_url_map
+end
+
+# Delegate Rack::Test methods to @test
+def post(*args); @test.post(*with_csrf(args)); end
+def get(*args); @test.get(*args); end
+def put(*args); @test.put(*with_csrf(args)); end
+def delete(*args); @test.delete(*with_csrf(args)); end
+def last_response; @test.last_response; end
+
+# Setup: Create customer with organization
+@timestamp = Familia.now.to_i
+@owner = Onetime::Customer.create!(email: "member_quota_owner_#{@timestamp}@example.com")
+@owner.verified = 'true'
+@owner.save
+
+@org = Onetime::Organization.create!("Member Quota Test Org", @owner, @owner.email)
+@org.is_default = true
+@org.save
+
+@session = { 'authenticated' => true, 'external_id' => @owner.extid, 'email' => @owner.email }
+
+# Plan data used across all billing blocks.
+#
+# Per-role limits are set to 'unlimited' so the existing aggregate-cap
+# scenarios remain driven by `total_members_per_org.max`. A separate plan below
+# exercises the per-role bucket enforcement.
+@limited_plan = {
+  plan_id: 'limited_members',
+  name: 'Limited Members Plan',
+  tier: 'free',
+  interval: 'month',
+  region: 'us',
+  entitlements: ['create_secrets', 'manage_members'],
+  limits: {
+    'total_members_per_org.max' => '3',
+    'role_owners_per_org.max' => '1',
+    'role_admins_per_org.max' => 'unlimited',
+    'role_members_per_org.max' => 'unlimited',
+  }
+}
+
+# Plan with a low regular-members value and a generous aggregate value.
+# Exercises the per-role member count independently of `total_members_per_org`.
+@role_capped_plan = {
+  plan_id: 'role_capped_members',
+  name: 'Role Capped Members Plan',
+  tier: 'free',
+  interval: 'month',
+  region: 'us',
+  entitlements: ['create_secrets', 'manage_members'],
+  limits: {
+    'total_members_per_org.max' => 'unlimited',
+    'role_owners_per_org.max' => '1',
+    'role_admins_per_org.max' => 'unlimited',
+    'role_members_per_org.max' => '1',
+  }
+}
+
+# Plan with an admin count value of 0. Admin invites still succeed.
+@admin_capped_plan = {
+  plan_id: 'admin_capped_members',
+  name: 'Admin Capped Members Plan',
+  tier: 'free',
+  interval: 'month',
+  region: 'us',
+  entitlements: ['create_secrets', 'manage_members'],
+  limits: {
+    'total_members_per_org.max' => 'unlimited',
+    'role_owners_per_org.max' => '1',
+    'role_admins_per_org.max' => '0',
+    'role_members_per_org.max' => 'unlimited',
+  }
+}
+
+# Helper to run billing-enabled test and return results
+def run_billing_test_invite(org, session, email, plan, role: 'member')
+  result = { status: nil, error_type: nil, error_message: nil, record_id: nil, record_email: nil, member_count: nil, pending_count: nil }
+  BillingTestHelpers.with_billing_enabled(plans: [plan]) do
+    org.planid = plan[:plan_id]
+    org.save
+    # Materialize entitlements on org and cascade to memberships
+    org.materialize_entitlements_from_config(plan)
+    org.rematerialize_all_memberships!
+    org = Onetime::Organization.load(org.objid)
+
+    # Capture counts before the API call
+    result[:member_count] = org.member_count
+    result[:pending_count] = org.pending_invitation_count
+
+    post "/api/organizations/#{org.extid}/invitations",
+      { email: email, role: role }.to_json,
+      { 'rack.session' => session, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json' }
+
+    result[:status] = last_response.status
+    resp = JSON.parse(last_response.body)
+    if result[:status] == 200
+      result[:record_id] = resp['record']['id']
+      result[:record_email] = resp['record']['email']
+    else
+      result[:error_type] = resp['error_type']
+      result[:error_message] = resp['error']
+    end
+  end
+  result
+end
+
+## Standalone mode: Can invite first member without limit (no billing)
+post "/api/organizations/#{@org.extid}/invitations",
+  { email: "member1_#{@timestamp}@example.com", role: 'member' }.to_json,
+  { 'rack.session' => @session, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json' }
+last_response.status
+#=> 200
+
+## First invitation created successfully
+resp = JSON.parse(last_response.body)
+@invite1_id = resp['record']['id']
+resp['record']['email']
+#=> "member1_#{@timestamp}@example.com"
+
+## Standalone mode: Can invite second member without limit
+post "/api/organizations/#{@org.extid}/invitations",
+  { email: "member2_#{@timestamp}@example.com", role: 'member' }.to_json,
+  { 'rack.session' => @session, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json' }
+last_response.status
+#=> 200
+
+## Second invitation created successfully
+resp = JSON.parse(last_response.body)
+@invite2_id = resp['record']['id']
+resp['record']['email']
+#=> "member2_#{@timestamp}@example.com"
+
+## Organization has 2 pending invitations
+reloaded_org = Onetime::Organization.load(@org.objid)
+reloaded_org.pending_invitation_count
+#=> 2
+
+## With billing at the plan value (1 owner + 2 pending = 3/3): inviting still succeeds
+@result1 = run_billing_test_invite(@org, @session, "member3_#{@timestamp}@example.com", @limited_plan)
+@result1[:status]
+#=> 200
+
+## Invitation past the plan value is created
+@invite3_id = @result1[:record_id]
+@result1[:record_email]
+#=> "member3_#{@timestamp}@example.com"
+
+## Past the plan value (1 owner + 3 pending = 4/3): inviting still succeeds
+@result2 = run_billing_test_invite(@org, @session, "member4_#{@timestamp}@example.com", @limited_plan)
+@invite4_id = @result2[:record_id]
+@result2[:status]
+#=> 200
+
+## Accepting an invitation past the plan value succeeds
+@invite1 = Onetime::OrganizationMembership.load(@invite1_id)
+@member1 = Onetime::Customer.create!(email: "member1_#{@timestamp}@example.com")
+@member1.verified = 'true'
+@member1.save
+@invite1.accept!(@member1)
+@org = Onetime::Organization.load(@org.objid)
+@org.member?(@member1)
+#=> true
+
+## Per-role member value: with role_members_per_org=1 already met, a member invite still succeeds
+@result3 = run_billing_test_invite(@org, @session, "member5_#{@timestamp}@example.com", @role_capped_plan)
+@invite5_id = @result3[:record_id]
+@result3[:status]
+#=> 200
+
+## Admin count value: with role_admins_per_org=1 already met, a second admin invite still succeeds
+@admin_counted_plan = @admin_capped_plan.merge(
+  plan_id: 'admin_counted_members',
+  limits: @admin_capped_plan[:limits].merge('role_admins_per_org.max' => '1'),
+)
+@result5 = run_billing_test_invite(@org, @session, "admin2_#{@timestamp}@example.com", @admin_counted_plan, role: 'admin')
+@invite6_id = @result5[:record_id]
+@result6 = run_billing_test_invite(@org, @session, "admin3_#{@timestamp}@example.com", @admin_counted_plan, role: 'admin')
+@invite7_id = @result6[:record_id]
+[@result5[:status], @result6[:status]]
+#=> [200, 200]
+
+## Admin count value of 0: an admin invite still succeeds
+@result4 = run_billing_test_invite(@org, @session, "admin1_#{@timestamp}@example.com", @admin_capped_plan, role: 'admin')
+@invite8_id = @result4[:record_id]
+@result4[:status]
+#=> 200
+
+# Teardown
+# invite1 was accepted (now active membership for @member1)
+# the rest are still pending
+[@invite1_id, @invite2_id, @invite3_id, @invite4_id, @invite5_id, @invite6_id, @invite7_id, @invite8_id].compact.each do |invite_id|
+  invite = Onetime::OrganizationMembership.load(invite_id)
+  invite&.destroy_with_index_cleanup!
+end
+
+@member1&.destroy!
+@org&.destroy!
+@owner&.destroy!

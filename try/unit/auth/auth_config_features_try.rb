@@ -1,0 +1,447 @@
+# try/unit/auth/auth_config_features_try.rb
+#
+# frozen_string_literal: true
+
+require_relative '../../../lib/onetime'
+
+# Store original state for teardown
+@original_resolve = Onetime::Utils::ConfigResolver.method(:resolve)
+
+# Stub resolve to return test config for 'auth'
+Onetime::Utils::ConfigResolver.define_singleton_method(:resolve) do |name|
+  return 'spec/auth.test.yaml' if name == 'auth'
+  @original_resolve.call(name)
+end
+
+# Clear the singleton instance to force fresh load with test config
+Onetime::AuthConfig.instance_variable_set(:@singleton__instance__, nil)
+
+## features returns hash from test config
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.features.class
+#=> Hash
+
+## lockout_enabled? returns true with test config
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.lockout_enabled?
+#=> true
+
+## password_requirements_enabled? returns true with test config
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.password_requirements_enabled?
+#=> true
+
+## active_sessions_enabled? returns true with test config
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.active_sessions_enabled?
+#=> true
+
+## remember_me_enabled? returns true with test config
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.remember_me_enabled?
+#=> true
+
+## mfa_enabled? returns false with test config (default: false)
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.mfa_enabled?
+#=> false
+
+## email_auth_enabled? returns false with test config
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.email_auth_enabled?
+#=> false
+
+## webauthn_enabled? returns false with test config
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.webauthn_enabled?
+#=> false
+
+## sso_enabled? returns false with test config
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.sso_enabled?
+#=> false
+
+## omniauth_enabled? is an alias for sso_enabled?
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.omniauth_enabled? == config.sso_enabled?
+#=> true
+
+## sso_enabled? returns true when legacy 'omniauth' key is used
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+features = config.instance_variable_get(:@config)['full']['features']
+features.delete('sso')
+features['omniauth'] = true
+result = config.sso_enabled?
+features.delete('omniauth')
+result
+#=> true
+
+## sso_enabled? prefers 'sso' key over legacy 'omniauth' key
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+features = config.instance_variable_get(:@config)['full']['features']
+features['sso'] = true
+features['omniauth'] = false
+result = config.sso_enabled?
+features['sso'] = false
+features.delete('omniauth')
+result
+#=> true
+
+## sso_display_name falls back to legacy features location
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['features']['sso'] = true
+cfg['full']['features']['sso_display_name'] = 'LegacyIdP'
+cfg['full'].delete('sso')
+result = config.sso_display_name
+cfg['full']['features']['sso'] = false
+cfg['full']['features'].delete('sso_display_name')
+result
+#=> "LegacyIdP"
+
+## sso_only_enabled? returns false when SSO is disabled
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.sso_only_enabled?
+#=> false
+
+## sso_only_enabled? returns false when SSO enabled but sso_only not set
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+features = config.instance_variable_get(:@config)['full']['features']
+features['sso'] = true
+result = config.sso_only_enabled?
+features['sso'] = false
+result
+#=> false
+
+## sso_only_enabled? returns true when SSO enabled and sso_only is true
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['features']['sso'] = true
+cfg['full']['sso'] ||= {}
+cfg['full']['sso']['sso_only'] = true
+ENV['OIDC_ISSUER'] = 'https://example.com'
+ENV['OIDC_CLIENT_ID'] = 'test-client'
+result = config.sso_only_enabled?
+cfg['full']['features']['sso'] = false
+cfg['full']['sso']['sso_only'] = false
+ENV.delete('OIDC_ISSUER')
+ENV.delete('OIDC_CLIENT_ID')
+result
+#=> true
+
+## omniauth_provider_name returns nil when SSO is disabled
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.omniauth_provider_name
+#=> nil
+
+## omniauth_provider_name returns nil for empty string when SSO enabled
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['features']['sso'] = true
+cfg['full']['sso'] ||= {}
+cfg['full']['sso']['sso_display_name'] = ''
+result = config.omniauth_provider_name
+cfg['full']['features']['sso'] = false
+result
+#=> nil
+
+## omniauth_provider_name returns nil for whitespace-only string when SSO enabled
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['features']['sso'] = true
+cfg['full']['sso'] ||= {}
+cfg['full']['sso']['sso_display_name'] = '   '
+result = config.omniauth_provider_name
+cfg['full']['features']['sso'] = false
+result
+#=> nil
+
+## omniauth_provider_name returns the name when configured
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['features']['sso'] = true
+cfg['full']['sso'] ||= {}
+cfg['full']['sso']['sso_display_name'] = 'Zitadel'
+result = config.omniauth_provider_name
+cfg['full']['features']['sso'] = false
+cfg['full']['sso']['sso_display_name'] = ''
+result
+#=> "Zitadel"
+
+## verify_account_enabled? returns false in test config (disabled for tests)
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.verify_account_enabled?
+#=> false
+
+## All feature methods return false when in simple mode
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'simple'
+[
+  config.lockout_enabled?,
+  config.password_requirements_enabled?,
+  config.mfa_enabled?,
+  config.email_auth_enabled?,
+  config.webauthn_enabled?,
+  config.sso_enabled?
+]
+#=> [false, false, false, false, false, false]
+
+## sso_only_enabled? returns false in simple mode
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'simple'
+config.sso_only_enabled?
+#=> false
+
+## omniauth_provider_name returns nil in simple mode even if configured
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'simple'
+cfg['full']['features']['sso'] = true
+cfg['full']['sso'] ||= {}
+cfg['full']['sso']['sso_display_name'] = 'Okta'
+result = config.omniauth_provider_name
+cfg['full']['features']['sso'] = false
+cfg['full']['sso']['sso_display_name'] = ''
+result
+#=> nil
+
+## omniauth_route_name returns nil when SSO is disabled
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.omniauth_route_name
+#=> nil
+
+## omniauth_route_name returns 'oidc' by default when SSO is enabled
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+features = config.instance_variable_get(:@config)['full']['features']
+original_env = ENV['OIDC_ROUTE_NAME']
+ENV.delete('OIDC_ROUTE_NAME')
+features['sso'] = true
+result = config.omniauth_route_name
+features['sso'] = false
+ENV['OIDC_ROUTE_NAME'] = original_env if original_env
+result
+#=> "oidc"
+
+## omniauth_route_name returns OIDC_ROUTE_NAME env var when set
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+features = config.instance_variable_get(:@config)['full']['features']
+original_env = ENV['OIDC_ROUTE_NAME']
+ENV['OIDC_ROUTE_NAME'] = 'zitadel'
+features['sso'] = true
+result = config.omniauth_route_name
+features['sso'] = false
+ENV['OIDC_ROUTE_NAME'] = original_env if original_env
+ENV.delete('OIDC_ROUTE_NAME') unless original_env
+result
+#=> "zitadel"
+
+## omniauth_route_name returns nil in simple mode even if configured
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'simple'
+features = config.instance_variable_get(:@config)['full']['features']
+features['sso'] = true
+result = config.omniauth_route_name
+features['sso'] = false
+result
+#=> nil
+
+## magic_links_enabled? is deprecated alias for email_auth_enabled?
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.magic_links_enabled? == config.email_auth_enabled?
+#=> true
+
+# ── restrict_to tests ────────────────────────────────────────────────
+
+## restrict_to returns nil by default
+config = Onetime::AuthConfig.instance
+config.instance_variable_get(:@config)['mode'] = 'full'
+config.restrict_to
+#=> nil
+
+## restrict_to returns 'password' when set
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['restrict_to'] = 'password'
+result = config.restrict_to
+cfg['full']['restrict_to'] = nil
+result
+#=> "password"
+
+## restrict_to returns nil in simple mode
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'simple'
+cfg['full']['restrict_to'] = 'password'
+result = config.restrict_to
+cfg['full']['restrict_to'] = nil
+cfg['mode'] = 'full'
+result
+#=> nil
+
+## restrict_to ignores invalid values
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['restrict_to'] = 'carrier_pigeon'
+result = config.restrict_to
+cfg['full']['restrict_to'] = nil
+result
+#=> nil
+
+## password_only_enabled? returns true when restrict_to is 'password'
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['restrict_to'] = 'password'
+result = config.password_only_enabled?
+cfg['full']['restrict_to'] = nil
+result
+#=> true
+
+## password_only_enabled? returns false when restrict_to is something else
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['restrict_to'] = 'sso'
+result = config.password_only_enabled?
+cfg['full']['restrict_to'] = nil
+result
+#=> false
+
+## email_auth_only_enabled? STAYS true when email_auth is disabled (ADR-034#degradation-is-fail-closed, #4140)
+## The restriction is never dropped: consumers fail closed rather than widening.
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['restrict_to'] = 'email_auth'
+cfg['full']['features']['email_auth'] = false
+result = config.email_auth_only_enabled?
+cfg['full']['restrict_to'] = nil
+result
+#=> true
+
+## restrict_to_available? is false when the restricted method is disabled
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['restrict_to'] = 'email_auth'
+cfg['full']['features']['email_auth'] = false
+result = config.restrict_to_available?
+cfg['full']['restrict_to'] = nil
+result
+#=> false
+
+## email_auth_only_enabled? returns true when email_auth is enabled
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['restrict_to'] = 'email_auth'
+cfg['full']['features']['email_auth'] = true
+result = config.email_auth_only_enabled?
+cfg['full']['restrict_to'] = nil
+cfg['full']['features']['email_auth'] = false
+result
+#=> true
+
+## webauthn_only_enabled? STAYS true when webauthn is disabled (ADR-034#degradation-is-fail-closed, #4140)
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['restrict_to'] = 'webauthn'
+cfg['full']['features']['webauthn'] = false
+result = config.webauthn_only_enabled?
+cfg['full']['restrict_to'] = nil
+result
+#=> true
+
+## webauthn_only_enabled? returns true when webauthn is enabled
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['restrict_to'] = 'webauthn'
+cfg['full']['features']['webauthn'] = true
+result = config.webauthn_only_enabled?
+cfg['full']['restrict_to'] = nil
+cfg['full']['features']['webauthn'] = false
+result
+#=> true
+
+## sso_only_enabled? returns true with restrict_to 'sso' and provider configured
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['features']['sso'] = true
+cfg['full']['restrict_to'] = 'sso'
+ENV['OIDC_ISSUER'] = 'https://example.com'
+ENV['OIDC_CLIENT_ID'] = 'test-client'
+result = config.sso_only_enabled?
+cfg['full']['features']['sso'] = false
+cfg['full']['restrict_to'] = nil
+ENV.delete('OIDC_ISSUER')
+ENV.delete('OIDC_CLIENT_ID')
+result
+#=> true
+
+## validate_restrict_to! raises a fatal boot error when the method is unavailable
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['features']['webauthn'] = false
+cfg['full']['restrict_to'] = 'webauthn'
+config.send(:remove_instance_variable, :@validate_restrict_to) if config.instance_variable_defined?(:@validate_restrict_to)
+begin
+  config.validate_restrict_to!
+  result = :no_raise
+rescue Onetime::ConfigError => ex
+  result = ex.message.include?('WebAuthn is disabled')
+end
+cfg['full']['restrict_to'] = nil
+config.send(:remove_instance_variable, :@validate_restrict_to) if config.instance_variable_defined?(:@validate_restrict_to)
+result
+#=> true
+
+## validate_restrict_to! returns the value when prerequisites are met
+config = Onetime::AuthConfig.instance
+cfg = config.instance_variable_get(:@config)
+cfg['mode'] = 'full'
+cfg['full']['restrict_to'] = 'password'
+config.send(:remove_instance_variable, :@validate_restrict_to) if config.instance_variable_defined?(:@validate_restrict_to)
+result = config.validate_restrict_to!
+cfg['full']['restrict_to'] = nil
+config.send(:remove_instance_variable, :@validate_restrict_to) if config.instance_variable_defined?(:@validate_restrict_to)
+result
+#=> "password"
+
+## RESTRICT_TO_VALUES constant contains exactly four values
+Onetime::AuthConfig::RESTRICT_TO_VALUES
+#=> ["password", "email_auth", "webauthn", "sso"]
+
+# Teardown: Restore original method and clear singleton
+Onetime::Utils::ConfigResolver.define_singleton_method(:resolve, @original_resolve)
+Onetime::AuthConfig.instance_variable_set(:@singleton__instance__, nil)

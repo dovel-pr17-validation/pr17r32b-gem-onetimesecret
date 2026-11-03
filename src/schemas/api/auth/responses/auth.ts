@@ -1,0 +1,724 @@
+// src/schemas/api/auth/responses/auth.ts
+
+import { z } from 'zod';
+
+/**
+ * Rodauth-compatible authentication response schemas
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * AUTHENTICATION FLOW OVERVIEW
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * This module defines Zod schemas for validating Rodauth JSON API responses.
+ * The authentication flow has multiple paths depending on account configuration:
+ *
+ * 1. STANDARD LOGIN (no MFA):
+ *    POST /auth/login → { success: "You have been logged in" }
+ *    → User is fully authenticated, redirect to dashboard
+ *
+ * 2. LOGIN WITH MFA ENABLED:
+ *    POST /auth/login → { success: "...", mfa_required: true, mfa_methods: [...] }
+ *    → User has partial auth (awaiting_mfa=true), redirect to /mfa-verify
+ *    POST /auth/otp-auth → { success: "You have been multifactor authenticated" }
+ *    → User is fully authenticated (awaiting_mfa=false), redirect to dashboard
+ *
+ * 3. ERROR RESPONSES:
+ *    Any endpoint → { error: "message", "field-error": ["field", "message"] }
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * ZOD UNION ORDERING (CRITICAL)
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Zod unions match the FIRST schema that validates successfully. This means:
+ * - More specific schemas MUST come before less specific ones
+ * - { success, mfa_required } must precede { success } alone
+ *
+ * If order is wrong, Zod strips the MFA fields during validation, breaking
+ * the login flow for MFA-enabled accounts.
+ *
+ * Rodauth JSON API response format:
+ * - Success: { success: "message" }
+ * - Error: { error: "message", "field-error": ["field", "error"] }
+ */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Base Response Schemas
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The server's verdict on a plan selection, returned after login/signup and
+ * two-factor completion. Present whenever the request (or the stored plan
+ * intent) named a product or an interval.
+ *
+ * valid: true means both halves are present and the plan resolved; the SPA
+ * follows it to checkout. Every other case (billing disabled, one half
+ * missing, plan not found) is valid: false with an error, and the missing
+ * half arrives as null. A signup at /signup?product=x without an interval
+ * gets `{ product: 'x', interval: null, valid: false, error: '...' }`. The
+ * invalid member must parse: create-account has already created the account
+ * by the time this body is validated.
+ *
+ * Terminology:
+ * - product: Plan identifier (e.g., 'identity_plus_v1')
+ * - interval: Billing frequency choice ('monthly' or 'yearly')
+ *
+ * See apps/web/auth/config/hooks/billing.rb (build_billing_redirect_info).
+ */
+const validBillingRedirectSchema = z.object({
+  product: z.string(),
+  interval: z.string(),
+  valid: z.literal(true),
+});
+
+const invalidBillingRedirectSchema = z.object({
+  product: z.string().nullable(),
+  interval: z.string().nullable(),
+  valid: z.literal(false),
+  error: z.string().optional(),
+});
+
+const billingRedirectSchema = z.discriminatedUnion('valid', [
+  validBillingRedirectSchema,
+  invalidBillingRedirectSchema,
+]);
+
+export type BillingRedirect = z.infer<typeof billingRedirectSchema>;
+export type ValidBillingRedirect = z.infer<typeof validBillingRedirectSchema>;
+
+/**
+ * Standard success response - used when no additional data is needed.
+ * Example: logout, password change, account verification
+ */
+const authSuccessSchema = z.object({
+  success: z.string(),
+});
+
+/**
+ * Success response with optional billing redirect.
+ * Returned by /auth/login and the two-factor completion routes when user
+ * should be redirected to checkout after authentication. /auth/create-account
+ * has its own schema (createAccountSuccessSchema below).
+ */
+const authSuccessWithBillingSchema = z.object({
+  success: z.string(),
+  billing_redirect: billingRedirectSchema.optional(),
+});
+
+/**
+ * Success response with MFA requirement flag.
+ * Returned by /auth/login when the account has MFA enabled.
+ *
+ * The presence of mfa_required=true indicates the user has completed
+ * password authentication but must still verify with OTP/recovery code.
+ */
+const authSuccessWithMfaSchema = z.object({
+  success: z.string(),
+  mfa_required: z.boolean(),
+  mfa_auth_url: z.string().optional(),
+  mfa_methods: z.array(z.string()).optional(),
+  billing_redirect: billingRedirectSchema.optional(),
+});
+
+/**
+ * Error response with optional field-level error details.
+ * field-error tuple: [field_name, error_message]
+ */
+const authErrorSchema = z.object({
+  error: z.string(),
+  'field-error': z.tuple([z.string(), z.string()]).optional(),
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Composite Response Schemas
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Standard auth response for endpoints that don't return MFA data */
+const authResponseSchema = z.union([authSuccessSchema, authErrorSchema]);
+
+// Re-authentication
+export const reauthSurfaceSchema = z.object({
+  kind: z.string(),
+  id: z.string().optional(),
+});
+export type ReauthSurface = z.infer<typeof reauthSurfaceSchema>;
+
+export const reauthWebauthnCredentialSchema = z.object({
+  scope: z.string(),
+  id: z.string().optional(),
+});
+
+export const reauthOfferResponseSchema = z.object({
+  surface: reauthSurfaceSchema.nullable(),
+  methods: z.array(z.enum(['password', 'webauthn'])),
+  webauthn_credentials: z.array(reauthWebauthnCredentialSchema),
+  /** Exact browser origins (scheme://host[:port]) — see routes/reauth.rb */
+  related_origins: z.array(z.string()),
+});
+export type ReauthOfferResponse = z.infer<typeof reauthOfferResponseSchema>;
+
+const reauthSuccessSchema = z.object({
+  success: z.literal('Re-authentication complete'),
+});
+
+const reauthMfaRequiredSchema = z.object({
+  mfa_required: z.literal(true),
+  mfa_methods: z.array(z.string()),
+});
+
+export const reauthWebauthnChallengeSchema = z.object({
+  webauthn_auth: z.object({ challenge: z.string() }).catchall(z.unknown()),
+  webauthn_auth_challenge: z.string(),
+  webauthn_auth_challenge_hmac: z.string(),
+});
+export type ReauthWebauthnChallenge = z.infer<typeof reauthWebauthnChallengeSchema>;
+
+export const reauthErrorSchema = z.object({
+  error: z.string(),
+  error_code: z.string().optional(),
+  session_rotated: z.boolean().optional(),
+});
+
+export const reauthResponseSchema = z.union([
+  reauthSuccessSchema,
+  reauthMfaRequiredSchema,
+  reauthWebauthnChallengeSchema,
+  reauthErrorSchema,
+]);
+export type ReauthResponse = z.infer<typeof reauthResponseSchema>;
+
+/**
+ * Login response schema - supports MFA and billing redirect flows.
+ *
+ * IMPORTANT: Schema union order matters - Zod matches first valid schema.
+ * Order from most to least specific:
+ * 1. MFA required (has mfa_required) - most specific
+ * 2. Billing redirect (has billing_redirect) - moderately specific
+ * 3. Plain success - least specific
+ */
+export const loginResponseSchema = z.union([
+  authSuccessWithMfaSchema, // Most specific - has mfa_required
+  authSuccessWithBillingSchema, // Moderately specific - has billing_redirect
+  authSuccessSchema, // Least specific - just { success }
+  authErrorSchema,
+]);
+export type LoginResponse = z.infer<typeof loginResponseSchema>;
+
+/**
+ * Signup success names the next unauthenticated step explicitly: verify_email
+ * when the emailed link must be followed before sign-in works, sign_in when
+ * the account is usable at once. Simple mode answers from its autoverify
+ * setting; full mode from the status of the account it just created, which is
+ * open when verification is off or an invite signup opened it. Neither answer
+ * depends on an account that existed before the request. Create-account never
+ * signs the new account in, so there is no signed-in answer. billing_redirect,
+ * when present, is the server's verdict on the submitted plan and is followed
+ * after sign-in.
+ */
+const createAccountSuccessSchema = z.object({
+  success: z.string(),
+  next_action: z.enum(['verify_email', 'sign_in']),
+  billing_redirect: billingRedirectSchema.optional(),
+});
+
+export type CreateAccountSuccess = z.infer<typeof createAccountSuccessSchema>;
+
+export const createAccountResponseSchema = z.union([createAccountSuccessSchema, authErrorSchema]);
+export type CreateAccountResponse = z.infer<typeof createAccountResponseSchema>;
+
+// Logout response
+export const logoutResponseSchema = authResponseSchema;
+export type LogoutResponse = z.infer<typeof logoutResponseSchema>;
+
+// Password reset request response
+export const resetPasswordRequestResponseSchema = authResponseSchema;
+export type ResetPasswordRequestResponse = z.infer<typeof resetPasswordRequestResponseSchema>;
+
+// Password reset (with key) response
+export const resetPasswordResponseSchema = authResponseSchema;
+export type ResetPasswordResponse = z.infer<typeof resetPasswordResponseSchema>;
+
+// Type guard to check if response is an error
+export function isAuthError(
+  response:
+    | LoginResponse
+    | CreateAccountResponse
+    | LogoutResponse
+    | ResetPasswordRequestResponse
+    | ResetPasswordResponse
+    | VerifyAccountResponse
+    | ChangePasswordResponse
+    | CloseAccountResponse
+    | EmailChangeRequestResponse
+    | EmailChangeConfirmResponse
+    | EmailChangeResendResponse
+    | ResendVerificationEmailResponse
+    | IdentitiesResponse
+    | RemoveIdentityResponse
+    | LinkSsoChallengeResponse
+    | LinkSsoVerifyResponse
+    | SsoLinkConfirmDisplayResponse
+    | SsoLinkConfirmResponse
+): response is z.infer<typeof authErrorSchema> {
+  return 'error' in response;
+}
+
+/**
+ * POST /auth/verify-account success body: the account is now verified but NOT
+ * signed in — the user still has to authenticate. It returns an optional
+ * internal redirect target, the `redirect` the backend VALIDATED and stored at
+ * signup, so the destination survives the signup → email → verify → signin
+ * journey (the verification link is opened from a mail client, frequently in a
+ * different browser, so the original query string is long gone).
+ *
+ * The SPA validates it with isValidInternalPath and falls back to the
+ * ?redirect query param, then a plain /signin — same contract as link-sso
+ * above; a server-supplied path is never trusted blindly.
+ *
+ * The server resolves precedence (plan intent > redirect > default) and sends
+ * ONE destination: a valid plan intent arrives here as the checkout path
+ * (/billing/plans?product=…&interval=…), else the stored signup redirect.
+ * ABSENT when nothing was stored or the stored value failed re-validation.
+ */
+const verifyAccountSuccessSchema = z.object({
+  success: z.string(),
+  redirect: z.string().optional(),
+});
+
+// Verify account response
+export const verifyAccountResponseSchema = z.union([verifyAccountSuccessSchema, authErrorSchema]);
+export type VerifyAccountResponse = z.infer<typeof verifyAccountResponseSchema>;
+
+// Change password response
+export const changePasswordResponseSchema = authResponseSchema;
+export type ChangePasswordResponse = z.infer<typeof changePasswordResponseSchema>;
+
+// Close account response
+export const closeAccountResponseSchema = authResponseSchema;
+export type CloseAccountResponse = z.infer<typeof closeAccountResponseSchema>;
+
+// Type guard to check if response is a success
+export function isAuthSuccess(
+  response:
+    | LoginResponse
+    | CreateAccountResponse
+    | LogoutResponse
+    | ResetPasswordRequestResponse
+    | ResetPasswordResponse
+    | VerifyAccountResponse
+    | ChangePasswordResponse
+    | CloseAccountResponse
+    // RemoveIdentityResponse is a { success } | { error } union, so the success
+    // guard sensibly applies. IdentitiesResponse is deliberately NOT included:
+    // it is a { identities: [...] } list container with neither field.
+    | RemoveIdentityResponse
+): response is z.infer<typeof authSuccessSchema> {
+  return 'success' in response;
+}
+
+// Type guard to check if login response requires MFA
+export function requiresMfa(
+  response: LoginResponse
+): response is z.infer<typeof authSuccessWithMfaSchema> {
+  return 'success' in response && 'mfa_required' in response && response.mfa_required === true;
+}
+
+// Type guard to check if response has a valid billing redirect.
+// Narrows to a type where billing_redirect is REQUIRED (not optional) and is
+// the valid member, so product and interval are both strings.
+export function hasBillingRedirect(
+  response: LoginResponse | CreateAccountResponse
+): response is { success: string; billing_redirect: ValidBillingRedirect } {
+  return (
+    'success' in response &&
+    'billing_redirect' in response &&
+    response.billing_redirect !== undefined &&
+    response.billing_redirect.valid === true
+  );
+}
+
+/**
+ * Extended schemas for advanced Rodauth features
+ */
+
+// Lockout information for enhanced error responses
+export const lockoutInfoSchema = z.object({
+  locked: z.boolean(),
+  attempts_remaining: z.number().optional(),
+  unlock_at: z.string().optional(),
+});
+
+// Enhanced error schema with lockout information
+export const lockoutErrorSchema = z.object({
+  error: z.string(),
+  'field-error': z.tuple([z.string(), z.string()]).optional(),
+  lockout: lockoutInfoSchema.optional(),
+});
+
+// Active session schema
+export const sessionSchema = z.object({
+  id: z.string(),
+  created_at: z.string(),
+  last_activity_at: z.string(),
+  ip_address: z.string().nullable(),
+  user_agent: z.string().nullable(),
+  geo_country: z.string().nullable(),
+  is_current: z.boolean(),
+  remember_enabled: z.boolean(),
+});
+
+// Active sessions list response
+export const activeSessionsResponseSchema = z.object({
+  sessions: z.array(sessionSchema),
+});
+export type ActiveSessionsResponse = z.infer<typeof activeSessionsResponseSchema>;
+
+// Remove session response
+export const removeSessionResponseSchema = authResponseSchema;
+export type RemoveSessionResponse = z.infer<typeof removeSessionResponseSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Connected Identities (SSO account-linking — #3840 Phase 2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A single SSO identity linked to the authenticated account.
+ *
+ * Shape mirrors GET /auth/identities EXACTLY (account-scoped rows, ordered by
+ * id ascending):
+ * - id:       account_identities row PK — the stable DELETE handle.
+ * - provider: strategy name stored on the row (oidc, entra, github, google).
+ * - issuer:   resolved IdP issuer (Phase 0 column). '' sentinel for legacy rows
+ *             and OAuth2-only providers (GitHub/Google); a URL otherwise. NOT
+ *             NULL, so an empty string — never null — signals "no issuer".
+ * - uid:      MASKED IdP subject (first4 + U+2026 + last4, or '***' when
+ *             length <= 8). Display-only; the raw sub is never returned. The
+ *             delete handle is `id`, not `uid`.
+ *
+ * NOTE: created_at is deliberately ABSENT — no such column exists on
+ * account_identities in migration 006/008 or the spec schema. Adding a
+ * timestamp would require a schema migration first.
+ */
+export const connectedIdentitySchema = z.object({
+  id: z.number().int(),
+  provider: z.string(),
+  issuer: z.string(),
+  uid: z.string(),
+});
+export type ConnectedIdentity = z.infer<typeof connectedIdentitySchema>;
+
+/** GET /auth/identities → { identities: [...] }. Empty account => { identities: [] }. */
+export const identitiesResponseSchema = z.object({
+  identities: z.array(connectedIdentitySchema),
+});
+export type IdentitiesResponse = z.infer<typeof identitiesResponseSchema>;
+
+/**
+ * DELETE /auth/identities/:id → { success: string } on 200.
+ * Error bodies (401/404/409/500) surface as the axios error's response.data and
+ * are classified by useAsyncHandler; the 409 last-credential guard carries an
+ * additional { error_code: 'last_credential' } the composable reads from
+ * details.
+ */
+export const removeIdentityResponseSchema = z.union([authSuccessSchema, authErrorSchema]);
+export type RemoveIdentityResponse = z.infer<typeof removeIdentityResponseSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sign-in interstitial (SSO password-challenge linking — #3840 Phase 3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Challenge context for the sign-in interstitial.
+ *
+ * An UNAUTHENTICATED SSO sign-in whose IdP email matches an existing account
+ * that HAS a password is redirected by the backend to the interstitial carrying
+ * a single-use challenge token. GET /auth/link-sso/:token returns the display
+ * context: which provider was used and the email that was claimed. Both are
+ * DISPLAY-ONLY — no secrets, no account id, no uid. The token itself is the
+ * authorization; a missing / expired / consumed token is a 404 (or an error
+ * body) and never returns context.
+ *
+ * INVARIANT (#3840): email may LOCATE an account; only a demonstrated credential
+ * may BIND an identity. Here the credential is the account's EXISTING password,
+ * collected by the interstitial and verified by POST /auth/link-sso.
+ */
+export const linkSsoChallengeSchema = z.object({
+  provider: z.string(),
+  email: z.string(),
+});
+export type LinkSsoChallenge = z.infer<typeof linkSsoChallengeSchema>;
+
+/**
+ * GET /auth/link-sso/:token → { provider, email } on 200.
+ * A spent / expired / unknown token surfaces as an axios error (404/410) whose
+ * body is classified by useAsyncHandler; the union's error branch only covers
+ * the unusual 200-with-error body.
+ */
+export const linkSsoChallengeResponseSchema = z.union([linkSsoChallengeSchema, authErrorSchema]);
+export type LinkSsoChallengeResponse = z.infer<typeof linkSsoChallengeResponseSchema>;
+
+/**
+ * POST /auth/link-sso non-MFA success body: the backend verified the password,
+ * bound (provider, issuer, uid) to the located account, and ESTABLISHED THE
+ * SESSION. It returns an optional internal redirect target; the SPA validates it
+ * with isValidInternalPath and falls back to the ?redirect query param, then '/'.
+ */
+const linkSsoVerifyCompleteSchema = z.object({
+  success: z.string(),
+  redirect: z.string().optional(),
+});
+
+/**
+ * POST /auth/link-sso success body.
+ *
+ * Because the backend completes the password check via the SAME rodauth login
+ * path as POST /auth/login, it returns the STANDARD login success contract, in
+ * two variants:
+ * - MFA account: the same body login returns for MFA (authSuccessWithMfaSchema) —
+ *   password proven, but a second factor is still required. mfa_required MUST be
+ *   modelled here; a plain z.object would silently strip it and the interstitial
+ *   would mark the user fully authenticated, skipping the OTP challenge (#3840).
+ * - Non-MFA account: { success, redirect? } — session established.
+ *
+ * Union order matters (Zod matches the first valid schema): the MFA variant
+ * carries the required mfa_required key and MUST precede the plain success
+ * variant, which would otherwise match an MFA body and drop the flag.
+ *
+ * Failure bodies (401 invalid_password wrong password, 401 link_expired expired-
+ * or-spent token) are NOT modelled here — they arrive as axios errors and are
+ * distinguished by the composable via HTTP status + an optional { error_code }.
+ */
+export const linkSsoVerifySuccessSchema = z.union([
+  authSuccessWithMfaSchema, // MFA variant — must precede plain success
+  linkSsoVerifyCompleteSchema, // { success, redirect? }
+]);
+export type LinkSsoVerifySuccess = z.infer<typeof linkSsoVerifySuccessSchema>;
+
+/** Type guard: a link-sso verify success that still requires a second factor. */
+export function linkSsoRequiresMfa(
+  response: LinkSsoVerifySuccess
+): response is z.infer<typeof authSuccessWithMfaSchema> {
+  return 'mfa_required' in response && response.mfa_required === true;
+}
+
+export const linkSsoVerifyResponseSchema = z.union([linkSsoVerifySuccessSchema, authErrorSchema]);
+export type LinkSsoVerifyResponse = z.infer<typeof linkSsoVerifyResponseSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SSO link-confirm (#3840 Phase 4 — MAILBOX-PROOF linking, passwordless accounts)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /auth/sso-link-confirm/:token → { provider, email } on 200.
+ *
+ * The Phase 4 counterpart to linkSsoChallengeSchema, but the account is
+ * PASSWORDLESS: the proof is not a password but MAILBOX CONTROL — the token
+ * reached the user only via an emailed link to <base_url>/sso-link-confirm/:token.
+ * The GET is DISPLAY-ONLY (it never consumes the token, so a mail/link prefetch
+ * cannot burn it); it returns solely the requesting provider name and the claimed
+ * email for the consent screen. A missing / consumed / expired token surfaces as
+ * an axios error (404 { error, error_code: 'link_expired' }); the union's error
+ * branch only covers the unusual 200-with-error body.
+ */
+export const ssoLinkConfirmDisplaySchema = z.object({
+  provider: z.string(),
+  email: z.string(),
+});
+export type SsoLinkConfirmDisplay = z.infer<typeof ssoLinkConfirmDisplaySchema>;
+
+export const ssoLinkConfirmDisplayResponseSchema = z.union([
+  ssoLinkConfirmDisplaySchema,
+  authErrorSchema,
+]);
+export type SsoLinkConfirmDisplayResponse = z.infer<typeof ssoLinkConfirmDisplayResponseSchema>;
+
+/**
+ * POST /auth/sso-link-confirm success body.
+ *
+ * The backend consumes the single-use token, binds (provider, issuer, uid) to the
+ * located account, and ESTABLISHES THE SESSION through Rodauth's OWN login path —
+ * the SAME machinery POST /auth/login uses. It therefore returns the STANDARD
+ * login success contract, in two variants (identical shapes to Phase 3's
+ * linkSsoVerifySuccessSchema — reuse authSuccessWithMfaSchema / the complete
+ * variant):
+ * - MFA account: the same mfa_required body login returns — a second factor is
+ *   still pending. mfa_required MUST be modelled first (union order matters: a
+ *   plain success schema would match an MFA body and silently strip the flag,
+ *   marking the user fully authenticated and skipping the OTP challenge).
+ * - Non-MFA account: { success, redirect? } — session established.
+ *
+ * Failure bodies (400 invalid_request / 401 link_expired / 409 link_conflict /
+ * 409 link_invalidated) are NOT modelled here — they arrive as axios errors and
+ * are classified by the composable via HTTP status + { error_code }.
+ */
+export const ssoLinkConfirmSuccessSchema = z.union([
+  authSuccessWithMfaSchema, // MFA variant — must precede plain success
+  linkSsoVerifyCompleteSchema, // { success, redirect? }
+]);
+export type SsoLinkConfirmSuccess = z.infer<typeof ssoLinkConfirmSuccessSchema>;
+
+/** Type guard: an sso-link-confirm success that still requires a second factor. */
+export function ssoLinkConfirmRequiresMfa(
+  response: SsoLinkConfirmSuccess
+): response is z.infer<typeof authSuccessWithMfaSchema> {
+  return 'mfa_required' in response && response.mfa_required === true;
+}
+
+export const ssoLinkConfirmResponseSchema = z.union([ssoLinkConfirmSuccessSchema, authErrorSchema]);
+export type SsoLinkConfirmResponse = z.infer<typeof ssoLinkConfirmResponseSchema>;
+
+// OTP setup response
+// When HMAC is enabled, Rodauth returns an error response with only secrets on first request
+export const otpSetupResponseSchema = z.object({
+  qr_code: z.string().optional(), // Not present in HMAC first request
+  secret: z.string().optional(), // Not present in HMAC first request
+  // Backend's authoritative otpauth:// provisioning URI (Rodauth's
+  // otp_provisioning_uri). The frontend renders this directly as a QR code
+  // rather than reconstructing the URI client-side (issue #3431).
+  provisioning_uri: z.string().optional(),
+  otp_setup: z.string().optional(), // HMAC'd secret (when HMAC enabled)
+  otp_raw_secret: z.string().optional(), // Raw secret (when HMAC enabled)
+  otp_secret: z.string().optional(), // Alternative field name for HMAC'd secret
+  error: z.string().optional(), // Error message (expected on first request with HMAC)
+  'field-error': z.tuple([z.string(), z.string()]).optional(), // Field-level error
+});
+export type OtpSetupResponse = z.infer<typeof otpSetupResponseSchema>;
+
+// OTP enable response (includes recovery codes)
+export const otpEnableResponseSchema = z.union([
+  authSuccessSchema.extend({
+    recovery_codes: z.array(z.string()).optional(),
+  }),
+  authErrorSchema,
+]);
+export type OtpEnableResponse = z.infer<typeof otpEnableResponseSchema>;
+
+// OTP disable response
+export const otpToggleResponseSchema = authResponseSchema;
+export type OtpToggleResponse = z.infer<typeof otpToggleResponseSchema>;
+
+// OTP verification response (two-factor completion: /auth/otp-auth and
+// /auth/recovery-auth).
+//
+// #4306: for MFA-gated logins the backend replays the signup plan intent on
+// the COMPLETION response, not the primary-factor login response — so this
+// body may carry the same optional billing_redirect shape as login
+// (authSuccessWithBillingSchema). Union order matters: the
+// billing-capable success variant must precede authErrorSchema so Zod never
+// strips billing_redirect from a success body.
+export const otpVerifyResponseSchema = z.union([
+  authSuccessWithBillingSchema, // { success, billing_redirect? }
+  authErrorSchema,
+]);
+export type OtpVerifyResponse = z.infer<typeof otpVerifyResponseSchema>;
+/**
+ * The success variant of a two-factor completion body. Structurally a member
+ * of the LoginResponse union, so it can be handed straight to
+ * usePostAuthRedirect.navigateAfterAuth().
+ */
+export type OtpVerifySuccess = z.infer<typeof authSuccessWithBillingSchema>;
+
+// Recovery code schema
+export const recoveryCodeSchema = z.object({
+  code: z.string(),
+  used: z.boolean(),
+  used_at: z.string().optional(),
+});
+
+// Recovery codes response
+export const recoveryCodesResponseSchema = z.object({
+  codes: z.array(z.string()),
+});
+export type RecoveryCodesResponse = z.infer<typeof recoveryCodesResponseSchema>;
+
+// Account information response
+export const accountInfoResponseSchema = z.object({
+  id: z.number(),
+  email: z.string(),
+  created_at: z.string(),
+  status: z.number(),
+  email_verified: z.boolean(),
+  // Whether the account has a local password credential. SSO-only accounts
+  // report false; consumers use this to skip password-confirmation prompts.
+  has_password: z.boolean().optional(),
+  mfa_enabled: z.boolean(),
+  recovery_codes_count: z.number(),
+  passkeys_count: z.number().optional(),
+});
+export type AccountInfoResponse = z.infer<typeof accountInfoResponseSchema>;
+
+// WebAuthn credential item (GET /auth/webauthn-credentials).
+// The table has no name and no created_at column — id + last_used_at is the
+// entire shape. last_used_at is NOT NULL in the DB, but stay nullable-tolerant.
+export const webauthnCredentialSchema = z.object({
+  id: z.string(),
+  last_used_at: z.string().nullable(),
+});
+export type WebAuthnCredential = z.infer<typeof webauthnCredentialSchema>;
+
+// WebAuthn credentials list response, ordered last_used_at desc by the server.
+export const webauthnCredentialsResponseSchema = z.object({
+  credentials: z.array(webauthnCredentialSchema),
+  count: z.number(),
+});
+export type WebAuthnCredentialsResponse = z.infer<typeof webauthnCredentialsResponseSchema>;
+
+// MFA status response
+// `enabled` deliberately still means otp || recovery only — webauthn does NOT
+// flip it. The per-factor booleans below are additive (2026-08); older
+// backends omit them, so consumers must treat undefined as false.
+export const mfaStatusResponseSchema = z.object({
+  enabled: z.boolean(),
+  last_used_at: z.string().nullable(),
+  recovery_codes_remaining: z.number(),
+  recovery_codes_limit: z.number(),
+  otp_enabled: z.boolean().optional(),
+  webauthn_enabled: z.boolean().optional(),
+});
+export type MfaStatusResponse = z.infer<typeof mfaStatusResponseSchema>;
+
+// Email change request response
+// Backend returns { sent: true } on success (not { success: string })
+const emailChangeRequestSuccessSchema = z.object({
+  sent: z.boolean(),
+});
+export const emailChangeRequestResponseSchema = z.union([
+  emailChangeRequestSuccessSchema,
+  authErrorSchema,
+]);
+export type EmailChangeRequestResponse = z.infer<typeof emailChangeRequestResponseSchema>;
+
+// Email change confirmation response
+// Backend returns { confirmed: true, redirect: '/signin' } on success
+const emailChangeConfirmSuccessSchema = z.object({
+  confirmed: z.boolean(),
+  redirect: z.string(),
+});
+export const emailChangeConfirmResponseSchema = z.union([
+  emailChangeConfirmSuccessSchema,
+  authErrorSchema,
+]);
+export type EmailChangeConfirmResponse = z.infer<typeof emailChangeConfirmResponseSchema>;
+
+// Email change resend confirmation response
+// Backend returns { sent: true, resend_count: number } on success
+const emailChangeResendSuccessSchema = z.object({
+  sent: z.boolean(),
+  resend_count: z.number(),
+});
+export const emailChangeResendResponseSchema = z.union([
+  emailChangeResendSuccessSchema,
+  authErrorSchema,
+]);
+export type EmailChangeResendResponse = z.infer<typeof emailChangeResendResponseSchema>;
+
+// Resend verification email response.
+// ANTI-ENUMERATION: backend returns an identical { sent: true } for every
+// account state (sent / throttled / verified / nonexistent). No resend_count.
+const resendVerificationEmailSuccessSchema = z.object({
+  sent: z.boolean(),
+});
+export const resendVerificationEmailResponseSchema = z.union([
+  resendVerificationEmailSuccessSchema,
+  authErrorSchema,
+]);
+export type ResendVerificationEmailResponse = z.infer<typeof resendVerificationEmailResponseSchema>;

@@ -1,0 +1,331 @@
+# try/unit/operations/email_ratelimit_tools_try.rb
+#
+# frozen_string_literal: true
+
+#
+# Unit tryouts for the extracted email + rate-limit tools operations (ticket #44):
+#   Onetime::Operations::Email::{ListTemplates, PreviewTemplate, SendTest}
+#   Onetime::Operations::RateLimit::{Registry, Inspect, Reset}
+#
+# These are the SINGLE implementation of each verb (the colonel API + `bin/ots
+# email` / `bin/ots ratelimit` CLI are thin adapters). Covers:
+# - ListTemplates: enumerates the canonical templates with their formats (read)
+# - PreviewTemplate: renders sample text/html with NO side effects (read, no audit)
+# - PreviewTemplate: unknown template raises, missing sample raises MissingSampleError
+# - SendTest.build: brand-aware, recipient-facing copy; provider/host stay off the message
+# - SendTest dry-run: sends nothing, records NO audit
+# - SendTest live: delivers via the logger backend, records EXACTLY ONE audit event
+# - RateLimit::Registry: CLI-golden key derivation is byte-identical
+# - RateLimit::Inspect: reads TTL/value for the bounded key set (read, no audit)
+# - RateLimit::Reset: deletes keys + records ONE audit; idempotent no-op records none
+#
+# Run: try --agent try/unit/operations/email_ratelimit_tools_try.rb
+
+require_relative '../../support/test_helpers'
+
+OT.boot! :test
+
+require 'onetime/operations/email/list_templates'
+require 'onetime/operations/email/preview_template'
+require 'onetime/operations/email/send_test'
+require 'onetime/operations/email/add_suppression'
+require 'onetime/operations/email/remove_suppression'
+require 'onetime/operations/ratelimit/registry'
+require 'onetime/operations/ratelimit/inspect'
+require 'onetime/operations/ratelimit/reset'
+
+AE = Onetime::ColonelAuditEvent
+
+@actor = 'ur1colonelpub' # a PUBLIC id (extid-shaped), never an objid
+
+AE.events.clear
+
+# ---- Email::ListTemplates (read) --------------------------------------
+
+## ListTemplates returns one entry per canonical template, in order
+@templates = Onetime::Operations::Email::ListTemplates.new.call
+@templates.map(&:name).first(3)
+#=> ["secret_link", "welcome", "password_request"]
+
+## every entry advertises at least one renderable format
+@templates.all? { |e| e.formats.any? }
+#=> true
+
+## listing records NO audit event (read-only verb)
+AE.count
+#=> 0
+
+# ---- Email::PreviewTemplate (read, no side effects) -------------------
+
+## PreviewTemplate renders the text body from sample data
+@preview = Onetime::Operations::Email::PreviewTemplate.new(template: 'secret_link').call
+[@preview.format, @preview.body.is_a?(String) && !@preview.body.empty?]
+#=> ["text", true]
+
+## an HTML preview renders the HTML arm
+@html = Onetime::Operations::Email::PreviewTemplate.new(template: 'secret_link', format: 'html').call
+@html.format
+#=> "html"
+
+## previewing records NO audit event (read-only, no dispatch)
+AE.count
+#=> 0
+
+## an unknown template with supplied data raises ArgumentError (unknown class)
+# (data is supplied so we skip sample loading and reach template_class_for, which
+# is the CLI's order: load_data then resolve_template.)
+begin
+  Onetime::Operations::Email::PreviewTemplate.new(template: 'does_not_exist', data: { foo: 'bar' }).call
+  :no_raise
+rescue ArgumentError
+  :raised
+end
+#=> :raised
+
+## an unknown template with NO data raises MissingSampleError first (CLI parity:
+## load_data runs before resolve_template, so the missing sample is hit first)
+begin
+  Onetime::Operations::Email::PreviewTemplate.new(template: 'does_not_exist').call
+  :no_raise
+rescue Onetime::Operations::Email::PreviewTemplate::MissingSampleError
+  :missing_sample
+end
+#=> :missing_sample
+
+# ---- Email::SendTest.build (recipient-facing copy) -------------------
+
+## build returns the provider/host probe for the operator alongside the message
+@diag         = Onetime::Operations::Email::SendTest.build(to: 'ops@example.com')
+@product_name = @diag.subject.delete_prefix('Test email from ')
+[@diag.to, @diag.subject.start_with?('Test email from '), @product_name.empty?, @diag.provider, @diag.host.empty?]
+#=> ["ops@example.com", true, false, "logger", false]
+
+## the body names the product and the sending address, for the recipient
+[@diag.text_body.include?("test message from #{@product_name}"), @diag.text_body.include?(@diag.from)]
+#=> [true, true]
+
+## neither the subject nor the body carries delivery internals
+@leaks = ['Provider:', 'Host:', 'CLI', @diag.provider, @diag.host]
+@leaks.select { |term| @diag.subject.include?(term) || @diag.text_body.include?(term) }
+#=> []
+
+## the body's send time is the same instant as the ISO timestamp
+@sent_at = Time.parse(@diag.timestamp).utc
+@diag.text_body.include?("Sent #{@sent_at.strftime('%-d %B %Y at %H:%M UTC')}.")
+#=> true
+
+# ---- Email::SendTest dry-run (no send, no audit) ----------------------
+
+## a dry-run returns :dry_run and dispatches nothing
+AE.events.clear
+@dry = Onetime::Operations::Email::SendTest.new(to: 'ops@example.com', actor: @actor, dry_run: true).call
+@dry.status
+#=> :dry_run
+
+## a dry-run records NO audit event
+AE.count
+#=> 0
+
+# ---- Email::SendTest live (logger backend, one audit) -----------------
+
+## a real send returns :sent (test env uses the logger delivery backend)
+AE.events.clear
+@sent = Onetime::Operations::Email::SendTest.new(to: 'ops@example.com', actor: @actor, dry_run: false).call
+@sent.status
+#=> :sent
+
+## exactly ONE audit event was recorded for the send
+AE.count
+#=> 1
+
+## the audit event is the test_send verb, targeting the recipient, actored by PUBLIC id
+@ev = AE.recent(1).first
+[@ev['verb'], @ev['target'], @ev['actor']]
+#=> ["email.test_send", "ops@example.com", "ur1colonelpub"]
+
+# ---- RateLimit::Registry (CLI golden-master key derivation) -----------
+
+## the registry knows the canonical limiter kinds, in registry order
+Onetime::Operations::RateLimit::Registry.kinds
+#=> ["feedback", "passphrase", "invite", "login", "reset_request_ip", "reset_request_email", "email_login_request_ip", "email_login_request_email", "create_account_ip", "colonel_elevation", "colonel_mutation", "colonel_destructive", "colonel_handle_resolve", "dns", "create_secret", "sso_diagnostics", "sso_metadata_fetch", "sender_test_email"]
+
+## keys_for expands the templates byte-identically to the CLI's emitted keys
+Onetime::Operations::RateLimit::Registry.keys_for('feedback', '1.2.3.4')
+#=> ["feedback:submissions:1.2.3.4", "feedback:locked:1.2.3.4"]
+
+## the reset-request IP tier derives the keys ResetRequestRateLimiter writes,
+## so a deployment-wide IP lockout is clearable by the operator tooling
+Onetime::Operations::RateLimit::Registry.keys_for('reset_request_ip', '203.0.113.0')
+#=> ["reset_request:attempts:ip:203.0.113.0", "reset_request:locked:ip:203.0.113.0"]
+
+## the reset-request email backstop derives its own pair from the same subject
+Onetime::Operations::RateLimit::Registry.keys_for('reset_request_email', 'user@example.com')
+#=> ["reset_request:attempts:email:user@example.com", "reset_request:locked:email:user@example.com"]
+
+## the email-login-request scope (RISK-2026-08-14-M04) derives the keys the
+## limiter writes under its own prefix, so a magic-link lockout is clearable
+## without touching the reset-request buckets
+Onetime::Operations::RateLimit::Registry.keys_for('email_login_request_ip', '203.0.113.0')
+#=> ["email_login_request:attempts:ip:203.0.113.0", "email_login_request:locked:ip:203.0.113.0"]
+
+## ...and its email backstop likewise
+Onetime::Operations::RateLimit::Registry.keys_for('email_login_request_email', 'user@example.com')
+#=> ["email_login_request:attempts:email:user@example.com", "email_login_request:locked:email:user@example.com"]
+
+## the anonymous secret-creation limiter (F-02) keys on the MASKED client IP
+## — the stored form the limiter writes, so operator clears actually hit
+Onetime::Operations::RateLimit::Registry.keys_for('create_secret', '203.0.113.0')
+#=> ["create_secret:attempts:ip:203.0.113.0", "create_secret:locked:ip:203.0.113.0"]
+
+## the colonel step-up limiter (#4327) keys on the acting colonel's PUBLIC
+## extid — never an objid and never a session id — so `bin/ots ratelimit keys`,
+## GET /ratelimit/inspect and POST /ratelimit/reset can all clear a locked-out
+## operator. Byte-identical with ColonelRateLimiter's own key builder.
+Onetime::Operations::RateLimit::Registry.keys_for('colonel_elevation', 'ur_colonel')
+#=> ["colonel:elevation:attempts:ur_colonel", "colonel:elevation:locked:ur_colonel"]
+
+## the three #4329 colonel buckets derive their keys from the same templates
+## ColonelRateLimiter builds. colonel_destructive in particular MUST resolve:
+## POST /ratelimit/reset with that kind is the documented recovery for an
+## operator who has locked themselves out of destructive actions, and it is a
+## TIER 2 verb precisely so it stays reachable while that bucket is exhausted.
+%w[colonel_mutation colonel_destructive colonel_handle_resolve].map do |kind|
+  Onetime::Operations::RateLimit::Registry.keys_for(kind, 'ur_colonel')
+end
+#=> [["colonel:mutation:attempts:ur_colonel", "colonel:mutation:locked:ur_colonel"], ["colonel:destructive:attempts:ur_colonel", "colonel:destructive:locked:ur_colonel"], ["colonel:handle_resolve:attempts:ur_colonel", "colonel:handle_resolve:locked:ur_colonel"]]
+
+## every colonel bucket lives on the Customer shard, matching
+## ColonelRateLimiter#colonel_rate_limit_redis — a row pointing at another shard
+## would inspect and clear keys that do not exist
+%w[colonel_elevation colonel_mutation colonel_destructive colonel_handle_resolve].map do |kind|
+  Onetime::Operations::RateLimit::Registry.dbclient_for(kind).equal?(Onetime::Customer.dbclient)
+end
+#=> [true, true, true, true]
+
+## a real destructive lockout is inspectable and clearable through the operator
+## tooling — the end-to-end shape of the documented recovery
+@dbc = Onetime::Customer.dbclient
+@dbc.setex('colonel:destructive:locked:ur_lockedout', 900, '1')
+@insp_colonel = Onetime::Operations::RateLimit::Inspect.new(
+  kind: 'colonel_destructive', subject: 'ur_lockedout',
+).call
+@reset_colonel = Onetime::Operations::RateLimit::Reset.new(
+  kind: 'colonel_destructive', subject: 'ur_lockedout', actor: @actor,
+).call
+[@insp_colonel.entries.any? { |e| e.key == 'colonel:destructive:locked:ur_lockedout' && e.exists },
+ @reset_colonel.status,
+ @dbc.exists?('colonel:destructive:locked:ur_lockedout'),]
+#=> [true, :success, false]
+
+## an unknown kind yields nil (the CLI prints its "Unknown" branch)
+Onetime::Operations::RateLimit::Registry.keys_for('nope', 'x')
+#=> nil
+
+# ---- RateLimit::Inspect (read) ----------------------------------------
+
+## seed a feedback counter, then inspect it (read-only)
+@db = Onetime::Feedback.dbclient
+@db.del('feedback:submissions:9.9.9.9', 'feedback:locked:9.9.9.9')
+@db.setex('feedback:submissions:9.9.9.9', 600, '3')
+AE.events.clear
+@insp = Onetime::Operations::RateLimit::Inspect.new(kind: 'feedback', subject: '9.9.9.9').call
+@sub_entry = @insp.entries.find { |e| e.key == 'feedback:submissions:9.9.9.9' }
+[@sub_entry.value, @sub_entry.exists, @sub_entry.ttl.positive?]
+#=> ["3", true, true]
+
+## inspecting records NO audit event (read-only verb)
+AE.count
+#=> 0
+
+# ---- RateLimit::Reset (mutating, one audit) ---------------------------
+
+## resetting an active limiter deletes the key(s) and returns :success
+AE.events.clear
+@reset = Onetime::Operations::RateLimit::Reset.new(kind: 'feedback', subject: '9.9.9.9', actor: @actor).call
+[@reset.status, @db.get('feedback:submissions:9.9.9.9').nil?]
+#=> [:success, true]
+
+## exactly ONE audit event was recorded for the reset
+AE.count
+#=> 1
+
+## the audit event is the reset verb targeting kind:subject, actored by PUBLIC id
+@rev = AE.recent(1).first
+[@rev['verb'], @rev['target'], @rev['actor']]
+#=> ["ratelimit.reset", "feedback:9.9.9.9", "ur1colonelpub"]
+
+## resetting an already-clear subject is an idempotent no-op (:not_set)
+AE.events.clear
+@noop = Onetime::Operations::RateLimit::Reset.new(kind: 'feedback', subject: '9.9.9.9', actor: @actor).call
+@noop.status
+#=> :not_set
+
+## a no-op reset records NO audit event (nothing mutated, nothing REFUSED)
+# The colonel adapter returns 200 / "No active rate-limit state to reset" for
+# :not_set, so it is not an operator-visible failure — unlike a
+# :not_found (a 404), which IS recorded as a refusal.
+AE.count
+#=> 0
+
+# ---- RateLimit::Reset: an unknown kind RAISES, and is audited ---------
+#
+# The Onetime::AuditedFailure mechanism: the success record sits after the
+# SCAN + DEL, so a reset that blew up left no trace of the attempt.
+
+## an unknown limiter kind raises ArgumentError
+AE.events.clear
+begin
+  Onetime::Operations::RateLimit::Reset.new(kind: 'bogus', subject: '9.9.9.9', actor: @actor).call
+  :no_raise
+rescue ArgumentError
+  :raised
+end
+#=> :raised
+
+## the raise recorded ONE result: :failure event with the unchanged verb/target shape
+@rl_ev = AE.recent(1).first
+[AE.count, @rl_ev['verb'], @rl_ev['target'], @rl_ev['result'], @rl_ev['detail']['error']]
+#=> [1, "ratelimit.reset", "bogus:9.9.9.9", "failure", "ArgumentError"]
+
+# ---- Email::SendTest: a delivery failure is audited, then re-raised ---
+
+## a send whose backend blows up re-raises the original error
+AE.events.clear
+@backend = Onetime::Mail::Mailer.delivery_backend
+@backend.define_singleton_method(:deliver) { |*| raise(Onetime::Problem, 'smtp refused') }
+begin
+  Onetime::Operations::Email::SendTest.new(to: 'ops@example.com', actor: @actor).call
+  :no_raise
+rescue Onetime::Problem
+  :raised
+ensure
+  @backend.singleton_class.remove_method(:deliver)
+end
+#=> :raised
+
+## the failed send recorded ONE result: :failure event targeting the recipient
+@st_ev = AE.recent(1).first
+[AE.count, @st_ev['verb'], @st_ev['target'], @st_ev['result'], @st_ev['detail']['dry_run']]
+#=> [1, "email.test_send", "ops@example.com", "failure", false]
+
+# ---- Email suppression refusals --------------------------------------
+
+## removing an address that is not suppressed is a REFUSED mutation (404 at the adapter)
+AE.events.clear
+@rm = Onetime::Operations::Email::RemoveSuppression.new(
+  address: "never-suppressed-#{SecureRandom.hex(4)}@example.com", actor: @actor,
+).call
+@rm_ev = AE.recent(1).first
+[@rm.status, AE.count, @rm_ev['verb'], @rm_ev['result'], @rm_ev['detail']['reason']]
+#=> [:not_found, 1, "email.suppression_remove", "failure", 'not_found']
+
+## a blank-address suppress is a REFUSED mutation, not a silent no-op
+AE.events.clear
+@blank = Onetime::Operations::Email::AddSuppression.new(address: '  ', actor: @actor).call
+@bl_ev = AE.recent(1).first
+[@blank.status, AE.count, @bl_ev['verb'], @bl_ev['result'], @bl_ev['detail']['reason']]
+#=> [nil, 1, "email.suppress", "failure", 'blank_address']
+
+# Cleanup
+@db.del('feedback:submissions:9.9.9.9', 'feedback:locked:9.9.9.9')
+AE.events.clear

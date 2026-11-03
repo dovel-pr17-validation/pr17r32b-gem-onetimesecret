@@ -1,0 +1,151 @@
+# lib/onetime/middleware/csrf_response_header.rb
+#
+# frozen_string_literal: true
+
+require 'rack/constants'
+
+require_relative 'instrumented_authenticity_token'
+require_relative '../application/request_logger'
+
+module Onetime
+  module Middleware
+    ##
+    # CsrfResponseHeader
+    #
+    # Adds a masked CSRF token to response headers for frontend consumption.
+    #
+    # Rack::Protection::AuthenticityToken handles validation and stores
+    # a raw token in session[:csrf]. Rather than exposing that raw token
+    # directly (which would be vulnerable to BREACH attacks on compressed
+    # HTTPS responses), this middleware uses AuthenticityToken.token() to
+    # return a per-request masked version. The masked token is XOR'd with
+    # a one-time pad, so the header value changes on every response while
+    # still validating against the same underlying session token.
+    #
+    # Usage:
+    #   use Rack::Protection::AuthenticityToken  # validates requests
+    #   use Onetime::Middleware::CsrfResponseHeader  # exposes masked token
+    #
+    class CsrfResponseHeader
+      # State-changing methods that Rack::Protection::AuthenticityToken
+      # validates. Safe methods (GET/HEAD/OPTIONS) are never CSRF-checked, so
+      # they must not pay the session-load cost below nor emit rejection logs.
+      #
+      # NOTE (observability-only): this is a hardcoded allowlist, not the exact
+      # complement of rack-protection's `safe?` (GET/HEAD/OPTIONS/TRACE). A
+      # non-standard unsafe method that rack-protection WOULD CSRF-check (e.g.
+      # WebDAV PROPFIND/MKCOL) is absent here, so its 403 would skip this
+      # diagnostic. That only costs a log line — never security — and OTS
+      # exposes no such methods, so the explicit, readable allowlist is
+      # preferred over deriving the complement of a private rack-protection
+      # predicate.
+      UNSAFE_METHODS = %w[POST PUT PATCH DELETE].freeze
+
+      # Session key holding the raw CSRF token. This is AuthenticityToken's
+      # default `key: :csrf` (security.rb does not override it). SessionHash
+      # normalizes the symbol to its stored string key, so reading session[:csrf]
+      # mirrors exactly what AuthenticityToken reads — and the read is pure
+      # (set_token only runs inside AuthenticityToken during @app.call).
+      CSRF_SESSION_KEY = :csrf
+
+      # InstrumentedAuthenticityToken stamps this env key true on its deny path
+      # (a genuine CSRF rejection). A 403 raised by the app itself
+      # (Onetime::Forbidden, EntitlementRequired, GuestRoutesDisabled) never sets
+      # it, so gating the diagnostic on this marker keeps non-CSRF 403s out of the
+      # CSRF log. Scoped to AuthenticityToken specifically: HttpOrigin is a
+      # different CSRF class whose 403s the token/continuity split does not model.
+      CSRF_REJECTION_KEY = Onetime::Middleware::InstrumentedAuthenticityToken::REJECTION_ENV_KEY
+
+      def initialize(app)
+        @app = app
+      end
+
+      def call(env)
+        # #3837 (root cause of #3831): a CSRF 403 has two very different causes.
+        # AuthenticityToken#accepts? calls set_token (session[:csrf] ||= random)
+        # BEFORE validating, so after @app.call the token is ALWAYS present and
+        # the two cases are indistinguishable. The only moment we can tell them
+        # apart is here, before @app.call. Unsafe methods only — reading the
+        # session lazy-loads it, a cost safe requests must not incur.
+        request_method = env['REQUEST_METHOD']
+        unsafe         = UNSAFE_METHODS.include?(request_method)
+        had_csrf       = unsafe && csrf_token_present?(env['rack.session'])
+
+        status, headers, body = @app.call(env)
+
+        session = env['rack.session']
+        if session && !session_skipped?(env)
+          csrf_token              = Rack::Protection::AuthenticityToken.token(session)
+          headers['X-CSRF-Token'] = csrf_token if csrf_token
+        end
+
+        log_csrf_rejection(env, had_csrf) if unsafe && status == 403 && csrf_rejection?(env)
+
+        [status, headers, body]
+      end
+
+      private
+
+      # True only for a request InstrumentedAuthenticityToken denied (a genuine
+      # CSRF rejection), as opposed to any other 403 this middleware happens to
+      # wrap. The marker is set only on the deny path, so it is already 403-only
+      # by construction; the caller still ANDs `status == 403` as free insurance
+      # against a future config change (e.g. reaction: :report) that could set a
+      # marker without denying.
+      def csrf_rejection?(env)
+        env[CSRF_REJECTION_KEY] == true
+      end
+
+      # True when Onetime::Middleware::SessionSkip marked this request's session
+      # as non-persisting (#3997). AuthenticityToken.token does
+      # `session[:csrf] ||= random`, which both loads AND dirties the session —
+      # but this middleware is not the only dirtier, nor the first:
+      # InstrumentedAuthenticityToken's inherited `accepts?` runs the same
+      # `session[:csrf] ||= …` on every request before its safe-method check.
+      # It is rack-session's :skip flag that suppresses the Valkey write, not
+      # this gate; skipping the mint here only avoids handing the client a
+      # token that no persisted session will ever validate against (and the
+      # session load that minting would force). Read-only: never sets :skip.
+      def session_skipped?(env)
+        options = env[Rack::RACK_SESSION_OPTIONS]
+        options.respond_to?(:[]) && options[:skip] == true
+      end
+
+      # True when the session already carries a non-empty raw CSRF token.
+      # Reads with AuthenticityToken's own key; the read forces a lazy session
+      # load, which is why the caller gates this on unsafe methods.
+      def csrf_token_present?(session)
+        return false unless session
+
+        token = session[CSRF_SESSION_KEY]
+        !token.nil? && !token.to_s.empty?
+      end
+
+      # Observability only (#3837): classify a CSRF 403. Never logs token
+      # values or secrets — only method + path context. This logs the CSRF
+      # REJECTION and is distinct from the Part 2 cookie-drop warning.
+      def log_csrf_rejection(env, had_csrf)
+        # SCRIPT_NAME carries the URLMap mount prefix (e.g. "/api"); PATH_INFO is
+        # only the remainder. Rack::Request#path joins them so the logged path is
+        # the full request path rather than a prefix-stripped fragment. A refused
+        # POST /api/v3/secret/<key>/reveal leaves that key live, so it goes
+        # through the capability redactor before it reaches the log.
+        context = {
+          method: env['REQUEST_METHOD'],
+          path: Onetime::Application::RequestLogger.redacted_path(Rack::Request.new(env)),
+        }
+
+        if had_csrf
+          # The session held a token but the submitted one did not match: a
+          # genuine forged/stale request — real CSRF rejection.
+          OT.lw '[CsrfResponseHeader] CSRF 403 token-mismatch: session had a CSRF token; submitted token invalid or absent', **context
+        else
+          # No token in the session when the request arrived: the session was
+          # lost or never persisted between issuing the token and this request.
+          # This is the session-continuity break behind #3837/#3831, not forgery.
+          OT.lw '[CsrfResponseHeader] CSRF 403 session-continuity break: no CSRF token in session at request start; session lost or not persisted', **context
+        end
+      end
+    end
+  end
+end

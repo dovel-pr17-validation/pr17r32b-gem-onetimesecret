@@ -1,0 +1,814 @@
+{
+  "web.colonel.configEditorTitle": {
+    "text": "Indstillinger",
+    "source_hash": "74a883a0"
+  },
+  "web.colonel.configEditorDescription": {
+    "text": "Rediger systemkonfigurationsindstillinger. Ændringer træder i kraft umiddelbart efter gemning.",
+    "source_hash": "6025d269"
+  },
+  "web.colonel.invalidJson": {
+    "text": "Ugyldig JSON i {section}-sektionen",
+    "source_hash": "a75ac7a3"
+  },
+  "web.colonel.validationError": {
+    "text": "Valideringsfejl",
+    "source_hash": "2aa2d0b4"
+  },
+  "web.colonel.errorFetchingConfig": {
+    "text": "Fejl ved indlæsning af konfiguration",
+    "source_hash": "08baf6d2"
+  },
+  "web.colonel.errorSavingConfig": {
+    "text": "Fejl ved gemning af konfiguration",
+    "source_hash": "48df54c7"
+  },
+  "web.colonel.configSaved": {
+    "text": "Konfiguration gemt succesfuldt",
+    "source_hash": "93b3d3e4"
+  },
+  "web.colonel.mustBeObject": {
+    "text": "Konfiguration skal være et JSON-objekt",
+    "source_hash": "74e8897e"
+  },
+  "web.colonel.multipleSectionsInvalid": {
+    "text": "Flere sektioner har valideringsfejl: {sections}",
+    "source_hash": "71fdaea1"
+  },
+  "web.colonel.sectionHasError": {
+    "text": "{section} har valideringsfejl: {error}",
+    "source_hash": "e5e01aa0"
+  },
+  "web.colonel.sectionSaved": {
+    "text": "{section} gemt succesfuldt",
+    "source_hash": "7be1d5d2"
+  },
+  "web.colonel.saveSection": {
+    "text": "Gem {section}",
+    "source_hash": "4a379f10"
+  },
+  "web.colonel.saveAll": {
+    "text": "Gem alle",
+    "source_hash": "d3c54e39"
+  },
+  "web.colonel.unsavedChanges": {
+    "text": "Ikke-gemte ændringer",
+    "source_hash": "a710c2b9"
+  },
+  "web.colonel.schemaValidationError": {
+    "text": "Skemavalideringsfejl: {message} ({path})",
+    "source_hash": "5f838cb2"
+  },
+  "web.colonel.unknownValidationError": {
+    "text": "Ukendt valideringsfejl: {error}",
+    "source_hash": "b6cf56ca"
+  },
+  "web.colonel.sectionEffectivelyEmpty": {
+    "text": "{section}-sektionen har ingen konfigurerede værdier",
+    "source_hash": "efb63b77"
+  },
+  "web.colonel.dashboard": {
+    "text": "Oversigt",
+    "source_hash": "67b69646"
+  },
+  "web.colonel.admin": {
+    "text": "Admin",
+    "source_hash": "c1c224b0"
+  },
+  "web.colonel.activity": {
+    "text": "Aktivitet",
+    "source_hash": "38da1505"
+  },
+  "web.colonel.accounts": {
+    "text": "Konti",
+    "source_hash": "8a7c8b67"
+  },
+  "web.colonel.users": {
+    "text": "Brugere",
+    "source_hash": "6b0cc904"
+  },
+  "web.colonel.usersDescription": {
+    "text": "Administrer brugerkonti og tilladelser",
+    "source_hash": "6cfc012c"
+  },
+  "web.colonel.domains": {
+    "text": "Domæner",
+    "source_hash": "ced67718"
+  },
+  "web.colonel.settings": {
+    "text": "Indstillinger",
+    "source_hash": "74a883a0"
+  },
+  "web.colonel.system": {
+    "text": "System",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.welcome": {
+    "text": "Velkommen til Colonel",
+    "source_hash": "7881ca9e"
+  },
+  "web.colonel.welcomeDesc": {
+    "text": "Administrativt kontrolpanel for OneTimeSecret",
+    "source_hash": "57c1e752"
+  },
+  "web.colonel.quickActions": {
+    "text": "Hurtige handlinger",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.colonel.recentActivity": {
+    "text": "Seneste aktivitet",
+    "source_hash": "9ef7d438"
+  },
+  "web.colonel.viewAll": {
+    "text": "Vis alle",
+    "source_hash": "ff5573a6"
+  },
+  "web.colonel.activityPlaceholder": {
+    "text": "Aktivitetsdata vil blive vist her",
+    "source_hash": "aaf9e948"
+  },
+  "web.colonel.stats.totalSecrets": {
+    "text": "Beskeder i alt",
+    "source_hash": "e17a5459"
+  },
+  "web.colonel.stats.activeUsers": {
+    "text": "Aktive brugere",
+    "source_hash": "5639b9f1"
+  },
+  "web.colonel.stats.secretsToday": {
+    "text": "Beskeder i dag",
+    "source_hash": "aefbd2db"
+  },
+  "web.colonel.stats.secretsCreated": {
+    "text": "Oprettede beskeder",
+    "source_hash": "a97ee479"
+  },
+  "web.colonel.stats.secretsShared": {
+    "text": "Delte beskeder",
+    "source_hash": "5deb082c"
+  },
+  "web.colonel.stats.totalCustomers": {
+    "text": "Brugere i alt",
+    "source_hash": "0ca3aa44"
+  },
+  "web.colonel.stats.emailsSent": {
+    "text": "E-mails sendt",
+    "source_hash": "87cfb3ab"
+  },
+  "web.colonel.stats.systemHealth": {
+    "text": "Systemsundhed",
+    "source_hash": "c3d66242"
+  },
+  "web.colonel.stats.healthy": {
+    "text": "Sund",
+    "source_hash": "7f1e323b"
+  },
+  "web.colonel.actions.viewActivity": {
+    "text": "Vis aktivitet",
+    "source_hash": "9c28f55c"
+  },
+  "web.colonel.actions.viewActivityDesc": {
+    "text": "Overvåg systemaktivitet og brug",
+    "source_hash": "f88e9eda"
+  },
+  "web.colonel.actions.manageAccounts": {
+    "text": "Administrer konti",
+    "source_hash": "9d114268"
+  },
+  "web.colonel.actions.manageAccountsDesc": {
+    "text": "Administration af brugerkonti",
+    "source_hash": "d73af927"
+  },
+  "web.colonel.actions.configureDomains": {
+    "text": "Konfigurer domæner",
+    "source_hash": "74402af9"
+  },
+  "web.colonel.actions.configureDomainsDesc": {
+    "text": "Domæne- og DNS-indstillinger",
+    "source_hash": "1f712094"
+  },
+  "web.colonel.actions.systemSettings": {
+    "text": "Systemindstillinger",
+    "source_hash": "1f87f883"
+  },
+  "web.colonel.actions.systemSettingsDesc": {
+    "text": "Applikationskonfiguration",
+    "source_hash": "923dc672"
+  },
+  "web.colonel.backgroundJobs": {
+    "text": "Baggrundsjobs",
+    "source_hash": "48937049"
+  },
+  "web.colonel.queueStatus": {
+    "text": "Køstatus",
+    "source_hash": "3421ffa8"
+  },
+  "web.colonel.queueName": {
+    "text": "Kø",
+    "source_hash": "3b2fe03e"
+  },
+  "web.colonel.pendingMessages": {
+    "text": "Afventer",
+    "source_hash": "331551b0"
+  },
+  "web.colonel.consumers": {
+    "text": "Forbrugere",
+    "source_hash": "212b350d"
+  },
+  "web.colonel.processingRate": {
+    "text": "Sats/sek",
+    "source_hash": "cfde439c"
+  },
+  "web.colonel.connectionStatus": {
+    "text": "Forbindelsesstatus",
+    "source_hash": "3693e288"
+  },
+  "web.colonel.workerHealth": {
+    "text": "Worker-tilstand",
+    "source_hash": "52be3ac1"
+  },
+  "web.colonel.activeWorkers": {
+    "text": "aktive workers",
+    "source_hash": "ea68cfee"
+  },
+  "web.colonel.noQueueData": {
+    "text": "Ingen kødata tilgængelig",
+    "source_hash": "331ffa6b"
+  },
+  "web.colonel.loadingQueueData": {
+    "text": "Indlæser kødata...",
+    "source_hash": "a3762a00"
+  },
+  "web.colonel.testPlanMode": {
+    "text": "Test-abonnementstilstand",
+    "source_hash": "eba59223"
+  },
+  "web.colonel.testingAsPlan": {
+    "text": "Tester som {planName}",
+    "source_hash": "b3032f1a"
+  },
+  "web.colonel.clickToReset": {
+    "text": "Klik for at nulstille",
+    "source_hash": "4b25034d"
+  },
+  "web.colonel.selectTestPlan": {
+    "text": "Vælg et abonnement at teste",
+    "source_hash": "9e6e12fe"
+  },
+  "web.colonel.resetToActual": {
+    "text": "Nulstil til faktisk abonnement",
+    "source_hash": "2cea3f92"
+  },
+  "web.colonel.currentActualPlan": {
+    "text": "Nuværende abonnement",
+    "source_hash": "37ca715f"
+  },
+  "web.colonel.availablePlans": {
+    "text": "Tilgængelige abonnementer",
+    "source_hash": "20efa44d"
+  },
+  "web.colonel.activateTestMode": {
+    "text": "Aktivér testtilstand",
+    "source_hash": "0f469baa"
+  },
+  "web.colonel.testModeActive": {
+    "text": "Testtilstand aktiv",
+    "source_hash": "ae2c8dd9"
+  },
+  "web.colonel.testModeDescription": {
+    "text": "Test din applikation med forskellige abonnementsrettigheder. Ændringer er midlertidige og påvirker kun din session.",
+    "source_hash": "be03a409"
+  },
+  "web.colonel.warningTestMode": {
+    "text": "Du tester med {planName}-rettigheder (midlertidig sessionsoverskrivning).",
+    "source_hash": "1a8aecf1"
+  },
+  "web.colonel.organizations.title": {
+    "text": "Organisationer",
+    "source_hash": "2730183d"
+  },
+  "web.colonel.organizations.description": {
+    "text": "Overvåg organisations-faktureringssync-sundhed",
+    "source_hash": "d8f4398b"
+  },
+  "web.colonel.organizations.pageTitle": {
+    "text": "Faktureringssundhedsovervågning",
+    "source_hash": "9ef57da4"
+  },
+  "web.colonel.organizations.organizationsCount": {
+    "text": "{count} organisationer",
+    "source_hash": "bc2feb56"
+  },
+  "web.colonel.organizations.needAttention": {
+    "text": "{count} kræver opmærksomhed",
+    "source_hash": "1c8e5840"
+  },
+  "web.colonel.organizations.unknownCount": {
+    "text": "{count} ukendte",
+    "source_hash": "b7bf2cf1"
+  },
+  "web.colonel.organizations.noOrganizations": {
+    "text": "Ingen organisationer fundet",
+    "source_hash": "538995db"
+  },
+  "web.colonel.organizations.filters.syncStatus": {
+    "text": "Synkroniseringsstatus",
+    "source_hash": "b3998276"
+  },
+  "web.colonel.organizations.filters.subscription": {
+    "text": "Abonnement",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.filters.all": {
+    "text": "Alle",
+    "source_hash": "a52ace42"
+  },
+  "web.colonel.organizations.filters.potentiallyStale": {
+    "text": "Potentielt forældet",
+    "source_hash": "40137b37"
+  },
+  "web.colonel.organizations.filters.unknown": {
+    "text": "Ukendt",
+    "source_hash": "b764cdc0"
+  },
+  "web.colonel.organizations.filters.synced": {
+    "text": "Synkroniseret",
+    "source_hash": "5da22fe4"
+  },
+  "web.colonel.organizations.filters.active": {
+    "text": "Aktiv",
+    "source_hash": "92340695"
+  },
+  "web.colonel.organizations.filters.trialing": {
+    "text": "Prøveperiode",
+    "source_hash": "3792573d"
+  },
+  "web.colonel.organizations.filters.pastDue": {
+    "text": "Forfalden",
+    "source_hash": "2bda1c7b"
+  },
+  "web.colonel.organizations.filters.canceled": {
+    "text": "Annulleret",
+    "source_hash": "13ca2ee2"
+  },
+  "web.colonel.organizations.columns.account": {
+    "text": "Konto",
+    "source_hash": "7e1b0d56"
+  },
+  "web.colonel.organizations.columns.billing": {
+    "text": "Fakturering",
+    "source_hash": "3ac8bbca"
+  },
+  "web.colonel.organizations.columns.status": {
+    "text": "Status",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.organizations.columns.usage": {
+    "text": "Forbrug",
+    "source_hash": "8d59829c"
+  },
+  "web.colonel.organizations.columns.created": {
+    "text": "Oprettet",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.organizations.columns.details": {
+    "text": "Detaljer",
+    "source_hash": "45989de4"
+  },
+  "web.colonel.organizations.columns.owner": {
+    "text": "Ejer",
+    "source_hash": "4b1b8aa3"
+  },
+  "web.colonel.organizations.columns.plan": {
+    "text": "Abonnement",
+    "source_hash": "fa8ed0bd"
+  },
+  "web.colonel.organizations.columns.members": {
+    "text": "Medlemmer",
+    "source_hash": "1044a4c0"
+  },
+  "web.colonel.organizations.columns.domains": {
+    "text": "Domæner",
+    "source_hash": "ced67718"
+  },
+  "web.colonel.organizations.columns.subscription": {
+    "text": "Abonnement",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.columns.default_workspace": {
+    "text": "Standard arbejdsområde",
+    "source_hash": "53aa279e"
+  },
+  "web.colonel.organizations.columns.has_billing": {
+    "text": "Har fakturering",
+    "source_hash": "db0628ed"
+  },
+  "web.colonel.organizations.legacy.title": {
+    "text": "Organisationsfaktureringsadmin",
+    "source_hash": "5c7e07e7"
+  },
+  "web.colonel.organizations.legacy.description": {
+    "text": "Administrer organisationer og overvåg faktureringssync-sundhed ({total} total)",
+    "source_hash": "996b446d"
+  },
+  "web.colonel.organizations.legacy.empty": {
+    "text": "Ingen organisationer fundet",
+    "source_hash": "538995db"
+  },
+  "web.colonel.organizations.legacy.potentially_stale": {
+    "text": "potentielt forældet",
+    "source_hash": "3ddfec45"
+  },
+  "web.colonel.organizations.status.stale": {
+    "text": "Forældet",
+    "source_hash": "40c9e59c"
+  },
+  "web.colonel.organizations.status.unknown": {
+    "text": "Ukendt",
+    "source_hash": "b764cdc0"
+  },
+  "web.colonel.organizations.status.active": {
+    "text": "aktiv",
+    "source_hash": "96879611"
+  },
+  "web.colonel.organizations.actions.investigate": {
+    "text": "Undersøg",
+    "source_hash": "e2641093"
+  },
+  "web.colonel.organizations.actions.checking": {
+    "text": "Tjekker...",
+    "source_hash": "2e5f79bb"
+  },
+  "web.colonel.organizations.expanded.customer": {
+    "text": "Kunde",
+    "source_hash": "bf376338"
+  },
+  "web.colonel.organizations.expanded.subscription": {
+    "text": "Abonnement",
+    "source_hash": "4999c6c6"
+  },
+  "web.colonel.organizations.expanded.orgId": {
+    "text": "Org-ID",
+    "source_hash": "5e6b9932"
+  },
+  "web.colonel.organizations.investigation.failed": {
+    "text": "Undersøgelse mislykkedes",
+    "source_hash": "193aa900"
+  },
+  "web.colonel.organizations.investigation.result": {
+    "text": "Undersøgelsesresultat",
+    "source_hash": "2dbc5cc3"
+  },
+  "web.colonel.organizations.investigation.verifiedSynced": {
+    "text": "Bekræftet synkroniseret",
+    "source_hash": "d92625c2"
+  },
+  "web.colonel.organizations.investigation.mismatchFound": {
+    "text": "Uoverensstemmelse fundet",
+    "source_hash": "361d22f3"
+  },
+  "web.colonel.organizations.investigation.unableToCompare": {
+    "text": "Kan ikke sammenligne",
+    "source_hash": "64c822ee"
+  },
+  "web.colonel.organizations.investigation.stripeDetails": {
+    "text": "Stripe-abonnementsdetaljer",
+    "source_hash": "53a7b0ea"
+  },
+  "web.colonel.organizations.investigation.statusLabel": {
+    "text": "Status",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.organizations.investigation.product": {
+    "text": "Produkt",
+    "source_hash": "fb9ef894"
+  },
+  "web.colonel.organizations.investigation.resolvedPlan": {
+    "text": "Løst abonnement",
+    "source_hash": "17c5b37a"
+  },
+  "web.colonel.organizations.investigation.priceId": {
+    "text": "Pris-ID",
+    "source_hash": "b39a8f3e"
+  },
+  "web.colonel.organizations.investigation.local": {
+    "text": "Lokal",
+    "source_hash": "8c31e6e7"
+  },
+  "web.colonel.organizations.investigation.stripe": {
+    "text": "Stripe",
+    "source_hash": "961a6062"
+  },
+  "web.colonel.organizations.usage.members": {
+    "text": "{count} medlemmer",
+    "source_hash": "201eb3d9"
+  },
+  "web.colonel.organizations.usage.domains": {
+    "text": "{count} domæner",
+    "source_hash": "cf548c8c"
+  },
+  "web.colonel.secrets.title": {
+    "text": "Beskeder",
+    "source_hash": "d8707d41"
+  },
+  "web.colonel.secrets.description": {
+    "text": "Se og administrer alle beskeder",
+    "source_hash": "48f8052e"
+  },
+  "web.colonel.usageExport.title": {
+    "text": "Forbrugseksport",
+    "source_hash": "10a0cb94"
+  },
+  "web.colonel.usageExport.description": {
+    "text": "Eksporter forbrugsdata og statistik",
+    "source_hash": "2fd0a2e2"
+  },
+  "web.colonel.systemSettings.title": {
+    "text": "System",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.systemSettings.description": {
+    "text": "Systemindstillinger, databaser og konfiguration",
+    "source_hash": "7690b296"
+  },
+  "web.colonel.customDomains.title": {
+    "text": "Brugerdefinerede domæner",
+    "source_hash": "6170ab94"
+  },
+  "web.colonel.customDomains.description": {
+    "text": "Administrer brugerdefinerede domæner og branding",
+    "source_hash": "808ee2cb"
+  },
+  "web.colonel.feedback.send_feedback": {
+    "text": "Send feedback",
+    "source_hash": "8235980b"
+  },
+  "web.colonel.feedback.sending_ellipses": {
+    "text": "Sender...",
+    "source_hash": "286a3af7"
+  },
+  "web.colonel.titles.index": {
+    "text": "Administration",
+    "source_hash": "4b42c669"
+  },
+  "web.colonel.titles.users": {
+    "text": "Brugeradministration",
+    "source_hash": "fe45f3a1"
+  },
+  "web.colonel.titles.domains": {
+    "text": "Brugerdefinerede domæner",
+    "source_hash": "6170ab94"
+  },
+  "web.colonel.titles.system": {
+    "text": "System",
+    "source_hash": "6725e7bb"
+  },
+  "web.colonel.titles.maindb": {
+    "text": "Hoveddatabase",
+    "source_hash": "c4545e98"
+  },
+  "web.colonel.titles.authdb": {
+    "text": "Auth-database",
+    "source_hash": "c683c9a6"
+  },
+  "web.colonel.titles.usage": {
+    "text": "Forbrugseksport",
+    "source_hash": "10a0cb94"
+  },
+  "web.colonel.titles.info": {
+    "text": "Systeminformation",
+    "source_hash": "8ad54ec1"
+  },
+  "web.colonel.titles.organizations": {
+    "text": "Organisationer",
+    "source_hash": "2730183d"
+  },
+  "web.colonel.titles.redis": {
+    "text": "Redis",
+    "source_hash": "a7f64157"
+  },
+  "web.colonel.feedback.when_you_submit_feedback_well_see": {
+    "text": "Når du sender feedback, kan vi se:",
+    "source_hash": "fe77172e"
+  },
+  "web.colonel.previewPlanMode": {
+    "text": "Forhåndsvisning af plantilstand",
+    "source_hash": "cf53f19d"
+  },
+  "web.colonel.previewModeDescription": {
+    "text": "Forhåndsvis applikationen, som den vises for kunder på en anden plan. Dette påvirker kun din egen visning og ændrer ikke nogen organisations faktiske plan.",
+    "source_hash": "6fe23f23"
+  },
+  "web.colonel.previewModeActive": {
+    "text": "Forhåndsvisning aktiv",
+    "source_hash": "a558d603"
+  },
+  "web.colonel.customDomains.empty": {
+    "text": "Ingen brugerdefinerede domæner konfigureret",
+    "source_hash": "e10b39f7"
+  },
+  "web.colonel.customDomains.noLogo": {
+    "text": "Intet logo",
+    "source_hash": "ee5e36ff"
+  },
+  "web.colonel.customDomains.labels.organization": {
+    "text": "Organisation",
+    "source_hash": "d764d425"
+  },
+  "web.colonel.customDomains.labels.externalId": {
+    "text": "Eksternt id",
+    "source_hash": "69da56ba"
+  },
+  "web.colonel.customDomains.labels.created": {
+    "text": "Oprettet",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.customDomains.labels.updated": {
+    "text": "Opdateret",
+    "source_hash": "3a5ecca1"
+  },
+  "web.colonel.customDomains.labels.favicon": {
+    "text": "Favicon",
+    "source_hash": "42955289"
+  },
+  "web.colonel.customDomains.status.verified": {
+    "text": "Bekræftet",
+    "source_hash": "4f783840"
+  },
+  "web.colonel.customDomains.status.resolving": {
+    "text": "Slår op",
+    "source_hash": "3287a034"
+  },
+  "web.colonel.customDomains.status.ready": {
+    "text": "Klar",
+    "source_hash": "5fa7aac5"
+  },
+  "web.colonel.customDomains.status.publicHomepage": {
+    "text": "Offentlig hjemmeside",
+    "source_hash": "2ae3ccba"
+  },
+  "web.colonel.customDomains.status.publicApi": {
+    "text": "Offentlig API",
+    "source_hash": "ab3aa426"
+  },
+  "web.colonel.customDomains.status.pending": {
+    "text": "Afventer",
+    "source_hash": "331551b0"
+  },
+  "web.colonel.pagination.showing": {
+    "text": "Viser {start}–{end} af {total}",
+    "source_hash": "64af6de2"
+  },
+  "web.colonel.pagination.itemsPerPage": {
+    "text": "Elementer pr. side",
+    "source_hash": "766a02e0"
+  },
+  "web.colonel.pagination.perPage": {
+    "text": "{count} pr. side",
+    "source_hash": "34671d42"
+  },
+  "web.colonel.pagination.pageOf": {
+    "text": "Side {current} af {total}",
+    "source_hash": "f0df6412"
+  },
+  "web.colonel.secrets.empty": {
+    "text": "Ingen beskeder fundet",
+    "source_hash": "28647b3b"
+  },
+  "web.colonel.secrets.never": {
+    "text": "Aldrig",
+    "source_hash": "6300ef80"
+  },
+  "web.colonel.secrets.columns.shortId": {
+    "text": "Kort id",
+    "source_hash": "7eaeb4a7"
+  },
+  "web.colonel.secrets.columns.state": {
+    "text": "Tilstand",
+    "source_hash": "a3b50c47"
+  },
+  "web.colonel.secrets.columns.created": {
+    "text": "Oprettet",
+    "source_hash": "d70b9e24"
+  },
+  "web.colonel.secrets.columns.expiration": {
+    "text": "Udløb",
+    "source_hash": "f38d6e0e"
+  },
+  "web.colonel.secrets.columns.age": {
+    "text": "Alder (dage)",
+    "source_hash": "52ae64c6"
+  },
+  "web.colonel.secrets.state.new": {
+    "text": "Ny",
+    "source_hash": "18fdd549"
+  },
+  "web.colonel.secrets.state.received": {
+    "text": "Modtaget",
+    "source_hash": "49f19bee"
+  },
+  "web.colonel.secrets.state.viewed": {
+    "text": "Vist",
+    "source_hash": "1b28d178"
+  },
+  "web.colonel.backToSite": {
+    "text": "Tilbage til webstedet",
+    "source_hash": "4ee0f819"
+  },
+  "web.colonel.customDomains.labels.domain": {
+    "text": "Domæne",
+    "source_hash": "79fa3361"
+  },
+  "web.colonel.customDomains.labels.status": {
+    "text": "Status",
+    "source_hash": "920e413c"
+  },
+  "web.colonel.customDomains.labels.actions": {
+    "text": "Handlinger",
+    "source_hash": "ff8059dc"
+  },
+  "web.colonel.nav.consoleTag": {
+    "text": "Konsol",
+    "source_hash": "29a40861"
+  },
+  "web.colonel.nav.groups.identity": {
+    "text": "Identitet",
+    "source_hash": "999f23fc"
+  },
+  "web.colonel.nav.groups.security": {
+    "text": "Adgang og sikkerhed",
+    "source_hash": "abb29a3f"
+  },
+  "web.colonel.nav.groups.platform": {
+    "text": "Platform",
+    "source_hash": "c78ffe19"
+  },
+  "web.colonel.nav.groups.billing": {
+    "text": "Fakturering",
+    "source_hash": "3ac8bbca"
+  },
+  "web.colonel.nav.groups.communications": {
+    "text": "Kommunikation",
+    "source_hash": "919a9253"
+  },
+  "web.colonel.organizations.sameAsContact": {
+    "text": "Samme som kontakt",
+    "source_hash": "ed18ff43"
+  },
+  "web.colonel.organizations.refresh": {
+    "text": "Opdater",
+    "source_hash": "0e916101"
+  },
+  "web.colonel.organizations.columns.name": {
+    "text": "Navn",
+    "source_hash": "dcd1d522"
+  },
+  "web.colonel.organizations.columns.contactEmail": {
+    "text": "Kontakt-e-mail",
+    "source_hash": "6d7fce11"
+  },
+  "web.colonel.organizations.columns.billingEmail": {
+    "text": "Fakturerings-e-mail",
+    "source_hash": "8805b928"
+  },
+  "web.colonel.organizations.columns.planSubscription": {
+    "text": "Plan og abonnement",
+    "source_hash": "b396caac"
+  },
+  "web.colonel.organizations.filters.searchPlaceholder": {
+    "text": "Søg efter ID, navn eller e-mail",
+    "source_hash": "6fe16473"
+  },
+  "web.colonel.organizations.capped": {
+    "text": "Resultaterne er begrænset: det viste antal er et minimum, ikke totalen. Filtrene dækker alle organisationer, der er knyttet til et abonnement, samt de senest opdaterede; søg efter et nøjagtigt ID eller en e-mail for at finde andre.",
+    "source_hash": "0743238d"
+  },
+  "web.impersonation.banner.label": {
+    "text": "Agerer som bruger",
+    "source_hash": "d96f0e8d"
+  },
+  "web.impersonation.banner.viewingAs": {
+    "text": "Ser som {email}",
+    "source_hash": "cf2dd9c6"
+  },
+  "web.impersonation.banner.readOnly": {
+    "text": "Skrivebeskyttet: ændringer er blokeret, mens du agerer som bruger.",
+    "source_hash": "46ed3b68"
+  },
+  "web.impersonation.banner.expiresIn": {
+    "text": "Slutter om {time}",
+    "source_hash": "b4999fd8"
+  },
+  "web.impersonation.banner.stop": {
+    "text": "Stop med at agere som bruger",
+    "source_hash": "5cf74e38"
+  },
+  "web.impersonation.banner.stopping": {
+    "text": "Stopper…",
+    "source_hash": "bbe85741"
+  },
+  "web.impersonation.banner.stopFailed": {
+    "text": "Kunne ikke stoppe med at agere som bruger. Prøv igen.",
+    "source_hash": "5aa72353"
+  }
+}

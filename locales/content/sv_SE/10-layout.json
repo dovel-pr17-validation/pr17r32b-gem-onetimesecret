@@ -1,0 +1,366 @@
+{
+  "web.footer.api_docs": {
+    "text": "API-dokumentation",
+    "source_hash": "f4137804"
+  },
+  "web.footer.branding_guide": {
+    "text": "Varumärkesguide",
+    "source_hash": "53f994c5"
+  },
+  "web.footer.customize": {
+    "text": "Anpassa",
+    "source_hash": "c5276e27"
+  },
+  "web.footer.plans": {
+    "text": "Planer",
+    "source_hash": "dfe8b2f0"
+  },
+  "web.footer.security": {
+    "text": "Säkerhet",
+    "source_hash": "8f6fb4eb"
+  },
+  "web.footer.learn_about_our_security_measures": {
+    "text": "Läs om våra säkerhetsåtgärder",
+    "source_hash": "16c8adae"
+  },
+  "web.footer.view_our_terms_and_conditions": {
+    "text": "Se våra allmänna villkor",
+    "source_hash": "0dde60b7"
+  },
+  "web.footer.terms": {
+    "text": "Villkor",
+    "source_hash": "ede54899"
+  },
+  "web.footer.privacy": {
+    "text": "Integritet",
+    "source_hash": "54a57c31"
+  },
+  "web.footer.contact": {
+    "text": "Kontakt",
+    "source_hash": "2b5c3d26"
+  },
+  "web.footer.support": {
+    "text": "Support",
+    "source_hash": "be91940b"
+  },
+  "web.footer.legals": {
+    "text": "Juridiskt",
+    "source_hash": "0a410c78"
+  },
+  "web.feedback.when_you_submit_feedback_well_see": {
+    "text": "När du skickar återkoppling ser vi:",
+    "source_hash": "fe77172e"
+  },
+  "web.footer.read_our_privacy_policy": {
+    "text": "Läs vår integritetspolicy",
+    "source_hash": "eb443229"
+  },
+  "web.footer.check_our_service_status": {
+    "text": "Kontrollera vår tjänststatus",
+    "source_hash": "1f04937e"
+  },
+  "web.footer.explore_our_api_documentation": {
+    "text": "Utforska vår API-dokumentation",
+    "source_hash": "45beb8f8"
+  },
+  "web.footer.docs": {
+    "text": "Dokumentation",
+    "source_hash": "7af023c4"
+  },
+  "web.footer.access_our_documentation": {
+    "text": "Gå till vår dokumentation",
+    "source_hash": "37686da2"
+  },
+  "web.footer.view_our_source_code_on_github": {
+    "text": "Se vår källkod på GitHub",
+    "source_hash": "d5def0ab"
+  },
+  "web.footer.resources": {
+    "text": "Resurser",
+    "source_hash": "e89b30aa"
+  },
+  "web.footer.blog": {
+    "text": "Blogg",
+    "source_hash": "8c6bc099"
+  },
+  "web.footer.read_our_latest_blog_posts": {
+    "text": "Läs våra senaste blogginlägg",
+    "source_hash": "77468d43"
+  },
+  "web.footer.view_our_subscription_pricing": {
+    "text": "Se vår prenumerationsprissättning",
+    "source_hash": "55f1f590"
+  },
+  "web.footer.learn_about_our_company": {
+    "text": "Läs om vårt företag",
+    "source_hash": "780e18cd"
+  },
+  "web.footer.company": {
+    "text": "Företag",
+    "source_hash": "de4743c8"
+  },
+  "web.footer.product": {
+    "text": "Produkt",
+    "source_hash": "fb9ef894"
+  },
+  "web.footer.source_code_purveyor": {
+    "text": "Källkod",
+    "source_hash": "bc47da66"
+  },
+  "web.navigation.billing": {
+    "text": "Fakturering",
+    "source_hash": "3ac8bbca"
+  },
+  "web.navigation.billingOverview": {
+    "text": "Översikt",
+    "source_hash": "d4b1ea57"
+  },
+  "web.navigation.organizations": {
+    "text": "Organisationer",
+    "source_hash": "2730183d"
+  },
+  "web.site.website_version": {
+    "text": "Webbplatsversion",
+    "source_hash": "4d4a570f"
+  },
+  "web.meta.were_making_onetime_secret_available_in_multiple": {
+    "text": "Vi gör {onetime-secret} tillgängligt på flera språk. Eftersom detta är en ny funktion kan du stöta på översättningsfel eller klumpiga formuleringar. Din feedback hjälper oss att förbättra - om du upptäcker några problem, vänligen {send-feedback}",
+    "source_hash": "3b482d7f"
+  },
+  "web.meta.translations_are_new_spotted_an_error": {
+    "text": "Översättningar är nya. Upptäckt ett fel? {send-feedback}",
+    "source_hash": "31eca08d"
+  },
+  "web.meta.we_recently_added_translations": {
+    "text": "Vi har nyligen lagt till översättningar. Upptäckte du ett fel? {send-feedback}",
+    "source_hash": "6e2455c1"
+  },
+  "web.meta.privacy_and_security_should_be_accessible": {
+    "text": "Integritet och säkerhet bör vara tillgängligt för alla, oavsett språk. Vi lägger till översättningar för att hjälpa både våra användare och deras meddelandemottagare att bättre förstå hur man säkert använder och får åtkomst till säkra meddelanden och länkar. Eftersom detta är en ny funktion kan du stöta på några översättningsfel eller oklara instruktioner. För att hjälpa oss att förbättra tydligheten och noggrannheten i våra översättningar, särskilt för kritiskt säkerhetsrelaterat innehåll, vänligen {send-feedback} om du upptäcker några problem",
+    "source_hash": "1b8bb38f"
+  },
+  "web.help.learn_more": {
+    "text": "Läs mer",
+    "source_hash": "1445799c"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.title": {
+    "text": "Vad är det jag ser?",
+    "source_hash": "b9766df3"
+  },
+  "web.help.secret_view_faq.what_am_i_looking_at.description": {
+    "text": "Du visar ett säkert meddelande som delades med dig via {product_name}. Detta innehåll visas endast en gång och raderas sedan permanent från våra servrar.",
+    "source_hash": "7a4e9d16"
+  },
+  "web.help.secret_view_faq.can_i_view_again.title": {
+    "text": "Kan jag visa denna hemlighet igen senare?",
+    "source_hash": "c8c2c9da"
+  },
+  "web.help.secret_view_faq.can_i_view_again.description": {
+    "text": "Nej. Av säkerhetsskäl kan denna hemlighet endast visas en gång. Efter att du stänger denna sida kommer innehållet att raderas permanent och kan inte återställas av någon, inklusive oss.",
+    "source_hash": "4bf980a4"
+  },
+  "web.help.secret_view_faq.how_to_copy.title": {
+    "text": "Hur sparar jag denna information?",
+    "source_hash": "90deddbb"
+  },
+  "web.help.secret_view_faq.how_to_copy.description": {
+    "text": "Använd knappen 'Kopiera till urklipp' för att kopiera hela hemligheten. För längre hemligheter, se till att verifiera att du har kopierat hela innehållet innan du lämnar denna sida.",
+    "source_hash": "440aa828"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.title": {
+    "text": "Spåras min visning av denna hemlighet?",
+    "source_hash": "90145e28"
+  },
+  "web.help.secret_view_faq.is_my_viewing_tracked.description": {
+    "text": "Avsändaren kommer att meddelas att deras hemlighet visades, men vi spårar inte vem som visade den eller från vilken plats. Din integritet skyddas.",
+    "source_hash": "70737473"
+  },
+  "web.help.secret_view_faq.one_time_warning": {
+    "text": "När du lämnar eller uppdaterar denna sida kommer hemligheten att raderas permanent och kan inte återställas av någon.",
+    "source_hash": "47feab6e"
+  },
+  "web.layout.go_back_to_previous_page": {
+    "text": "Gå tillbaka till föregående sida",
+    "source_hash": "1778f2e7"
+  },
+  "web.layout.site_footer": {
+    "text": "Sidfot",
+    "source_hash": "6ca09429"
+  },
+  "web.layout.toggle_dark_mode": {
+    "text": "Växla mörkt läge",
+    "source_hash": "ffe32a00"
+  },
+  "web.layout.provide_feedback": {
+    "text": "Ge återkoppling",
+    "source_hash": "a70766ae"
+  },
+  "web.layout.company_logo": {
+    "text": "Företagslogotyp",
+    "source_hash": "87a86135"
+  },
+  "web.layout.brand_logo": {
+    "text": "Varumärkeslogotyp",
+    "source_hash": "e458e2b5"
+  },
+  "web.layout.dashboard_navigation": {
+    "text": "Instrumentpanelnavigering",
+    "source_hash": "da5c1c43"
+  },
+  "web.layout.mobile_navigation": {
+    "text": "Mobilnavigering",
+    "source_hash": "ccea1730"
+  },
+  "web.layout.main_navigation": {
+    "text": "Huvudnavigering",
+    "source_hash": "56ea852a"
+  },
+  "web.layout.mobile_nav_item_count": {
+    "text": "{count} objekt",
+    "source_hash": "f65216b3"
+  },
+  "web.layout.release_notes": {
+    "text": "Versionsanteckningar",
+    "source_hash": "bd4702c1"
+  },
+  "web.layout.loading_settings_content": {
+    "text": "Laddar inställningsinnehåll...",
+    "source_hash": "81a2a30e"
+  },
+  "web.layout.settings_sections_0": {
+    "text": "Inställningssektioner",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.close_settings": {
+    "text": "Stäng inställningar",
+    "source_hash": "0ccfef82"
+  },
+  "web.layout.settings_sections": {
+    "text": "Inställningssektioner",
+    "source_hash": "e26d51d3"
+  },
+  "web.layout.customize_your_app_preferences_and_settings": {
+    "text": "Anpassa dina appinställningar",
+    "source_hash": "00d74c98"
+  },
+  "web.layout.return_home": {
+    "text": "Tillbaka till startsidan",
+    "source_hash": "bbcc935e"
+  },
+  "web.layout.return_to_home_page": {
+    "text": "Tillbaka till startsidan",
+    "source_hash": "8d27b81d"
+  },
+  "web.layout.return_to_home": {
+    "text": "Tillbaka till startsidan",
+    "source_hash": "299291b0"
+  },
+  "web.layout.view_privacy_policy": {
+    "text": "Visa integritetspolicy",
+    "source_hash": "377733b6"
+  },
+  "web.layout.view_terms_of_service": {
+    "text": "Visa användarvillkor",
+    "source_hash": "e2f124cd"
+  },
+  "web.layout.visit_onetime_secret_homepage": {
+    "text": "Besök {product_name}s startsida",
+    "source_hash": "87802af5"
+  },
+  "web.layout.footer_navigation": {
+    "text": "Sidfotnavigering",
+    "source_hash": "76363a64"
+  },
+  "web.layout.terms_of_service": {
+    "text": "Användarvillkor",
+    "source_hash": "4afa55bf"
+  },
+  "web.layout.privacy_policy": {
+    "text": "Integritetspolicy",
+    "source_hash": "506ff394"
+  },
+  "web.layout.icon_library": {
+    "text": "Ikonbibliotek",
+    "source_hash": "a73f4c07"
+  },
+  "web.layout.google_material": {
+    "text": "Google Material",
+    "source_hash": "7c7afa99"
+  },
+  "web.layout.material_design_icons": {
+    "text": "Material Design Icons",
+    "source_hash": "0fb27437"
+  },
+  "web.layout.heroicons": {
+    "text": "Heroicons",
+    "source_hash": "5e7cc07e"
+  },
+  "web.layout.carbon": {
+    "text": "Carbon",
+    "source_hash": "694c87c2"
+  },
+  "web.layout.font_awesome_6": {
+    "text": "Font Awesome 6",
+    "source_hash": "d4eedb15"
+  },
+  "web.layout.view_source_on_github": {
+    "text": "Visa källkod på GitHub",
+    "source_hash": "75e96614"
+  },
+  "web.layout.website_version_v_ot_version": {
+    "text": "Webbplatsversion: v{0}",
+    "source_hash": "343f57de"
+  },
+  "web.layout.current_language_is_currentlocal": {
+    "text": "Ändra språk. Nuvarande språk är {0}",
+    "source_hash": "77f9c322"
+  },
+  "web.layout.language_changed_to_newlocale": {
+    "text": "Språket ändrades till {0}",
+    "source_hash": "1680f4fe"
+  },
+  "web.layout.reset_to_default_language": {
+    "text": "Återställ till {0}",
+    "source_hash": "c0cfa9b2"
+  },
+  "web.layout.switch_to_blank_mode": {
+    "text": "Byt till {0}-läge",
+    "source_hash": "c8b909e0"
+  },
+  "web.layout.blank_mode_enabled": {
+    "text": "{0}-läge aktiverat",
+    "source_hash": "e1d200cb"
+  },
+  "web.layout.workspace": {
+    "text": "Arbetsyta",
+    "source_hash": "87bb59ba"
+  },
+  "web.layout.workspace_context": {
+    "text": "Arbetsytekontext",
+    "source_hash": "dc6fa4f5"
+  },
+  "web.footer.workspace": {
+    "text": "Arbetsyta",
+    "source_hash": "87bb59ba"
+  },
+  "web.help.default_content": {
+    "text": "Kontakta supporten för hjälp",
+    "source_hash": "752bca14"
+  },
+  "web.layout.colonels_only_badge": {
+    "text": "Endast Colonels",
+    "source_hash": "3f1e2dbd"
+  },
+  "web.footer.dpa": {
+    "text": "Personuppgiftsbiträdesavtal",
+    "source_hash": "112eae6b"
+  },
+  "web.footer.cookie_policy": {
+    "text": "Cookiepolicy",
+    "source_hash": "ee290b3d"
+  },
+  "web.footer.acceptable_use": {
+    "text": "Policy för acceptabel användning",
+    "source_hash": "34aa287a"
+  }
+}

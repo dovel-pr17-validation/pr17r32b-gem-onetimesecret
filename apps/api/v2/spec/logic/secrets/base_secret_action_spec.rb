@@ -1,0 +1,2080 @@
+# apps/api/v2/spec/logic/secrets/base_secret_action_spec.rb
+#
+# frozen_string_literal: true
+
+# ============================================================================
+# Config Path Bug Tests (TDD Red Phase)
+#
+# These tests demonstrate that process_ttl reads secret_options from the
+# WRONG config path. It does:
+#
+#   OT.conf.fetch('secret_options', { hardcoded fallback })
+#
+# But secret_options is nested under 'site' in config. The correct path
+# (used by validate_passphrase in the same file) is:
+#
+#   OT.conf.dig('site', 'secret_options')
+#
+# As a result, process_ttl ALWAYS uses the hardcoded fallback values:
+#   default_ttl: 604800 (7 days)
+#   ttl_options: [60, 3600, 86400, 604800]
+#
+# Instead of the test config values (spec/config.test.yaml):
+#   default_ttl: 43200 (12 hours)
+#   ttl_options: [1800, 43200, 604800]
+#
+# These tests should FAIL against the current code and PASS after the fix.
+# ============================================================================
+
+require_relative '../../../application'
+require_relative File.join(Onetime::HOME, 'spec', 'spec_helper')
+require_relative File.join(Onetime::HOME, 'spec', 'support', 'model_test_helper.rb')
+
+RSpec.describe 'V2 BaseSecretAction config path bug' do
+  using Familia::Refinements::TimeLiterals
+
+  # Subclass that implements the required abstract method
+  class V2ConfigTestAction < V2::Logic::Secrets::BaseSecretAction
+    def process_secret
+      @kind         = :test
+      @secret_value = 'test_secret'
+    end
+  end
+
+  # Stub organization_instances with a non-empty array so EnsureDefaultWorkspace
+  # sees the customer already has an org and skips creation (these tests are
+  # about TTL config, not workspace creation).
+  subject { V2ConfigTestAction.new(strategy_result, base_params) }
+
+  let(:customer) do
+    double(
+      'Customer',
+      anonymous?: false,
+      custid: 'cust123',
+      objid: 'obj123',
+      planid: 'anonymous',
+      email: 'cust123@example.com',
+      organization_instances: [:existing_org],
+      provisioning_failed?: false,
+      clear_provisioning_failure!: false,
+    )
+  end
+
+  let(:session) do
+    double(
+      'Session',
+      anonymous?: false,
+      custid: 'cust123',
+      identifier: 'sess123',
+    )
+  end
+
+  # V2 Logic::Base takes a strategy_result, not raw session/customer
+  let(:strategy_result) do
+    double(
+      'StrategyResult',
+      session: session,
+      user: customer,
+      metadata: { organization_context: {} },
+    )
+  end
+
+  # V2 uses nested params: params['secret'] contains the secret fields
+  let(:base_params) do
+    {
+      'secret' => {
+        'recipient' => [],
+        'share_domain' => '',
+      },
+    }
+  end
+
+  before(:all) do
+    OT.boot!(:test)
+  end
+
+  before do
+    allow(Truemail).to receive(:validate).and_return(
+      double('Validator', result: double('Result', valid?: true), as_json: '{}'),
+    )
+  end
+
+  # Puts the process in the state an operator actually gets by setting
+  # LINK_DOMAINS, on the LIVE booted config, restoring everything (including
+  # a key's absence) afterwards. OT.conf is not deep-frozen under test.
+  #
+  # Three things, not one, because link_pool_host? answers from
+  # Middleware::DomainStrategy's RESOLVED pool rather than re-reading config:
+  #
+  #   features.domains.enabled  - the middleware gates its pool on this, and
+  #                               the shipped test config has domains OFF.
+  #   site.host                 - must PARSE, or initialize_from_config lands
+  #                               in its DomainInvalid rescue and disables the
+  #                               feature. The test config's '127.0.0.1:3000'
+  #                               does not parse.
+  #   link_domains              - the pool itself.
+  #
+  # Deliberately NOT a stub of the pool reader: the chain under test is
+  # OT.conf -> DomainStrategy.initialize_from_config -> link_pool_host?, and
+  # stubbing its far end is what let admission drift away from classification
+  # in the first place (a config-only read admitted hosts with the feature off
+  # and hosts that never parsed).
+  def with_link_domains(pool, canonical_host: 'onetimesecret.com', enabled: true)
+    domains       = OT.conf['features']['domains']
+    site          = OT.conf['site']
+    had_pool_key  = domains.key?('link_domains')
+    previous_pool = domains['link_domains']
+    previous_on   = domains['enabled']
+    previous_host = site['host']
+
+    domains['link_domains'] = pool
+    domains['enabled']      = enabled
+    site['host']            = canonical_host
+    reload_domain_strategy!
+    yield
+  ensure
+    had_pool_key ? domains['link_domains'] = previous_pool : domains.delete('link_domains')
+    domains['enabled'] = previous_on
+    site['host']       = previous_host
+    reload_domain_strategy!
+  end
+
+  # Re-derives DomainStrategy's class state from the current OT.conf, the way
+  # booting a Rack app would.
+  def reload_domain_strategy!
+    Onetime::Middleware::DomainStrategy.initialize_from_config(
+      OT.conf.dig('features', 'domains') || {},
+    )
+  end
+
+  describe '#process_ttl config path' do
+    it 'reads default_ttl from site.secret_options in config (43200), not the hardcoded fallback (604800)' do
+      # Verify the config actually has the value we expect at the correct path
+      configured_default_ttl = OT.conf.dig('site', 'secret_options', 'default_ttl')
+      expect(configured_default_ttl).to eq(43_200), 'Precondition: config.test.yaml should define site.secret_options.default_ttl as 43200'
+
+      # Now test that process_ttl actually uses that config value when no TTL is provided
+      subject.instance_variable_set(:@payload, {})
+      subject.send(:process_ttl)
+
+      expect(subject.ttl).to eq(43_200),
+        "Expected default_ttl=43200 from config, got #{subject.ttl}. " \
+        "Bug: process_ttl reads OT.conf.fetch('secret_options') (root level) " \
+        "instead of OT.conf.dig('site', 'secret_options')"
+    end
+
+    it 'reads ttl_options from site.secret_options in config, not the hardcoded fallback' do
+      # The test config defines: ttl_options: '1800 43200 604800'
+      # After OT::Config.after_load parses it, this becomes [1800, 43200, 604800]
+      #
+      # The hardcoded V2 fallback is [60, 3600, 86400, 604800]
+      # So the arrays differ in both values and length.
+      configured_options = OT.conf.dig('site', 'secret_options', 'ttl_options')
+      expect(configured_options).to be_an(Array), 'Precondition: after_load should parse ttl_options string into an array'
+      expect(configured_options).to include(43_200), 'Precondition: ttl_options should include 43200'
+
+      # The real differentiator: config min_ttl is 1800, but V2 hardcoded
+      # fallback min is 60 (1.minute). A TTL of 120 (2 minutes) should be
+      # clamped UP to 1800 by config, but the hardcoded fallback would allow
+      # it through (since 120 > 60).
+      subject.instance_variable_set(:@payload, { 'ttl' => '120' })
+      subject.send(:process_ttl)
+
+      expect(subject.ttl).to eq(1800),
+        'Expected TTL=120 to be clamped to config min_ttl=1800, ' \
+        "got #{subject.ttl}. Bug: hardcoded fallback has min_ttl=60, " \
+        'so 120 passes through unclamped.'
+    end
+
+    it 'uses config default_ttl (43200) when TTL param is nil' do
+      subject.instance_variable_set(:@payload, { 'ttl' => nil })
+      subject.send(:process_ttl)
+
+      expect(subject.ttl).to eq(43_200),
+        "Expected nil TTL to default to config's 43200, got #{subject.ttl}. " \
+        'Bug: falls through to hardcoded 604800 because it reads from wrong config path.'
+    end
+
+    it 'uses config default_ttl (43200) when TTL key is absent from payload' do
+      subject.instance_variable_set(:@payload, {})
+      subject.send(:process_ttl)
+
+      expect(subject.ttl).to eq(43_200),
+        "Expected absent TTL to default to config's 43200, got #{subject.ttl}. " \
+        'Bug: falls through to hardcoded 604800 because it reads from wrong config path.'
+    end
+
+    it 'enforces config min_ttl (1800) not hardcoded min_ttl (60)' do
+      # V2 hardcoded fallback: ttl_options.min = 60 (1.minute)
+      # Config value: ttl_options.min = 1800 (30 minutes)
+      #
+      # A TTL of 300 (5 minutes) is above the hardcoded min but below config min.
+      subject.instance_variable_set(:@payload, { 'ttl' => '300' })
+      subject.send(:process_ttl)
+
+      expect(subject.ttl).to eq(1800),
+        "Expected TTL=300 to be clamped to config min=1800, got #{subject.ttl}. " \
+        'Bug: hardcoded fallback min is 60, so values between 60-1800 pass through.'
+    end
+  end
+
+  # ============================================================================
+  # i18n error_key on validate_domain_permissions Forbidden raises
+  #
+  # validate_domain_permissions raises Onetime::Forbidden in three distinct
+  # branches; each carries its own error_key so the HTTP edge can localize.
+  # The pre-set English message is preserved as the resolver's I18n.t default,
+  # so legacy message-regex specs keep passing if the locale key is missing.
+  # ============================================================================
+  describe '#validate_domain_permissions error_key plumbing' do
+    let(:share_domain) { 'secrets.acme.com' }
+    let(:authenticated_customer) do
+      double(
+        'Customer',
+        anonymous?: false,
+        custid: 'cust123',
+        objid: 'obj123',
+        planid: 'anonymous',
+        email: 'cust123@example.com',
+        organization_instances: [:existing_org],
+      )
+    end
+    let(:anonymous_customer) do
+      double(
+        'Customer',
+        anonymous?: true,
+        custid: nil,
+        objid: nil,
+        planid: 'anonymous',
+        email: nil,
+        organization_instances: [],
+      )
+    end
+
+    # Stand-in for CustomDomain. accessible_by? and allow_public_secret_creation? are the
+    # only methods validate_domain_permissions touches on the record.
+    def build_domain_record(owner: false, allow_public_secret_creation: false)
+      double('CustomDomain', accessible_by?: owner, allow_public_secret_creation?: allow_public_secret_creation)
+    end
+
+    # Build a subject seeded with @cust and @share_domain so the helper
+    # method can be called directly without process_params side effects.
+    def build_subject(cust:, custom_domain: false)
+      action = V2ConfigTestAction.new(strategy_result, base_params)
+      action.instance_variable_set(:@cust, cust)
+      action.instance_variable_set(:@share_domain, share_domain)
+      # secret_logger is noisy; the warn calls aren't under test here.
+      allow(action).to receive_messages(custom_domain?: custom_domain, secret_logger: double('Logger').as_null_object)
+      action
+    end
+
+    context 'authenticated non-owner branch (line ~445)' do
+      subject { build_subject(cust: authenticated_customer, custom_domain: false) }
+
+      let(:domain_record) { build_domain_record(owner: false) }
+
+      it 'raises Onetime::Forbidden' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden)
+      end
+
+      it 'tags the error with the authenticated_non_owner i18n key' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.error_key)
+              .to eq('api.secrets.errors.domain_permission_authenticated_non_owner')
+          end
+      end
+
+      it 'preserves the interpolated legacy English message as the fallback' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.message).to eq("You do not have permission to use domain: #{share_domain}")
+          end
+      end
+
+      it 'passes share_domain through args for i18n %{domain} interpolation' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.args).to eq(domain: share_domain)
+          end
+      end
+
+      it 'serializes error_key into to_h for the HTTP response body' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.to_h).to include(
+              error: "You do not have permission to use domain: #{share_domain}",
+              error_type: 'Forbidden',
+              error_key: 'api.secrets.errors.domain_permission_authenticated_non_owner',
+            )
+          end
+      end
+    end
+
+    context 'anonymous on custom domain with public sharing disabled (line ~459)' do
+      subject { build_subject(cust: anonymous_customer, custom_domain: true) }
+
+      let(:domain_record) { build_domain_record(owner: false, allow_public_secret_creation: false) }
+
+      it 'raises Onetime::Forbidden' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden)
+      end
+
+      it 'tags the error with the public_sharing_disabled i18n key' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.error_key)
+              .to eq('api.secrets.errors.domain_public_sharing_disabled')
+          end
+      end
+
+      it 'preserves the interpolated legacy English message as the fallback' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.message).to eq("Public sharing disabled for domain: #{share_domain}")
+          end
+      end
+
+      it 'passes share_domain through args for i18n %{domain} interpolation' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.args).to eq(domain: share_domain)
+          end
+      end
+
+      it 'serializes error_key into to_h for the HTTP response body' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.to_h).to include(
+              error: "Public sharing disabled for domain: #{share_domain}",
+              error_type: 'Forbidden',
+              error_key: 'api.secrets.errors.domain_public_sharing_disabled',
+            )
+          end
+      end
+    end
+
+    context 'anonymous on canonical attempting cross-domain (line ~470)' do
+      subject { build_subject(cust: anonymous_customer, custom_domain: false) }
+
+      let(:domain_record) { build_domain_record(owner: false, allow_public_secret_creation: true) }
+
+      it 'raises Onetime::Forbidden' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden)
+      end
+
+      it 'tags the error with the anonymous_cross_domain i18n key' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.error_key)
+              .to eq('api.secrets.errors.domain_permission_anonymous_cross_domain')
+          end
+      end
+
+      it 'preserves the interpolated legacy English message as the fallback' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.message).to eq("You do not have permission to use domain: #{share_domain}")
+          end
+      end
+
+      it 'passes share_domain through args for i18n %{domain} interpolation' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.args).to eq(domain: share_domain)
+          end
+      end
+
+      it 'serializes error_key into to_h for the HTTP response body' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.to_h).to include(
+              error: "You do not have permission to use domain: #{share_domain}",
+              error_type: 'Forbidden',
+              error_key: 'api.secrets.errors.domain_permission_anonymous_cross_domain',
+            )
+          end
+      end
+
+      it 'uses a distinct error_key from the authenticated non-owner branch despite identical English text' do
+        # The two raises render the same English message but represent
+        # different policy decisions (auth vs anon cross-domain). Distinct
+        # keys let locale entries and ops dashboards tell them apart.
+        expect { subject.send(:validate_domain_permissions, domain_record) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.error_key)
+              .not_to eq('api.secrets.errors.domain_permission_authenticated_non_owner')
+          end
+      end
+    end
+
+    context 'domain owner (no raise)' do
+      subject { build_subject(cust: authenticated_customer, custom_domain: false) }
+
+      let(:domain_record) { build_domain_record(owner: true) }
+
+      it 'returns without raising' do
+        expect { subject.send(:validate_domain_permissions, domain_record) }.not_to raise_error
+      end
+    end
+  end
+
+  # ============================================================================
+  # Single HomepageConfig read per request (issue #3631, PR #3665)
+  #
+  # allow_public_secret_creation? is a read-through predicate: each call is an
+  # independent HomepageConfig lookup (a Redis HGETALL of the same record).
+  # Before #3631, validate_domain_access called it once for the debug log and
+  # validate_domain_permissions called it again for the gate — two reads per
+  # anonymous custom-domain request. The fix resolves the value once in
+  # validate_domain_access and threads it into validate_domain_permissions.
+  #
+  # These are regression guards: they pin the read count so the double-read
+  # cannot be silently reintroduced (e.g. by dropping the threaded argument).
+  # ============================================================================
+  describe 'HomepageConfig read count (issue #3631)' do
+    let(:anonymous_customer) do
+      double(
+        'Customer',
+        anonymous?: true,
+        custid: nil,
+        objid: nil,
+        planid: 'anonymous',
+        email: nil,
+        organization_instances: [],
+      )
+    end
+
+    # A domain record whose allow_public_secret_creation? we can count. It is a
+    # non-owner public custom domain, so the anonymous branch consults the gate
+    # and passes.
+    def build_counting_domain_record(allow_public: true)
+      double(
+        'CustomDomain',
+        accessible_by?: false,
+        allow_public_secret_creation?: allow_public,
+        verified: 'true',
+        served_as_tenant?: true,
+      )
+    end
+
+    def build_access_subject(domain_record, share_domain: 'secrets.acme.com')
+      action = V2ConfigTestAction.new(strategy_result, base_params)
+      action.instance_variable_set(:@cust, anonymous_customer)
+      action.instance_variable_set(:@share_domain, share_domain)
+      allow(action).to receive_messages(custom_domain?: true, secret_logger: double('Logger').as_null_object)
+      allow(Onetime::CustomDomain).to receive(:from_display_domain)
+        .with(share_domain).and_return(domain_record)
+      action
+    end
+
+    it 'reads allow_public_secret_creation? exactly once through validate_domain_access' do
+      domain_record = build_counting_domain_record(allow_public: true)
+      subject       = build_access_subject(domain_record)
+
+      subject.send(:validate_domain_access, 'secrets.acme.com')
+
+      expect(domain_record).to have_received(:allow_public_secret_creation?).once
+    end
+
+    it 'does not re-read the gate inside validate_domain_permissions when the resolved value is threaded in' do
+      domain_record = build_counting_domain_record(allow_public: true)
+      subject       = build_access_subject(domain_record)
+
+      # Simulate validate_domain_access having already resolved the gate: pass
+      # the value directly. The permission check must trust it and not re-read.
+      subject.send(:validate_domain_permissions, domain_record, true)
+
+      expect(domain_record).not_to have_received(:allow_public_secret_creation?)
+    end
+
+    it 'still resolves the gate on demand for direct callers that omit the argument' do
+      # Backward-compat path: a direct caller (spec/other logic) passes only the
+      # record. The nil default triggers a single on-demand read.
+      domain_record = build_counting_domain_record(allow_public: true)
+      subject       = build_access_subject(domain_record)
+
+      subject.send(:validate_domain_permissions, domain_record)
+
+      expect(domain_record).to have_received(:allow_public_secret_creation?).once
+    end
+  end
+
+  # ============================================================================
+  # process_share_domain — ingestion (records the requested domain)
+  #
+  # process_share_domain only sanitizes and records the *requested* domain; it is
+  # auth-agnostic. Whether an anonymous request may actually use that domain is
+  # decided later in validate_anonymous_share_domain (issue #3311), because the
+  # display_domain that decision needs is not reliably available this early
+  # across API versions. These specs pin the ingestion contract: valid custom
+  # domains are recorded; empty, invalid, and canonical/default values leave
+  # @share_domain nil.
+  # ============================================================================
+  describe '#process_share_domain' do
+    # Build a subject and drive process_share_domain directly with a chosen
+    # payload value and anonymity. anonymous_user? resolves via cust.
+    def build_ingest_subject(payload_share_domain:, anonymous: false)
+      action = V2ConfigTestAction.new(strategy_result, base_params)
+      action.instance_variable_set(:@payload, { 'share_domain' => payload_share_domain })
+      if anonymous
+        action.instance_variable_set(
+          :@cust,
+          double('AnonymousCustomer', anonymous?: true, custid: nil, objid: nil),
+        )
+      end
+      allow(action).to receive(:secret_logger).and_return(double('Logger').as_null_object)
+      action
+    end
+
+    context 'a valid, non-default custom domain in the payload' do
+      before do
+        allow(Onetime::CustomDomain).to receive(:valid?).with('secrets.acme.com').and_return(true)
+        allow(Onetime::CustomDomain).to receive(:default_domain?).with('secrets.acme.com').and_return(false)
+      end
+
+      it 'records the requested domain for an authenticated request' do
+        subject = build_ingest_subject(payload_share_domain: 'secrets.acme.com', anonymous: false)
+        subject.send(:process_share_domain)
+        expect(subject.share_domain).to eq('secrets.acme.com')
+      end
+
+      it 'records the requested domain for an anonymous request too (the use check runs later)' do
+        subject = build_ingest_subject(payload_share_domain: 'secrets.acme.com', anonymous: true)
+        subject.send(:process_share_domain)
+        expect(subject.share_domain).to eq('secrets.acme.com')
+      end
+    end
+
+    context 'an empty share_domain in the payload' do
+      subject { build_ingest_subject(payload_share_domain: '') }
+
+      it 'leaves @share_domain nil' do
+        subject.send(:process_share_domain)
+        expect(subject.share_domain).to be_nil
+      end
+    end
+
+    context 'a malformed share_domain' do
+      subject { build_ingest_subject(payload_share_domain: 'not a domain') }
+
+      before do
+        allow(Onetime::CustomDomain).to receive(:valid?).and_return(false)
+      end
+
+      it 'rejects the invalid domain and leaves @share_domain nil' do
+        subject.send(:process_share_domain)
+        expect(subject.share_domain).to be_nil
+      end
+    end
+
+    context "a share_domain that is the site's canonical domain" do
+      subject { build_ingest_subject(payload_share_domain: 'onetimesecret.com') }
+
+      before do
+        allow(Onetime::CustomDomain).to receive_messages(valid?: true, default_domain?: true)
+      end
+
+      it 'skips the canonical/default domain and leaves @share_domain nil' do
+        subject.send(:process_share_domain)
+        expect(subject.share_domain).to be_nil
+      end
+    end
+  end
+
+  # ============================================================================
+  # determine_share_domain — domain selection fix
+  #
+  # The bug: when browsing on a custom domain (Host header = custom domain) and
+  # selecting a DIFFERENT org domain from the Domain Context dropdown, the old
+  # code always returned display_domain (the Host header's domain), ignoring
+  # the user's explicit share_domain selection.
+  #
+  # Old code:
+  #   return display_domain if custom_domain?
+  #   share_domain
+  #
+  # Fixed code:
+  #   return share_domain if share_domain
+  #   display_domain if custom_domain?
+  # ============================================================================
+  describe '#determine_share_domain' do
+    # Build a subject with explicit control over share_domain, display_domain,
+    # custom_domain?, and anonymity — the inputs to determine_share_domain.
+    #
+    # anonymous_user? resolves via cust (cust.nil? || cust.anonymous?). The
+    # default strategy_result.user is a non-anonymous customer; pass
+    # anonymous: true to swap in an anonymous customer and exercise the guest
+    # guard added for issue #3311.
+    def build_domain_subject(share_domain:, display_domain:, custom_domain:, anonymous: false)
+      action = V2ConfigTestAction.new(strategy_result, base_params)
+      action.instance_variable_set(:@share_domain, share_domain)
+      action.instance_variable_set(:@display_domain, display_domain)
+      if anonymous
+        action.instance_variable_set(
+          :@cust,
+          double('AnonymousCustomer', anonymous?: true, custid: nil, objid: nil),
+        )
+      end
+      allow(action).to receive_messages(custom_domain?: custom_domain, secret_logger: double('Logger').as_null_object)
+      action
+    end
+
+    context 'user on custom domain, explicit share_domain set to a different domain' do
+      subject do
+        build_domain_subject(
+          share_domain: 'secrets.acme.com',
+          display_domain: 'local-secrets.afb.pet',
+          custom_domain: true,
+        )
+      end
+
+      it 'returns the explicitly selected share_domain, not the Host header domain' do
+        result = subject.send(:determine_share_domain)
+        expect(result).to eq('secrets.acme.com')
+      end
+    end
+
+    context 'user on custom domain, no explicit share_domain (nil)' do
+      subject do
+        build_domain_subject(
+          share_domain: nil,
+          display_domain: 'local-secrets.afb.pet',
+          custom_domain: true,
+        )
+      end
+
+      it 'falls back to the display_domain from the Host header' do
+        result = subject.send(:determine_share_domain)
+        expect(result).to eq('local-secrets.afb.pet')
+      end
+    end
+
+    context 'user on canonical domain, explicit share_domain set' do
+      subject do
+        build_domain_subject(
+          share_domain: 'secrets.acme.com',
+          display_domain: 'onetimesecret.com',
+          custom_domain: false,
+        )
+      end
+
+      it 'returns the explicitly selected share_domain' do
+        result = subject.send(:determine_share_domain)
+        expect(result).to eq('secrets.acme.com')
+      end
+    end
+
+    context 'user on canonical domain, no share_domain' do
+      subject do
+        build_domain_subject(
+          share_domain: nil,
+          display_domain: 'onetimesecret.com',
+          custom_domain: false,
+        )
+      end
+
+      it 'returns nil (no custom domain context, no explicit selection)' do
+        result = subject.send(:determine_share_domain)
+        expect(result).to be_nil
+      end
+    end
+
+    context 'user on custom domain, share_domain matches display_domain' do
+      subject do
+        build_domain_subject(
+          share_domain: 'local-secrets.afb.pet',
+          display_domain: 'local-secrets.afb.pet',
+          custom_domain: true,
+        )
+      end
+
+      it 'returns share_domain (explicit selection takes precedence even when same)' do
+        result = subject.send(:determine_share_domain)
+        expect(result).to eq('local-secrets.afb.pet')
+      end
+    end
+
+    # --------------------------------------------------------------------------
+    # Guest (anonymous) second-layer guard — issue #3311
+    #
+    # validate_anonymous_share_domain (see its own describe block) is the primary
+    # guard: it rejects a guest naming any domain other than the one they're on
+    # before determine_share_domain runs. These contexts deliberately set
+    # @share_domain directly to exercise determine_share_domain's independent
+    # second layer — even if a guest value reached it, the domain-selection
+    # authority still pins a custom-domain guest to the Host header.
+    #
+    # The fixtures above all use the default non-anonymous customer, so they
+    # double as the "authenticated user still selects via share_domain" no-
+    # regression checks. The contexts below pin the guest behaviour.
+    # --------------------------------------------------------------------------
+    context 'anonymous guest on custom domain, explicit share_domain in POST body' do
+      subject do
+        build_domain_subject(
+          share_domain: 'secrets.acme.com',
+          display_domain: 'local-secrets.afb.pet',
+          custom_domain: true,
+          anonymous: true,
+        )
+      end
+
+      it 'ignores the POST-body share_domain and returns the Host header domain' do
+        result = subject.send(:determine_share_domain)
+        expect(result).to eq('local-secrets.afb.pet')
+      end
+    end
+
+    context 'anonymous guest on custom domain, no explicit share_domain' do
+      subject do
+        build_domain_subject(
+          share_domain: nil,
+          display_domain: 'local-secrets.afb.pet',
+          custom_domain: true,
+          anonymous: true,
+        )
+      end
+
+      it 'returns the Host header domain' do
+        result = subject.send(:determine_share_domain)
+        expect(result).to eq('local-secrets.afb.pet')
+      end
+    end
+
+    context 'anonymous guest on canonical domain, explicit share_domain in POST body' do
+      subject do
+        build_domain_subject(
+          share_domain: 'secrets.acme.com',
+          display_domain: 'onetimesecret.com',
+          custom_domain: false,
+          anonymous: true,
+        )
+      end
+
+      # determine_share_domain in isolation still surfaces the posted value on
+      # the canonical domain (the guard is scoped to custom_domain?). In the real
+      # flow validate_anonymous_share_domain raises before this point, so a guest
+      # never reaches here with a smuggled domain — that is covered in the
+      # validate_anonymous_share_domain describe block.
+      it 'returns the posted share_domain (the guest rejection happens earlier in the real flow)' do
+        result = subject.send(:determine_share_domain)
+        expect(result).to eq('secrets.acme.com')
+      end
+    end
+
+    # --------------------------------------------------------------------------
+    # Operator link pool (#4063) — determine_share_domain is deliberately
+    # UNAWARE of the pool. The guest exemption added to
+    # validate_anonymous_share_domain admits a pool member; this method still
+    # pins a guest on a branded host to the Host header, so the exemption is
+    # inert there and a link created on a branded domain stays on it.
+    # --------------------------------------------------------------------------
+    context 'with an operator link pool configured (#4063)' do
+      around { |example| with_link_domains(%w[short.example.com go.acme.com]) { example.run } }
+
+      context 'anonymous guest on a branded host naming a pool member' do
+        subject do
+          build_domain_subject(
+            share_domain: 'short.example.com',
+            display_domain: 'local-secrets.afb.pet',
+            custom_domain: true,
+            anonymous: true,
+          )
+        end
+
+        it 'still pins the link to the Host header domain' do
+          expect(subject.send(:determine_share_domain)).to eq('local-secrets.afb.pet')
+        end
+      end
+
+      context 'anonymous guest on the canonical host naming a pool member' do
+        subject do
+          build_domain_subject(
+            share_domain: 'short.example.com',
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+            anonymous: true,
+          )
+        end
+
+        it 'anchors the link on the pool member, not the canonical host' do
+          expect(subject.send(:determine_share_domain)).to eq('short.example.com')
+        end
+      end
+    end
+  end
+
+  # ============================================================================
+  # validate_anonymous_share_domain — guest domain boundary (issue #3311)
+  #
+  # The primary guest guard. A guest may keep a requested share_domain only when
+  # they are on that exact custom domain (the /guest endpoints on a branded
+  # domain). Any other custom domain — a guest on the canonical domain naming a
+  # custom one, or a guest on one custom domain naming a different one — is a
+  # cross-domain smuggle and is rejected before the domain is resolved or used.
+  # Authenticated callers are untouched (governed by validate_domain_permissions).
+  # ============================================================================
+  describe '#validate_anonymous_share_domain' do
+    # Seed @share_domain (the requested domain, as process_share_domain would
+    # have recorded it), @display_domain (the Host header), custom_domain?, and
+    # anonymity — the inputs to the guard.
+    def build_guard_subject(requested:, display_domain:, custom_domain:, anonymous:)
+      action = V2ConfigTestAction.new(strategy_result, base_params)
+      action.instance_variable_set(:@share_domain, requested)
+      action.instance_variable_set(:@display_domain, display_domain)
+      if anonymous
+        action.instance_variable_set(
+          :@cust,
+          double('AnonymousCustomer', anonymous?: true, custid: nil, objid: nil),
+        )
+      end
+      allow(action).to receive_messages(custom_domain?: custom_domain, secret_logger: double('Logger').as_null_object)
+      action
+    end
+
+    context 'guest on a custom domain requesting that same domain (the /guest endpoint case)' do
+      subject do
+        build_guard_subject(
+          requested: 'secrets.acme.com',
+          display_domain: 'secrets.acme.com',
+          custom_domain: true,
+          anonymous: true,
+        )
+      end
+
+      it 'is allowed (no raise)' do
+        expect { subject.send(:validate_anonymous_share_domain) }.not_to raise_error
+      end
+    end
+
+    context 'guest on a custom domain requesting that same domain in a different case' do
+      subject do
+        build_guard_subject(
+          requested: 'Secrets.ACME.com',
+          display_domain: 'secrets.acme.com',
+          custom_domain: true,
+          anonymous: true,
+        )
+      end
+
+      it 'is allowed (Host comparison is case-insensitive)' do
+        expect { subject.send(:validate_anonymous_share_domain) }.not_to raise_error
+      end
+    end
+
+    context 'guest on a custom domain requesting a DIFFERENT custom domain' do
+      subject do
+        build_guard_subject(
+          requested: 'victim.example.com',
+          display_domain: 'secrets.acme.com',
+          custom_domain: true,
+          anonymous: true,
+        )
+      end
+
+      it 'raises Forbidden tagged as a cross-domain smuggle' do
+        expect { subject.send(:validate_anonymous_share_domain) }
+          .to raise_error(Onetime::Forbidden) do |error|
+            expect(error.error_key).to eq('api.secrets.errors.domain_permission_anonymous_cross_domain')
+            expect(error.args).to eq(domain: 'victim.example.com')
+          end
+      end
+    end
+
+    context 'guest on the canonical domain requesting a custom domain' do
+      subject do
+        build_guard_subject(
+          requested: 'victim.example.com',
+          display_domain: 'onetimesecret.com',
+          custom_domain: false,
+          anonymous: true,
+        )
+      end
+
+      it 'raises Forbidden (cross-domain smuggle from canonical)' do
+        expect { subject.send(:validate_anonymous_share_domain) }
+          .to raise_error(Onetime::Forbidden)
+      end
+    end
+
+    context 'guest with no requested share_domain' do
+      subject do
+        build_guard_subject(
+          requested: nil,
+          display_domain: 'secrets.acme.com',
+          custom_domain: true,
+          anonymous: true,
+        )
+      end
+
+      it 'is a no-op (nothing to reject)' do
+        expect { subject.send(:validate_anonymous_share_domain) }.not_to raise_error
+      end
+    end
+
+    context 'authenticated user requesting a different custom domain' do
+      subject do
+        build_guard_subject(
+          requested: 'secrets.acme.com',
+          display_domain: 'onetimesecret.com',
+          custom_domain: false,
+          anonymous: false,
+        )
+      end
+
+      it 'does not raise here (authenticated selection is governed by validate_domain_permissions)' do
+        expect { subject.send(:validate_anonymous_share_domain) }.not_to raise_error
+      end
+    end
+
+    # ------------------------------------------------------------------------
+    # Operator link-pool exemption (#4063)
+    #
+    # This guard runs BEFORE validate_domain_access, so without the exemption
+    # here that method's pool admission is unreachable for guests and every
+    # anonymous POST naming a pool member 403s — including the homepage form
+    # on a deployment that keeps its canonical host out of the picker.
+    #
+    # The exemption is scoped to hosts the deployment serves itself. It must
+    # not widen into the #3311 rule it sits beside: a tenant-branded
+    # CustomDomain is a phishing surface a guest could aim a link at, and a
+    # near-miss (a subdomain of a pool member) is not a pool member.
+    # ------------------------------------------------------------------------
+    context 'with an operator link pool configured (#4063)' do
+      around { |example| with_link_domains(%w[short.example.com go.acme.com]) { example.run } }
+
+      # Pins the RESOLVED pool, not the raw config value: admission answers
+      # from DomainStrategy, so a precondition on config alone would stay green
+      # while the middleware resolved something else entirely.
+      it 'is a precondition that the pool really resolved in the middleware' do
+        expect(Onetime::Middleware::DomainStrategy.link_domains)
+          .to eq(%w[short.example.com go.acme.com])
+      end
+
+      context 'guest on the canonical domain naming a pool member' do
+        subject do
+          build_guard_subject(
+            requested: 'short.example.com',
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+            anonymous: true,
+          )
+        end
+
+        it 'is allowed (the link anchors on the pool host)' do
+          expect { subject.send(:validate_anonymous_share_domain) }.not_to raise_error
+        end
+      end
+
+      # DECIDED: a guest may name ANY pool member, not only the operator's
+      # first entry. Every entry is operator-blessed and equivalent.
+      context 'guest on the canonical domain naming the SECOND pool member' do
+        subject do
+          build_guard_subject(
+            requested: 'go.acme.com',
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+            anonymous: true,
+          )
+        end
+
+        it 'is allowed too' do
+          expect { subject.send(:validate_anonymous_share_domain) }.not_to raise_error
+        end
+      end
+
+      context 'guest naming a pool member in a different case' do
+        subject do
+          build_guard_subject(
+            requested: 'Short.Example.COM',
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+            anonymous: true,
+          )
+        end
+
+        it 'is allowed (pool membership is normalized on both sides)' do
+          expect { subject.send(:validate_anonymous_share_domain) }.not_to raise_error
+        end
+      end
+
+      context 'guest on a branded custom domain naming a pool member' do
+        subject do
+          build_guard_subject(
+            requested: 'go.acme.com',
+            display_domain: 'secrets.acme.com',
+            custom_domain: true,
+            anonymous: true,
+          )
+        end
+
+        it 'is allowed here; determine_share_domain still pins the link to the Host' do
+          expect { subject.send(:validate_anonymous_share_domain) }.not_to raise_error
+        end
+      end
+
+      context 'guest on a branded custom domain smuggling a DIFFERENT tenant domain' do
+        subject do
+          build_guard_subject(
+            requested: 'victim.example.com',
+            display_domain: 'secrets.acme.com',
+            custom_domain: true,
+            anonymous: true,
+          )
+        end
+
+        it 'is still rejected — the exemption does not reopen #3311' do
+          expect { subject.send(:validate_anonymous_share_domain) }
+            .to raise_error(Onetime::Forbidden) do |error|
+              expect(error.error_key).to eq('api.secrets.errors.domain_permission_anonymous_cross_domain')
+            end
+        end
+      end
+
+      context 'guest on the canonical domain smuggling a tenant domain' do
+        subject do
+          build_guard_subject(
+            requested: 'victim.example.com',
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+            anonymous: true,
+          )
+        end
+
+        it 'is still rejected' do
+          expect { subject.send(:validate_anonymous_share_domain) }
+            .to raise_error(Onetime::Forbidden)
+        end
+      end
+
+      context 'guest naming a near-miss subdomain of a pool member' do
+        subject do
+          build_guard_subject(
+            requested: 'evil.short.example.com',
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+            anonymous: true,
+          )
+        end
+
+        it 'is rejected — pool membership is exact, never a base-domain grant' do
+          expect { subject.send(:validate_anonymous_share_domain) }
+            .to raise_error(Onetime::Forbidden)
+        end
+      end
+
+      context 'guest naming a sibling of a pool member' do
+        subject do
+          build_guard_subject(
+            requested: 'other.example.com',
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+            anonymous: true,
+          )
+        end
+
+        it 'is rejected' do
+          expect { subject.send(:validate_anonymous_share_domain) }
+            .to raise_error(Onetime::Forbidden)
+        end
+      end
+    end
+
+    # With LINK_DOMAINS unset the pool resolves to the canonical host alone,
+    # so the exemption must not admit anything the pre-#4063 guard rejected.
+    context 'with no link pool configured' do
+      around { |example| with_link_domains(nil) { example.run } }
+
+      it 'still rejects a guest naming a tenant domain from the canonical host' do
+        subject = build_guard_subject(
+          requested: 'victim.example.com',
+          display_domain: 'onetimesecret.com',
+          custom_domain: false,
+          anonymous: true,
+        )
+
+        expect { subject.send(:validate_anonymous_share_domain) }
+          .to raise_error(Onetime::Forbidden)
+      end
+    end
+  end
+
+  # ============================================================================
+  # validate_share_domain integration — verifies that determine_share_domain's
+  # return value flows through to validate_domain_access correctly.
+  # ============================================================================
+  describe '#validate_share_domain integration' do
+    # Domain double that passes all permission and verification checks.
+    def build_passing_domain_record(owner: true)
+      double(
+        'CustomDomain',
+        accessible_by?: owner,
+        allow_public_secret_creation?: true,
+        verified: 'true',
+        served_as_tenant?: true,
+      )
+    end
+
+    def build_integration_subject(cust:, share_domain:, display_domain:, custom_domain:)
+      action = V2ConfigTestAction.new(strategy_result, base_params)
+      action.instance_variable_set(:@cust, cust)
+      action.instance_variable_set(:@share_domain, share_domain)
+      action.instance_variable_set(:@display_domain, display_domain)
+      allow(action).to receive_messages(custom_domain?: custom_domain, secret_logger: double('Logger').as_null_object)
+      action
+    end
+
+    let(:authenticated_member) do
+      double(
+        'Customer',
+        anonymous?: false,
+        custid: 'member1',
+        objid: 'obj_member1',
+        planid: 'identity',
+        email: 'member@acme.com',
+        organization_instances: [:existing_org],
+      )
+    end
+
+    let(:anonymous_visitor) do
+      double(
+        'Customer',
+        anonymous?: true,
+        custid: nil,
+        objid: nil,
+        planid: 'anonymous',
+        email: nil,
+        organization_instances: [],
+      )
+    end
+
+    context 'authenticated domain owner on custom domain, selects a different owned domain' do
+      subject do
+        build_integration_subject(
+          cust: authenticated_member,
+          share_domain: selected_domain,
+          display_domain: host_domain,
+          custom_domain: true,
+        )
+      end
+
+      let(:selected_domain) { 'secrets.acme.com' }
+      let(:host_domain)     { 'local-secrets.afb.pet' }
+      let(:domain_record)   { build_passing_domain_record(owner: true) }
+
+      before do
+        allow(Onetime::CustomDomain).to receive(:from_display_domain)
+          .with(selected_domain).and_return(domain_record)
+      end
+
+      it 'uses the explicitly selected domain, not the Host header domain' do
+        expect { subject.send(:validate_share_domain) }.not_to raise_error
+        expect(subject.share_domain).to eq(selected_domain)
+      end
+
+      it 'looks up the selected domain record, not the Host header domain' do
+        subject.send(:validate_share_domain)
+        expect(Onetime::CustomDomain).to have_received(:from_display_domain).with(selected_domain)
+      end
+    end
+
+    context 'authenticated non-owner on custom domain, selects a domain they do not own' do
+      subject do
+        build_integration_subject(
+          cust: authenticated_member,
+          share_domain: selected_domain,
+          display_domain: host_domain,
+          custom_domain: true,
+        )
+      end
+
+      let(:selected_domain) { 'secrets.other.com' }
+      let(:host_domain)     { 'local-secrets.afb.pet' }
+      let(:domain_record) do
+        double(
+          'CustomDomain',
+          accessible_by?: false,
+          allow_public_secret_creation?: false,
+          verified: 'true',
+          served_as_tenant?: true,
+        )
+      end
+
+      before do
+        allow(Onetime::CustomDomain).to receive(:from_display_domain)
+          .with(selected_domain).and_return(domain_record)
+      end
+
+      it 'raises Forbidden for the explicitly selected domain' do
+        expect { subject.send(:validate_share_domain) }
+          .to raise_error(Onetime::Forbidden)
+      end
+    end
+
+    context 'authenticated domain owner on custom domain, no explicit selection' do
+      subject do
+        build_integration_subject(
+          cust: authenticated_member,
+          share_domain: nil,
+          display_domain: host_domain,
+          custom_domain: true,
+        )
+      end
+
+      let(:host_domain)   { 'local-secrets.afb.pet' }
+      let(:domain_record) { build_passing_domain_record(owner: true) }
+
+      before do
+        allow(Onetime::CustomDomain).to receive(:from_display_domain)
+          .with(host_domain).and_return(domain_record)
+      end
+
+      it 'falls back to the Host header domain' do
+        expect { subject.send(:validate_share_domain) }.not_to raise_error
+        expect(subject.share_domain).to eq(host_domain)
+      end
+
+      it 'looks up the Host header domain record' do
+        subject.send(:validate_share_domain)
+        expect(Onetime::CustomDomain).to have_received(:from_display_domain).with(host_domain)
+      end
+    end
+
+    context 'anonymous user on custom domain, no explicit selection' do
+      subject do
+        build_integration_subject(
+          cust: anonymous_visitor,
+          share_domain: nil,
+          display_domain: host_domain,
+          custom_domain: true,
+        )
+      end
+
+      let(:host_domain)   { 'local-secrets.afb.pet' }
+      let(:domain_record) do
+        double(
+          'CustomDomain',
+          accessible_by?: false,
+          allow_public_secret_creation?: true,
+          verified: 'true',
+          served_as_tenant?: true,
+        )
+      end
+
+      before do
+        allow(Onetime::CustomDomain).to receive(:from_display_domain)
+          .with(host_domain).and_return(domain_record)
+      end
+
+      it 'falls back to the Host header domain and passes when public homepage is enabled' do
+        expect { subject.send(:validate_share_domain) }.not_to raise_error
+        expect(subject.share_domain).to eq(host_domain)
+      end
+    end
+
+    # Issue #3311 — a guest on one custom domain POSTs a share_domain naming a
+    # *different* public custom domain. validate_share_domain must reject it
+    # outright, before any domain is resolved or looked up.
+    context 'anonymous guest on custom domain, smuggles a DIFFERENT custom domain via share_domain' do
+      subject do
+        build_integration_subject(
+          cust: anonymous_visitor,
+          share_domain: smuggled_domain,
+          display_domain: host_domain,
+          custom_domain: true,
+        )
+      end
+
+      let(:host_domain)     { 'local-secrets.afb.pet' }
+      let(:smuggled_domain) { 'secrets.acme.com' }
+
+      before do
+        # Any lookup at all would be a bug: the guard must raise before resolution.
+        allow(Onetime::CustomDomain).to receive(:from_display_domain).and_return(nil)
+      end
+
+      it 'raises Forbidden and never looks any domain up' do
+        expect { subject.send(:validate_share_domain) }.to raise_error(Onetime::Forbidden)
+        expect(Onetime::CustomDomain).not_to have_received(:from_display_domain)
+      end
+    end
+
+    # Issue #3311 — the legitimate /guest case: a guest on a custom domain
+    # creating a link for THAT same domain. The request carries the domain it is
+    # served from, so it is allowed and the secret is pinned to that custom domain.
+    context 'anonymous guest on custom domain, creates a link for that same domain' do
+      subject do
+        build_integration_subject(
+          cust: anonymous_visitor,
+          share_domain: host_domain,
+          display_domain: host_domain,
+          custom_domain: true,
+        )
+      end
+
+      let(:host_domain) { 'secrets.acme.com' }
+      let(:host_record) do
+        double(
+          'CustomDomain',
+          accessible_by?: false,
+          allow_public_secret_creation?: true,
+          verified: 'true',
+          served_as_tenant?: true,
+        )
+      end
+
+      before do
+        allow(Onetime::CustomDomain).to receive(:from_display_domain)
+          .with(host_domain).and_return(host_record)
+      end
+
+      it 'is allowed and pins the secret to that custom domain' do
+        expect { subject.send(:validate_share_domain) }.not_to raise_error
+        expect(subject.share_domain).to eq(host_domain)
+      end
+    end
+
+    # ------------------------------------------------------------------------
+    # Operator link pool (#4063) — end-to-end through all three stages.
+    #
+    # A pool member is blessed by CONFIG, not by a CustomDomain registration,
+    # and having NO CustomDomain row is the required state for one. Both walls
+    # therefore have to stand down: the guest guard (which runs first) and
+    # validate_domain_access (which would otherwise 422 'Unknown domain').
+    # The assertion that matters is where the link ANCHORS: on the pool host,
+    # not back on the canonical host the operator configured LINK_DOMAINS to
+    # hide.
+    # ------------------------------------------------------------------------
+    context 'with an operator link pool configured (#4063)' do
+      let(:pool_host) { 'short.example.com' }
+
+      around { |example| with_link_domains(%w[short.example.com go.acme.com]) { example.run } }
+
+      before do
+        # No CustomDomain row exists for a pool member, by design. Any lookup
+        # at all would mean the pool admission did not fire.
+        allow(Onetime::CustomDomain).to receive(:from_display_domain).and_return(nil)
+      end
+
+      context 'anonymous guest on the canonical host selecting a pool member' do
+        subject do
+          build_integration_subject(
+            cust: anonymous_visitor,
+            share_domain: pool_host,
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+          )
+        end
+
+        it 'is allowed and anchors the link on the pool host' do
+          expect { subject.send(:validate_share_domain) }.not_to raise_error
+          expect(subject.share_domain).to eq(pool_host)
+        end
+
+        it 'never looks the pool host up as a custom domain' do
+          subject.send(:validate_share_domain)
+          expect(Onetime::CustomDomain).not_to have_received(:from_display_domain)
+        end
+      end
+
+      context 'anonymous guest selecting the second pool member' do
+        subject do
+          build_integration_subject(
+            cust: anonymous_visitor,
+            share_domain: 'go.acme.com',
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+          )
+        end
+
+        it 'anchors on that member (any pool entry is selectable)' do
+          expect { subject.send(:validate_share_domain) }.not_to raise_error
+          expect(subject.share_domain).to eq('go.acme.com')
+        end
+      end
+
+      context 'authenticated member selecting a pool member with no CustomDomain row' do
+        subject do
+          build_integration_subject(
+            cust: authenticated_member,
+            share_domain: pool_host,
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+          )
+        end
+
+        it 'is admitted without a per-domain permission check' do
+          expect { subject.send(:validate_share_domain) }.not_to raise_error
+          expect(subject.share_domain).to eq(pool_host)
+        end
+      end
+
+      context 'authenticated member naming a host that is neither pooled nor registered' do
+        subject do
+          build_integration_subject(
+            cust: authenticated_member,
+            share_domain: 'unknown.example.com',
+            display_domain: 'onetimesecret.com',
+            custom_domain: false,
+          )
+        end
+
+        it "still raises 'Unknown domain'" do
+          expect { subject.send(:validate_share_domain) }
+            .to raise_error(Onetime::FormError, /Unknown domain/)
+        end
+      end
+
+      context 'anonymous guest on a branded host naming a pool member' do
+        subject do
+          build_integration_subject(
+            cust: anonymous_visitor,
+            share_domain: 'go.acme.com',
+            display_domain: host_domain,
+            custom_domain: true,
+          )
+        end
+
+        let(:host_domain) { 'secrets.acme.com' }
+        let(:host_record) do
+          double(
+            'CustomDomain',
+            accessible_by?: false,
+            allow_public_secret_creation?: true,
+            verified: 'true',
+            served_as_tenant?: true,
+          )
+        end
+
+        before do
+          allow(Onetime::CustomDomain).to receive(:from_display_domain)
+            .with(host_domain).and_return(host_record)
+        end
+
+        it 'is allowed but the link stays on the branded Host domain' do
+          expect { subject.send(:validate_share_domain) }.not_to raise_error
+          expect(subject.share_domain).to eq(host_domain)
+        end
+      end
+    end
+
+    # ------------------------------------------------------------------------
+    # Pool admission is GATED, not a raw config read (#4063)
+    #
+    # link_pool_host? used to read features.domains.link_domains straight out
+    # of config, which skipped both gates the middleware applies. Admission
+    # then disagreed with classification in two ways an operator can reach by
+    # accident: a pool configured while the domains feature is off, and a pool
+    # entry that does not parse. In both cases the middleware classifies the
+    # host :invalid and the picker never offers it, so admitting it here let a
+    # guest anchor secrets on a host the deployment does not serve.
+    #
+    # These two contexts are the reason link_pool_host? delegates to
+    # DomainStrategy at all; without them the delegation looks like a
+    # refactor.
+    # ------------------------------------------------------------------------
+    context 'with a link pool configured but the domains feature disabled (#4063)' do
+      subject do
+        build_integration_subject(
+          cust: authenticated_member,
+          share_domain: 'short.example.com',
+          display_domain: 'onetimesecret.com',
+          custom_domain: false,
+        )
+      end
+
+      around do |example|
+        with_link_domains(%w[short.example.com], enabled: false) { example.run }
+      end
+
+      before do
+        allow(Onetime::CustomDomain).to receive(:from_display_domain).and_return(nil)
+      end
+
+      it 'is a precondition that the middleware admits no pool member' do
+        expect(Onetime::Middleware::DomainStrategy.link_pool_host?('short.example.com'))
+          .to be false
+      end
+
+      it "rejects the pool member with 'Unknown domain'" do
+        expect { subject.send(:validate_share_domain) }
+          .to raise_error(Onetime::FormError, /Unknown domain/)
+      end
+    end
+
+    context 'with a link pool whose entry does not parse (#4063)' do
+      subject do
+        build_integration_subject(
+          cust: authenticated_member,
+          share_domain: 'links.internal',
+          display_domain: 'onetimesecret.com',
+          custom_domain: false,
+        )
+      end
+
+      around do |example|
+        with_link_domains(%w[links.internal]) { example.run }
+      end
+
+      before do
+        allow(Onetime::CustomDomain).to receive(:from_display_domain).and_return(nil)
+      end
+
+      it 'is a precondition that the entry was dropped from the resolved pool' do
+        expect(Onetime::Middleware::DomainStrategy.link_domains).to eq([])
+      end
+
+      it 'does not admit the unparseable host' do
+        expect { subject.send(:validate_share_domain) }
+          .to raise_error(Onetime::FormError, /Unknown domain/)
+      end
+
+      # The dangerous fallback: resolving an all-unparseable pool back to
+      # [canonical_domain] would put the internal platform host in the picker,
+      # the exact outcome LINK_DOMAINS exists to prevent. Boot now refuses this
+      # config outright (Onetime::Config.validate_link_domains!); this pins the
+      # middleware's behavior for the paths that bypass boot validation.
+      it 'does not fall back to the canonical host' do
+        expect(Onetime::Middleware::DomainStrategy.link_domains)
+          .not_to include('onetimesecret.com')
+      end
+    end
+  end
+
+  # ============================================================================
+  # Full-payload end-to-end regression (issue #3311)
+  #
+  # Unlike the focused specs above (which seed instance variables), these drive
+  # the real entry points with a real params payload and a genuinely anonymous
+  # StrategyResult — a guest on the custom domain `host_domain`. custom_domain?
+  # and display_domain are the real values derived from the metadata; only the
+  # external CustomDomain validity/lookup and the logger are stubbed.
+  # ============================================================================
+  describe 'full-payload end-to-end (anonymous guest, issue #3311)' do
+    let(:host_domain) { 'local-secrets.afb.pet' }
+
+    let(:e2e_session) do
+      double('Session', anonymous?: true, custid: nil, identifier: 'anon-sess')
+    end
+
+    # A genuinely anonymous StrategyResult: user is nil, so anonymous_user? is
+    # true from construction onward (process_params runs during initialize).
+    let(:e2e_strategy_result) do
+      double(
+        'StrategyResult',
+        session: e2e_session,
+        user: nil,
+        auth_method: :noauth,
+        metadata: {
+          organization_context: {},
+          domain_strategy: 'custom',
+          display_domain: host_domain,
+        },
+      )
+    end
+
+    let(:host_record) do
+      double('CustomDomain', accessible_by?: false, allow_public_secret_creation?: true, verified: 'true', served_as_tenant?: true)
+    end
+
+    # Real nested payload, exactly as a guest POST would arrive.
+    def e2e_params(share_domain)
+      {
+        'secret' => {
+          'secret' => 'top secret value',
+          'share_domain' => share_domain,
+          'ttl' => '3600',
+          'recipient' => [],
+        },
+      }
+    end
+
+    def build_e2e_subject(share_domain)
+      action = V2ConfigTestAction.new(e2e_strategy_result, e2e_params(share_domain))
+      allow(action).to receive(:secret_logger).and_return(double('Logger').as_null_object)
+      action
+    end
+
+    before do
+      # Any non-empty posted domain passes format/default validation, so the
+      # requested value is recorded during process_params (real ingestion).
+      # Default any lookup to nil; only the Host domain resolves to a record.
+      allow(Onetime::CustomDomain).to receive_messages(valid?: true, default_domain?: false, from_display_domain: nil)
+      allow(Onetime::CustomDomain).to receive(:from_display_domain)
+        .with(host_domain).and_return(host_record)
+    end
+
+    context 'POST body smuggles a DIFFERENT custom domain' do
+      subject { build_e2e_subject('secrets.acme.com') }
+
+      it 'records the requested domain at ingestion (captured for the boundary check)' do
+        # process_params ran in initialize; the requested value is recorded but
+        # is not used as the share domain.
+        expect(subject.share_domain).to eq('secrets.acme.com')
+      end
+
+      it 'raises Forbidden without resolving the smuggled domain' do
+        expect { subject.raise_concerns }.to raise_error(Onetime::Forbidden)
+        expect(Onetime::CustomDomain).not_to have_received(:from_display_domain)
+          .with('secrets.acme.com')
+        # TTL policy legitimately resolves the Host domain's owning boundary.
+        expect(Onetime::CustomDomain).to have_received(:from_display_domain)
+          .with(host_domain)
+      end
+    end
+
+    context 'POST body names the custom domain the guest is on (legit /guest case)' do
+      subject { build_e2e_subject(host_domain) }
+
+      it 'is allowed and pins the secret to the Host domain through raise_concerns' do
+        expect { subject.raise_concerns }.not_to raise_error
+        expect(subject.share_domain).to eq(host_domain)
+      end
+    end
+
+    context 'POST body omits share_domain (guest on a custom domain)' do
+      subject { build_e2e_subject('') }
+
+      it 'pins the secret to the Host domain through raise_concerns' do
+        expect { subject.raise_concerns }.not_to raise_error
+        expect(subject.share_domain).to eq(host_domain)
+      end
+    end
+
+    # The policy-table nuance: a guest on a custom domain who names the
+    # *canonical* domain (or anything malformed) is not smuggling — those values
+    # are filtered to nil at ingestion, so the link is created on the custom
+    # domain they are on rather than rejected.
+    context 'POST body names the canonical domain while on a custom domain' do
+      subject { build_e2e_subject('onetimesecret.com') }
+
+      before do
+        allow(Onetime::CustomDomain).to receive(:default_domain?)
+          .with('onetimesecret.com').and_return(true)
+      end
+
+      it 'ignores it and pins the secret to the Host (custom) domain' do
+        expect { subject.raise_concerns }.not_to raise_error
+        expect(subject.share_domain).to eq(host_domain)
+      end
+    end
+  end
+
+  # ============================================================================
+  # validate_recipient — account-required is 401, not 422 (audit 2026-07-29 #2)
+  #
+  # Requiring an account is an authentication failure, so the anonymous branch
+  # raises Onetime::Unauthorized (mapped to 401 by otto_hooks). Genuine field
+  # validation (undeliverable address) stays FormError → 422.
+  # ============================================================================
+  describe '#validate_recipient account-required class (audit 2026-07-29 item 2)' do
+    let(:anonymous_customer) do
+      double(
+        'Customer',
+        anonymous?: true,
+        custid: nil,
+        objid: nil,
+        planid: 'anonymous',
+        email: nil,
+        organization_instances: [],
+      )
+    end
+
+    def build_recipient_subject(cust:, recipients:)
+      action = V2ConfigTestAction.new(strategy_result, base_params)
+      action.instance_variable_set(:@cust, cust)
+      action.instance_variable_set(:@recipient, recipients)
+      action
+    end
+
+    it 'raises Onetime::Unauthorized (401 at the edge) for an anonymous caller naming a recipient' do
+      subject = build_recipient_subject(cust: anonymous_customer, recipients: ['friend@example.com'])
+
+      expect { subject.send(:validate_recipient) }
+        .to raise_error(Onetime::Unauthorized, /account is required/i)
+    end
+
+    it 'is a no-op for an anonymous caller with no recipients' do
+      subject = build_recipient_subject(cust: anonymous_customer, recipients: [])
+
+      expect { subject.send(:validate_recipient) }.not_to raise_error
+    end
+
+    it 'still raises FormError (422) for an undeliverable address from an authenticated caller' do
+      subject = build_recipient_subject(cust: customer, recipients: ['bad@invalid'])
+      allow(subject).to receive(:valid_email?).and_return(false)
+
+      expect { subject.send(:validate_recipient) }.to raise_error(Onetime::FormError) do |error|
+        expect(error.field).to eq('recipient')
+        expect(error.error_type).to eq('invalid_email')
+      end
+    end
+
+    it 'passes for an authenticated caller with a deliverable address' do
+      subject = build_recipient_subject(cust: customer, recipients: ['friend@example.com'])
+      allow(subject).to receive(:valid_email?).and_return(true)
+
+      expect { subject.send(:validate_recipient) }.not_to raise_error
+    end
+  end
+
+  # ============================================================================
+  # process_ttl — anonymous TTL ceiling (audit 2026-07-29 #4)
+  #
+  # Authentication state alone is not the policy boundary. Canonical-host
+  # guests use the configured anonymous ceiling (7 days by default). Guests on
+  # a branded custom host use the domain owner organization's plan lifetime
+  # (normally 14/30 days), because the tenant is the accountable storage owner.
+  # Both remain bounded by config ttl_options.max. The clamp is silent for
+  # non-browser API callers; the web dropdown receives the same resolved value.
+  # ============================================================================
+  describe '#process_ttl anonymous TTL ceiling (audit 2026-07-29 item 4)' do
+    let(:anon_session) do
+      double('Session', anonymous?: true, custid: nil, identifier: 'anon-sess')
+    end
+
+    # A genuinely anonymous StrategyResult (user: nil), same shape as the
+    # e2e block above: anonymous_user? is true from construction onward.
+    let(:anon_strategy_result) do
+      double(
+        'StrategyResult',
+        session: anon_session,
+        user: nil,
+        auth_method: :noauth,
+        metadata: { organization_context: {} },
+      )
+    end
+    # Shipped canonical-host guest ceiling (7 days). Custom-domain guests do
+    # not use this value after tenant ownership resolves.
+    let(:anon_cap) { Onetime::Models::Features::WithEntitlements::ANONYMOUS_MAX_TTL }
+    # The authenticated free-tier ceiling (14 days): what the loud entitlement
+    # gate uses. Only referenced to prove anonymous stays at or below it.
+    let(:free_tier_ceiling) { Onetime::Models::Features::WithEntitlements::DEFAULT_FREE_TTL }
+
+    def build_anon_subject(ttl:)
+      action = V2ConfigTestAction.new(anon_strategy_result, base_params)
+      action.instance_variable_set(:@payload, { 'ttl' => ttl })
+      action
+    end
+
+    def stub_billing(enabled:)
+      allow(Onetime::BillingConfig).to receive(:instance)
+        .and_return(double('BillingConfig', enabled?: enabled))
+    end
+
+    # process_ttl reads its bounds from OT.conf.dig('site', 'secret_options').
+    # config.test.yaml maxes out at exactly 7 days, so the config clamp would
+    # mask a missing anonymous cap. Raise the config max (stock deployments
+    # ship 30 days) to test the cap in isolation.
+    def stub_config_ttl_max(max)
+      allow(OT).to receive(:conf).and_return(
+        'site' => {
+          'secret_options' => {
+            'default_ttl' => 43_200,
+            'ttl_options' => [1_800, 43_200, max],
+          },
+        },
+      )
+    end
+
+    # Drive the real env var through parse_ttl_env instead of stubbing
+    # free_tier_limits, so the memoized class-level read is exercised too.
+    def with_ttl_max_anonymous(value)
+      previous                 = ENV.fetch('TTL_MAX_ANONYMOUS', nil)
+      ENV['TTL_MAX_ANONYMOUS'] = value.to_s
+      Onetime::Organization.reset_free_tier_limits!
+      yield
+    ensure
+      previous.nil? ? ENV.delete('TTL_MAX_ANONYMOUS') : ENV['TTL_MAX_ANONYMOUS'] = previous
+      Onetime::Organization.reset_free_tier_limits!
+    end
+
+    context 'billing enabled (hosted)' do
+      before { stub_billing(enabled: true) }
+
+      it 'clamps an anonymous request to the free-tier secret_lifetime limit' do
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+          .and_return('secret_lifetime.max' => 43_200)
+
+        subject = build_anon_subject(ttl: '604800') # config.test.yaml ttl_options max
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(43_200)
+      end
+
+      it 'never exceeds the config ttl_options max even when the free limit is higher' do
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+          .and_return('secret_lifetime.max' => 30 * 86_400)
+
+        subject = build_anon_subject(ttl: '604800')
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(604_800)
+      end
+
+      it 'falls back to the config max when the free limit is non-positive' do
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+          .and_return('secret_lifetime.max' => 0)
+
+        subject = build_anon_subject(ttl: '604800')
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(604_800)
+      end
+
+      # Regression (audit residual, then the 7-day product rule): TTL_MAX_ANONYMOUS
+      # moves free_tier_limits['secret_lifetime.max']. Without the min() against
+      # ANONYMOUS_MAX_TTL, an operator raising the env var hands anonymous callers
+      # the raised value — re-opening the inversion item 4 closed, and blowing past
+      # the 7-day cap.
+      it 'never exceeds ANONYMOUS_MAX_TTL when TTL_MAX_ANONYMOUS is raised above it' do
+        raised = 24 * 86_400
+        stub_config_ttl_max(raised)
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+          .and_return('secret_lifetime.max' => raised)
+
+        subject = build_anon_subject(ttl: raised.to_s)
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(anon_cap)
+      end
+
+      # Same assertion driven through the actual env var + parse_ttl_env rather
+      # than a free_tier_limits stub: 30 days in, 7 days out.
+      it 'cannot be raised above ANONYMOUS_MAX_TTL by the TTL_MAX_ANONYMOUS env var itself' do
+        stock_config_max = 30 * 86_400
+        stub_config_ttl_max(stock_config_max)
+
+        with_ttl_max_anonymous(stock_config_max) do
+          expect(Onetime::Organization.free_tier_limits['secret_lifetime.max'])
+            .to eq(stock_config_max) # precondition: the env var really did move the limit
+
+          subject = build_anon_subject(ttl: stock_config_max.to_s)
+          subject.send(:process_ttl)
+
+          expect(subject.ttl).to eq(anon_cap)
+        end
+      end
+
+      it 'clamps to ANONYMOUS_MAX_TTL when TTL_MAX_ANONYMOUS is 0 (no override)' do
+        stock_config_max = 30 * 86_400
+        stub_config_ttl_max(stock_config_max)
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+          .and_return('secret_lifetime.max' => 0)
+
+        subject = build_anon_subject(ttl: stock_config_max.to_s)
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(anon_cap)
+      end
+
+      it 'still honours a TTL_MAX_ANONYMOUS set BELOW the cap (lowering keeps working)' do
+        lowered = 3 * 86_400
+        stub_config_ttl_max(30 * 86_400)
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+          .and_return('secret_lifetime.max' => lowered)
+
+        subject = build_anon_subject(ttl: (30 * 86_400).to_s)
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(lowered)
+      end
+
+      it 'grants an anonymous caller no more than an authenticated free-tier caller is allowed' do
+        raised = free_tier_ceiling * 2
+        stub_config_ttl_max(raised)
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+          .and_return('secret_lifetime.max' => raised)
+
+        anon = build_anon_subject(ttl: raised.to_s)
+        anon.send(:process_ttl)
+
+        # The same request from an authenticated free-tier org is refused outright.
+        authed = V2ConfigTestAction.new(strategy_result, base_params)
+        org    = double('Organization')
+        allow(org).to receive(:limit_for).with('secret_lifetime').and_return(raised)
+        allow(org).to receive(:can?).with('extended_default_expiration').and_return(false)
+        allow(authed).to receive(:auth_org).and_return(org)
+        allow(authed).to receive(:require_entitlement!)
+        authed.instance_variable_set(:@payload, { 'ttl' => raised.to_s })
+        authed.send(:process_ttl)
+
+        expect(authed).to have_received(:require_entitlement!).with('extended_default_expiration')
+        expect(anon.ttl).to eq(anon_cap)
+        expect(anon.ttl).to be < free_tier_ceiling
+      end
+
+      it 'leaves anonymous requests at or below the free limit untouched' do
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+          .and_return('secret_lifetime.max' => 43_200)
+
+        subject = build_anon_subject(ttl: '43200')
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(43_200)
+      end
+
+      it 'clamps silently rather than raising the loud entitlement gate (non-browser API callers)' do
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+          .and_return('secret_lifetime.max' => 43_200)
+
+        subject = build_anon_subject(ttl: (15 * 86_400).to_s) # above DEFAULT_FREE_TTL
+        allow(subject).to receive(:require_entitlement!)
+        subject.send(:process_ttl)
+
+        expect(subject).not_to have_received(:require_entitlement!)
+        expect(subject.ttl).to eq(43_200)
+      end
+
+      context 'on a branded custom domain' do
+        let(:display_domain) { 'secrets.example.com' }
+        let(:domain) { instance_double(Onetime::CustomDomain, org_id: 'org-custom') }
+        let(:organization) { instance_double(Onetime::Organization) }
+
+        before do
+          stub_config_ttl_max(30 * 86_400)
+          allow(Onetime::CustomDomain).to receive(:from_display_domain)
+            .with(display_domain).and_return(domain)
+          allow(Onetime::Organization).to receive(:load)
+            .with('org-custom').and_return(organization)
+        end
+
+        def build_custom_domain_guest(ttl:)
+          custom_strategy = double(
+            'StrategyResult',
+            session: anon_session,
+            user: nil,
+            auth_method: :noauth,
+            metadata: {
+              organization_context: {},
+              domain_strategy: :custom,
+              display_domain: display_domain,
+            },
+          )
+          V2ConfigTestAction.new(custom_strategy, { 'secret' => { 'ttl' => ttl } })
+        end
+
+        it 'uses the domain owner 14-day lifetime instead of the canonical 7-day ceiling' do
+          allow(organization).to receive(:limit_for)
+            .with('secret_lifetime').and_return(14 * 86_400)
+
+          subject = build_custom_domain_guest(ttl: (30 * 86_400).to_s)
+
+          expect(subject.ttl).to eq(14 * 86_400)
+        end
+
+        it 'uses the domain owner 30-day extended lifetime instead of the canonical ceiling' do
+          allow(organization).to receive(:limit_for)
+            .with('secret_lifetime').and_return(30 * 86_400)
+          allow(organization).to receive(:can?)
+            .with('extended_default_expiration').and_return(true)
+
+          subject = build_custom_domain_guest(ttl: (30 * 86_400).to_s)
+
+          expect(subject.ttl).to eq(30 * 86_400)
+        end
+      end
+    end
+
+    # The 7-day cap is a product rule about anonymous callers, not about whether
+    # the deployment sells plans, so it applies with billing off too. This is
+    # the one place V2 now diverges from V1's resolve_ttl_limit, which still
+    # fails open to the config max when billing is disabled.
+    context 'billing disabled (self-hosted)' do
+      before { stub_billing(enabled: false) }
+
+      it 'does not consult free-tier limits (TTL_MAX_ANONYMOUS is billing-enabled only)' do
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+
+        subject = build_anon_subject(ttl: '604800')
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(604_800)
+        expect(Onetime::Organization).not_to have_received(:free_tier_limits)
+      end
+
+      it 'still enforces the 7-day anonymous cap against a higher config max' do
+        stub_config_ttl_max(30 * 86_400) # stock self-hosted ttl_options max
+        allow(Onetime::Organization).to receive(:free_tier_limits)
+
+        subject = build_anon_subject(ttl: (30 * 86_400).to_s)
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(anon_cap)
+        expect(Onetime::Organization).not_to have_received(:free_tier_limits)
+      end
+
+      it 'lets a config max below the cap win' do
+        stub_config_ttl_max(2 * 86_400)
+
+        subject = build_anon_subject(ttl: (30 * 86_400).to_s)
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(2 * 86_400)
+      end
+    end
+
+    context 'authenticated org paths are unchanged' do
+      it 'still clamps to the org plan limit when auth_org provides a positive one' do
+        subject = V2ConfigTestAction.new(strategy_result, base_params)
+        org     = double('Organization')
+        allow(org).to receive(:limit_for).with('secret_lifetime').and_return(86_400)
+        allow(org).to receive(:can?).with('extended_default_expiration').and_return(true)
+        allow(subject).to receive(:auth_org).and_return(org)
+
+        subject.instance_variable_set(:@payload, { 'ttl' => '604800' })
+        subject.send(:process_ttl)
+
+        expect(subject.ttl).to eq(86_400)
+      end
+
+      it 'still routes free-tier requests above 14 days to the loud entitlement gate' do
+        subject = V2ConfigTestAction.new(strategy_result, base_params)
+        org     = double('Organization')
+        allow(org).to receive(:limit_for).with('secret_lifetime').and_return(0)
+        allow(org).to receive(:can?).with('extended_default_expiration').and_return(false)
+        allow(subject).to receive(:auth_org).and_return(org)
+        # Observe the gate without wiring up the auth_membership plumbing.
+        allow(subject).to receive(:require_entitlement!)
+
+        subject.instance_variable_set(:@payload, { 'ttl' => (15 * 86_400).to_s })
+        subject.send(:process_ttl)
+
+        expect(subject).to have_received(:require_entitlement!).with('extended_default_expiration')
+      end
+    end
+  end
+
+  # ============================================================================
+  # index_receipt_to_organization — actor attribution on 'created' (#3637)
+  #
+  # The creation path is always authenticated (guarded by auth_org and the
+  # anonymous_user? check in update_stats), so the 'created' event records
+  # actor=creator with the FULL customer objid, untruncated -- the trail must
+  # bind the event to a uniquely resolvable individual (AU-3 / PCI 10.2.2).
+  # ============================================================================
+  describe '#index_receipt_to_organization actor attribution (#3637)' do
+    it "records 'created' with actor=creator and the full customer objid" do
+      org  = Onetime::Organization.new(
+        display_name: 'Created Actor Org',
+        contact_email: "created-actor-#{SecureRandom.hex(6)}@example.com",
+      ).tap(&:save)
+      pair = Onetime::Receipt.spawn_pair('obj123', 3600, 'a secret value')
+
+      action = V2ConfigTestAction.new(strategy_result, base_params)
+      action.instance_variable_set(:@receipt, pair.first)
+      allow(action).to receive(:auth_org).and_return(org)
+
+      expect(action.send(:index_receipt_to_organization)).to be true
+
+      event = org.secret_activity_events_page.first
+      expect(event['kind']).to eq('created')
+      expect(event['actor']).to eq('creator')
+      # The customer double's objid ('obj123'), stored verbatim.
+      expect(event['actor_id']).to eq('obj123')
+    end
+  end
+end

@@ -1,0 +1,38 @@
+{
+  "web.dashboard.title_received": {
+    "text": "Megkapva",
+    "source_hash": "49f19bee"
+  },
+  "web.dashboard.title_not_received": {
+    "text": "Nem kapták meg",
+    "source_hash": "a4cf12ca"
+  },
+  "web.dashboard.title_no_recent_secrets": {
+    "text": "Nincsenek legutóbbi titkok",
+    "source_hash": "02b7b86b"
+  },
+  "web.dashboard.get_started_by_creating_your_first_secret": {
+    "text": "Kezdjen hozzá az első titkának létrehozásával.",
+    "source_hash": "e96db24d"
+  },
+  "web.dashboard.fetch_error_title": {
+    "text": "Nem sikerült betölteni az adatokat",
+    "source_hash": "ba7df1be"
+  },
+  "web.dashboard.fetch_error_description": {
+    "text": "Probléma merült fel az adatok betöltése során. Kérjük, próbálja újra.",
+    "source_hash": "ff0d904e"
+  },
+  "web.teams.create_first_team_title": {
+    "text": "Hozza létre első csapatát",
+    "source_hash": "54693f14"
+  },
+  "web.teams.create_first_team_description": {
+    "text": "A csapatok lehetővé teszik, hogy másokkal együttműködjön egy közös munkaterületen.",
+    "source_hash": "d61b86b5"
+  },
+  "web.teams.create_team": {
+    "text": "Csapat létrehozása",
+    "source_hash": "284ff194"
+  }
+}

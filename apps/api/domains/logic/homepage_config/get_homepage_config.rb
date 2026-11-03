@@ -1,0 +1,73 @@
+# apps/api/domains/logic/homepage_config/get_homepage_config.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/models/custom_domain/homepage_config'
+require_relative 'base'
+
+module DomainsAPI
+  module Logic
+    module HomepageConfig
+      # Get Domain Homepage Configuration
+      #
+      # @api Retrieves the homepage secrets configuration for a custom domain.
+      #   Returns the enabled state. Only accessible by organization owners
+      #   with homepage_secrets entitlement.
+      #
+      class GetHomepageConfig < Base
+        attr_reader :homepage_config
+
+        def process_params
+          @domain_id = sanitize_identifier(params['extid'])
+        end
+
+        def raise_concerns
+          raise_form_error('Authentication required', field: :user_id, error_type: :authentication_required) if cust.anonymous?
+          raise_form_error('Domain ID required', field: :domain_id, error_type: :missing) if @domain_id.to_s.empty?
+
+          authorize_domain_homepage!(@domain_id)
+
+          @homepage_config = Onetime::CustomDomain::HomepageConfig.find_by_domain_id(@custom_domain.identifier)
+        end
+
+        def process
+          OT.ld "[GetHomepageConfig] Getting homepage config for domain #{@domain_id} by user #{cust.extid}"
+
+          success_data
+        end
+
+        def success_data
+          {
+            user_id: cust.extid,
+            record: if @homepage_config
+                      {
+                        domain_id: @homepage_config.domain_id,
+                        enabled: @homepage_config.enabled?,
+                        secrets_mode: @homepage_config.secrets_mode_value,
+                        # For the caller, network rules included; same
+                        # value as PutHomepageConfig's.
+                        effective_enabled: @homepage_config.effectively_enabled_for?(ip_match, custom_domain: @custom_domain),
+                        # DEPRECATED echo (#3672): stored values only, kept so
+                        # read-modify-write clients round-trip cleanly until the
+                        # fields are removed. They carry no display authority —
+                        # the masthead auth links are resolver-computed from
+                        # SigninConfig/SignupConfig (ADR-030), and PUT ignores
+                        # these params. All stored values are false since the
+                        # 2026-07-03 migration.
+                        signup_enabled: @homepage_config.signup_enabled?,
+                        signin_enabled: @homepage_config.signin_enabled?,
+                        disabled_homepage_variant: @homepage_config.disabled_homepage_variant_value,
+                        # Network rules (normalized "address/prefix" entries);
+                        # both empty = no restriction.
+                        allowed_cidrs: @homepage_config.allowed_cidrs,
+                        denied_cidrs: @homepage_config.denied_cidrs,
+                        created_at: @homepage_config.created.to_i,
+                        updated_at: @homepage_config.updated.to_i,
+                      }
+                    end,
+          }
+        end
+      end
+    end
+  end
+end

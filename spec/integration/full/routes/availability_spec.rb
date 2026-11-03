@@ -1,0 +1,252 @@
+# spec/integration/full/routes/availability_spec.rb
+#
+# frozen_string_literal: true
+
+# =============================================================================
+# TEST TYPE: Integration
+# =============================================================================
+#
+# These tests make REAL HTTP requests to the Auth application via Rack::Test.
+# They verify that routes respond with expected status codes and content types.
+#
+# MUST INCLUDE:
+# - Full app boot with Onetime.boot!
+# - Real HTTP requests (get, post, etc.)
+# - Database state changes (Valkey, SQLite)
+# - Assertions on HTTP response status/headers/body
+#
+# MUST NOT INCLUDE:
+# - File.read() on source files
+# - String pattern matching on configuration files
+# - Mocked HTTP responses
+#
+# REQUIREMENTS:
+# - Valkey running on port 2163: pnpm run test:database:start
+# - AUTH_DATABASE_URL set (SQLite or PostgreSQL)
+# - AUTHENTICATION_MODE=full
+#
+# RUN:
+#   VALKEY_URL='valkey://127.0.0.1:2163/0' AUTH_DATABASE_URL='sqlite://data/test_auth.db' \
+#     pnpm run test:rspec apps/web/auth/spec/routes/availability_spec.rb
+#
+# =============================================================================
+
+require_relative '../../../spec_helper'
+require 'json'
+
+RSpec.describe 'Auth Route Availability', type: :integration do
+  include Rack::Test::Methods
+
+  def app
+    @app ||= Onetime::Application::Registry.generate_rack_url_map
+  end
+
+  def json_get(path)
+    header 'Content-Type', nil  # Clear Content-Type from previous POST requests
+    header 'Accept', 'application/json'
+    get path
+  end
+
+  # POST with JSON content and CSRF token from session
+  #
+  # Auth routes require CSRF tokens (like all browser-facing routes).
+  # This method establishes a session first, extracts the CSRF token,
+  # and includes it in the POST request.
+  def json_post(path, params = {})
+    # Establish session and get CSRF token by making a GET request first
+    json_get '/auth'
+    csrf_token = last_response.headers['X-CSRF-Token']
+
+    # Include CSRF token in both header and body (mirrors frontend behavior)
+    header 'Content-Type', 'application/json'
+    header 'Accept', 'application/json'
+    header 'X-CSRF-Token', csrf_token if csrf_token
+    post path, JSON.generate(params.merge(shrimp: csrf_token))
+  end
+
+  # Boot the application once for all tests in this file
+  before(:all) do
+    Onetime.boot! :test
+  end
+
+  describe 'core routes (always available)' do
+    describe 'GET /auth' do
+      it 'returns 200 OK' do
+        json_get '/auth'
+        expect(last_response.status).to eq(200)
+      end
+
+      it 'returns JSON content type' do
+        json_get '/auth'
+        expect(last_response.content_type).to include('application/json')
+      end
+
+      # This path sits ahead of r.rodauth, so it answers anonymous callers. The
+      # build version fingerprints the install for CVE matching and must not
+      # ride along on a service-identification response; GET /api/v3/version is
+      # the auth-gated way to obtain it.
+      it 'returns the service message without the build version' do
+        json_get '/auth'
+        json = JSON.parse(last_response.body)
+        expect(json['message']).to include('Authentication Service')
+        expect(json).not_to have_key('version')
+        expect(last_response.body).not_to include(Onetime::VERSION.to_s)
+      end
+    end
+
+    describe 'GET /auth/health' do
+      it 'returns 200 OK' do
+        json_get '/auth/health'
+        expect(last_response.status).to eq(200)
+      end
+
+      it 'returns JSON with status ok' do
+        json_get '/auth/health'
+        json = JSON.parse(last_response.body)
+        expect(json['status']).to eq('ok')
+      end
+
+      it 'reports full mode' do
+        json_get '/auth/health'
+        json = JSON.parse(last_response.body)
+        expect(json['mode']).to eq('full')
+      end
+    end
+
+    describe 'POST /auth/login' do
+      it 'returns JSON for invalid credentials' do
+        json_post '/auth/login', { login: 'nonexistent@example.com', password: 'wrong' }
+        expect(last_response.content_type).to include('application/json')
+      end
+
+      it 'returns 401 for invalid credentials' do
+        json_post '/auth/login', { login: 'nonexistent@example.com', password: 'wrong' }
+        expect(last_response.status).to eq(401)
+      end
+
+      it 'returns error message in JSON body' do
+        json_post '/auth/login', { login: 'nonexistent@example.com', password: 'wrong' }
+        json = JSON.parse(last_response.body)
+        # Rodauth returns either 'error' or 'field-error'
+        expect(json['error'] || json['field-error']).to be_truthy
+      end
+    end
+
+    describe 'POST /auth/create-account' do
+      it 'returns JSON response' do
+        json_post '/auth/create-account', {
+          login: 'test@example.com',
+          'login-confirm': 'test@example.com',
+          password: 'SecureP@ss123',
+          'password-confirm': 'SecureP@ss123',
+        }
+        expect(last_response.content_type).to include('application/json')
+      end
+
+      it 'accepts valid account creation request' do
+        unique_email = "test-#{SecureRandom.hex(8)}@example.com"
+        json_post '/auth/create-account', {
+          login: unique_email,
+          'login-confirm': unique_email,
+          password: 'SecureP@ss123!',
+          'password-confirm': 'SecureP@ss123!',
+        }
+        # Should return 200/201 (success) or 422 (validation)
+        expect([200, 201, 422]).to include(last_response.status)
+      end
+
+      it 'rejects invalid email format' do
+        json_post '/auth/create-account', {
+          login: 'not-an-email',
+          'login-confirm': 'not-an-email',
+          password: 'SecureP@ss123',
+          'password-confirm': 'SecureP@ss123',
+        }
+        expect(last_response.status).to eq(422)
+      end
+    end
+
+    describe 'POST /auth/logout' do
+      it 'returns JSON response' do
+        json_post '/auth/logout', {}
+        expect(last_response.content_type).to include('application/json')
+      end
+
+      it 'succeeds even without active session' do
+        json_post '/auth/logout', {}
+        # Logout without session should succeed or return appropriate status
+        expect([200, 400, 401]).to include(last_response.status)
+      end
+    end
+  end
+
+  describe 'admin routes' do
+    # The auth service exposes no admin routes. The former development-only
+    # stats stub (apps/web/auth/routes/admin.rb) was deleted in favour of the
+    # standalone Rodauth Admin; this pins that the path stays unrouted.
+
+    describe 'GET /auth/admin/stats (retired dev stub)' do
+      # Deleted once the standalone Rodauth Admin superseded it; no environment
+      # routes it any more, so the router's JSON catch-all answers.
+      it 'returns 404 in every environment' do
+        json_get '/auth/admin/stats'
+        expect(last_response.status).to eq(404)
+      end
+
+      it 'returns JSON content type' do
+        json_get '/auth/admin/stats'
+        expect(last_response.content_type).to include('application/json')
+      end
+    end
+  end
+
+  describe 'MFA routes (when AUTH_MFA_ENABLED=true)' do
+    before do
+      skip 'MFA not enabled (AUTH_MFA_ENABLED != true)' unless ENV['AUTH_MFA_ENABLED'] == 'true'
+    end
+
+    describe 'GET /auth/otp-setup' do
+      it 'requires authentication or returns error for unauthenticated request' do
+        json_get '/auth/otp-setup'
+        # Rodauth returns 400 (bad request) for MFA routes without session
+        # 401/403 for explicit auth errors, 400 for missing session state
+        expect([400, 401, 403]).to include(last_response.status)
+      end
+    end
+
+    describe 'GET /auth/recovery-codes' do
+      it 'requires authentication or returns error for unauthenticated request' do
+        json_get '/auth/recovery-codes'
+        expect([400, 401, 403]).to include(last_response.status)
+      end
+    end
+  end
+
+  describe 'password reset routes' do
+    describe 'POST /auth/reset-password-request' do
+      it 'returns JSON response' do
+        json_post '/auth/reset-password-request', { login: 'test@example.com' }
+        expect(last_response.content_type).to include('application/json')
+      end
+
+      it 'handles password reset request without exposing user existence' do
+        json_post '/auth/reset-password-request', { login: 'nonexistent@example.com' }
+        # Rodauth behavior varies:
+        # - 200: Request accepted (email may or may not be sent)
+        # - 401: Authentication required before reset
+        # - 422: Validation error
+        # All responses should be uniform to prevent user enumeration
+        expect([200, 401, 422]).to include(last_response.status)
+      end
+    end
+  end
+
+  describe 'session routes' do
+    describe 'GET /auth/active-sessions' do
+      it 'requires authentication' do
+        json_get '/auth/active-sessions'
+        expect([401, 403]).to include(last_response.status)
+      end
+    end
+  end
+end

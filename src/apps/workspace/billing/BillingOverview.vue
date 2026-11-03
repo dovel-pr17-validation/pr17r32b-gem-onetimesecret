@@ -1,0 +1,519 @@
+<!-- src/apps/workspace/billing/BillingOverview.vue -->
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
+import BasicFormAlerts from '@/shared/components/forms/BasicFormAlerts.vue';
+import SettingsSkeleton from '@/shared/components/closet/SettingsSkeleton.vue';
+import OIcon from '@/shared/components/icons/OIcon.vue';
+import BillingLayout from '@/shared/components/layout/BillingLayout.vue';
+import FederationNotification from './FederationNotification.vue';
+import { useEntitlements } from '@/shared/composables/useEntitlements';
+import { classifyError } from '@/schemas/errors';
+import { BillingService, type FederationNotification as FederationNotificationData } from '@/services/billing.service';
+import { useOrganizationStore } from '@/shared/stores/organizationStore';
+import type { PaymentMethod } from '@/types/billing';
+import { getPlanLabel, isFreePlan, isLegacyPlan } from '@/types/billing';
+import type { Organization } from '@/types/organization';
+import { formatDisplayDate } from '@/utils/format';
+import { parseDateValue } from '@/utils/parse';
+import { isAllowedBillingPortalUrl } from '@/utils/redirect';
+import { computed, onMounted, ref, watch } from 'vue';
+
+const { t } = useI18n();
+const route = useRoute();
+const organizationStore = useOrganizationStore();
+
+// Org extid comes from URL (e.g., /billing/:extid/overview)
+const orgExtid = computed(() => route.params.extid as string);
+
+const selectedOrg = ref<Organization | null>(null);
+const paymentMethod = ref<PaymentMethod | null>(null);
+const nextBillingDate = ref<Date | null>(null);
+const planFeatures = ref<string[]>([]);
+const federationNotification = ref<FederationNotificationData | null>(null);
+const portalAvailable = ref(false);
+const isOpeningPortal = ref(false);
+// Best practice: Initialize loading states to `true` to prevent uninitialized
+// content or empty states from briefly flashing on mount.
+const isLoading = ref(true);
+const error = ref('');
+const success = ref('');
+
+// Billing email editing state
+const isSavingBillingEmail = ref(false);
+const isEditingBillingEmail = ref(false);
+const billingEmailForm = ref({
+  email: '',
+});
+
+// Check for upgrade success from checkout redirect
+const showUpgradeSuccess = computed(() => route.query.upgraded === 'true');
+const successMessage = computed(() =>
+  showUpgradeSuccess.value ? t('web.billing.overview.upgrade_success') : '',
+);
+
+const organizations = computed(() => organizationStore.organizations);
+
+const {
+  entitlements,
+  formatEntitlement,
+  initDefinitions,
+} = useEntitlements(selectedOrg);
+
+const planName = computed(() => {
+  if (!selectedOrg.value?.planid) return t('web.billing.plans.free_plan');
+  return getPlanLabel(selectedOrg.value.planid);
+});
+
+const planStatus = computed(() => {
+  const planid = selectedOrg.value?.planid;
+  if (!planid || isFreePlan(planid)) return 'free';
+  return 'active';
+});
+
+const hasPaidPlan = computed(() => planStatus.value === 'active');
+
+// Legacy plan detection for grandfathered customers
+const isLegacyCustomer = computed(() =>
+  selectedOrg.value?.planid ? isLegacyPlan(selectedOrg.value.planid) : false
+);
+
+// The portal endpoint is owner-only and needs a Stripe customer; hide the
+// card when either is missing rather than offer a button that fails.
+const canOpenPortal = computed(() =>
+  portalAvailable.value && selectedOrg.value?.current_user_role === 'owner'
+);
+
+// Extract billing overview state updates to reduce complexity
+const applyBillingOverview = (overview: Awaited<ReturnType<typeof BillingService.getOverview>>) => {
+  // `period_end` is epoch SECONDS as a string, or null. parseDateValue yields
+  // null for an absent or non-numeric value instead of the Invalid Date the
+  // old `* 1000` coercion produced. A non-positive epoch is an unset field
+  // that survived as 0, not a billing date; rendering it would put 1 Jan 1970
+  // on the page, so it is excluded on purpose.
+  const periodEnd = parseDateValue(overview.subscription?.period_end);
+  nextBillingDate.value = periodEnd && periodEnd.getTime() > 0 ? periodEnd : null;
+  planFeatures.value = overview.plan?.features || [];
+  paymentMethod.value = overview.payment_method || null;
+  federationNotification.value = overview.federation_notification || null;
+  portalAvailable.value = overview.portal_available === true;
+};
+
+const loadOrganizationData = async (extid: string) => {
+  isLoading.value = true;
+  error.value = '';
+  try {
+    const org = await organizationStore.fetchOrganization(extid);
+    selectedOrg.value = org;
+
+    // Load billing overview data from API
+    if (org.extid) {
+      const overview = await BillingService.getOverview(org.extid);
+      applyBillingOverview(overview);
+    }
+  } catch (err) {
+    const classified = classifyError(err);
+    error.value = classified.message || t('web.billing.overview.load_error');
+    console.error('[BillingOverview] Error loading organization:', err);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const _formatCardBrand = (brand: string): string => brand.charAt(0).toUpperCase() + brand.slice(1);
+
+const formatNextBillingDate = (date: Date): string => formatDisplayDate(date);
+
+const daysUntilBilling = computed(() => {
+  if (!nextBillingDate.value) return null;
+  const diff = nextBillingDate.value.getTime() - Date.now();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+});
+
+// Billing email inline edit handlers
+const handleEditBillingEmail = () => {
+  billingEmailForm.value.email = selectedOrg.value?.billing_email
+    || selectedOrg.value?.contact_email
+    || '';
+  isEditingBillingEmail.value = true;
+};
+
+const handleCancelBillingEmailEdit = () => {
+  billingEmailForm.value.email = selectedOrg.value?.billing_email
+    || selectedOrg.value?.contact_email
+    || '';
+  isEditingBillingEmail.value = false;
+};
+
+const handleSaveBillingEmail = async () => {
+  if (!selectedOrg.value) return;
+
+  const newEmail = billingEmailForm.value.email.trim();
+  const currentEmail = selectedOrg.value.billing_email || selectedOrg.value.contact_email || '';
+  if (newEmail === currentEmail) {
+    isEditingBillingEmail.value = false;
+    return;
+  }
+
+  isSavingBillingEmail.value = true;
+  error.value = '';
+  success.value = '';
+
+  try {
+    await organizationStore.updateOrganization(orgExtid.value, {
+      billing_email: newEmail,
+    });
+
+    success.value = t('web.organizations.billing_email_updated');
+    isEditingBillingEmail.value = false;
+    // Reload organization data to get the updated email
+    await loadOrganizationData(orgExtid.value);
+  } catch (err) {
+    const classified = classifyError(err);
+    error.value = classified.message || t('web.organizations.update_error');
+    console.error('[BillingOverview] Error updating billing email:', err);
+  } finally {
+    isSavingBillingEmail.value = false;
+  }
+};
+
+// Watch for org changes to update billing email form
+watch(selectedOrg, (org) => {
+  if (org) {
+    billingEmailForm.value.email = org.billing_email || org.contact_email || '';
+  }
+});
+
+// Open the Stripe Customer Portal for this organization
+const handleOpenPortal = async () => {
+  if (!orgExtid.value || isOpeningPortal.value) return;
+
+  isOpeningPortal.value = true;
+  error.value = '';
+
+  try {
+    const response = await BillingService.createPortalSession(orgExtid.value);
+
+    // Security (M-9): host-allowlist the API-derived URL before navigating.
+    if (isAllowedBillingPortalUrl(response.portal_url)) {
+      window.location.href = response.portal_url;
+    } else {
+      error.value = t('web.billing.portal.open_error');
+    }
+  } catch (err) {
+    const classified = classifyError(err);
+    error.value = classified.message || t('web.billing.portal.open_error');
+    console.error('[BillingOverview] Error opening billing portal:', err);
+  } finally {
+    isOpeningPortal.value = false;
+  }
+};
+
+// Handle federation notification dismissal
+const handleFederationNotificationDismissed = () => {
+  federationNotification.value = null;
+};
+
+onMounted(async () => {
+  try {
+    // Initialize entitlement definitions for formatting
+    await initDefinitions();
+
+    // Load organization data using extid from URL
+    if (orgExtid.value) {
+      await loadOrganizationData(orgExtid.value);
+    }
+  } catch (err) {
+    const classified = classifyError(err);
+    error.value = classified.message || t('web.billing.overview.load_error');
+    console.error('[BillingOverview] Error loading billing data:', err);
+  }
+});
+</script>
+
+<template>
+  <BillingLayout>
+    <div class="space-y-6">
+      <!-- Upgrade Success Banner -->
+      <div
+        v-if="showUpgradeSuccess"
+        class="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+        <div class="flex items-center gap-3">
+          <OIcon
+            collection="heroicons"
+            name="check-circle"
+            class="size-6 text-green-500 dark:text-green-400"
+            aria-hidden="true" />
+          <div>
+            <p class="font-medium text-green-800 dark:text-green-300">
+              {{ successMessage }}
+            </p>
+            <p class="mt-1 text-sm text-green-700 dark:text-green-400">
+              {{ t('web.billing.overview.upgrade_success_description') }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Federation Notification (cross-region subscription sync) -->
+      <FederationNotification
+        v-if="federationNotification?.show"
+        :org-extid="orgExtid"
+        :notification="federationNotification"
+        @dismissed="handleFederationNotificationDismissed" />
+
+      <!-- Error Alert -->
+      <BasicFormAlerts v-if="error" :error="error" />
+
+      <!-- Success Alert -->
+      <BasicFormAlerts v-if="success" :success="success" />
+
+      <!-- Loading State -->
+      <SettingsSkeleton v-if="isLoading" />
+
+      <!-- Empty State: No Workspaces -->
+      <div v-else-if="organizations.length === 0" class="rounded-lg border border-gray-200/60 bg-white/60 p-12 text-center shadow-sm backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/60">
+        <OIcon
+          collection="heroicons"
+          name="building-office-2"
+          class="mx-auto size-12 text-gray-400"
+          aria-hidden="true" />
+        <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+          {{ t('web.billing.overview.no_organizations_title') }}
+        </h3>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          {{ t('web.billing.overview.no_organizations_description') }}
+        </p>
+        <div class="mt-6">
+          <router-link
+            :to="{ name: 'Organizations' }"
+            class="inline-flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 font-brand text-sm font-semibold text-white shadow-sm hover:bg-brand-500 dark:bg-brand-500 dark:hover:bg-brand-400">
+            <OIcon
+              collection="heroicons"
+              name="plus"
+              class="size-4"
+              aria-hidden="true" />
+            {{ t('web.organizations.create_workspace') }}
+          </router-link>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div v-else-if="selectedOrg" class="space-y-6">
+        <!-- Current Plan Card -->
+        <div class="rounded-lg border border-gray-200/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/60">
+          <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('web.billing.overview.current_plan') }}
+            </h2>
+          </div>
+          <div class="p-6">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">
+                  {{ planName }}
+                </p>
+                <span
+                  v-if="hasPaidPlan"
+                  class="mt-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                  {{ t('web.billing.subscription.active') }}
+                </span>
+                <!-- Next Billing Date -->
+                <p
+                  v-if="nextBillingDate"
+                  class="mt-2 text-sm text-gray-600 dark:text-gray-400"
+                  data-testid="next-billing-date">
+                  {{ t('web.billing.overview.next_billing_date') }}:
+                  {{ formatNextBillingDate(nextBillingDate) }}
+                  <span v-if="daysUntilBilling" class="text-gray-500 dark:text-gray-500">
+                    ({{ daysUntilBilling }} {{ t('web.billing.overview.days_remaining') }})
+                  </span>
+                </p>
+              </div>
+              <router-link
+                :to="{ name: 'Billing Plans', params: { extid: orgExtid } }"
+                class="inline-flex items-center gap-2 rounded-md bg-brand-600 px-3 py-2 font-brand text-sm font-semibold text-white shadow-sm hover:bg-brand-500 dark:bg-brand-500 dark:hover:bg-brand-400">
+                <OIcon
+                  collection="heroicons"
+                  :name="isLegacyCustomer ? 'cog-6-tooth' : 'arrow-up-circle'"
+                  class="size-4"
+                  aria-hidden="true" />
+                {{ planStatus === 'free' ? t('web.billing.overview.upgrade_plan') : (isLegacyCustomer ? t('web.billing.overview.manage_subscription') : t('web.billing.overview.change_plan')) }}
+              </router-link>
+            </div>
+
+            <!-- Plan Features -->
+            <div class="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700">
+              <p class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                {{ t('web.billing.overview.plan_features') }}
+              </p>
+
+              <!-- Loading skeleton -->
+              <div v-if="isLoading" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div
+                  v-for="i in 4"
+                  :key="i"
+                  class="flex animate-pulse motion-reduce:animate-none items-center gap-2">
+                  <div class="size-5 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                  <div class="h-4 w-32 rounded bg-gray-200 dark:bg-gray-700"></div>
+                </div>
+              </div>
+
+              <!-- Features list (i18n locale keys) -->
+              <div v-else-if="planFeatures.length > 0" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div
+                  v-for="feature in planFeatures"
+                  :key="feature"
+                  class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <OIcon
+                    collection="heroicons"
+                    name="check-circle"
+                    class="size-5 text-green-500 dark:text-green-400"
+                    aria-hidden="true" />
+                  {{ t(feature) }}
+                </div>
+              </div>
+
+              <!-- Fallback to entitlements if no features -->
+              <div v-else-if="entitlements.length > 0" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div
+                  v-for="ent in entitlements"
+                  :key="ent"
+                  class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <OIcon
+                    collection="heroicons"
+                    name="check-circle"
+                    class="size-5 text-green-500 dark:text-green-400"
+                    aria-hidden="true" />
+                  {{ formatEntitlement(ent) }}
+                </div>
+              </div>
+
+              <!-- No features -->
+              <div v-else class="text-sm text-gray-500 dark:text-gray-400">
+                {{ t('web.billing.overview.no_entitlements') }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Billing Portal Card - payment method, billing details, subscription -->
+        <div
+          v-if="canOpenPortal"
+          class="rounded-lg border border-gray-200/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/60"
+          data-testid="billing-portal-card">
+          <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('web.billing.portal.title') }}
+            </h2>
+          </div>
+          <div class="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              {{ t('web.billing.portal.description') }}
+            </p>
+            <button
+              type="button"
+              data-testid="billing-portal-btn"
+              :disabled="isOpeningPortal"
+              @click="handleOpenPortal"
+              class="inline-flex shrink-0 items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-100 dark:ring-gray-600 dark:hover:bg-gray-600">
+              <OIcon
+                v-if="isOpeningPortal"
+                collection="heroicons"
+                name="arrow-path"
+                class="size-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true" />
+              <OIcon
+                v-else
+                collection="heroicons"
+                name="arrow-top-right-on-square"
+                class="size-4"
+                aria-hidden="true" />
+              {{ isOpeningPortal ? t('web.billing.portal.redirecting') : t('web.billing.portal.open_portal') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Billing Contact Card - only for paid plans -->
+        <div
+          v-if="hasPaidPlan"
+          class="rounded-lg border border-gray-200/60 bg-white/60 shadow-sm backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-800/60"
+          data-testid="billing-contact-card">
+          <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('web.billing.overview.billing_contact') }}
+            </h2>
+          </div>
+          <div class="p-6">
+            <div data-testid="billing-email-field">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {{ t('web.organizations.contact_email') }}
+              </label>
+
+              <!-- Display Mode: Show email as text with Edit button -->
+              <div v-if="!isEditingBillingEmail" class="mt-2 flex items-center gap-3">
+                <span class="text-sm text-gray-900 dark:text-white">
+                  {{ selectedOrg?.billing_email || selectedOrg?.contact_email || t('web.COMMON.not_set') }}
+                </span>
+                <button
+                  type="button"
+                  data-testid="billing-email-edit-btn"
+                  @click="handleEditBillingEmail"
+                  class="text-sm font-medium text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300">
+                  {{ t('web.COMMON.word_edit') }}
+                </button>
+              </div>
+
+              <!-- Edit Mode: Inline form -->
+              <div v-else class="mt-2 space-y-2">
+                <div class="flex items-center gap-2">
+                  <input
+                    id="billing-email"
+                    data-testid="billing-email-input"
+                    v-model="billingEmailForm.email"
+                    type="email"
+                    required
+                    :placeholder="t('web.organizations.contact_email')"
+                    class="block w-full max-w-md rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 sm:text-sm"
+                    @keyup.enter="handleSaveBillingEmail"
+                    @keyup.escape="handleCancelBillingEmailEdit" />
+                  <button
+                    type="button"
+                    data-testid="billing-email-save-btn"
+                    @click="handleSaveBillingEmail"
+                    :disabled="isSavingBillingEmail"
+                    class="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-brand-500 dark:hover:bg-brand-400">
+                    <span v-if="!isSavingBillingEmail">{{ t('web.COMMON.word_save') }}</span>
+                    <OIcon
+                      v-else
+                      collection="heroicons"
+                      name="arrow-path"
+                      class="size-4 animate-spin motion-reduce:animate-none"
+                      aria-hidden="true" />
+                    <span
+                      v-if="isSavingBillingEmail"
+                      class="sr-only"
+                      >{{ t('web.COMMON.loading') }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="billing-email-cancel-btn"
+                    @click="handleCancelBillingEmailEdit"
+                    :disabled="isSavingBillingEmail"
+                    class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-600 dark:hover:bg-gray-600">
+                    {{ t('web.COMMON.word_cancel') }}
+                  </button>
+                </div>
+              </div>
+
+              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('web.organizations.contact_email_help') }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </BillingLayout>
+</template>

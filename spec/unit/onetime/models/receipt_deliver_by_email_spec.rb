@@ -1,0 +1,206 @@
+# spec/unit/onetime/models/receipt_deliver_by_email_spec.rb
+#
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+# Unit tests for Receipt#deliver_by_email domain_id resolution.
+#
+# Verifies that deliver_by_email resolves share_domain to a domain_id
+# via CustomDomain.display_domain_index and passes it to Publisher.enqueue_email.
+#
+# Gap 4: Receipt delivery with domain context -- ensures the domain_id
+# keyword flows through to the Publisher so the email worker can look up
+# per-domain sender config (MailerConfig).
+#
+RSpec.describe Onetime::Receipt do
+  describe '#deliver_by_email' do
+    let(:receipt) do
+      r = Onetime::Receipt.new
+      r.state = 'new'
+      # Give it a stable identifier for log messages
+      allow(r).to receive(:identifier).and_return('receipt-test-123')
+      allow(r).to receive(:shortid).and_return('receipt-t')
+      r
+    end
+
+    let(:customer) do
+      instance_double(Onetime::Customer,
+        email: 'sender@example.com',
+        obscure_email: 's***r@example.com')
+    end
+
+    let(:secret) do
+      instance_double(Onetime::Secret,
+        identifier: 'secret-abc-456',
+        share_domain: share_domain,
+        objid: 'secret-abc-456',
+        shortid: 'secret-a',
+        has_passphrase?: false)
+    end
+
+    let(:locale) { 'en' }
+    let(:recipient_email) { 'recipient@example.com' }
+
+    # Stub the bang writer so it doesn't hit Redis
+    before do
+      allow(receipt).to receive(:recipients!)
+      allow(receipt).to receive(:save).and_return(true)
+    end
+
+    context 'logging delivery' do
+      let(:share_domain) { nil }
+      let(:messages) { [] }
+
+      before do
+        logger = double('secret logger')
+        [:info, :debug, :warn].each do |level|
+          allow(logger).to receive(level) { |message, payload| messages << [message, payload] }
+        end
+        allow(receipt).to receive(:secret_logger).and_return(logger)
+        allow(Onetime::Jobs::Publisher).to receive(:enqueue_email).and_return(true)
+      end
+
+      [nil, [], ['recipient@example.com'], ['one@example.com', 'two@example.com']].each do |recipients|
+        it "omits receipt and secret bearer values for #{recipients.inspect}" do
+          receipt.deliver_by_email(customer, locale, secret, recipients)
+          expect(messages).not_to be_empty
+          expect(messages.to_s).not_to include('receipt-test-123', 'secret-abc-456')
+          expect(messages.first.last).to include(receipt_id: 'receipt-t', secret_id: 'secret-a')
+        end
+      end
+    end
+
+    context 'when share_domain maps to a known CustomDomain' do
+      let(:share_domain) { 'secrets.acme.com' }
+      let(:expected_domain_id) { 'customdomain:abc123' }
+
+      before do
+        display_domain_index = double('display_domain_index')
+        allow(Onetime::CustomDomain).to receive(:display_domain_index).and_return(display_domain_index)
+        allow(display_domain_index).to receive(:get).with(share_domain).and_return(expected_domain_id)
+        # The lookup loads the record the entry names and checks it is stored
+        # under the name looked up (CustomDomain.record_for_display_domain).
+        allow(Onetime::CustomDomain).to receive(:find_by_identifier).with(expected_domain_id)
+          .and_return(instance_double(Onetime::CustomDomain, identifier: expected_domain_id, display_domain: share_domain))
+        allow(Onetime::Jobs::Publisher).to receive(:enqueue_email).and_return(true)
+      end
+
+      it 'passes the resolved domain_id to Publisher.enqueue_email' do
+        receipt.deliver_by_email(customer, locale, secret, [recipient_email])
+
+        expect(Onetime::Jobs::Publisher).to have_received(:enqueue_email).with(
+          :secret_link,
+          hash_including(
+            secret_key: 'secret-abc-456',
+            share_domain: share_domain,
+            recipient: recipient_email,
+            sender_email: 'sender@example.com',
+            has_passphrase: false,
+            locale: 'en'
+          ),
+          domain_id: expected_domain_id
+        )
+      end
+    end
+
+    context 'when share_domain is nil' do
+      let(:share_domain) { nil }
+
+      before do
+        allow(Onetime::Jobs::Publisher).to receive(:enqueue_email).and_return(true)
+      end
+
+      it 'passes nil as domain_id to Publisher.enqueue_email' do
+        receipt.deliver_by_email(customer, locale, secret, [recipient_email])
+
+        expect(Onetime::Jobs::Publisher).to have_received(:enqueue_email).with(
+          :secret_link,
+          hash_including(
+            secret_key: 'secret-abc-456',
+            recipient: recipient_email
+          ),
+          domain_id: nil
+        )
+      end
+    end
+
+    context 'when share_domain is an empty string' do
+      let(:share_domain) { '' }
+
+      before do
+        allow(Onetime::Jobs::Publisher).to receive(:enqueue_email).and_return(true)
+      end
+
+      it 'passes nil as domain_id to Publisher.enqueue_email' do
+        receipt.deliver_by_email(customer, locale, secret, [recipient_email])
+
+        expect(Onetime::Jobs::Publisher).to have_received(:enqueue_email).with(
+          :secret_link,
+          hash_including(recipient: recipient_email),
+          domain_id: nil
+        )
+      end
+    end
+
+    context 'when share_domain is not registered in display_domain_index' do
+      let(:share_domain) { 'unknown.example.com' }
+
+      before do
+        display_domain_index = double('display_domain_index')
+        allow(Onetime::CustomDomain).to receive(:display_domain_index).and_return(display_domain_index)
+        allow(display_domain_index).to receive(:get).with(share_domain).and_return(nil)
+        allow(Onetime::Jobs::Publisher).to receive(:enqueue_email).and_return(true)
+      end
+
+      it 'passes nil as domain_id to Publisher.enqueue_email' do
+        receipt.deliver_by_email(customer, locale, secret, [recipient_email])
+
+        expect(Onetime::Jobs::Publisher).to have_received(:enqueue_email).with(
+          :secret_link,
+          hash_including(recipient: recipient_email),
+          domain_id: nil
+        )
+      end
+    end
+
+    context 'when display_domain_index.get raises an error' do
+      let(:share_domain) { 'broken.example.com' }
+
+      before do
+        display_domain_index = double('display_domain_index')
+        allow(Onetime::CustomDomain).to receive(:display_domain_index).and_return(display_domain_index)
+        allow(display_domain_index).to receive(:get).with(share_domain).and_raise(Redis::ConnectionError, 'Connection refused')
+        allow(Onetime::Jobs::Publisher).to receive(:enqueue_email).and_return(true)
+      end
+
+      it 'falls back to nil domain_id (fault-tolerant)' do
+        receipt.deliver_by_email(customer, locale, secret, [recipient_email])
+
+        expect(Onetime::Jobs::Publisher).to have_received(:enqueue_email).with(
+          :secret_link,
+          hash_including(recipient: recipient_email),
+          domain_id: nil
+        )
+      end
+    end
+
+    context 'when eaddrs is nil' do
+      let(:share_domain) { 'secrets.acme.com' }
+
+      it 'returns early without enqueuing email' do
+        expect(Onetime::Jobs::Publisher).not_to receive(:enqueue_email)
+        receipt.deliver_by_email(customer, locale, secret, nil)
+      end
+    end
+
+    context 'when eaddrs is empty' do
+      let(:share_domain) { 'secrets.acme.com' }
+
+      it 'returns early without enqueuing email' do
+        expect(Onetime::Jobs::Publisher).not_to receive(:enqueue_email)
+        receipt.deliver_by_email(customer, locale, secret, [])
+      end
+    end
+  end
+end

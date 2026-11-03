@@ -1,0 +1,1009 @@
+{
+  "web.auth._guidance": {
+    "skip": true,
+    "_meta": {
+      "_purpose": "These messages follow OWASP/NIST guidelines to prevent information disclosure. Translations MUST maintain generic wording to prevent credential enumeration and timing attacks. Never reveal: which credential failed, precise timing, account existence, or attack progress.",
+      "authentication_failed": {
+        "security_note": "MUST NOT reveal which credential failed (password, OTP, or recovery code). This prevents attackers from determining valid credentials or enumerating accounts.",
+        "owasp_ref": "ASVS 2.2.2 - Authentication failure responses must be generic"
+      },
+      "rate_limited": {
+        "security_note": "MUST NOT reveal precise lockout duration, attempt counts, or remaining attempts. This prevents timing attacks and progress tracking.",
+        "owasp_ref": "ASVS 2.2.1 - Account lockout must not be timing-based enumerable"
+      },
+      "session_expired": {
+        "security_note": "Safe to indicate session issue as it doesn't reveal credential information. Helps users understand they need to re-authenticate.",
+        "owasp_ref": "Session management best practices"
+      },
+      "recovery_code_not_found": {
+        "security_note": "Safe to indicate recovery code context as user explicitly selected this authentication method. Does not reveal whether code exists.",
+        "owasp_ref": "Recovery code validation guidance"
+      },
+      "recovery_code_used": {
+        "security_note": "Safe expected behavior message. Users need to know recovery codes are single-use to prevent confusion.",
+        "owasp_ref": "User guidance for recovery mechanisms"
+      }
+    },
+    "_translation_guidelines": {
+      "DO_NOT_translate_as": [
+        "Wrong password",
+        "Invalid OTP code",
+        "Incorrect recovery code",
+        "Wait 5 minutes",
+        "3 attempts remaining",
+        "Account locked for 15 minutes"
+      ],
+      "MUST_translate_as": [
+        "Generic authentication failure (no credential specifics)",
+        "Generic rate limit message (no precise timing)",
+        "Recovery code validation (no existence confirmation)"
+      ],
+      "WHY": "These restrictions prevent attackers from: (1) determining valid usernames/emails, (2) knowing which credential to focus attacks on, (3) conducting timing attacks, (4) measuring attack progress"
+    },
+    "_safe_information": {
+      "format_requirements": "Safe to specify format rules (e.g., 'OTP must be 6 digits')",
+      "expected_behavior": "Safe to describe how features work (e.g., 'Codes expire every 30 seconds')",
+      "recovery_options": "Safe to offer alternatives (e.g., 'Use a recovery code instead')",
+      "general_guidance": "Safe to provide help (e.g., 'Check your authenticator app')"
+    }
+  },
+  "web.auth.mfa_required": {
+    "text": "MFA ellenőrzés szükséges",
+    "context": "Page heading shown when user must complete MFA to proceed",
+    "source_hash": "e93fd3a4"
+  },
+  "web.auth.mfa_verification_required": {
+    "text": "MFA ellenőrzés szükséges a fiókjához való hozzáféréshez",
+    "context": "Explanatory text below the heading",
+    "source_hash": "3cff3311"
+  },
+  "web.auth.complete_mfa_verification": {
+    "text": "MFA ellenőrzés befejezése",
+    "source_hash": "0e681134"
+  },
+  "web.auth.security._guidance": {
+    "skip": true,
+    "context": "⚠️ SECURITY-CRITICAL: Messages prevent information disclosure. See src/locales/SECURITY-TRANSLATION-GUIDE.md"
+  },
+  "web.auth.security.authentication_failed": {
+    "text": "Hitelesítés sikertelen. Kérjük, ellenőrizze hitelesítő adatait és próbálja újra.",
+    "source_hash": "b0eeece9"
+  },
+  "web.auth.security.rate_limited": {
+    "text": "Túl sok próbálkozás. Kérjük, próbálja újra később.",
+    "source_hash": "282db6f3"
+  },
+  "web.auth.security.session_expired": {
+    "text": "A munkamenet lejárt. Kérjük, jelentkezzen be újra.",
+    "source_hash": "f6f51186"
+  },
+  "web.auth.security.recovery_code_not_found": {
+    "text": "Helyreállítási kód nem található. Kérjük, ellenőrizze, hogy helyesen adta meg.",
+    "source_hash": "f5f1bd09"
+  },
+  "web.auth.security.recovery_code_used": {
+    "text": "Ez a helyreállítási kód már felhasználásra került. Minden kód csak egyszer használható.",
+    "source_hash": "b51d6820"
+  },
+  "web.auth.security.network_error": {
+    "text": "Hálózati hiba. Kérjük, ellenőrizze a kapcsolatot és próbálja újra.",
+    "source_hash": "31f2678d"
+  },
+  "web.auth.security.internal_error": {
+    "text": "Hiba történt. Kérjük, próbálja újra.",
+    "source_hash": "9c170dda"
+  },
+  "web.auth.methods.password": {
+    "text": "Jelszó",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.methods.magicLink": {
+    "text": "E-mail hivatkozás",
+    "context": "Passwordless authentication via email link",
+    "source_hash": "1b6ffed2"
+  },
+  "web.auth.methods.webauthn": {
+    "text": "Biometrikus",
+    "source_hash": "ab2ba7db"
+  },
+  "web.auth.magicLink.title": {
+    "text": "Bejelentkezés e-maillel",
+    "source_hash": "79a864df"
+  },
+  "web.auth.magicLink.description": {
+    "text": "Biztonságos bejelentkezési hivatkozást küldünk Önnek",
+    "source_hash": "5d75aeb0"
+  },
+  "web.auth.magicLink.emailPlaceholder": {
+    "text": "Adja meg e-mail címét",
+    "source_hash": "2837f6fa"
+  },
+  "web.auth.magicLink.sendLink": {
+    "text": "Bejelentkezési hivatkozás küldése",
+    "source_hash": "f5f52392"
+  },
+  "web.auth.magicLink.checkEmail": {
+    "text": "Ellenőrizze e-mailjeit",
+    "source_hash": "77322879"
+  },
+  "web.auth.magicLink.sentTo": {
+    "text": "Bejelentkezési hivatkozást küldtünk ide: {email}",
+    "source_hash": "d9193f59"
+  },
+  "web.auth.magicLink.linkExpiresIn": {
+    "text": "Ez a hivatkozás 15 perc múlva lejár",
+    "source_hash": "91b5f027"
+  },
+  "web.auth.magicLink.tryDifferentEmail": {
+    "text": "Próbáljon másik e-mail címet",
+    "source_hash": "98657c0b"
+  },
+  "web.auth.magicLink.noPasswordNeeded": {
+    "text": "Nincs szükség jelszóra — csak kattintson a hivatkozásra az e-mailben",
+    "source_hash": "5f539b97"
+  },
+  "web.auth.magicLink.networkError": {
+    "text": "Hálózati hiba. Kérjük, próbálja újra.",
+    "source_hash": "9ff8cfaf"
+  },
+  "web.auth.magicLink.requestFailed": {
+    "text": "Nem sikerült elküldeni a bejelentkezési hivatkozást. Kérjük, próbálja újra.",
+    "source_hash": "4c685e97"
+  },
+  "web.auth.magicLink.invalidLink": {
+    "text": "Érvénytelen vagy hiányzó bejelentkezési hivatkozás",
+    "source_hash": "d726c0da"
+  },
+  "web.auth.magicLink.sessionExpired": {
+    "text": "A munkamenete lejárt. Kérjük, frissítse az oldalt, és próbálja újra.",
+    "source_hash": "be9ed96d"
+  },
+  "web.auth.magicLink.loginFailed": {
+    "text": "Bejelentkezés sikertelen. Kérjük, próbálja újra.",
+    "source_hash": "c95b4875"
+  },
+  "web.auth.magicLink.signingYouIn": {
+    "text": "Bejelentkeztetés...",
+    "source_hash": "9d432ef1"
+  },
+  "web.auth.magicLink.pleaseWait": {
+    "text": "Kérjük, várjon, amíg ellenőrizzük a hivatkozást",
+    "source_hash": "81e4efed"
+  },
+  "web.auth.magicLink.error": {
+    "text": "Hitelesítési hiba",
+    "source_hash": "797b4f03"
+  },
+  "web.auth.magicLink.back_to_signin": {
+    "text": "Vissza a bejelentkezéshez",
+    "source_hash": "ee9eb75e"
+  },
+  "web.auth.webauthn.signIn": {
+    "text": "Bejelentkezés Face ID-vel / Touch ID-vel",
+    "source_hash": "46f75469"
+  },
+  "web.auth.webauthn.setup": {
+    "text": "Biometrikus bejelentkezés beállítása",
+    "source_hash": "7593dd46"
+  },
+  "web.auth.webauthn.notSupported": {
+    "text": "A biometrikus hitelesítés nem támogatott ebben a böngészőben",
+    "source_hash": "fe2a2c2b"
+  },
+  "web.auth.webauthn.requiresModernBrowser": {
+    "text": "Kérjük, használjon modern böngészőt, amely támogatja a WebAuthn-t (Chrome, Safari, Firefox vagy Edge)",
+    "source_hash": "fd9752eb"
+  },
+  "web.auth.webauthn.setupSuccess": {
+    "text": "A biometrikus bejelentkezés engedélyezve",
+    "source_hash": "63407e97"
+  },
+  "web.auth.webauthn.setupFailed": {
+    "text": "A biometrikus bejelentkezés beállítása sikertelen",
+    "source_hash": "290cca44"
+  },
+  "web.auth.webauthn.passwordRequired": {
+    "text": "A hozzáférési kulcs beállításához jelszó szükséges",
+    "source_hash": "085bb238"
+  },
+  "web.auth.webauthn.authFailed": {
+    "text": "A biometrikus hitelesítés sikertelen. Kérjük, próbálja újra.",
+    "source_hash": "626b9ece"
+  },
+  "web.auth.webauthn.cancelled": {
+    "text": "A hitelesítés megszakítva",
+    "source_hash": "57461b04"
+  },
+  "web.auth.webauthn.processing": {
+    "text": "Hitelesítés...",
+    "source_hash": "1f6087c2"
+  },
+  "web.auth.webauthn.description": {
+    "text": "Használja ujjlenyomatát, arcát vagy biztonsági kulcsát a bejelentkezéshez",
+    "source_hash": "f02f0427"
+  },
+  "web.auth.webauthn.supportedMethods": {
+    "text": "Támogatja a Face ID-t, Touch ID-t, Windows Hello-t és biztonsági kulcsokat",
+    "source_hash": "3ea1c1a2"
+  },
+  "web.auth.passkeys.title": {
+    "text": "Hozzáférési kulcsok",
+    "context": "Title for passkey management section",
+    "source_hash": "c87ccdb4"
+  },
+  "web.auth.passkeys.description": {
+    "text": "Bejelentkezés Face ID-vel, Touch ID-vel, Windows Hello-val vagy biztonsági kulccsal",
+    "context": "Description of passkey authentication",
+    "source_hash": "a513ed5c"
+  },
+  "web.auth.passkeys.setup_description": {
+    "text": "A hozzáférési kulcsok lehetővé teszik a biztonságos bejelentkezést jelszó nélkül",
+    "context": "Setup page description",
+    "source_hash": "85630bef"
+  },
+  "web.auth.passkeys.not_configured": {
+    "text": "Nincs konfigurálva",
+    "context": "Status when no passkeys are registered",
+    "source_hash": "dd1841d2"
+  },
+  "web.auth.passkeys.count": {
+    "text": "{count} hozzáférési kulcs regisztrálva | {count} hozzáférési kulcs regisztrálva",
+    "context": "Number of registered passkeys",
+    "source_hash": "82e6681f"
+  },
+  "web.auth.passkeys.add_passkey": {
+    "text": "Hozzáférési kulcs hozzáadása",
+    "context": "Button to add a new passkey",
+    "source_hash": "93713ad7"
+  },
+  "web.auth.passkeys.register_passkey": {
+    "text": "Hozzáférési kulcs regisztrálása",
+    "context": "Button to register a new passkey",
+    "source_hash": "26db6968"
+  },
+  "web.auth.passkeys.remove_passkey": {
+    "text": "Hozzáférési kulcs eltávolítása",
+    "context": "Button to remove a passkey",
+    "source_hash": "67b1d47c"
+  },
+  "web.auth.passkeys.confirm_remove": {
+    "text": "Biztosan el szeretné távolítani ezt a hozzáférési kulcsot? A továbbiakban nem tud vele bejelentkezni.",
+    "context": "Confirmation message for passkey removal",
+    "source_hash": "487ab72c"
+  },
+  "web.auth.passkeys.removed_success": {
+    "text": "A hozzáférési kulcs sikeresen eltávolítva",
+    "context": "Success message after removing passkey",
+    "source_hash": "436c1050"
+  },
+  "web.auth.passkeys.registered_success": {
+    "text": "A hozzáférési kulcs sikeresen regisztrálva",
+    "context": "Success message after registering passkey",
+    "source_hash": "fbfb0713"
+  },
+  "web.auth.passkeys.no_passkeys": {
+    "text": "Nincsenek regisztrált hozzáférési kulcsok",
+    "context": "Empty state when no passkeys exist",
+    "source_hash": "1d97fde4"
+  },
+  "web.auth.passkeys.no_passkeys_description": {
+    "text": "Adjon hozzá egy hozzáférési kulcsot a biztonságosabb, jelszó nélküli bejelentkezéshez",
+    "context": "Description for empty state",
+    "source_hash": "e5bc07f1"
+  },
+  "web.auth.passkeys.name": {
+    "text": "Hozzáférési kulcs",
+    "context": "Label for passkey name field",
+    "source_hash": "904c9aa9"
+  },
+  "web.auth.passkeys.created": {
+    "text": "Létrehozva",
+    "context": "Label for creation date",
+    "source_hash": "d70b9e24"
+  },
+  "web.auth.passkeys.last_used": {
+    "text": "Utoljára használva: {time}",
+    "context": "Last used timestamp",
+    "source_hash": "e1af94fe"
+  },
+  "web.auth.passkeys.never_used": {
+    "text": "Soha nem használt",
+    "context": "Status when passkey has not been used",
+    "source_hash": "24d3236c"
+  },
+  "web.auth.passkeys.benefit_secure": {
+    "text": "Biztonságosabb a jelszavaknál - ellenálló az adathalász támadásokkal szemben",
+    "context": "Passkey benefit",
+    "source_hash": "41afb6ec"
+  },
+  "web.auth.passkeys.benefit_fast": {
+    "text": "Gyors és egyszerű - csak használja ujjlenyomatát, arcát vagy biztonsági kulcsát",
+    "context": "Passkey benefit",
+    "source_hash": "5a0ce96c"
+  },
+  "web.auth.passkeys.benefit_synced": {
+    "text": "Szinkronizálva az eszközei között platform hitelesítők használatakor",
+    "context": "Passkey benefit",
+    "source_hash": "7480c7ae"
+  },
+  "web.auth.passkeys.link_title": {
+    "text": "Hozzáférési kulcsok",
+    "context": "Navigation link title",
+    "source_hash": "c87ccdb4"
+  },
+  "web.auth.lockout.attempts_remaining": {
+    "text": "Figyelmeztetés: {count} bejelentkezési kísérlet van hátra",
+    "source_hash": "151dcb5e"
+  },
+  "web.auth.lockout.account_locked": {
+    "text": "Fiók zárolva a túl sok sikertelen bejelentkezési kísérlet miatt",
+    "source_hash": "5247f389"
+  },
+  "web.auth.lockout.locked_until": {
+    "text": "Fiókja zárolva van eddig: {time}",
+    "source_hash": "1a8f382e"
+  },
+  "web.auth.lockout.contact_support": {
+    "text": "Lépjen kapcsolatba az ügyfélszolgálattal, ha azonnali hozzáférésre van szüksége",
+    "source_hash": "23d82e46"
+  },
+  "web.auth.lockout.try_password_reset": {
+    "text": "Helyette visszaállíthatja jelszavát",
+    "source_hash": "a98a3f9d"
+  },
+  "web.auth.sessions._guidance": {
+    "skip": true,
+    "context": "User's logged-in devices/browsers management page"
+  },
+  "web.auth.sessions.title": {
+    "text": "Aktív munkamenetek",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.sessions.current": {
+    "text": "Jelenlegi munkamenet",
+    "source_hash": "386c7932"
+  },
+  "web.auth.sessions.other": {
+    "text": "Egyéb munkamenetek",
+    "source_hash": "8409f445"
+  },
+  "web.auth.sessions.device": {
+    "text": "Eszköz",
+    "source_hash": "6ba0bdec"
+  },
+  "web.auth.sessions.location": {
+    "text": "Hely",
+    "source_hash": "15b61974"
+  },
+  "web.auth.sessions.ip_address": {
+    "text": "IP cím",
+    "source_hash": "3c3de0c9"
+  },
+  "web.auth.sessions.last_active": {
+    "text": "Utoljára aktív",
+    "source_hash": "b6dc1b95"
+  },
+  "web.auth.sessions.created": {
+    "text": "Létrehozva",
+    "source_hash": "d70b9e24"
+  },
+  "web.auth.sessions.remove": {
+    "text": "Eltávolítás",
+    "source_hash": "c3812fc4"
+  },
+  "web.auth.sessions.remove_all": {
+    "text": "Összes többi munkamenet kijelentkeztetése",
+    "source_hash": "412bb9e2"
+  },
+  "web.auth.sessions.confirm_remove": {
+    "text": "Biztosan el szeretné távolítani ezt a munkamenetet?",
+    "source_hash": "ef12c1ba"
+  },
+  "web.auth.sessions.confirm_remove_all": {
+    "text": "Ez kijelentkezteti az összes többi eszközről. Biztos benne?",
+    "source_hash": "4a1a73e9"
+  },
+  "web.auth.sessions.no_sessions": {
+    "text": "Nincs más aktív munkamenet",
+    "source_hash": "b83317f2"
+  },
+  "web.auth.sessions.removed_success": {
+    "text": "Munkamenet sikeresen eltávolítva",
+    "source_hash": "6d27d44a"
+  },
+  "web.auth.sessions.removed_all_success": {
+    "text": "Minden más munkamenet kijelentkeztetve",
+    "source_hash": "1b49e75c"
+  },
+  "web.auth.sessions.link_title": {
+    "text": "Aktív munkamenetek",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.mfa.title": {
+    "text": "Kétfaktoros hitelesítés",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.mfa.enabled": {
+    "text": "A kétfaktoros hitelesítés engedélyezve",
+    "source_hash": "d27a70c6"
+  },
+  "web.auth.mfa.disabled": {
+    "text": "A kétfaktoros hitelesítés kikapcsolva",
+    "source_hash": "0af18e50"
+  },
+  "web.auth.mfa.enable": {
+    "text": "Kétfaktoros hitelesítés engedélyezése",
+    "source_hash": "9b83e658"
+  },
+  "web.auth.mfa.disable": {
+    "text": "Kétfaktoros hitelesítés kikapcsolása",
+    "source_hash": "c9698815"
+  },
+  "web.auth.mfa.setup_title": {
+    "text": "Kétfaktoros hitelesítés beállítása",
+    "source_hash": "04e05601"
+  },
+  "web.auth.mfa.setup_description": {
+    "text": "Adjon hozzá egy extra biztonsági réteget fiókjához",
+    "source_hash": "d47240b9"
+  },
+  "web.auth.mfa.step_scan": {
+    "text": "1. QR kód beolvasása",
+    "source_hash": "efd0134a"
+  },
+  "web.auth.mfa.step_verify": {
+    "text": "2. Beállítás ellenőrzése",
+    "source_hash": "59bba5f7"
+  },
+  "web.auth.mfa.scan_qr": {
+    "text": "Olvassa be ezt a QR kódot a hitelesítő alkalmazásával",
+    "source_hash": "65752db3"
+  },
+  "web.auth.mfa.manual_entry": {
+    "text": "Vagy adja meg manuálisan ezt a kódot",
+    "source_hash": "3ea15b3e"
+  },
+  "web.auth.mfa.verify_code": {
+    "text": "Adja meg a 6 számjegyű kódot az alkalmazásból",
+    "source_hash": "38f61733"
+  },
+  "web.auth.mfa.enter_code": {
+    "text": "Adja meg a hitelesítési kódot",
+    "source_hash": "186a582a"
+  },
+  "web.auth.mfa.verify": {
+    "text": "Ellenőrzés és engedélyezés",
+    "source_hash": "7c08f68d"
+  },
+  "web.auth.mfa.verify_login": {
+    "text": "Ellenőrzés",
+    "source_hash": "eea2745e"
+  },
+  "web.auth.mfa.code_required": {
+    "text": "Hitelesítési kód szükséges",
+    "source_hash": "217de0fc"
+  },
+  "web.auth.mfa.invalid_code": {
+    "text": "Érvénytelen kód. A kódok 30 másodpercenként lejárnak. Próbálja a legújabb kódot a hitelesítő alkalmazásából.",
+    "source_hash": "94b58889"
+  },
+  "web.auth.mfa.success_enabled": {
+    "text": "A kétfaktoros hitelesítés engedélyezve lett",
+    "source_hash": "e5aff73d"
+  },
+  "web.auth.mfa.success_disabled": {
+    "text": "A kétfaktoros hitelesítés kikapcsolva lett",
+    "source_hash": "4fd6b4b4"
+  },
+  "web.auth.mfa.require_password": {
+    "text": "Adja meg jelszavát a 2FA kikapcsolásához",
+    "source_hash": "c384b93c"
+  },
+  "web.auth.mfa.password_confirmation": {
+    "text": "Jelszó",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.mfa.password_reason": {
+    "text": "Erősítse meg személyazonosságát a kétfaktoros hitelesítési beállítások módosításához",
+    "source_hash": "09a96c07"
+  },
+  "web.auth.mfa.last_used": {
+    "text": "Utoljára használva: {time}",
+    "source_hash": "e1af94fe"
+  },
+  "web.auth.mfa.never_used": {
+    "text": "Soha nem használt",
+    "source_hash": "24d3236c"
+  },
+  "web.auth.mfa.use_recovery_code": {
+    "text": "Használjon helyette helyreállítási kódot",
+    "source_hash": "23d3441a"
+  },
+  "web.auth.mfa.use_recovery_code_short": {
+    "text": "Helyreállítási kód használata",
+    "source_hash": "50d5790d"
+  },
+  "web.auth.mfa.back_to_code": {
+    "text": "Vissza a hitelesítési kódhoz",
+    "source_hash": "6fa090b4"
+  },
+  "web.auth.mfa.cancel": {
+    "text": "Mégse és vissza a bejelentkezéshez",
+    "source_hash": "83256742"
+  },
+  "web.auth.mfa.cancel_sign_in": {
+    "text": "Bejelentkezés megszakítása",
+    "source_hash": "1bebad2f"
+  },
+  "web.auth.mfa.loading_status": {
+    "text": "MFA állapot betöltése...",
+    "source_hash": "01919f0e"
+  },
+  "web.auth.mfa.protected_description": {
+    "text": "Fiókja kétfaktoros hitelesítéssel védett",
+    "source_hash": "02b9d169"
+  },
+  "web.auth.mfa.enable_description": {
+    "text": "Védje fiókját egy további biztonsági réteggel",
+    "source_hash": "06d9123b"
+  },
+  "web.auth.mfa.benefit_unauthorized": {
+    "text": "Megakadályozza az illetéktelen hozzáférést még akkor is, ha jelszava veszélybe került",
+    "source_hash": "61d99c71"
+  },
+  "web.auth.mfa.benefit_apps": {
+    "text": "Működik Google Authenticator-ral, Authy-val és más TOTP alkalmazásokkal",
+    "source_hash": "6ee8ab12"
+  },
+  "web.auth.mfa.benefit_recovery": {
+    "text": "Biztonsági helyreállítási kódok vészhelyzeti hozzáféréshez",
+    "source_hash": "747917bb"
+  },
+  "web.auth.mfa.password_placeholder": {
+    "text": "Adja meg jelszavát",
+    "source_hash": "c06bf967"
+  },
+  "web.auth.mfa.disabling": {
+    "text": "Kikapcsolás...",
+    "source_hash": "e4080e19"
+  },
+  "web.auth.mfa.disable_button": {
+    "text": "2FA kikapcsolása",
+    "source_hash": "1c3193f3"
+  },
+  "web.auth.mfa.generating_qr": {
+    "text": "QR kód generálása...",
+    "source_hash": "8eab9da9"
+  },
+  "web.auth.mfa.supported_apps": {
+    "text": "Használja a Google Authenticator-t, Authy-t vagy bármely TOTP alkalmazást",
+    "source_hash": "a8eaef9d"
+  },
+  "web.auth.mfa.continue_verification": {
+    "text": "Tovább az ellenőrzéshez",
+    "source_hash": "4da96e87"
+  },
+  "web.auth.mfa.enter_code_description": {
+    "text": "Adja meg a 6 számjegyű kódot a hitelesítő alkalmazásából",
+    "source_hash": "a160dee6"
+  },
+  "web.auth.mfa.enable_and_continue": {
+    "text": "MFA engedélyezése",
+    "source_hash": "37c8090d"
+  },
+  "web.auth.mfa.complete_setup": {
+    "text": "Beállítás befejezése",
+    "source_hash": "30e87601"
+  },
+  "web.auth.mfa.enter_recovery_code": {
+    "text": "Adja meg egyik helyreállítási kódját",
+    "source_hash": "91ab44cf"
+  },
+  "web.auth.mfa.recovery_code_label": {
+    "text": "Helyreállítási kód",
+    "source_hash": "cf25d0fc"
+  },
+  "web.auth.mfa.recovery_code_placeholder": {
+    "text": "Adja meg a helyreállítási kódot",
+    "source_hash": "586d719c"
+  },
+  "web.auth.mfa.verify_recovery_code": {
+    "text": "Helyreállítási kód ellenőrzése",
+    "source_hash": "c244c7bd"
+  },
+  "web.auth.mfa.six_digit_code": {
+    "text": "Adja meg a 6 számjegyű hitelesítési kódot",
+    "source_hash": "36a438ba"
+  },
+  "web.auth.mfa.recovery_code_mode_active": {
+    "text": "Helyreállítási kód mód aktív",
+    "source_hash": "c895f08b"
+  },
+  "web.auth.mfa.otp_mode_active": {
+    "text": "Hitelesítési kód mód aktív",
+    "source_hash": "8c44a306"
+  },
+  "web.auth.mfa.enter_all_digits": {
+    "text": "Kérjük, adja meg mind a 6 számjegyet a folytatáshoz",
+    "source_hash": "7914f7b2"
+  },
+  "web.auth.mfa.digit_of_count": {
+    "text": "{current}. számjegy a {total}-ból",
+    "source_hash": "879df41a"
+  },
+  "web.auth.recovery_codes.title": {
+    "text": "Helyreállítási kódok",
+    "source_hash": "579c7f4e"
+  },
+  "web.auth.recovery_codes.description": {
+    "text": "Mentse el ezeket a kódokat biztonságos helyen. Mindegyik egyszer használható, ha elveszíti a hozzáférést a hitelesítő alkalmazáshoz.",
+    "source_hash": "87aebdfb"
+  },
+  "web.auth.recovery_codes.warning": {
+    "text": "Ezek a kódok csak egyszer jelennek meg",
+    "source_hash": "d13f2877"
+  },
+  "web.auth.recovery_codes.save_required": {
+    "text": "Le kell töltenie vagy másolnia a helyreállítási kódokat a beállítás befejezése előtt.",
+    "source_hash": "6b97bc6d"
+  },
+  "web.auth.recovery_codes.generate_new": {
+    "text": "Új kódok generálása",
+    "source_hash": "4025779e"
+  },
+  "web.auth.recovery_codes.regenerate": {
+    "text": "Kódok újragenerálása",
+    "source_hash": "aa652d21"
+  },
+  "web.auth.recovery_codes.generate_new_warning": {
+    "text": "Ez érvényteleníti az összes meglévő helyreállítási kódot",
+    "source_hash": "9795a175"
+  },
+  "web.auth.recovery_codes.download": {
+    "text": "Kódok letöltése",
+    "source_hash": "9c23dbba"
+  },
+  "web.auth.recovery_codes.downloaded": {
+    "text": "Helyreállítási kódok letöltve",
+    "source_hash": "10486340"
+  },
+  "web.auth.recovery_codes.print": {
+    "text": "Kódok nyomtatása",
+    "source_hash": "ff940182"
+  },
+  "web.auth.recovery_codes.copy": {
+    "text": "Összes kód másolása",
+    "source_hash": "ee956b2b"
+  },
+  "web.auth.recovery_codes.copied": {
+    "text": "Kódok vágólapra másolva",
+    "source_hash": "06ebb466"
+  },
+  "web.auth.recovery_codes.copy_failed": {
+    "text": "Nem sikerült a kódokat a vágólapra másolni",
+    "source_hash": "e8be6a51"
+  },
+  "web.auth.recovery_codes.code_used": {
+    "text": "Felhasznált",
+    "source_hash": "ae7d8dfa"
+  },
+  "web.auth.recovery_codes.code_unused": {
+    "text": "Nem használt",
+    "source_hash": "231aedff"
+  },
+  "web.auth.recovery_codes.remaining": {
+    "text": "{count} / {limit} helyreállítási kód maradt",
+    "source_hash": "b5d484e7"
+  },
+  "web.auth.recovery_codes.usage_hint": {
+    "text": "Minden kód csak egyszer használható. Generáljon új kódokat, ha kifogy.",
+    "source_hash": "737a7702"
+  },
+  "web.auth.recovery_codes.none_remaining": {
+    "text": "Nem maradt helyreállítási kód",
+    "source_hash": "9ae26d68"
+  },
+  "web.auth.recovery_codes.generate_success": {
+    "text": "Új helyreállítási kódok generálva",
+    "source_hash": "831cb1aa"
+  },
+  "web.auth.recovery_codes.link_title": {
+    "text": "Helyreállítási kódok",
+    "source_hash": "579c7f4e"
+  },
+  "web.auth.google": {
+    "text": "Google",
+    "source_hash": "ce770667"
+  },
+  "web.auth.mfa.alternative_auth_options": {
+    "text": "Alternatív hitelesítési lehetőségek",
+    "source_hash": "5ddea736"
+  },
+  "web.auth.remember.enabled": {
+    "text": "Maradjon bejelentkezve",
+    "source_hash": "b0a1ca80"
+  },
+  "web.auth.sessions.session_singular": {
+    "text": "munkamenet",
+    "source_hash": "3f3af1ec"
+  },
+  "web.auth.sessions.session_plural": {
+    "text": "munkamenet",
+    "source_hash": "1225ae6c"
+  },
+  "web.auth.connections.title": {
+    "text": "Összekapcsolt azonosítók",
+    "source_hash": "e132c4d9"
+  },
+  "web.auth.connections.description": {
+    "text": "Kezelje a fiókjához kapcsolt egyszeri bejelentkezés szolgáltatókat.",
+    "source_hash": "42c6d148"
+  },
+  "web.auth.connections.section_title": {
+    "text": "Egyszeri bejelentkezés",
+    "source_hash": "3bc44ac2"
+  },
+  "web.auth.connections.section_subtitle": {
+    "text": "Azonosítószolgáltatók, amelyekkel bejelentkezhet ebbe a fiókba",
+    "source_hash": "507254cd"
+  },
+  "web.auth.connections.connect_title": {
+    "text": "Szolgáltató csatlakoztatása",
+    "source_hash": "a002b3f3"
+  },
+  "web.auth.connections.connect_description": {
+    "text": "Kapcsoljon hozzá egy másik egyszeri bejelentkezés szolgáltatót, amellyel bejelentkezhet ebbe a fiókba.",
+    "source_hash": "32895a5a"
+  },
+  "web.auth.connections.connect_action": {
+    "text": "{provider} csatlakoztatása",
+    "context": "Button label to start linking a specific SSO provider; {provider} is the provider display name",
+    "source_hash": "c77540af"
+  },
+  "web.auth.connections.issuer": {
+    "text": "Kibocsátó",
+    "source_hash": "39e02c46"
+  },
+  "web.auth.connections.identifier": {
+    "text": "Azonosító",
+    "source_hash": "9b10587f"
+  },
+  "web.auth.connections.remove": {
+    "text": "Eltávolítás",
+    "source_hash": "c3812fc4"
+  },
+  "web.auth.connections.remove_confirm_title": {
+    "text": "Összekapcsolt azonosító eltávolítása",
+    "source_hash": "4e8ffe4c"
+  },
+  "web.auth.connections.remove_confirm_message": {
+    "text": "Biztosan el szeretné távolítani ezt az összekapcsolt azonosítót? Többé nem fog tudni vele bejelentkezni.",
+    "source_hash": "64939c89"
+  },
+  "web.auth.connections.removed_success": {
+    "text": "Összekapcsolt azonosító eltávolítva",
+    "source_hash": "cf87daf3"
+  },
+  "web.auth.connections.no_identities": {
+    "text": "Nincsenek összekapcsolt azonosítók",
+    "source_hash": "5254048e"
+  },
+  "web.auth.connections.no_identities_description": {
+    "text": "Még nem kapcsolt egyszeri bejelentkezés szolgáltatót ehhez a fiókhoz.",
+    "source_hash": "0f58d5d0"
+  },
+  "web.auth.connections.overview_status": {
+    "text": "Egyszeri bejelentkezés",
+    "source_hash": "3bc44ac2"
+  },
+  "web.auth.connections.errors.last_credential": {
+    "text": "Ez az egyetlen módja a bejelentkezésnek. Először csatlakoztasson egy másik szolgáltatót, vagy állítson be jelszót a Beállítások → Biztonság menüpontban, hogy ne zárja ki magát.",
+    "source_hash": "3de8084d"
+  },
+  "web.auth.connections.errors.last_credential_sso_enforced": {
+    "text": "Ez az egyetlen módja a bejelentkezésnek. Először csatlakoztasson egy másik szolgáltatót, hogy ne zárja ki magát.",
+    "source_hash": "eed7a50e"
+  },
+  "web.auth.connections.errors.not_found": {
+    "text": "Ez az összekapcsolt azonosító nem található. Lehet, hogy már eltávolították.",
+    "source_hash": "cf2c7673"
+  },
+  "web.auth.connections.errors.unauthorized": {
+    "text": "A munkamenete lejárt. Jelentkezzen be újra.",
+    "source_hash": "b529fce2"
+  },
+  "web.auth.connections.errors.generic": {
+    "text": "Nem sikerült végrehajtani a műveletet. Próbálja újra.",
+    "source_hash": "a0d4edc0"
+  },
+  "web.link_sso.title": {
+    "text": "Bejelentkezési módszer összekapcsolása",
+    "source_hash": "46339bac"
+  },
+  "web.link_sso.prompt": {
+    "text": "Bejelentkezett a(z) {provider} szolgáltatással, amely megegyezik a meglévő {email} fiókkal. Adja meg a fiók jelszavát a(z) {provider} összekapcsolásához és a folytatáshoz.",
+    "context": "Instruction on the sign-in interstitial. {provider} is a friendly provider name (e.g. Microsoft Entra); {email} is the claimed account email returned by GET /auth/link-sso/:token.",
+    "source_hash": "59da1c08"
+  },
+  "web.link_sso.password_label": {
+    "text": "Jelszó",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.link_sso.password_placeholder": {
+    "text": "Meglévő jelszava",
+    "source_hash": "ad4e56da"
+  },
+  "web.link_sso.submit": {
+    "text": "Összekapcsolás és folytatás",
+    "source_hash": "c969b759"
+  },
+  "web.link_sso.cancel": {
+    "text": "Mégse",
+    "source_hash": "19766ed6"
+  },
+  "web.link_sso.unavailable_title": {
+    "text": "Ez az összekapcsolási kérelem lejárt",
+    "source_hash": "b53c7e55"
+  },
+  "web.link_sso.unavailable_message": {
+    "text": "Az Ön biztonsága érdekében a bejelentkezési módszer összekapcsolásának kérelme már nem érvényes. Jelentkezzen be meglévő jelszavával, majd csatlakoztassa ezt a szolgáltatót a Biztonsági beállítások → Összekapcsolt azonosítók menüpontban.",
+    "source_hash": "f7e349d1"
+  },
+  "web.link_sso.unavailable_action": {
+    "text": "Tovább a bejelentkezéshez",
+    "source_hash": "d398cd0a"
+  },
+  "web.link_sso.errors.invalid_password": {
+    "text": "Ez a jelszó nem egyezik ezzel a fiókkal. Próbálja újra.",
+    "source_hash": "3259b4f5"
+  },
+  "web.link_sso.errors.invalid_token": {
+    "text": "Ez az összekapcsolási kérelem lejárt vagy már felhasználták. Jelentkezzen be meglévő jelszavával, majd csatlakoztassa ezt a szolgáltatót a fiókbeállításokból.",
+    "source_hash": "541f9127"
+  },
+  "web.link_sso.errors.link_conflict": {
+    "text": "Nem sikerült összekapcsolni ezt a bejelentkezési módszert. Lehet, hogy a fiókja megváltozott, vagy ez a szolgáltató már másik fiókhoz van kapcsolva. Jelentkezzen be meglévő jelszavával, majd kezelje a kapcsolatokat a Biztonsági beállítások → Összekapcsolt azonosítók menüpontban.",
+    "source_hash": "7b0e0d0e"
+  },
+  "web.link_sso.errors.link_rate_limited": {
+    "text": "Túl sok jelszópróbálkozás. Várjon néhány percet, majd próbálja újra.",
+    "source_hash": "a95e78cd"
+  },
+  "web.link_sso.errors.invalid_request": {
+    "text": "Nem sikerült feldolgozni ezt az összekapcsolási kérelmet. Jelentkezzen be újra az SSO szolgáltatójával.",
+    "source_hash": "053b9fc6"
+  },
+  "web.link_sso.errors.generic": {
+    "text": "Nem sikerült összekapcsolni a fiókját. Próbálja újra.",
+    "source_hash": "f727c174"
+  },
+  "web.sso_link_confirm.title": {
+    "text": "Fiók csatlakoztatásának megerősítése",
+    "source_hash": "ad80bfe7"
+  },
+  "web.sso_link_confirm.prompt": {
+    "text": "Bejelentkezett a(z) {provider} szolgáltatással, amely megegyezik a(z) {email} fiókjával. Erősítse meg a(z) {provider} csatlakoztatását ehhez a fiókhoz és a bejelentkezés befejezését.",
+    "context": "Consent instruction on the #3840 Phase 4 mailbox-proof SSO linking page. {provider} is a friendly provider name (e.g. Microsoft Entra); {email} is the claimed account email returned by GET /auth/sso-link-confirm/:token. No password is asked — clicking the emailed link is the proof.",
+    "source_hash": "6ff0d6cc"
+  },
+  "web.sso_link_confirm.submit": {
+    "text": "Megerősítés és csatlakoztatás",
+    "source_hash": "5cf663e6"
+  },
+  "web.sso_link_confirm.cancel": {
+    "text": "Mégse",
+    "source_hash": "19766ed6"
+  },
+  "web.sso_link_confirm.unavailable_title": {
+    "text": "Ez az összekapcsolási kérelem nem teljesíthető",
+    "source_hash": "47abb784"
+  },
+  "web.sso_link_confirm.unavailable_message": {
+    "text": "Az Ön biztonsága érdekében a bejelentkezési módszer csatlakoztatásának kérelme már nem érvényes. Jelentkezzen be újra a szolgáltatójával, és új hivatkozást küldünk e-mailben.",
+    "source_hash": "080e6f9f"
+  },
+  "web.sso_link_confirm.unavailable_action": {
+    "text": "Vissza a bejelentkezéshez",
+    "source_hash": "8504054f"
+  },
+  "web.sso_link_confirm.errors.link_expired": {
+    "text": "Ez az összekapcsolási kérelem lejárt vagy már felhasználták. Jelentkezzen be újra a szolgáltatójával, és új hivatkozást küldünk e-mailben.",
+    "source_hash": "a50538df"
+  },
+  "web.sso_link_confirm.errors.link_conflict": {
+    "text": "Nem sikerült csatlakoztatni ezt a bejelentkezési módszert. Lehet, hogy a fiókja megváltozott, vagy ez a szolgáltató már másik fiókhoz van kapcsolva. A folytatáshoz jelentkezzen be újra a szolgáltatójával.",
+    "source_hash": "c954854b"
+  },
+  "web.sso_link_confirm.errors.link_invalidated": {
+    "text": "A fiók hitelesítő adatai megváltoztak a hivatkozás küldése után, így az már nem érvényes. Jelentkezzen be újra a szolgáltatójával, és új hivatkozást küldünk e-mailben.",
+    "source_hash": "db88cb1d"
+  },
+  "web.sso_link_confirm.errors.link_error": {
+    "text": "Valami hiba történt nálunk, és nem tudtuk ellenőrizni ezt a hivatkozást. Jelentkezzen be újra a szolgáltatójával, és új hivatkozást küldünk e-mailben.",
+    "source_hash": "ec24e0a1"
+  },
+  "web.sso_link_confirm.errors.confirm_rate_limited": {
+    "text": "Túl sok próbálkozás az eszközéről. Várjon néhány percet, majd nyissa meg újra az e-mailben kapott hivatkozást, vagy jelentkezzen be a szolgáltatójával új hivatkozásért.",
+    "source_hash": "f29af782"
+  },
+  "web.sso_link_confirm.errors.generic": {
+    "text": "Nem sikerült megerősíteni ezt a kapcsolatot. Jelentkezzen be újra a szolgáltatójával.",
+    "source_hash": "076fa25a"
+  },
+  "web.auth.mfa.passkey_mode_active": {
+    "text": "Hozzáférési kulcs mód aktív",
+    "source_hash": "824dceb6"
+  },
+  "web.auth.mfa.passkey_prompt": {
+    "text": "Igazolja hozzáférési kulccsal, hogy Ön az. Az eszköze az ujjlenyomatát, arcát vagy biztonsági kulcsát fogja kérni.",
+    "source_hash": "c0b0cbbc"
+  },
+  "web.auth.mfa.verify_with_passkey": {
+    "text": "Ellenőrzés hozzáférési kulccsal",
+    "source_hash": "4f105a30"
+  },
+  "web.auth.mfa.use_passkey": {
+    "text": "Használjon helyette hozzáférési kulcsot",
+    "source_hash": "bd6430a4"
+  },
+  "web.auth.passkeys.remove_failed": {
+    "text": "Nem sikerült eltávolítani a hozzáférési kulcsot",
+    "source_hash": "3e131515"
+  },
+  "web.auth.passkeys.load_failed": {
+    "text": "Nem sikerült betölteni a hozzáférési kulcsokat",
+    "source_hash": "8d704e00"
+  },
+  "web.auth.webauthn.emailRequired": {
+    "text": "Adja meg az e-mail címét a hozzáférési kulccsal való bejelentkezéshez",
+    "source_hash": "7f07647f"
+  },
+  "web.auth.login.verification_unavailable": {
+    "text": "A bejelentkezés sikeres volt, de nem tudtuk megerősíteni a munkamenetét. Kérjük, próbálja újra egy kis idő múlva.",
+    "source_hash": "9a19dfc9"
+  },
+  "web.auth.mfa.verification_unavailable": {
+    "text": "A jelszavát elfogadtuk, de nem tudtuk elindítani a kétfaktoros ellenőrzést. Kérjük, próbálja újra egy kis idő múlva.",
+    "source_hash": "5fd5e240"
+  },
+  "web.auth.session.ended": {
+    "text": "A munkamenete véget ért. Kérjük, jelentkezzen be újra.",
+    "source_hash": "673e9822"
+  },
+  "web.auth.session.replaced": {
+    "text": "A bejelentkezése egy másik lapon megváltozott, ezért ez az oldal újratöltődött.",
+    "source_hash": "3767d43b"
+  },
+  "web.auth.session.stale_session_title": {
+    "text": "Ez az oldal elavult",
+    "source_hash": "0293e093"
+  },
+  "web.auth.session.stale_session_notice": {
+    "text": "A munkamenete megváltozott az oldal betöltése óta. Másolja ki, amit még nem mentett, majd a folytatáshoz töltse be újra az oldalt.",
+    "source_hash": "c62e236c"
+  },
+  "web.auth.session.reload_now": {
+    "text": "Oldal újratöltése",
+    "source_hash": "437d0d63"
+  },
+  "web.auth.session.verification_unavailable_title": {
+    "text": "Jelenleg nem tudjuk ellenőrizni a munkamenetét",
+    "source_hash": "2130dda1"
+  },
+  "web.auth.session.verification_unavailable_body": {
+    "text": "Nem jelentkeztettük ki. Nem értük el a szervert a munkamenete megerősítéséhez, ezért ez az oldal rejtve marad, amíg ez nem sikerül. Továbbra is próbálkozunk.",
+    "source_hash": "bb230c2c"
+  },
+  "web.auth.session.retry": {
+    "text": "Újrapróbálkozás",
+    "source_hash": "d8b8392e"
+  },
+  "web.auth.session.retrying": {
+    "text": "Ellenőrzés…",
+    "source_hash": "ec963ffc"
+  },
+  "web.auth.session.retry_failed": {
+    "text": "Továbbra sem érhető el. Kérjük, próbálja újra egy kis idő múlva.",
+    "source_hash": "b81c022c"
+  }
+}

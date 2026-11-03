@@ -1,0 +1,1389 @@
+# apps/web/auth/operations/customers/doctor.rb
+#
+# frozen_string_literal: true
+
+require 'onetime/models/colonel_audit_event'
+require 'onetime/audited_failure'
+require 'auth/account_statuses'
+require 'auth/operations/set_customer_verification'
+require 'auth/operations/workspace_collision'
+require 'auth/operations/ensure_default_workspace'
+
+module Auth
+  module Operations
+    module Customers
+      # Customer data-integrity checks (and optional repair).
+      #
+      # The ONE implementation of the per-customer integrity checks and the
+      # email_index integrity check. The `bin/ots customers doctor` command is a
+      # thin adapter: it owns orchestration (scan-all, output formatting, exit
+      # codes) and delegates the actual checks + repairs to this op, so the check
+      # logic lives in exactly one place.
+      #
+      # ## Audit (epic #20 CONTRACT 4)
+      #
+      # Repairs mutate customer records, so a repaired customer records ONE
+      # ColonelAuditEvent (summarizing the repair actions) when an `actor` is
+      # supplied and `repair: true`. It is one event per repaired customer (not per
+      # field, and never on audit-only runs), which keeps the capped audit set
+      # bounded even on a `--all --repair` sweep. Per-action OT.info logging is
+      # unchanged and remains the fine-grained trail.
+      #
+      # ## Email-drift checks (#3731 PR-C1)
+      #
+      # Three checks exist specifically to make a half-completed email change
+      # visible: `:auth_email_drift` (one of the three Redis-vs-SQL comparisons
+      # here — a `ChangeEmail` op returning `:partial` is invisible without it;
+      # the others are `:auth_email_not_canonical` and
+      # `:sso_customer_unverified`, and all three share one memoized
+      # `auth_account` read so the sweep still costs one SQL round trip per
+      # customer),
+      # `:org_email_index_stale` (the org-scoped index, which Familia never
+      # auto-populates) and `:org_contact_email_stale` (default workspaces still
+      # contacting a dead address). See each method for its scoping rules.
+      #
+      # `:auth_email_not_canonical` (#4726) is the case-only sibling of
+      # `:auth_email_drift`: the two stores match case-insensitively but one of
+      # them holds the address in non-canonical bytes. It is report-only and
+      # names the store: a non-canonical accounts row is repaired by `bin/ots
+      # customers normalize-emails`; a non-canonical Customer record under a
+      # canonical row (what a `:partial` normalize-emails run leaves behind,
+      # which that command's scan never revisits) by `bin/ots customers
+      # change-email`.
+      #
+      # NOTE: `VALID_ROLES` here is intentionally the doctor's own narrower set
+      # ([customer, anonymous, colonel]) — the historical data-shape checker — and
+      # is deliberately NOT the assignable-role list in SetRole::VALID_ROLES. They
+      # answer different questions and must not be merged (preserved bit-for-bit).
+      # rubocop:disable Metrics/ClassLength
+      class Doctor
+        include Onetime::LoggerMethods
+
+        # Recorded on a REPAIR run only — never on a diagnostic pass. Shared by
+        # the success and failure events so both land under one filter.
+        AUDIT_VERB = 'customer.doctor_repair'
+
+        SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, warning: 3, low: 4 }.freeze
+
+        # Issues the workspace-collision repair emits when its canonical
+        # provisioning retry did not converge this run.
+        PROVISIONING_RETRY_CHECKS = [
+          :workspace_provisioning_retry_failed,
+          :workspace_provisioning_retry_deferred,
+        ].freeze
+
+        # Valid customer roles (historical data-shape check — see NOTE above)
+        VALID_ROLES = %w[customer anonymous colonel].freeze
+
+        # Every verified_by provenance tag the codebase writes, with the
+        # writer for each:
+        #   email          - secret reveal by owner (apps/api/v2/logic/secrets/
+        #                    {show,reveal}_secret.rb) and Rodauth verify_account
+        #                    (apps/web/auth/config/hooks/account.rb)
+        #   stripe_payment - payment-initiated signup (apps/web/billing/logic/welcome.rb)
+        #   autoverify     - autoverify-mode account creation
+        #                    (apps/api/account/logic/account/create_account.rb)
+        #   sso            - OmniAuth JIT provisioning (apps/web/auth/config/hooks/
+        #                    omniauth.rb) and this doctor's :sso_customer_unverified repair
+        #   invite_token   - invite signup auto-verification (apps/web/auth/
+        #                    config/hooks/account.rb after_create_account)
+        #   cli_provision  - CLI customer/apitoken commands (lib/onetime/cli/)
+        #   colonel_admin  - colonel admin verification (apps/api/colonel/logic/
+        #                    colonel/set_user_verification.rb)
+        #   legacy         - backfilled by this doctor's verified_by repair
+        # Keep this list in sync when adding a new provenance writer.
+        VALID_VERIFIED_BY = %w[
+          email stripe_payment autoverify sso
+          invite_token cli_provision colonel_admin legacy
+        ].freeze
+
+        # Counter fields to check
+        COUNTER_FIELDS = [:secrets_created, :secrets_burned, :secrets_shared, :emails_sent].freeze
+
+        # Per-customer result. `issues` is severity-sorted; `repaired` is the list
+        # of repair-action hashes applied (empty unless repair: true).
+        Report = Data.define(:issues, :repaired)
+
+        # @param customer [Onetime::Customer] the customer to check
+        # @param repair [Boolean] apply auto-repairs (default: audit only)
+        # @param actor [String, #extid, #email, nil] acting admin's PUBLIC identity;
+        #   when present and a repair is applied, one audit event is recorded
+        def initialize(customer:, repair: false, actor: nil)
+          @customer         = customer
+          @repair_requested = repair
+          @actor            = actor
+        end
+
+        # Run all per-customer checks. Returns a Report; the caller aggregates.
+        # @return [Report]
+        def call
+          issues   = []
+          repaired = []
+
+          # First, so a closure that rolled back is cleared before anything
+          # else runs. A record still marked after it belongs to a closure
+          # that has not finished: its owner asked for it to be deleted, and
+          # finish-closures deletes it. Nothing repairs it into shape (a
+          # workspace provisioned, an index rebuilt), but a closure whose purge
+          # stays blocked still needs the read-out, so the data checks run for
+          # it and repair nothing (#repairing?).
+          check_closure_marker(issues, repaired)
+          check_customer_data(issues, repaired)
+
+          audit_repair_outcome(repaired) if @repair_requested
+
+          Report.new(issues: issues.sort_by { |i| SEVERITY_ORDER[i[:severity]] }, repaired: repaired)
+        rescue StandardError => ex
+          # DELIBERATELY NOT the `audit_failures` macro (see audited_failure.rb).
+          # The macro records unconditionally, and this op's DEFAULT mode is a
+          # pure diagnostic read: wrapping it would emit an audit event for a
+          # failed `bin/ots customers doctor` with no --repair, breaking
+          # CONTRACT 4 (viewing never writes). Worse, the doctor runs per
+          # customer on a `--all` sweep, so a systemic read failure would write
+          # one event per customer and evict the real destructive-action trail
+          # from the count-capped set.
+          #
+          # So the failure is recorded on exactly the same gate as the success
+          # event: a REPAIR run with a known actor. A repair that blew up
+          # partway is a mutation left in an unknown state, and that must be in
+          # the trail. The record helper is shared, only the gate is bespoke.
+          audit_repair_failure(ex) if @repair_requested && !@actor.nil?
+          raise
+        end
+
+        # Every per-customer check but the closure marker (see #call).
+        def check_customer_data(issues, repaired)
+          check_workspace_collision(issues, repaired)
+          check_provisioning_failure(issues, repaired)
+          check_orphan_default_org(issues, repaired)
+          check_email_index_entry(issues, repaired)
+          check_auth_email_drift(issues, repaired)
+          check_auth_email_canonical(issues)
+          check_org_email_index(issues, repaired)
+          check_org_contact_email(issues, repaired)
+          check_org_membership_sync(issues, repaired)
+          check_role_validity(issues)
+          check_verified_consistency(issues, repaired)
+          check_sso_customer_unverified(issues, repaired)
+          check_counter_sanity(issues, repaired)
+          check_field_serialization(issues, repaired)
+        end
+        private :check_customer_data
+
+        # Whether the data checks may repair what they find: under
+        # repair: true, and only for a record that is not closing (see
+        # #call). Every check gates its repairs on this or on
+        # #repairing_closure_marker?, never on @repair_requested.
+        def repairing?
+          @repair_requested && !@customer.closing?
+        end
+        private :repairing?
+
+        # Whether #check_closure_marker may clear a rolled-back closure's
+        # marker: under repair: true. Unlike #repairing?, the record being
+        # closing does not stop it, since the record it clears is the one
+        # still marked.
+        def repairing_closure_marker?
+          @repair_requested
+        end
+        private :repairing_closure_marker?
+
+        # Index-level check: email_index entries point to live customers with the
+        # right email. Returns { issues:, repaired: }. Cross-customer, so it is a
+        # class method rather than a per-customer instance check.
+        #
+        # @param repair [Boolean]
+        # @return [Hash] { issues: Array, repaired: Array }
+        def self.check_email_index(repair:)
+          issues         = []
+          repaired       = []
+          stale_count    = 0
+          mismatch_count = 0
+
+          Onetime::Customer.email_index.hgetall.each do |email, objid|
+            customer = Onetime::Customer.load(objid)
+
+            if customer.nil?
+              stale_count += 1
+              if repair
+                Onetime::Customer.email_index.remove_field(email)
+                OT.info "[customers doctor] Removed orphan email_index[#{email}] -> #{objid}"
+              end
+            elsif customer.email.to_s.downcase != email.downcase
+              issues << {
+                check: :email_index_mismatch,
+                severity: :high,
+                message: "email_index[#{email}] -> customer with email #{customer.email}",
+                email: email,
+                customer_objid: objid,
+                actual_email: customer.email,
+                repairable: true,
+              }
+
+              if repair
+                # Set correct entry before removing wrong one so there's no window with a missing key
+                Onetime::Customer.email_index[customer.email] = objid
+                Onetime::Customer.email_index.remove_field(email)
+                OT.info "[customers doctor] Fixed email_index: #{email} -> #{customer.email} -> #{objid}"
+                mismatch_count                               += 1
+              end
+            end
+          end
+
+          if stale_count.positive?
+            if repair
+              repaired << {
+                action: :email_index_orphans_cleaned,
+                count: stale_count,
+              }
+            else
+              issues << {
+                check: :email_index_stale,
+                severity: :high,
+                message: "#{stale_count} email_index entries point to deleted customers",
+                count: stale_count,
+                repairable: true,
+              }
+            end
+          end
+
+          if mismatch_count.positive?
+            repaired << {
+              action: :email_index_mismatches_fixed,
+              count: mismatch_count,
+            }
+          end
+
+          { issues: issues.sort_by { |i| SEVERITY_ORDER[i[:severity]] }, repaired: repaired }
+        end
+
+        private
+
+        # CHECK: the raw organization contact-email index can block workspace
+        # provisioning even when no organization is reachable through customer
+        # participation. Repair is deliberately limited to stale index claims;
+        # no organization is adopted and no membership is changed here.
+        def check_workspace_collision(issues, repaired)
+          collision = WorkspaceCollision.new(email: @customer.email, customer: @customer).call
+          return if [:clear, :current_valid_workspace].include?(collision.classification)
+
+          classification = collision.classification
+          repairable     = collision.repairable_index_claim?
+          org_extid      = collision.evidence[:organization_extid]
+          messages       = {
+            phantom_index: 'contact_email_index points to a missing organization and blocks default-workspace provisioning',
+            index_mismatch: 'contact_email_index points to an organization whose contact_email no longer matches',
+            empty_orphan: 'an empty ownerless organization reserves the customer email; same-email adoption is forbidden',
+            stale_members: 'an ownerless organization with stale member references reserves the customer email',
+            live_members: 'an organization with a live owner or member reserves the customer email',
+            retained_data: 'an organization with retained domains, invitations, receipts, billing, or other data reserves the customer email',
+            unreadable: "workspace collision evidence is unreadable (#{collision.evidence[:reason] || 'unknown'})",
+          }
+
+          collision_issue = {
+            check: :"workspace_collision_#{classification}",
+            classification: classification,
+            severity: classification == :unreadable ? :critical : :high,
+            message: messages.fetch(classification),
+            org_extid: org_extid,
+            evidence: WorkspaceCollision.reportable_evidence(collision.evidence),
+            repairable: repairable,
+            repair_action: if repairable
+                             'Compare-and-delete the unchanged stale contact_email_index claim, then provision canonically'
+                           else
+                             'Manual lifecycle decision required; do not adopt by email or alter memberships'
+                           end,
+          }
+          issues << collision_issue
+
+          return unless repairing? && repairable
+          return unless WorkspaceCollision.compare_and_delete(collision)
+
+          OT.info "[customers doctor] Removed stale contact-email claim for #{@customer.extid} (#{classification})"
+          converge_workspace_repair(collision_issue, issues, repaired, classification)
+        end
+
+        def converge_workspace_repair(collision_issue, issues, repaired, original_classification)
+          Auth::Operations::EnsureDefaultWorkspace.new(customer: @customer).call
+
+          verified = WorkspaceCollision.new(email: @customer.email, customer: @customer).call
+          unless verified.current_valid_workspace? && !@customer.provisioning_failed?
+            raise Onetime::Problem,
+              "Default-workspace repair verification failed: #{verified.classification}"
+          end
+
+          issues.delete(collision_issue)
+          repaired << {
+            customer: @customer.extid,
+            action: :workspace_collision_repaired,
+            classification: original_classification,
+            org: verified.organization&.extid || verified.evidence[:organization_extid],
+          }
+          refresh_customer_organizations!
+          OT.info "[customers doctor] Provisioned and verified default workspace for #{@customer.extid}"
+        rescue Onetime::AccountProvisioningUnavailable => ex
+          # Transient, and NOT a failure to latch: provisioning persisted
+          # nothing (unreadable evidence, or the customer's own login held the
+          # creation lock past the bounded wait). Retaining :provisioning_error
+          # here would mint exactly the stale-latch-beside-a-real-workspace
+          # state the latch release exists to undo. Partial because the index
+          # claim is already gone; the next request or a rerun provisions.
+          issues.delete(collision_issue)
+          issues << {
+            check: :workspace_provisioning_retry_deferred,
+            classification: ex.reason,
+            severity: :warning,
+            message: 'Default-workspace provisioning was temporarily unavailable after the stale ' \
+                     "contact-email claim was removed (#{ex.reason}); nothing was latched",
+            repairable: false,
+            repair_action: 'Retry customer repair shortly; the next authenticated request also re-runs provisioning',
+            partial: true,
+          }
+          @partial_repair      = {
+            error: ex,
+            actions: [:workspace_contact_email_index_removed],
+            classification: original_classification,
+            retry_classification: ex.reason,
+          }
+        rescue StandardError => ex
+          retry_classification = if ex.is_a?(WorkspaceCollision::ProvisioningCollision)
+                                   ex.collision.classification
+                                 else
+                                   :provisioning_error
+                                 end
+          latch_result         = retain_provisioning_failure(retry_classification)
+          issues.delete(collision_issue)
+          issues << {
+            check: :workspace_provisioning_retry_failed,
+            classification: retry_classification,
+            severity: :critical,
+            message: provisioning_retry_failure_message(latch_result),
+            repairable: false,
+            repair_action: 'Inspect the new provisioning failure before retrying customer repair',
+            repair_failed: true,
+            partial: true,
+          }
+          @partial_repair      = {
+            error: ex,
+            actions: [:workspace_contact_email_index_removed],
+            classification: original_classification,
+            retry_classification: retry_classification,
+            latch_error: latch_result[:error],
+          }
+        end
+
+        # CHECK: a latched provisioning failure (AccountProvisioningFailed 409
+        # on every org-less request). The request path never re-runs
+        # provisioning once latched, so this is the only release. The release
+        # is evidence-backed, never a blind flag clear: the latch is releasable
+        # only when the customer already has a workspace or the live
+        # classification says nothing blocks provisioning (:clear /
+        # :current_valid_workspace); then canonical provisioning converges and
+        # clears the flag itself. :unreadable is transient and only ever
+        # reported. Anything else keeps the latch with its real classification.
+        def check_provisioning_failure(issues, repaired)
+          return unless @customer.provisioning_failed?
+          # A retry this run already failed or deferred; a second attempt here
+          # would just repeat that verdict on top of it.
+          return if issues.any? { |issue| PROVISIONING_RETRY_CHECKS.include?(issue[:check]) }
+
+          release = provisioning_latch_release
+          issue   = {
+            check: :workspace_provisioning_failed,
+            classification: @customer.provisioning_failure_classification.to_s,
+            severity: :critical,
+            message: provisioning_latch_message(release),
+            evidence: {
+              current_classification: release[:classification],
+              workspace_present: release[:workspace_present],
+            },
+            repairable: release[:releasable],
+            repair_action: provisioning_latch_repair_action(release),
+          }
+          issues << issue
+
+          return unless repairing? && release[:releasable]
+
+          release_provisioning_latch(issue, issues, repaired, release)
+        end
+
+        # Fresh evidence, not the classification check_workspace_collision saw:
+        # a repair there may just have changed it.
+        def provisioning_latch_release
+          collision         = WorkspaceCollision.new(email: @customer.email, customer: @customer).call
+          workspace_present = customer_organizations.any?
+          releasable        = workspace_present ||
+                              [:clear, :current_valid_workspace].include?(collision.classification)
+          {
+            classification: collision.classification,
+            workspace_present: workspace_present,
+            releasable: releasable,
+            transient: collision.unreadable?,
+            reason: collision.evidence[:reason],
+          }
+        end
+
+        def provisioning_latch_message(release)
+          base = 'Default-workspace provisioning failure remains latched'
+          return "#{base}; the customer now has a workspace, so the latch is stale" if release[:workspace_present]
+          return "#{base}; current collision classification is #{release[:classification]}, nothing blocks provisioning" if release[:releasable]
+          if release[:transient]
+            return "#{base}; collision evidence is currently unreadable (#{release[:reason] || 'unknown'})"
+          end
+
+          "#{base}; current collision classification is #{release[:classification]}"
+        end
+
+        def provisioning_latch_repair_action(release)
+          return 'Re-run canonical workspace provisioning, which converges and clears the latch' if release[:releasable]
+          return 'Transient: retry once the datastore answers; do not clear the latch on unreadable evidence' if release[:transient]
+
+          'Resolve the workspace collision, then retry canonical workspace provisioning'
+        end
+
+        # The flag is cleared by EnsureDefaultWorkspace itself (its exists-path
+        # and success-path both clear it); we only verify the persisted result
+        # so a silent non-clear cannot be reported as a repair.
+        def release_provisioning_latch(issue, issues, repaired, release)
+          Auth::Operations::EnsureDefaultWorkspace.new(customer: @customer).call
+
+          persisted = Onetime::Customer.load(@customer.objid)
+          verified  = WorkspaceCollision.new(email: @customer.email, customer: @customer).call
+          converged = persisted && !persisted.provisioning_failed? &&
+                      (verified.current_valid_workspace? || persisted.organization_instances.to_a.any?)
+          unless converged
+            raise Onetime::Problem,
+              "Provisioning latch release verification failed: #{verified.classification}"
+          end
+
+          issues.delete(issue)
+          repaired << {
+            customer: @customer.extid,
+            action: :workspace_provisioning_latch_released,
+            classification: issue[:classification],
+            org: released_workspace_extid(persisted, verified),
+          }
+          refresh_customer_organizations!
+          OT.info "[customers doctor] Released stale provisioning latch for #{@customer.extid} " \
+                  "(#{release[:workspace_present] ? 'workspace present' : verified.classification})"
+        rescue StandardError => ex
+          # A collision here re-latches through the canonical path with its own
+          # fresh classification; an unavailable error changes nothing. Either
+          # way the latch stands and the report says why.
+          retry_classification  = ex.respond_to?(:collision) && ex.collision ? ex.collision.classification : :provisioning_error
+          issue[:message]       = "#{issue[:message]}; release attempt failed (#{retry_classification}: #{ex.message})"
+          issue[:repair_failed] = true
+          @partial_repair       = {
+            error: ex,
+            actions: [:workspace_provisioning_latch_release_attempted],
+            classification: issue[:classification],
+            retry_classification: retry_classification,
+          }
+        end
+
+        # The org a latch-release record names is the customer's OWN workspace.
+        # Only a :current_valid_workspace verdict identifies that org; when the
+        # release reason was "workspace present", `verified` may still classify
+        # :live_members / :retained_data against the index HOLDER, a different
+        # org, so its organization must not be recorded as the one released.
+        def released_workspace_extid(persisted, verified)
+          if verified.current_valid_workspace?
+            return verified.organization&.extid || verified.evidence[:organization_extid]
+          end
+
+          own = persisted.organization_instances.to_a
+          (own.find { |org| default_org?(org) } || own.first)&.extid
+        end
+
+        def retain_provisioning_failure(classification)
+          persisted = Onetime::Customer.load(@customer.objid)
+          return { status: :retained } if persisted&.provisioning_failed?
+
+          @customer.mark_provisioning_failed!(
+            code: Auth::Operations::EnsureDefaultWorkspace::PROVISIONING_FAILURE_CODE,
+            classification: classification,
+          )
+
+          persisted = Onetime::Customer.load(@customer.objid)
+          return { status: :updated } if persisted&.provisioning_failed?
+
+          {
+            status: :unverified,
+            error: Onetime::Problem.new('Provisioning failure was not persisted'),
+          }
+        rescue StandardError => ex
+          { status: :unverified, error: ex }
+        end
+
+        def provisioning_retry_failure_message(latch_result)
+          message = 'Default-workspace provisioning failed after the stale contact-email claim was removed; '
+          return "#{message}the durable provisioning failure remains latched." unless latch_result[:status] == :unverified
+
+          "#{message}the durable failure state could not be verified or updated."
+        end
+
+        # CHECK: default_org_id points to existing org that customer is member of
+        def check_orphan_default_org(issues, repaired)
+          return if @customer.default_org_id.to_s.empty?
+
+          organization = Onetime::Organization.load(@customer.default_org_id)
+
+          if organization.nil?
+            issues << {
+              check: :orphan_default_org,
+              severity: :critical,
+              message: "default_org_id '#{@customer.default_org_id}' points to deleted organization",
+              repairable: true,
+              repair_action: 'Clear default_org_id field',
+            }
+
+            if repairing?
+              @customer.default_org_id = nil
+              @customer.save
+              OT.info "[customers doctor] Cleared default_org_id for #{@customer.extid}"
+              repaired << {
+                customer: @customer.extid,
+                action: :default_org_cleared,
+                reason: :org_deleted,
+              }
+            end
+            return
+          end
+
+          # Org exists but customer may not be a member
+          return if organization.member?(@customer)
+
+          issues << {
+            check: :orphan_default_org,
+            severity: :critical,
+            message: "default_org_id '#{@customer.default_org_id}' points to org customer is not a member of",
+            repairable: true,
+            repair_action: 'Clear default_org_id field',
+          }
+
+          return unless repairing?
+
+          @customer.default_org_id = nil
+          @customer.save
+          OT.info "[customers doctor] Cleared default_org_id for #{@customer.extid} (not a member)"
+          repaired << {
+            customer: @customer.extid,
+            action: :default_org_cleared,
+            reason: :not_member,
+          }
+        end
+
+        # CHECK: email_index entry exists and matches
+        def check_email_index_entry(issues, repaired)
+          return if @customer.email.to_s.empty?
+
+          indexed_objid = Onetime::Customer.email_index[@customer.email]
+
+          if indexed_objid.nil?
+            issues << {
+              check: :email_index_missing,
+              severity: :high,
+              message: "no email_index entry for #{@customer.obscure_email}",
+              repairable: true,
+              repair_action: 'Add email_index entry',
+            }
+
+            if repairing?
+              Onetime::Customer.email_index[@customer.email] = @customer.objid
+              OT.info "[customers doctor] Added email_index[#{@customer.email}] -> #{@customer.objid}"
+              repaired << {
+                customer: @customer.extid,
+                action: :email_index_added,
+              }
+            end
+          elsif indexed_objid != @customer.objid
+            issues << {
+              check: :email_index_mismatch,
+              severity: :high,
+              message: "email_index[#{@customer.obscure_email}] points to #{indexed_objid}, expected #{@customer.objid}",
+              repairable: true,
+              repair_action: 'Fix email_index entry',
+            }
+
+            if repairing?
+              Onetime::Customer.email_index[@customer.email] = @customer.objid
+              OT.info "[customers doctor] Fixed email_index[#{@customer.email}] -> #{@customer.objid}"
+              repaired << {
+                customer: @customer.extid,
+                action: :email_index_fixed,
+              }
+            end
+          end
+        end
+
+        # CHECK: the Rodauth accounts row agrees with the Customer record
+        #
+        # ONE OF THE THREE CROSS-STORE CHECKS IN THIS DOCTOR (the others are
+        # check_auth_email_canonical and check_sso_customer_unverified, which
+        # read the SAME memoized row). Every other check compares Redis
+        # against Redis, which means a half-completed cross-store email
+        # change (Auth::Operations::Customers::ChangeEmail returning `:partial`)
+        # was previously UNDETECTABLE: Redis is internally consistent on one
+        # address while Postgres holds the other, so the customer signs in with an
+        # address the app does not show them (or vice versa).
+        #
+        # Direction of repair is Redis -> SQL only. The Customer record is what
+        # every Redis index is keyed against; rewriting it to match SQL would
+        # invalidate `customer:email_index`, the org-scoped index and the org
+        # contact index in one move. Pushing the Customer's address into
+        # `accounts` reconciles authentication to what the rest of the system
+        # already believes.
+        #
+        # A MISSING accounts row is deliberately not reported here — that is a
+        # provisioning gap, not drift, and `bin/ots customers sync-auth-accounts`
+        # owns it.
+        #
+        # COST: one SQL round trip per customer. On a `--all` sweep over a large
+        # authdb this is the dominant cost of the doctor run. Skipped entirely in
+        # simple mode (no auth database).
+        def check_auth_email_drift(issues, repaired)
+          db = auth_db
+          return if db.nil?
+
+          return if @customer.email.to_s.empty?
+
+          account = auth_account
+          return if account.nil?
+
+          sql_email = account[:email].to_s
+          return if sql_email.downcase == @customer.email.to_s.downcase
+
+          issues << {
+            check: :auth_email_drift,
+            severity: :critical,
+            message: "auth account email #{OT::Utils.obscure_email(sql_email)} != customer email " \
+                     "#{@customer.obscure_email} (cross-store split-brain)",
+            auth_email: OT::Utils.obscure_email(sql_email),
+            repairable: true,
+            repair_action: 'Write the Customer email into the Rodauth accounts row',
+          }
+
+          return unless repairing?
+
+          db.transaction do
+            db[:accounts].where(id: account[:id]).update(
+              email: @customer.email, updated_at: Sequel::CURRENT_TIMESTAMP,
+            )
+          end
+          OT.info "[customers doctor] Repaired auth email drift for #{@customer.extid}"
+          repaired << {
+            customer: @customer.extid,
+            action: :auth_email_drift_repaired,
+          }
+        rescue StandardError => ex
+          # A doctor check must never abort the sweep over one unreachable DB.
+          OT.le "[customers doctor] auth_email_drift check failed for #{@customer.extid}: " \
+                "#{ex.class} #{ex.message}"
+        end
+
+        # CHECK: both stores hold the address in canonical form
+        #
+        # THE THIRD CROSS-STORE CHECK, and the narrowest. check_auth_email_drift
+        # compares the two stores case-insensitively on purpose (accounts.email
+        # is citext on PostgreSQL), so a row that differs from the Customer only
+        # by case passes it. Such a row is still broken for every reader that
+        # does an exact `Customer.find_by_email(account[:email])` with the SQL
+        # bytes (new-login alerts, MFA, active sessions, teardown, re-auth
+        # offers): the Redis email index is keyed by the normalized address,
+        # while rodauth-omniauth stored the identity provider's casing (#4726).
+        #
+        # Reported, never repaired here, even under --repair. The repair is one
+        # email mutation per row with collision rules of its own (another row
+        # may hold the lowercase address; a `ß` does not survive lowercasing).
+        # Which command owns it depends on WHICH store holds the non-canonical
+        # bytes, and the message names it:
+        #
+        #   accounts row non-canonical   `bin/ots customers normalize-emails`.
+        #                                Its scan uses this predicate, so it
+        #                                lists exactly these rows and is clean
+        #                                once the run is.
+        #   Customer record non-canonical `bin/ots customers change-email`.
+        #   under a canonical row        This is the residue of a
+        #                                normalize-emails row that ended
+        #                                `:partial` (SQL written, Customer
+        #                                hash not): that command selects by the
+        #                                SQL bytes alone and never revisits it,
+        #                                and the drift check ignores case, so
+        #                                without this branch it is invisible.
+        #
+        # Skipped when the two stores name different addresses: that is
+        # check_auth_email_drift's finding, and its repair writes the
+        # (normalized) Customer address into the row, which settles both.
+        def check_auth_email_canonical(issues)
+          account = auth_account
+          return if account.nil?
+
+          sql_email      = account[:email].to_s
+          customer_email = @customer.email.to_s
+          return if sql_email.empty?
+          return unless sql_email.downcase == customer_email.downcase
+
+          sql_stale      = OT::Utils.canonical_email(sql_email) != sql_email
+          customer_stale = OT::Utils.canonical_email(customer_email) != customer_email
+          return unless sql_stale || customer_stale
+
+          stores = []
+          stores << 'the auth accounts row' if sql_stale
+          stores << 'the Customer record' if customer_stale
+
+          # normalize-emails selects by the SQL bytes, so it covers every case
+          # where the row itself is non-canonical (including both stores).
+          repair_action =
+            if sql_stale
+              'Run `bin/ots customers normalize-emails` (dry run), then with --confirm'
+            else
+              "Run `bin/ots customers change-email #{@customer.extid} <lowercase address> --apply` " \
+                '(the accounts row is already canonical; normalize-emails will not select it)'
+            end
+
+          issues << {
+            check: :auth_email_not_canonical,
+            severity: :high,
+            message: "email #{OT::Utils.obscure_email(sql_email)} is not in canonical form in " \
+                     "#{stores.join(' and ')} (exact-match readers miss this customer)",
+            auth_email: OT::Utils.obscure_email(sql_email),
+            customer_email: @customer.obscure_email,
+            non_canonical_in: stores,
+            repairable: false,
+            repair_action: repair_action,
+          }
+        rescue StandardError => ex
+          OT.le "[customers doctor] auth_email_not_canonical check failed for #{@customer.extid}: " \
+                "#{ex.class} #{ex.message}"
+        end
+
+        # CHECK: the ORG-SCOPED email index (organization:<objid>:email_index)
+        #
+        # Distinct from check_email_index_entry, which only ever looks at the
+        # GLOBAL `customer:email_index`. The org-scoped index is not
+        # auto-populated on save (Familia only auto-adds class-level indexes), so
+        # it is the first thing to go stale after an email change — a stale entry
+        # under the OLD address plus a missing entry under the new one.
+        #
+        # A key that points at a DIFFERENT customer is reported but NOT repaired:
+        # overwriting it would steal that customer's index entry, and this doctor
+        # has no way to tell which of the two is the rightful holder.
+        #
+        # COST: the stale-key sweep reads the org's ENTIRE email index once per
+        # (customer, org) pair, so a `--all` run is O(customers x org-index-size).
+        # Bounded in practice — a personal workspace holds one entry — but a large
+        # shared org is re-read once per member. HSCAN would not reduce that: the
+        # sweep matches on the index VALUE (objid) while MATCH filters on the field
+        # (email), so a cursor walk reads the same bytes in batches and still needs
+        # a full-size seen-map to absorb HSCAN's at-least-once yields.
+        def check_org_email_index(issues, repaired)
+          email = @customer.email.to_s
+          return if email.empty?
+
+          objid = @customer.objid.to_s
+
+          customer_organizations.each do |org|
+            index   = org.email_index
+            indexed = index.get(email).to_s
+            stale   = index.hgetall.select { |key, value| value.to_s == objid && key != email }.keys
+
+            if !indexed.empty? && indexed != objid
+              issues << {
+                check: :org_email_index_stale,
+                severity: :high,
+                message: "#{org.extid}.email_index[#{@customer.obscure_email}] points to #{indexed}, " \
+                         "expected #{objid}",
+                org_extid: org.extid,
+                repairable: false,
+                repair_action: 'Manual decision required: org email_index entry is held by another customer',
+              }
+              next
+            end
+
+            next if !indexed.empty? && stale.empty?
+
+            issues << {
+              check: :org_email_index_stale,
+              severity: :high,
+              message: org_email_index_message(org, indexed, stale),
+              org_extid: org.extid,
+              stale_keys: stale.size,
+              repairable: true,
+              repair_action: 'Re-key the org-scoped email index',
+            }
+
+            next unless repairing?
+
+            # Add the correct entry BEFORE removing the stale ones, so there is
+            # no window in which the customer is unfindable within the org.
+            index[email] = objid
+            stale.each { |key| index.remove_field(key) }
+            OT.info "[customers doctor] Re-keyed #{org.extid}.email_index for #{@customer.extid} " \
+                    "(removed #{stale.size} stale)"
+            repaired << {
+              customer: @customer.extid,
+              action: :org_email_index_rekeyed,
+              org: org.extid,
+              stale_keys: stale.size,
+            }
+          end
+        rescue StandardError => ex
+          OT.le "[customers doctor] org_email_index check failed for #{@customer.extid}: " \
+                "#{ex.class} #{ex.message}"
+        end
+
+        # CHECK: a personal workspace still contacting a dead address
+        #
+        # `EnsureDefaultWorkspace` seeds the auto-created workspace's
+        # contact_email from the customer's address and nothing ever updated it,
+        # so every self-service email change left the default org (and
+        # `organization:contact_email_index`) pointing at an address no account
+        # holds. That matters because the signup repair path looks orgs up BY
+        # contact_email.
+        #
+        # Scoped hard to avoid false positives and cross-customer damage:
+        #   * only `is_default` workspaces the customer OWNS
+        #   * only when the contact address resolves to NO live customer — a
+        #     contact deliberately set to a colleague's account address is left
+        #     alone. A deliberate non-account address (billing@acme.com) is the
+        #     known false positive; it is reported at :warning, and repair is
+        #     opt-in, never automatic.
+        def check_org_contact_email(issues, repaired)
+          email = @customer.email.to_s
+          return if email.empty?
+
+          customer_organizations.each do |org|
+            next unless default_org?(org)
+
+            contact = org.contact_email.to_s
+            next if contact.empty?
+            next if contact.downcase == email.downcase
+            next unless Onetime::Customer.email_index.get(contact).nil?
+            next unless org.owner?(@customer)
+
+            holder     = Onetime::Organization.contact_email_index.get(email)
+            conflicted = !holder.nil? && holder.to_s != org.identifier.to_s
+
+            issues << {
+              check: :org_contact_email_stale,
+              severity: :warning,
+              message: "#{org.extid} (default workspace) contact_email " \
+                       "#{OT::Utils.obscure_email(contact)} belongs to no account",
+              org_extid: org.extid,
+              repairable: !conflicted,
+              repair_action: if conflicted
+                               'Manual decision required: another org already holds the customer address'
+                             else
+                               'Point contact_email at the customer address'
+                             end,
+            }
+
+            next if conflicted
+            next unless repairing?
+
+            org.contact_email = email
+            org.update_in_class_contact_email_index(contact)
+            org.save
+            OT.info "[customers doctor] Updated #{org.extid}.contact_email for #{@customer.extid}"
+            repaired << {
+              customer: @customer.extid,
+              action: :org_contact_email_updated,
+              org: org.extid,
+            }
+          end
+        rescue StandardError => ex
+          OT.le "[customers doctor] org_contact_email check failed for #{@customer.extid}: " \
+                "#{ex.class} #{ex.message}"
+        end
+
+        # CHECK: participation reverse index sync with org.members
+        def check_org_membership_sync(issues, repaired)
+          org_objids = @customer.participating_ids_for_target(Onetime::Organization, ['members'])
+
+          org_objids.each do |org_objid|
+            organization = Onetime::Organization.load(org_objid)
+
+            if organization.nil?
+              collection_key = [Onetime::Organization.prefix, org_objid, 'members'].join(Familia.delim)
+              issues << {
+                check: :org_membership_desync,
+                severity: :medium,
+                message: "participations references deleted org #{org_objid}",
+                org_objid: org_objid,
+                repairable: true,
+                repair_action: 'Remove stale participation entry',
+              }
+
+              if repairing?
+                @customer.untrack_participation_in(collection_key)
+                if @customer.participations.to_a.include?(collection_key)
+                  raise Onetime::Problem, "Stale participation cleanup failed: #{collection_key}"
+                end
+
+                OT.info "[customers doctor] Removed stale participation #{collection_key} for #{@customer.extid}"
+                repaired << {
+                  customer: @customer.extid,
+                  action: :stale_org_removed,
+                  org_objid: org_objid,
+                }
+              end
+            elsif !organization.member?(@customer)
+              issues << {
+                check: :org_membership_desync,
+                severity: :medium,
+                message: "customer tracked in participations for #{organization.extid} but not in org.members",
+                org_extid: organization.extid,
+                repairable: true,
+                repair_action: 'Add customer to org.members',
+              }
+
+              if repairing?
+                organization.add_members_instance(@customer)
+                OT.info "[customers doctor] Added #{@customer.extid} to #{organization.extid}.members"
+                repaired << {
+                  customer: @customer.extid,
+                  action: :added_to_org_members,
+                  org: organization.extid,
+                }
+              end
+            end
+          end
+        end
+
+        # CHECK: role has valid value
+        def check_role_validity(issues)
+          role = @customer.role.to_s
+          return if role.empty? # No role is OK for some accounts
+          return if VALID_ROLES.include?(role)
+
+          issues << {
+            check: :role_invalid,
+            severity: :medium,
+            message: "role '#{role}' is not a recognized value (expected: #{VALID_ROLES.join(', ')})",
+            repairable: false,
+            repair_action: 'Manual decision required: determine correct role',
+          }
+        end
+
+        # CHECK: verified/verified_by consistency
+        def check_verified_consistency(issues, repaired)
+          verified    = @customer.verified.to_s == 'true'
+          verified_by = @customer.verified_by.to_s
+
+          return unless verified && verified_by.empty?
+
+          issues << {
+            check: :verified_inconsistent,
+            severity: :warning,
+            message: "verified='true' but verified_by is empty",
+            repairable: true,
+            repair_action: "Set verified_by to 'legacy'",
+          }
+
+          return unless repairing?
+
+          @customer.verified_by = 'legacy'
+          @customer.save
+          OT.info "[customers doctor] Set verified_by='legacy' for #{@customer.extid}"
+          repaired << {
+            customer: @customer.extid,
+            action: :verified_by_set,
+            value: 'legacy',
+          }
+        end
+
+        # CHECK: counter fields are non-negative
+        def check_counter_sanity(issues, repaired)
+          negative_counters = []
+
+          COUNTER_FIELDS.each do |field|
+            value = @customer.send(field).to_i
+            negative_counters << { field: field, value: value } if value.negative?
+          end
+
+          return if negative_counters.empty?
+
+          issues << {
+            check: :counter_negative,
+            severity: :low,
+            message: "#{negative_counters.size} counter(s) have negative values",
+            counters: negative_counters,
+            repairable: true,
+            repair_action: 'Reset negative counters to 0',
+          }
+
+          return unless repairing?
+
+          negative_counters.each do |counter|
+            @customer.send(:"#{counter[:field]}=", 0)
+          end
+          @customer.save
+          OT.info "[customers doctor] Reset #{negative_counters.size} negative counter(s) for #{@customer.extid}"
+          repaired << {
+            customer: @customer.extid,
+            action: :counters_reset,
+            fields: negative_counters.map { |c| c[:field] },
+          }
+        end
+
+        # CHECK: field values in :object hash are properly JSON-serialized
+        def check_field_serialization(issues, repaired)
+          dbclient     = @customer.class.dbclient
+          customer_key = @customer.dbkey(:object)
+          raw_hash     = dbclient.hgetall(customer_key)
+          bad_fields   = []
+
+          raw_hash.each do |field_name, raw_value|
+            next if properly_serialized?(raw_value)
+
+            bad_fields << { field: field_name, value: raw_value[0..60] }
+          end
+
+          return if bad_fields.empty?
+
+          issues << {
+            check: :field_serialization,
+            severity: :high,
+            message: "#{bad_fields.size} field(s) stored as raw strings instead of JSON: #{bad_fields.map { |f| f[:field] }.join(', ')}",
+            fields: bad_fields,
+            repairable: true,
+            repair_action: 'Re-serialize fields with Familia::JsonSerializer.dump',
+          }
+
+          return unless repairing?
+
+          updates = bad_fields.to_h do |entry|
+            [entry[:field], Familia::JsonSerializer.dump(raw_hash[entry[:field]])]
+          end
+          dbclient.hset(customer_key, updates)
+
+          OT.info "[customers doctor] Re-serialized #{bad_fields.size} field(s) for #{@customer.extid}: #{bad_fields.map { |f| f[:field] }.join(', ')}"
+          repaired << {
+            customer: @customer.extid,
+            action: :fields_reserialized,
+            fields: bad_fields.map { |f| f[:field] },
+          }
+        end
+
+        # The customer's Rodauth accounts row, or nil (simple mode, unreachable
+        # DB, no extid, no row). Memoized because THREE cross-store checks read
+        # it — :auth_email_drift, :auth_email_not_canonical and
+        # :sso_customer_unverified — and the class docs call the one SQL round
+        # trip per customer the dominant cost of an `--all` sweep. One shared
+        # read keeps that cost unchanged.
+        #
+        # A repair inside check_auth_email_drift rewrites the row's email; the
+        # memo is deliberately not invalidated. check_auth_email_canonical
+        # skips a memoized address that differs from the Customer's beyond
+        # case, which is exactly the row that repair rewrote, and
+        # check_sso_customer_unverified wants :status_id, which no repair
+        # here touches.
+        def auth_account
+          return @auth_account if defined?(@auth_account)
+
+          db    = auth_db
+          extid = @customer.extid.to_s
+
+          @auth_account = if db.nil? || extid.empty?
+                            nil
+                          else
+                            db[:accounts].where(external_id: extid).select(:id, :email, :status_id).first
+                          end
+        rescue StandardError
+          @auth_account_unreadable = true
+          @auth_account            = nil
+        end
+
+        # CHECK: an SSO-provisioned Customer left unverified (#3973)
+        #
+        # The JIT SSO path used to hard-code `verified: false` on the Customer
+        # while Rodauth opened the accounts row at VERIFIED, and nothing ever
+        # reconciled the two — after_verify_account only fires in the email
+        # verify flow, which an SSO user never traverses. The visible symptom is
+        # an SSO-provisioned colonel who cannot exercise their role, because
+        # has_system_role? tests verified? BEFORE it reads the role.
+        #
+        # The forward fix (config/hooks/omniauth.rb) stops new records drifting.
+        # This check is the ONLY thing that heals records created before it, and
+        # it is deliberately narrow on BOTH sides of the split:
+        #
+        #   * Redis side — provisioning_origin must literally be 'sso_jit'. This
+        #     is set once at creation and never rewritten, so it is real
+        #     provenance, not an inference from current state.
+        #   * SQL side — the accounts row must already be at
+        #     AccountStatuses::VERIFIED. The repair therefore only copies a fact
+        #     the auth store already holds; it never decides that anyone is
+        #     verified, and never touches SQL (rodauth_already_synced: true).
+        #
+        # An existing verified_by is PRESERVED — a customer who was
+        # email-verified or stripe-verified keeps that provenance, and only a
+        # record with no provenance at all is stamped 'sso'.
+        #
+        # A VERIFICATION HOLD IS HONOURED. The JIT hook leaves the Customer
+        # unverified on purpose when the IdP asserted email_verified: false,
+        # or when that claim could not be read, and stamps verification_hold
+        # with the reason so the decision survives without the auth hash this
+        # doctor never sees. Such a record is NOT drift: the accounts row is
+        # Verified only because rodauth-omniauth opens every SSO account that
+        # way. It is reported (so it does not silently linger) but never
+        # auto-repaired, even under --repair; an operator who has confirmed
+        # the address verifies it by hand (colonel admin, or
+        # `bin/ots customers verify`).
+        def check_sso_customer_unverified(issues, repaired)
+          return if @customer.verified?
+          return unless @customer.provisioning_origin.to_s == 'sso_jit'
+
+          account = auth_account
+          return if account.nil?
+          return unless account[:status_id] == Auth::AccountStatuses::VERIFIED
+
+          hold = @customer.verification_hold.to_s
+          unless hold.empty?
+            issues << {
+              check: :sso_customer_unverified,
+              severity: :medium,
+              message: "SSO-provisioned customer is unverified on purpose: #{Onetime::Customer::VERIFICATION_HOLDS.fetch(hold, hold)} " \
+                       '(auth account is Verified; not auto-repaired)',
+              reason: hold.to_sym,
+              repairable: false,
+              repair_action: 'Manual decision required: confirm the address with the IdP, then verify ' \
+                             'via colonel admin or `bin/ots customers verify EMAIL`',
+            }
+            return
+          end
+
+          existing_provenance = @customer.verified_by.to_s
+          provenance          = existing_provenance.empty? ? 'sso' : existing_provenance
+
+          issues << {
+            check: :sso_customer_unverified,
+            severity: :high,
+            message: 'SSO-provisioned customer is unverified while its auth account is Verified ' \
+                     '(system roles are gated on verified?)',
+            repairable: true,
+            repair_action: "Mirror the auth account's verified state onto the Customer " \
+                           "(verified_by: '#{provenance}')",
+          }
+
+          return unless repairing?
+
+          Auth::Operations::SetCustomerVerification.new(
+            customer: @customer,
+            verified: true,
+            verified_by: provenance,
+            rodauth_already_synced: true,
+          ).call
+
+          OT.info "[customers doctor] Verified SSO-provisioned customer #{@customer.extid} " \
+                  "(verified_by: #{provenance})"
+          repaired << {
+            customer: @customer.extid,
+            action: :sso_customer_verified,
+            value: provenance,
+          }
+        rescue StandardError => ex
+          # Same rule as the other cross-store check: never abort a sweep over
+          # one unreachable DB or one bad record.
+          OT.le "[customers doctor] sso_customer_unverified check failed for #{@customer.extid}: " \
+                "#{ex.class} #{ex.message}"
+        end
+
+        # CHECK: a closure marker on a record that still exists (#4830)
+        #
+        # Customer#mark_closure_started! runs just before a closure removes
+        # the sign-in, and a completed closure deletes the record with it. A
+        # record that still carries the marker is in one of two states, told
+        # apart by the auth account (the memoized read the cross-store checks
+        # share; in simple mode there is none):
+        #
+        #   no open auth account  The closure stopped before the record was
+        #                         deleted. Reported, never repaired here:
+        #                         finishing it deletes the account, which is
+        #                         `bin/ots customers finish-closures`.
+        #   open auth account     The closure's transaction rolled back and
+        #                         the account is live. --repair clears the
+        #                         marker, so the record stops reading as a
+        #                         closure and finish-closures leaves it alone.
+        #
+        # A marker younger than Customer::CLOSURE_STALE_AFTER can belong to a
+        # closure still running, whose uncommitted transaction reads here as
+        # an open account: it is reported as in progress and left alone. An
+        # unreadable auth database decides neither state, so nothing is
+        # reported. Customer.closure_state is the classification, shared with
+        # finish-closures, diagnose and the sign-up finish.
+        def check_closure_marker(issues, repaired)
+          return unless @customer.closing?
+
+          account = auth_account
+          live    = @auth_account_unreadable ? nil : AccountStatuses.live?(account && account[:status_id])
+          started = Time.at(@customer.closure_started_at.to_i).utc.strftime('%Y-%m-%d %H:%M UTC')
+
+          case @customer.closure_state(open_auth_account: live)
+          when :in_progress
+            issues << {
+              check: :closure_in_progress,
+              severity: :low,
+              message: "account closure started at #{started} and may still be running",
+              repairable: false,
+            }
+          when :interrupted
+            issues << {
+              check: :closure_interrupted,
+              severity: :high,
+              message: "#{auth_mode_caveat}account closure started at #{started} stopped before the record " \
+                       "was deleted; finish it with `bin/ots customers purge #{@customer.extid}` (or every " \
+                       'such closure with `bin/ots customers finish-closures --confirm`)',
+              repairable: false,
+            }
+          when :rolled_back
+            issues << {
+              check: :closure_rolled_back,
+              severity: :medium,
+              message: "account closure started at #{started} rolled back; the auth account is open " \
+                       'and the record still carries the closure marker',
+              repairable: true,
+              repair_action: 'Clear the closure marker',
+            }
+            return unless repairing_closure_marker?
+
+            @customer.clear_closure_marker!
+            OT.info "[customers doctor] Cleared the closure marker of #{@customer.extid} (closure rolled back)"
+            repaired << { customer: @customer.extid, action: :closure_marker_cleared }
+          end
+        end
+
+        # Auth database handle, or nil in simple mode. A connection that
+        # cannot be built is nil too, flagged unreadable, so the account
+        # checks decide nothing rather than read "no connection" as "no
+        # account" (check_closure_marker would otherwise advise a purge).
+        def auth_db
+          return @auth_db if defined?(@auth_db)
+
+          @auth_db = defined?(Auth::Database) ? Auth::Database.connection : nil
+        rescue StandardError
+          @auth_account_unreadable = true
+          @auth_db                 = nil
+        end
+
+        # In simple mode no auth account exists, so a stale marker is an
+        # interrupted closure by definition. bin/ots resolves simple mode
+        # whenever AUTHENTICATION_MODE is not exported into its shell,
+        # full-mode install or not (Onetime::AuthConfig#simple_by_default?),
+        # and on a full-mode install the record may then belong to a
+        # rolled-back closure with a live account. The read-out leads with
+        # that before it names the purge, which refuses in the same state
+        # (Onetime::CLI::Customers::Shared#auth_mode_refusal).
+        def auth_mode_caveat
+          return '' unless Onetime.auth_config.simple_by_default?
+
+          'no auth account was checked (AUTHENTICATION_MODE is not set, so simple auth mode was resolved ' \
+            'by default; on a full-mode install re-run with it exported before acting): '
+        end
+
+        # Memoized once per Doctor instance — three checks iterate it.
+        def customer_organizations
+          @customer_organizations ||= @customer.organization_instances.to_a
+        rescue StandardError
+          @customer_organizations = []
+        end
+
+        # A repair that provisioned a workspace invalidates the memo: the
+        # org-level checks that follow (email index, contact email, membership
+        # sync) must see the new org, not the empty list captured before it.
+        def refresh_customer_organizations!
+          @customer_organizations = nil
+        end
+
+        # `is_default` is a conservative boolean: absent/blank means NOT default.
+        def default_org?(org)
+          org.respond_to?(:is_default) && org.is_default.to_s == 'true'
+        end
+
+        def org_email_index_message(org, indexed, stale)
+          if indexed.empty?
+            "#{org.extid}.email_index has no entry for #{@customer.obscure_email} " \
+              "(#{stale.size} stale key(s) point here)"
+          else
+            "#{org.extid}.email_index has #{stale.size} stale key(s) still pointing at #{@customer.extid}"
+          end
+        end
+
+        # Checks whether a raw Redis value is a valid JSON literal. See the CLI
+        # docs for the empty-string / bare-primitive caveats (preserved verbatim).
+        def properly_serialized?(raw_value)
+          return true if raw_value.nil? || raw_value.empty?
+
+          Familia::JsonSerializer.parse(raw_value)
+          true
+        rescue JSON::ParserError, Familia::SerializerError
+          false
+        end
+
+        def audit_repair_outcome(repaired)
+          if @partial_repair
+            actions = @partial_repair[:actions] + repaired.map { |repair| repair[:action] }.compact
+            audit_partial_repair(@partial_repair.merge(actions: actions.uniq))
+          elsif repaired.any?
+            audit_repair(repaired)
+          end
+        end
+
+        # One audit event per repaired customer (see class docs).
+        def audit_repair(repaired)
+          return if @actor.nil?
+
+          Onetime::ColonelAuditEvent.record(
+            actor: @actor,
+            verb: AUDIT_VERB,
+            target: @customer.extid,
+            result: :success,
+            detail: { actions: repaired.map { |r| r[:action] }.compact },
+          )
+        end
+
+        # A stale claim was removed but canonical provisioning did not converge.
+        # Record one bounded doctor event, explicitly partial rather than success.
+        def audit_partial_repair(partial)
+          return if @actor.nil?
+
+          error  = partial[:error]
+          detail = {
+            actions: partial[:actions],
+            classification: partial[:classification],
+            retry_classification: partial[:retry_classification],
+            error: error.class.name,
+            message: error.message.to_s,
+          }
+          if partial[:latch_error]
+            latch_error          = partial[:latch_error]
+            detail[:latch_error] = "#{latch_error.class}: #{latch_error.message}"
+          end
+
+          Onetime::ColonelAuditEvent.record(
+            actor: @actor,
+            verb: AUDIT_VERB,
+            target: @customer.extid,
+            result: :partial,
+            detail: detail,
+          )
+        end
+
+        # Same verb/target/actor as the success event, so the failed repair sits
+        # next to the completed ones under one filter. Routed through
+        # Onetime::AuditedFailure.record (not ColonelAuditEvent.record directly) so
+        # it inherits the shared rules: authorization rejections are dropped, an
+        # exception already recorded by an inner audited op is not recorded
+        # twice, and the write is best-effort.
+        def audit_repair_failure(error)
+          Onetime::AuditedFailure.record(
+            actor: @actor,
+            verb: AUDIT_VERB,
+            target: @customer&.extid.to_s,
+            error: error,
+          )
+        end
+      end
+      # rubocop:enable Metrics/ClassLength
+    end
+  end
+end

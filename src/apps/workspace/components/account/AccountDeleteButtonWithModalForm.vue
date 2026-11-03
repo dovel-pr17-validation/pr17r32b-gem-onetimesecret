@@ -1,0 +1,153 @@
+<!-- src/apps/workspace/components/account/AccountDeleteButtonWithModalForm.vue -->
+
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+  import { type Customer } from '@/schemas/shapes/v3';
+  import OIcon from '@/shared/components/icons/OIcon.vue';
+  import { useAuth } from '@/shared/composables/useAuth';
+  import { ref } from 'vue';
+
+  const { t } = useI18n();
+  const { closeAccount, isLoading: isDeleting, error: deleteError, clearErrors } = useAuth();
+
+  interface Props {
+    cust: Customer;
+  }
+
+  defineProps<Props>();
+
+  const showDeleteModal = ref(false);
+  const deletePassword = ref('');
+
+  // This screen is full-auth-only. Do not use /api/account/destroy here:
+  // its `sessionauth` strategy requires the marker written by Core's
+  // simple-auth login flow. Rodauth owns the session used on this screen,
+  // and closeAccount posts to its /auth/close-account route instead.
+  const submitDeleteAccount = async () => {
+    if (!deletePassword.value || isDeleting.value) return;
+
+    await closeAccount(deletePassword.value);
+  };
+
+  const openDeleteModal = () => {
+    clearErrors();
+    showDeleteModal.value = true;
+  };
+
+  const closeDeleteModal = () => {
+    clearErrors();
+    showDeleteModal.value = false;
+    deletePassword.value = '';
+  };
+</script>
+
+<template>
+  <p class="mb-4 dark:text-gray-300">
+    {{ t('web.account.please_be_advised') }}
+  </p>
+  <ul class="mb-4 list-inside list-disc dark:text-gray-300">
+    <li>
+      <span class="font-bold">{{
+        t('web.account.secrets_will_remain_active_until_they_expire')
+      }}</span>
+    </li>
+    <li>
+      {{ t('web.account.any_secrets_you_wish_to_remove') }}
+      <RouterLink
+        to="/recent"
+        class="underline hover:text-brand-600 dark:hover:text-brand-400"
+        >{{ t('web.account.burn_them_before_continuing') }}</RouterLink
+      >.
+    </li>
+    <li>
+      {{ t('web.account.deleting_your_account_is') }}
+      <span class="italic">{{ t('web.account.permanent_and_non_reversible') }}</span>
+    </li>
+  </ul>
+  <button
+    @click="openDeleteModal"
+    data-testid="account-delete-open-btn"
+    class="group flex w-full items-center justify-center rounded bg-red-600 px-4 py-2 font-bold text-white transition-all hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/25">
+    <!-- no-symbol: Reserved exclusively for destructive/irreversible actions -->
+    <OIcon
+      collection="heroicons"
+      name="no-symbol-solid"
+      class="mr-2 size-5 transition-transform group-hover:scale-110"
+      aria-hidden="true" />
+    {{ t('web.account.permanently_delete_account') }}
+  </button>
+  <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+    {{ t('web.account.deleting_cust_custid', [cust?.email]) }}
+  </p>
+
+  <!-- Delete Account Confirmation Modal -->
+  <div
+    v-if="showDeleteModal"
+    data-testid="account-delete-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <form
+      @submit.prevent="submitDeleteAccount"
+      class="w-full max-w-md">
+      <div class="rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+        <h3 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+          {{ t('web.account.confirm_account_deletion') }}
+        </h3>
+        <p class="mb-4 text-gray-700 dark:text-gray-300">
+          {{ t('web.account.are_you_sure_you_want_to_permanently_delete_your') }}
+        </p>
+
+        <input
+          type="hidden"
+          name="tabindex"
+          value="destroy" />
+
+        <div class="mb-4">
+          <input
+            v-model="deletePassword"
+            name="confirmation"
+            type="password"
+            data-testid="account-delete-password-input"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            autocomplete="confirmation"
+            :placeholder="t('web.account.confirm_with_your_password')" />
+        </div>
+
+        <p
+          v-if="deleteError"
+          class="mb-4 text-red-500">
+          {{ deleteError }}
+        </p>
+
+        <div class="flex justify-end space-x-4">
+          <button
+            @click="closeDeleteModal"
+            type="button"
+            data-testid="account-delete-cancel-btn"
+            class="rounded-md bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+            {{ t('web.COMMON.word_cancel') }}
+          </button>
+          <button
+            type="submit"
+            data-testid="account-delete-confirm-btn"
+            :disabled="!deletePassword || isDeleting"
+            class="group flex items-center rounded-md bg-red-600 px-4 py-2 text-white transition-all hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/25 focus:ring-2 focus:ring-red-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-700 dark:hover:bg-red-800">
+            <OIcon
+              v-if="isDeleting"
+              collection="heroicons"
+              name="arrow-path"
+              class="mr-3 -ml-1 size-5 animate-spin motion-reduce:animate-none"
+              aria-hidden="true" />
+            <!-- no-symbol: Reserved exclusively for destructive/irreversible actions -->
+            <OIcon
+              v-else
+              collection="heroicons"
+              name="no-symbol-solid"
+              class="mr-2 size-5 transition-transform group-hover:scale-110"
+              aria-hidden="true" />
+            {{ isDeleting ? t('web.account.deleting_ellipsis') : t('web.account.delete_account') }}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</template>

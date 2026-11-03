@@ -1,0 +1,74 @@
+{
+  "web.feedback.your_feedback": {
+    "text": "귀하의 의견",
+    "source_hash": "cdb1c0a5"
+  },
+  "web.feedback.all_feedback_welcome": {
+    "text": "모든 의견을 환영합니다!",
+    "source_hash": "c57d3006"
+  },
+  "web.feedback.help_us_improve": {
+    "text": "개선에 도움을 주세요",
+    "source_hash": "f35439c4"
+  },
+  "web.feedback.close_feedback_modal": {
+    "text": "의견 창 닫기",
+    "source_hash": "41689bb4"
+  },
+  "web.feedback.share_your_feedback": {
+    "text": "의견을 공유해 주세요",
+    "source_hash": "6d62dfbd"
+  },
+  "web.feedback.delano_mandelbaum": {
+    "text": "Delano Mandelbaum",
+    "source_hash": "6da0b72b"
+  },
+  "web.feedback.delano": {
+    "text": "Delano",
+    "source_hash": "f58154f7"
+  },
+  "web.feedback.help_content_goes_here": {
+    "text": "도움말 내용이 여기에 표시됩니다.",
+    "source_hash": "796979ea"
+  },
+  "web.feedback.founder_note_line1": {
+    "text": "저는 여기를 통해 들어오는 모든 의견을 읽습니다. 무엇에 시간을 투자해야 할지 파악하는 방법입니다.",
+    "source_hash": "8b430d93"
+  },
+  "web.feedback.founder_note_line2": {
+    "text": "문제가 있거나 어떻게 작동해야 하는지에 대한 아이디어가 있다면 여기가 적합한 곳입니다.",
+    "source_hash": "d4b8f073"
+  },
+  "web.feedback.open_feedback_form": {
+    "text": "의견 양식 열기",
+    "source_hash": "acd8409b"
+  },
+  "web.feedback.enter_your_feedback": {
+    "text": "의견을 입력해 주세요",
+    "source_hash": "1bb310f4"
+  },
+  "web.feedback.send_feedback": {
+    "text": "의견 보내기",
+    "source_hash": "8235980b"
+  },
+  "web.feedback.sending_ellipses": {
+    "text": "전송 중...",
+    "source_hash": "286a3af7"
+  },
+  "web.feedback.reason_email_change_unauthorized": {
+    "text": "계정에서 승인되지 않은 이메일 변경을 신고하시는 것으로 보입니다. 상황을 설명해 주시면 즉시 조사하겠습니다.",
+    "source_hash": "00e56551"
+  },
+  "web.feedback.anonymous_no_reply": {
+    "text": "참고: 답변을 원하시면 메시지에 서명하거나 이메일 주소를 포함해 주세요.",
+    "source_hash": "c984f705"
+  },
+  "web.feedback.characters_remaining": {
+    "text": "{count}자 남음",
+    "source_hash": "8d796f40"
+  },
+  "web.feedback.character_limit_reached": {
+    "text": "글자 수 제한에 도달했습니다",
+    "source_hash": "031e9310"
+  }
+}

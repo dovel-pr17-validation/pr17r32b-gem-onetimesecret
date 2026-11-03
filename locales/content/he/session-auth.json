@@ -1,0 +1,551 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "צריך חשבון?",
+    "source_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "הירשם.",
+    "source_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "שכחת את הסיסמה שלך?",
+    "source_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "התחבר",
+    "source_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "הזן את פרטי ההתחברות שלך",
+    "source_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "זכור אותי",
+    "source_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "שלח קישור התחברות",
+    "source_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "קישור מאובטח יישלח לתיבת הדוא״ל שלך.",
+    "source_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "או",
+    "source_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "התחבר עם סיסמה",
+    "source_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "השתמש בהתחברות ללא סיסמה",
+    "source_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "יצירת חשבון",
+    "source_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "חזרה לדף הבית",
+    "source_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "סיסמה",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "קישור קסם",
+    "source_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "מפתח גישה",
+    "source_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "צריך עזרה?",
+    "source_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "או המשך עם",
+    "source_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "התחבר עם SSO",
+    "source_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "התחבר באמצעות {provider}",
+    "source_hash": "b8794f11"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "מפנה לספק הזהות...",
+    "source_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "התחברות SSO נכשלה. נסה שוב.",
+    "source_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "אימות SSO נכשל. נסה שוב או השתמש בהתחברות עם סיסמה.",
+    "source_hash": "13a2210a"
+  },
+  "web.login.errors.token_missing": {
+    "text": "קישור האימות אינו שלם. בקש קישור התחברות חדש.",
+    "source_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "פג תוקף קישור ההתחברות. בקש קישור חדש.",
+    "source_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "קישור ההתחברות אינו תקף. בקש קישור חדש.",
+    "source_hash": "270c6401"
+  },
+  "web.signup.create_your_account": {
+    "text": "יצירת החשבון שלך",
+    "source_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "כבר יש לך חשבון?",
+    "source_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "התחבר.",
+    "source_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "שגיאה ביצירת חשבון",
+    "source_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "סיסמה",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "דוא״ל",
+    "source_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": "Email verification flow after signup"
+  },
+  "web.auth.verify.title": {
+    "text": "אמת את החשבון שלך",
+    "source_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "החשבון שלך אומת בהצלחה",
+    "source_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "מפתח אימות לא תקין או שפג תוקפו",
+    "source_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "קישור האימות הזה פג תוקף. אנא בקש קישור חדש.",
+    "source_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "חשבון זה כבר אומת. ניתן להתחבר עכשיו.",
+    "source_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "לא ניתן לאמת את החשבון. אנא נסה שוב או צור קשר עם התמיכה.",
+    "source_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "אנא בדוק את הדוא״ל שלך לקישור אימות",
+    "source_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "אימות החשבון נכשל. אנא בדוק את קישור האימות שלך או בקש קישור חדש.",
+    "source_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "האימות נכשל",
+    "source_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "מה עליי לעשות?",
+    "source_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "בדוק את הדוא״ל שלך לקישור האימות האחרון",
+    "source_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "בדוק את תיקיית הספאם/זבל אם לא מוצא את ההודעה",
+    "source_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "צור קשר עם התמיכה אם ממשיכות להיות בעיות",
+    "source_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "נדרש קישור אימות",
+    "source_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "אנא השתמש בקישור האימות שנשלח לכתובת הדוא״ל שלך כדי לאמת את החשבון.",
+    "source_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "יצירת חשבון חדש",
+    "source_hash": "0e24ec84"
+  },
+  "web.auth.change_password.title": {
+    "text": "שינוי סיסמה",
+    "source_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "סיסמה נוכחית",
+    "source_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "סיסמה חדשה",
+    "source_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "אשר סיסמה חדשה",
+    "source_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "הסיסמה שלך שונתה בהצלחה",
+    "source_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "שינוי הסיסמה נכשל. אנא ודא את הסיסמה הנוכחית שלך ונסה שוב.",
+    "source_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "סגירת חשבון",
+    "source_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "לא ניתן לבטל פעולה זו. כל הסודות שלך יימחקו לצמיתות.",
+    "source_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "אני מבין שפעולה זו היא לצמיתות",
+    "source_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "הזן את הסיסמה שלך לאישור",
+    "source_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "סגירת חשבון לצמיתות",
+    "source_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "ביטול",
+    "source_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "בקשת איפוס סיסמה",
+    "source_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "הזן את כתובת הדוא״ל שלך למטה ונשלח לך קישור לאיפוס הסיסמה",
+    "source_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "שלח קישור איפוס",
+    "source_hash": "7d5f16d4"
+  },
+  "web.auth.password_reset.title": {
+    "text": "בחר סיסמה חדשה",
+    "context": "Password reset request flow - user requests a reset link",
+    "source_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "אנא הזן את הסיסמה החדשה שלך למטה. ודא שהיא חזקה וייחודית כדי להגן על החשבון שלך.",
+    "source_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "נשלחה אליך הודעת דוא״ל עם קישור לאיפוס הסיסמה של החשבון שלך",
+    "source_hash": "63a6af45"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "אני מסכים ל-",
+    "source_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "פרטי חשבון",
+    "context": "User account overview/dashboard section",
+    "source_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "כתובת דוא״ל",
+    "source_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "החשבון נוצר",
+    "source_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "דוא״ל מאומת",
+    "source_hash": "bc512ab0"
+  },
+  "web.auth.account.region": {
+    "text": "אזור",
+    "source_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "דוא״ל לא מאומת",
+    "source_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "אמת כתובת דוא״ל",
+    "source_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "אימות דו-שלבי",
+    "source_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "מופעל",
+    "source_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "מושבת",
+    "source_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "סשנים פעילים",
+    "source_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "{count} סשן(ים) פעילים",
+    "source_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "פעולות מהירות",
+    "source_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "ניהול אימות דו-שלבי",
+    "source_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "ניהול סשנים פעילים",
+    "source_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "שינוי סיסמה",
+    "source_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "סגירת חשבון",
+    "source_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "עזרה ותמיכה",
+    "source_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "פתרון בעיות התחברות",
+    "source_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "קישור הקסם לא מגיע?",
+    "source_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "בדוק את תיקיית הספאם או הזבל שלך",
+    "source_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "ודא שהזנת את כתובת הדוא״ל שלך נכון",
+    "source_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "המתן כמה דקות - לפעמים יש עיכוב בהודעות דוא״ל",
+    "source_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "נסה לבקש קישור חדש אם עברו יותר מ-10 דקות",
+    "source_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "שכחת את הסיסמה שלך?",
+    "source_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "באפשרותך לבקש קישור לאיפוס סיסמה כדי ליצור סיסמה חדשה.",
+    "source_hash": "3c3eabad"
+  },
+  "web.help.account_locked": {
+    "text": "החשבון ננעל זמנית?",
+    "source_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "לאחר מספר ניסיונות התחברות כושלים, חשבונות ננעלים זמנית לצורכי אבטחה. המתן 15 דקות ונסה שוב, או השתמש בקישור הקסם כדי להתחבר.",
+    "source_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "עדיין צריך עזרה?",
+    "source_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "אם עדיין יש לך בעיות, אנחנו כאן לעזור. שלח לנו הודעה ונחזור אליך בהקדם האפשרי.",
+    "source_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "צור קשר עם התמיכה",
+    "source_hash": "f8d47b82"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "חשבון SSO",
+    "source_hash": "b8f4c728"
+  },
+  "web.help.reset_password_link": {
+    "text": "איפוס סיסמה",
+    "source_hash": "e0edfeb3"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "כניסה יחידה (SSO) זמינה עבור דומיין זה",
+    "source_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "מנהל הארגון יכול להפעיל SSO כדי לאפשר לחברי הצוות להתחבר כאן. פנה למנהל לקבלת גישה.",
+    "source_hash": "f3726509"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "ההתחברות אינה זמינה",
+    "source_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "ההתחברות אינה זמינה כעת בדומיין זה.",
+    "source_hash": "b681c35d"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "כניסה יחידה (SSO) אינה מוגדרת עבור דומיין זה. אנא פנה למנהל המערכת שלך.",
+    "source_hash": "b39ef93e"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "כתובת הדוא״ל מספק הזהויות שלך אינה תקינה. אנא פנה למנהל המערכת שלך.",
+    "source_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "דומיין הדוא״ל שלך אינו מורשה להרשמה באמצעות SSO. אנא פנה למנהל המערכת שלך.",
+    "source_hash": "87603782"
+  },
+  "web.auth.check_email.title": {
+    "text": "בדוק את הדוא״ל שלך",
+    "source_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "שלחנו קישור אימות לכתובת:",
+    "source_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "שלחנו קישור אימות לכתובת הדוא״ל שלך.",
+    "source_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "לחץ על הקישור בדוא״ל כדי להפעיל את החשבון שלך.",
+    "source_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "לא מוצא אותו? בדוק את תיקיית הספאם שלך.",
+    "source_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "הזנת כתובת שגויה?",
+    "source_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "התחל מחדש",
+    "source_hash": "5eed7e9f"
+  },
+  "web.auth.field-errors.password": {
+    "text": "סיסמה",
+    "source_hash": "e7cf3ef4"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "לא קיבלת את דוא״ל האימות? הזן את הדוא״ל שלך כדי לשלוח אותו מחדש.",
+    "source_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "שלח מחדש דוא״ל אימות",
+    "source_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "אם חשבון זקוק לאימות, נשלח דוא״ל חדש. אנא בדוק את תיבת הדואר הנכנס ותיקיית הספאם שלך.",
+    "source_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "לא ניתן היה לשלוח את דוא״ל האימות. אנא בדוק את החיבור שלך ונסה שוב.",
+    "source_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "שלח דוא״ל מחדש",
+    "source_hash": "4f44603e"
+  },
+  "web.login.verified_notice": {
+    "text": "הדוא״ל שלך אומת — כעת באפשרותך להתחבר.",
+    "source_hash": "c8d4b5a8"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "הגדר סיסמה",
+    "source_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "לחשבון שלך עדיין אין סיסמה. נשלח לך קישור מאובטח בדוא\"ל להגדרת אחת כדי שתוכל גם להיכנס ישירות.",
+    "source_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "שלח קישור הגדרה",
+    "source_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "נשלח אליך דוא\"ל עם קישור להגדרת סיסמה לחשבון שלך",
+    "source_hash": "82b686c7"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "כבר קיים חשבון עם כתובת דוא\"ל זו אך הוא אינו מקושר לשיטת כניסה זו. היכנס עם השיטה הקיימת שלך, ואז קשר ספק זה תחת הגדרות אבטחה ← זהויות מחוברות.",
+    "source_hash": "7fbbb7e7"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "לא ניתן לחבר זהות זו. ייתכן שהיא כבר שייכת לחשבון אחר.",
+    "source_hash": "d8b71cf8"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "לא יכולנו לסיים להוסיף אותך לארגון שלך. צור קשר עם המנהל שלך.",
+    "source_hash": "155e71bb"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "לא יכולנו לקשר שיטת כניסה זו. היכנס עם הסיסמה הקיימת שלך, ואז חבר ספק זה תחת הגדרות אבטחה ← זהויות מחוברות.",
+    "source_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "בדוק את תיבת הדואר הנכנס שלך — שלחנו לך קישור בדוא\"ל לאישור חיבור החשבון שלך. פתח אותו כדי לסיים את הכניסה.",
+    "source_hash": "b251c8f3"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "הכניסה בוטלה. תוכל לנסות שוב מתי שתהיה מוכן.",
+    "source_hash": "b5f3d3ec"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "הכניסה באמצעות ספק זה אינה מוגדרת כראוי. אנא פנה למנהל המערכת שלך.",
+    "source_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "כניסה יחידה (SSO) עבור דומיין זה מוגדרת אך אינה ניתנת לשימוש כעת. פנה למנהל המערכת של הארגון שלך.",
+    "source_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "כניסה יחידה (SSO) עבור דומיין זה עדיין אינה פעילה מכיוון שאימות הדומיין טרם הושלם. אנא פנה למנהל המערכת שלך.",
+    "source_hash": "bd981480"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "זהות זו אינה מחוברת לחשבון בדומיין זה. אם באפשרותך להתחבר בדומיין זה עם חשבון השייך לארגון זה, חבר אותה מתוך זהויות מחוברות. אחרת, בקש מבעלים של הארגון להזמין את זהות ה-SSO הזו, או פנה לתמיכה.",
+    "source_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "לא ניתן לחבר זהות זו בדומיין זה. התחל את החיבור מהאתר שאליו אתה מחובר; בדומיין של ארגון, החשבון שלך חייב כבר להשתייך לאותו ארגון.",
+    "source_hash": "d967c761"
+  }
+}

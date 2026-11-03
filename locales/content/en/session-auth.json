@@ -1,0 +1,596 @@
+{
+  "web.login.alternate_prefix": {
+    "text": "Need an Account?",
+    "content_hash": "8b827e19"
+  },
+  "web.login.need_an_account": {
+    "text": "Sign up.",
+    "content_hash": "10647723"
+  },
+  "web.login.forgot_your_password": {
+    "text": "Forgot your password?",
+    "content_hash": "afd25fdf"
+  },
+  "web.login.button_sign_in": {
+    "text": "Sign In",
+    "content_hash": "bcc0bcc9"
+  },
+  "web.login.enter_your_credentials": {
+    "text": "Enter your credentials",
+    "content_hash": "07e1c44e"
+  },
+  "web.login.remember_me": {
+    "text": "Remember me",
+    "content_hash": "f93267aa"
+  },
+  "web.login.send_sign_in_link": {
+    "text": "Send sign-in link",
+    "content_hash": "b1402b67"
+  },
+  "web.login.secure_link_helper": {
+    "text": "A secure link will be sent to your email inbox.",
+    "content_hash": "d31d20cf"
+  },
+  "web.login.or_divider": {
+    "text": "or",
+    "content_hash": "7175517a"
+  },
+  "web.login.sign_in_with_password": {
+    "text": "Sign in with password",
+    "content_hash": "bedac809"
+  },
+  "web.login.use_passwordless": {
+    "text": "Use passwordless sign-in",
+    "content_hash": "dddc0097"
+  },
+  "web.login.create_account": {
+    "text": "Create account",
+    "content_hash": "798ca2ce"
+  },
+  "web.login.return_home": {
+    "text": "Return home",
+    "content_hash": "bbcc935e"
+  },
+  "web.login.tab_password": {
+    "text": "Password",
+    "content_hash": "e7cf3ef4"
+  },
+  "web.login.tab_magic_link": {
+    "text": "Magic Link",
+    "content_hash": "7a9ba11a"
+  },
+  "web.login.tab_passkey": {
+    "text": "Passkey",
+    "content_hash": "904c9aa9"
+  },
+  "web.login.need_help": {
+    "text": "Need help?",
+    "content_hash": "c225cdfb"
+  },
+  "web.login.or_continue_with": {
+    "text": "Or continue with",
+    "content_hash": "eb4e8d3b"
+  },
+  "web.login.sign_in_with_sso": {
+    "text": "Sign in with SSO",
+    "content_hash": "73e984e9"
+  },
+  "web.login.sign_in_with_provider": {
+    "text": "Sign in with {provider}",
+    "content_hash": "b8794f11"
+  },
+  "web.login.custom_domain_sso_title": {
+    "text": "Single sign-on is available for this domain",
+    "context": "Shown on custom domain signin page when SSO is not yet configured",
+    "content_hash": "af87d51e"
+  },
+  "web.login.custom_domain_sso_description": {
+    "text": "The organization administrator can enable SSO to allow team members to sign in here. Contact the admin for access.",
+    "context": "Explains next steps when SSO is not configured on a custom domain",
+    "content_hash": "f3726509"
+  },
+  "web.auth.sso.signing_in": {
+    "text": "Redirecting to identity provider...",
+    "content_hash": "4d1213f9"
+  },
+  "web.auth.sso.error": {
+    "text": "SSO sign-in failed. Please try again.",
+    "content_hash": "45a1e65d"
+  },
+  "web.login.errors.sso_failed": {
+    "text": "SSO authentication failed. Please try again or use password login.",
+    "content_hash": "13a2210a"
+  },
+  "web.login.errors.sso_cancelled": {
+    "text": "Sign-in was cancelled. You can try again whenever you're ready.",
+    "context": "Shown on signin page when the user cancels/denies at the identity provider (OAuth2 access_denied). Calm, non-alarming copy - cancelling is a choice, not a failure.",
+    "content_hash": "b5f3d3ec"
+  },
+  "web.login.errors.token_missing": {
+    "text": "The authentication link is incomplete. Please request a new sign-in link.",
+    "content_hash": "f4a10652"
+  },
+  "web.login.errors.token_expired": {
+    "text": "This sign-in link has expired. Please request a new one.",
+    "content_hash": "f0de42ec"
+  },
+  "web.login.errors.token_invalid": {
+    "text": "This sign-in link is invalid. Please request a new one.",
+    "content_hash": "270c6401"
+  },
+  "web.login.errors.sso_not_configured": {
+    "text": "Single sign-on is not configured for this domain. Please contact your administrator.",
+    "context": "Shown on signin page when SSO is attempted on a domain that has no SSO configuration and platform fallback is disabled.",
+    "content_hash": "b39ef93e"
+  },
+  "web.login.errors.domain_unavailable": {
+    "text": "This domain is not available. If this is your domain, contact us.",
+    "context": "Shown on signin page when the custom domain record for the request host could not be read, so no sign-in can be offered on it. Same wording as the DomainUnavailable error the auth API returns for this condition. The visitor cannot fix this; the domain's owner can contact support.",
+    "content_hash": "a709c222"
+  },
+  "web.login.errors.sso_issuer_mismatch": {
+    "text": "Sign-in with this provider is misconfigured. Please contact your administrator.",
+    "context": "Shown on signin page when the install-wide OIDC issuer does not match the issuer in the provider's discovery document. Users cannot fix this; the operator detail (both issuer values) is in the server logs, not shown here.",
+    "content_hash": "44df5918"
+  },
+  "web.login.errors.sso_config_unusable": {
+    "text": "Single sign-on for this domain is configured but not currently usable. Contact your organization's administrator.",
+    "context": "Shown on signin page when a domain's SSO record exists and is advertised but cannot produce a working login (for example, the identity provider certificate has expired). Distinct from sso_not_configured: the fix is on the administrator's side, not a missing setup.",
+    "content_hash": "f704b391"
+  },
+  "web.login.errors.sso_domain_unverified": {
+    "text": "Single sign-on for this domain is not active yet because the domain has not finished verification. Please contact your administrator.",
+    "context": "Shown on signin page when SSO is attempted on a custom domain whose ownership is not verified yet. SSO is refused until verification completes; the visitor cannot fix this, the domain's administrator can.",
+    "content_hash": "bd981480"
+  },
+  "web.login.errors.missing_email": {
+    "text": "Your identity provider did not supply an email address required for this sign-in. Please contact your administrator.",
+    "context": "Shown when a new SSO account has no email claim, or when a tenant email-domain allowlist cannot authorize a sign-in without one. Does not imply that the user has no mailbox or that an administrator can always configure the claim.",
+    "content_hash": "c08197a3"
+  },
+  "web.login.errors.invalid_email": {
+    "text": "The email address from your identity provider is invalid. Please contact your administrator.",
+    "context": "Shown on signin page when SSO callback supplies a present but malformed email (missing @, empty domain, multiple @). Missing or blank claims use missing_email instead.",
+    "content_hash": "10c12029"
+  },
+  "web.login.errors.domain_not_allowed": {
+    "text": "Your email domain is not authorized for this SSO sign-in. Please contact your administrator.",
+    "context": "Shown when a usable email is rejected by a signup-domain policy or tenant SSO allowlist, including returning sign-ins. Also used when tenant allowlist configuration cannot be read safely; operator logs distinguish those denials. Missing and malformed claims use separate errors when tenant policy can be evaluated.",
+    "content_hash": "952bcbc1"
+  },
+  "web.login.errors.account_exists_link_required": {
+    "text": "An account with this email address already exists but isn't linked to this sign-in method. Sign in with your existing method, then link this provider under Security settings → Connected identities.",
+    "context": "Shown on signin page when SSO refuses to auto-link: an account with the callback email exists but is not linked to this provider. Phase 2 (#3840) is live — the authenticated Connected Identities panel (/account/settings/security/connections) now lets a signed-in user link the provider, so the copy points there.",
+    "content_hash": "7fbbb7e7"
+  },
+  "web.login.errors.tenant_sso_link_unavailable": {
+    "text": "This identity isn't connected to an account on this domain. If you can sign in on this domain with an account that belongs to this organization, connect it from Connected identities. Otherwise, ask an organization owner to invite this SSO identity, or contact support.",
+    "context": "Shown on /signin when an UNAUTHENTICATED SSO sign-in on a TENANT (custom-domain) surface finds an existing account with the callback email. Email-located linking stays platform-only by design (a tenant admin controls their IdP's assertions), so unlike account_exists_link_required this must not offer a trust-the-email path. Authenticated linking on the tenant host exists (#3849: sign in on this domain, Connected identities, re-auth, Connect), but a tenant in restrict_to=sso mode may have no non-SSO sign-in, so the self-service sentence is conditional ('if you can sign in on this domain') and the org-owner invite / support route stays.",
+    "content_hash": "66e7376c"
+  },
+  "web.login.errors.identity_connect_conflict": {
+    "text": "This identity couldn't be connected. It may already belong to another account.",
+    "context": "Shown on /signin when an authenticated SSO connect is refused because the identity is already owned by another account, or the session's account is no longer usable. Tenant ownership refusals use this code; do not suggest retrying, because retrying cannot transfer the identity.",
+    "content_hash": "d8b71cf8"
+  },
+  "web.login.errors.identity_connect_wrong_domain": {
+    "text": "This identity couldn't be connected on this domain. Start connecting from the site you're signed in to; on an organization's domain, your account must already belong to that organization.",
+    "context": "Shown on /signin when an authenticated SSO connect is refused by a surface, enablement, membership, or issuer gate (tenant Connect, #3849). Covers both a cross-surface callback and a tenant-surface refusal where the user legitimately started on their org domain, so it must not say connecting is platform-only. Deliberate refusal, not a session problem - the copy must NOT suggest signing in again and retrying, which would loop through the same refusal.",
+    "content_hash": "d967c761"
+  },
+  "web.login.errors.org_join_failed": {
+    "text": "We couldn't finish adding you to your organization. Please contact your administrator.",
+    "context": "Shown on signin page when tenant-domain SSO authenticated but the organization join produced no membership (orphaned account). Admins/ops must investigate; the user cannot self-resolve.",
+    "content_hash": "155e71bb"
+  },
+  "web.login.errors.account_closing": {
+    "text": "Your previous account with this email address is still being closed. Try again in a few minutes. If this keeps happening, contact support.",
+    "context": "Shown on signin page when an SSO sign-in finds an earlier account with this address whose closure stopped part-way (#4830) and cannot be finished yet: the closure started under 15 minutes ago, or its cleanup is blocked. Nothing is created. A retry after 15 minutes finishes the closure; a blocked one needs an operator.",
+    "content_hash": "aeb5fd6a"
+  },
+  "web.login.errors.link_sso_failed": {
+    "text": "We couldn't link that sign-in method. Sign in with your existing password, then connect this provider under Security settings → Connected identities.",
+    "context": "Shown on /signin after the #3840 Phase 3 sign-in interstitial is cancelled, its challenge token expires/is spent, or password linking otherwise dead-ends. Points the user at the Phase 2 Connected Identities flow; the interstitial routes here with ?redirect=/account/settings/security/connections so the panel opens after they sign in.",
+    "content_hash": "49954127"
+  },
+  "web.login.notices.link_verification_sent": {
+    "text": "Check your inbox — we emailed you a link to confirm connecting your account. Open it to finish signing in.",
+    "context": "Informational (non-error) notice shown on /signin via ?auth_notice=link_verification_sent after a passwordless account's SSO sign-in triggers a mailbox-proof linking email (#3840 Phase 4). The emailed link opens the /sso-link-confirm/:token consent page.",
+    "content_hash": "b251c8f3"
+  },
+  "web.login.signin_disabled_heading": {
+    "text": "Sign-in is not available",
+    "context": "Page heading on /signin when sign-in is disabled for the current domain (per-domain SigninConfig).",
+    "content_hash": "6b435c76"
+  },
+  "web.login.signin_disabled_message": {
+    "text": "Sign-in is currently not available on this domain.",
+    "context": "Body text of the notice shown instead of the auth form when sign-in is disabled for the current domain. A return-to-homepage link is shown below it.",
+    "content_hash": "b681c35d"
+  },
+  "web.login.verified_notice": {
+    "text": "Your email has been verified — you can now sign in.",
+    "context": "Persistent success banner shown on the /signin page after the user clicks the verification link in their welcome email (arrives via ?verified=1).",
+    "content_hash": "c8d4b5a8"
+  },
+  "web.signup.create_your_account": {
+    "text": "Create Your Account",
+    "content_hash": "5f4c33d7"
+  },
+  "web.signup.alternate_prefix": {
+    "text": "Already have an Account?",
+    "content_hash": "f5dcb5d5"
+  },
+  "web.signup.have_an_account": {
+    "text": "Sign in.",
+    "content_hash": "6c52846f"
+  },
+  "web.signup.error_title": {
+    "text": "Account Creation Error",
+    "content_hash": "e380a0b6"
+  },
+  "web.signup.password_error": {
+    "text": "Password",
+    "content_hash": "e7cf3ef4"
+  },
+  "web.signup.email_error": {
+    "text": "Email",
+    "content_hash": "969ccbd3"
+  },
+  "web.auth.verify._guidance": {
+    "context": "Email verification flow after signup"
+  },
+  "web.auth.verify.title": {
+    "text": "Verify Your Account",
+    "content_hash": "3e2303ab"
+  },
+  "web.auth.verify.success": {
+    "text": "Your account has been verified successfully",
+    "content_hash": "902d0f47"
+  },
+  "web.auth.verify.invalid_key": {
+    "text": "Invalid or expired verification key",
+    "content_hash": "70fe7dfe"
+  },
+  "web.auth.verify.expired_key": {
+    "text": "This verification link has expired. Please request a new one.",
+    "content_hash": "ee3ed5d2"
+  },
+  "web.auth.verify.already_verified": {
+    "text": "This account has already been verified. You can sign in now.",
+    "content_hash": "cec1312b"
+  },
+  "web.auth.verify.unable_to_verify": {
+    "text": "Unable to verify account. Please try again or contact support.",
+    "content_hash": "c0df463f"
+  },
+  "web.auth.verify.check_email": {
+    "text": "Please check your email for a verification link",
+    "content_hash": "79ffefd8"
+  },
+  "web.auth.verify.error": {
+    "text": "Account verification failed. Please check your verification link or request a new one.",
+    "content_hash": "7aac4a45"
+  },
+  "web.auth.verify.error_title": {
+    "text": "Verification Failed",
+    "content_hash": "cb3a722b"
+  },
+  "web.auth.verify.what_to_do": {
+    "text": "What should I do?",
+    "content_hash": "00eeea79"
+  },
+  "web.auth.verify.check_email_help": {
+    "text": "Check your email for the most recent verification link",
+    "content_hash": "1c4a5748"
+  },
+  "web.auth.verify.check_spam": {
+    "text": "Check your spam/junk folder if you can't find the email",
+    "content_hash": "ae481e5e"
+  },
+  "web.auth.verify.contact_support": {
+    "text": "Contact support if you continue to have issues",
+    "content_hash": "c0067275"
+  },
+  "web.auth.verify.missing_key_title": {
+    "text": "Verification Link Required",
+    "content_hash": "e0b448ac"
+  },
+  "web.auth.verify.missing_key_message": {
+    "text": "Please use the verification link sent to your email address to verify your account.",
+    "content_hash": "b1a8cfc6"
+  },
+  "web.auth.verify.create_new_account": {
+    "text": "Create New Account",
+    "content_hash": "0e24ec84"
+  },
+  "web.auth.verify.resend_help_text": {
+    "text": "Didn't receive the verification email? Enter your email to resend it.",
+    "content_hash": "e0df48bb"
+  },
+  "web.auth.verify.resend_button": {
+    "text": "Resend Verification Email",
+    "content_hash": "5173cc04"
+  },
+  "web.auth.verify.resend_sent": {
+    "text": "If an account needs verification, a new email has been sent. Please check your inbox and spam folder.",
+    "content_hash": "6f838ffb"
+  },
+  "web.auth.verify.resend_error": {
+    "text": "Couldn't send the verification email. Please check your connection and try again.",
+    "content_hash": "15149f46"
+  },
+  "web.auth.verify.resend_short": {
+    "text": "Resend email",
+    "content_hash": "4f44603e"
+  },
+  "web.auth.check_email._guidance": {
+    "context": "Confirmation page shown right after signup, telling the user a verification link was emailed and they must click it before signing in."
+  },
+  "web.auth.check_email.title": {
+    "text": "Check your email",
+    "content_hash": "77322879"
+  },
+  "web.auth.check_email.sent_to": {
+    "text": "We sent a verification link to",
+    "context": "Label directly above the emailed address on the post-signup check-email page. Reads as one sentence with the address that follows, so it takes no final punctuation.",
+    "content_hash": "e795f9b7"
+  },
+  "web.auth.check_email.sent_to_generic": {
+    "text": "We sent a verification link to your email address.",
+    "content_hash": "4e5510af"
+  },
+  "web.auth.check_email.instructions": {
+    "text": "Click the link in the email to activate your account.",
+    "context": "The next step, shown directly below the emailed address on the post-signup check-email page.",
+    "content_hash": "389221ed"
+  },
+  "web.auth.check_email.spam_hint": {
+    "text": "Can't find it? Check your spam folder.",
+    "content_hash": "d166d9a4"
+  },
+  "web.auth.check_email.wrong_email": {
+    "text": "Entered the wrong address?",
+    "content_hash": "0aa863e5"
+  },
+  "web.auth.check_email.start_over": {
+    "text": "Start over",
+    "content_hash": "5eed7e9f"
+  },
+  "web.auth.change_password.title": {
+    "text": "Change Password",
+    "content_hash": "a949f462"
+  },
+  "web.auth.change_password.current_password": {
+    "text": "Current Password",
+    "content_hash": "8ac76099"
+  },
+  "web.auth.change_password.new_password": {
+    "text": "New Password",
+    "content_hash": "7c451e0f"
+  },
+  "web.auth.change_password.confirm_password": {
+    "text": "Confirm New Password",
+    "content_hash": "642776c0"
+  },
+  "web.auth.change_password.success": {
+    "text": "Your password has been changed successfully",
+    "content_hash": "01103d45"
+  },
+  "web.auth.change_password.error": {
+    "text": "Password change failed. Please verify your current password and try again.",
+    "content_hash": "1aa11b3f"
+  },
+  "web.auth.close_account.title": {
+    "text": "Close Account",
+    "content_hash": "e1513814"
+  },
+  "web.auth.close_account.warning": {
+    "text": "This action cannot be undone. All your secrets will be permanently deleted.",
+    "content_hash": "f12de64e"
+  },
+  "web.auth.close_account.confirm": {
+    "text": "I understand this action is permanent",
+    "content_hash": "b44b1366"
+  },
+  "web.auth.close_account.password": {
+    "text": "Enter your password to confirm",
+    "content_hash": "0aec03a6"
+  },
+  "web.auth.close_account.button": {
+    "text": "Permanently Close Account",
+    "content_hash": "0713c012"
+  },
+  "web.auth.close_account.cancel": {
+    "text": "Cancel",
+    "content_hash": "19766ed6"
+  },
+  "web.auth.password_reset_request.title": {
+    "text": "Request Password Reset",
+    "content_hash": "456d421c"
+  },
+  "web.auth.password_reset_request.description": {
+    "text": "Enter your email address below and we'll send you a link to reset your password",
+    "content_hash": "31c5f80f"
+  },
+  "web.auth.password_reset_request.button": {
+    "text": "Send Reset Link",
+    "content_hash": "7d5f16d4"
+  },
+  "web.auth.password_setup_request.title": {
+    "text": "Set a Password",
+    "context": "Settings page heading for a passwordless (SSO-provisioned) account adding a first password via an emailed link (#3886)",
+    "content_hash": "11b6978b"
+  },
+  "web.auth.password_setup_request.description": {
+    "text": "Your account doesn't have a password yet. We'll email you a secure link to set one so you can also sign in directly.",
+    "context": "Explains the mailbox-proof set-password flow to a passwordless account; same flow as a password reset, different framing",
+    "content_hash": "dc0b561f"
+  },
+  "web.auth.password_setup_request.button": {
+    "text": "Send Setup Link",
+    "context": "Submit button that emails the set-password link to a passwordless account",
+    "content_hash": "22807292"
+  },
+  "web.auth.password_setup_request.emailSent": {
+    "text": "An email has been sent to you with a link to set a password for your account",
+    "context": "Success message after requesting the set-password link (passwordless account variant of web.auth.passwordReset.emailSent)",
+    "content_hash": "82b686c7"
+  },
+  "web.auth.password_reset.title": {
+    "text": "Choose a New Password",
+    "context": "Password reset request flow - user requests a reset link",
+    "content_hash": "3dfdf7c4"
+  },
+  "web.auth.password_reset.description": {
+    "text": "Please enter your new password below. Make sure it's strong and unique to protect your account.",
+    "content_hash": "5c789083"
+  },
+  "web.auth.passwordReset.emailSent": {
+    "text": "An email has been sent to you with a link to reset the password for your account",
+    "content_hash": "63a6af45"
+  },
+  "web.auth.field-errors.password": {
+    "text": "Password",
+    "context": "Field label prefixing a password validation error (e.g. \"Password: same as current password\")",
+    "content_hash": "e7cf3ef4"
+  },
+  "web.auth.terms.agree_prefix": {
+    "text": "I agree to the",
+    "content_hash": "26a58d00"
+  },
+  "web.auth.account.title": {
+    "text": "Account Information",
+    "context": "User account overview/dashboard section",
+    "content_hash": "4e59b6c7"
+  },
+  "web.auth.account.email": {
+    "text": "Email Address",
+    "content_hash": "09bf25ef"
+  },
+  "web.auth.account.created": {
+    "text": "Account Created",
+    "content_hash": "9966be40"
+  },
+  "web.auth.account.verified": {
+    "text": "Email Verified",
+    "content_hash": "bc512ab0"
+  },
+  "web.auth.account.sso_linked": {
+    "text": "SSO Account",
+    "context": "Status text shown for accounts authenticated via SSO (no password)",
+    "content_hash": "b8f4c728"
+  },
+  "web.auth.account.region": {
+    "text": "Region",
+    "content_hash": "d3a008ef"
+  },
+  "web.auth.account.not_verified": {
+    "text": "Email Not Verified",
+    "content_hash": "53955e0e"
+  },
+  "web.auth.account.verify_email": {
+    "text": "Verify Email Address",
+    "content_hash": "d261b9df"
+  },
+  "web.auth.account.mfa_status": {
+    "text": "Two-Factor Authentication",
+    "content_hash": "bc074b60"
+  },
+  "web.auth.account.mfa_enabled": {
+    "text": "Enabled",
+    "content_hash": "92c1cdfd"
+  },
+  "web.auth.account.mfa_disabled": {
+    "text": "Disabled",
+    "content_hash": "75081b59"
+  },
+  "web.auth.account.active_sessions": {
+    "text": "Active Sessions",
+    "content_hash": "b58fa4e0"
+  },
+  "web.auth.account.session_count": {
+    "text": "{count} active session(s)",
+    "content_hash": "7de8d92a"
+  },
+  "web.auth.account.quick_actions": {
+    "text": "Quick Actions",
+    "content_hash": "2cc2b6f7"
+  },
+  "web.auth.account.manage_mfa": {
+    "text": "Manage Two-Factor Authentication",
+    "content_hash": "06fc8f72"
+  },
+  "web.auth.account.manage_sessions": {
+    "text": "Manage Active Sessions",
+    "content_hash": "c5d54d87"
+  },
+  "web.auth.account.change_password": {
+    "text": "Change Password",
+    "content_hash": "a949f462"
+  },
+  "web.auth.account.close_account": {
+    "text": "Close Account",
+    "content_hash": "e1513814"
+  },
+  "web.help.title": {
+    "text": "Help & Support",
+    "content_hash": "1f8ecc24"
+  },
+  "web.help.signin_troubleshooting": {
+    "text": "Sign-in Troubleshooting",
+    "content_hash": "a9a88a01"
+  },
+  "web.help.magic_link_not_arriving": {
+    "text": "Magic link not arriving?",
+    "content_hash": "6919ce70"
+  },
+  "web.help.check_spam_folder": {
+    "text": "Check your spam or junk folder",
+    "content_hash": "813fe2d8"
+  },
+  "web.help.check_email_spelling": {
+    "text": "Verify you entered your email address correctly",
+    "content_hash": "5f319557"
+  },
+  "web.help.wait_few_minutes": {
+    "text": "Wait a few minutes - emails can sometimes be delayed",
+    "content_hash": "884fc272"
+  },
+  "web.help.try_again": {
+    "text": "Try requesting a new link if it's been more than 10 minutes",
+    "content_hash": "68109f96"
+  },
+  "web.help.forgot_password": {
+    "text": "Forgot your password?",
+    "content_hash": "afd25fdf"
+  },
+  "web.help.use_magic_link_instead": {
+    "text": "You can request a password reset link to create a new password.",
+    "content_hash": "3c3eabad"
+  },
+  "web.help.reset_password_link": {
+    "text": "Reset password",
+    "content_hash": "e0edfeb3"
+  },
+  "web.help.account_locked": {
+    "text": "Account temporarily locked?",
+    "content_hash": "ef1251c1"
+  },
+  "web.help.account_locked_explanation": {
+    "text": "After multiple failed sign-in attempts, accounts are temporarily locked for security. Wait 15 minutes and try again, or use Magic Link to sign in.",
+    "content_hash": "4b2cf891"
+  },
+  "web.help.still_need_help": {
+    "text": "Still need help?",
+    "content_hash": "5ff7d19e"
+  },
+  "web.help.contact_us_description": {
+    "text": "If you're still having trouble, we're here to help. Send us a message and we'll get back to you as soon as possible.",
+    "content_hash": "d97c90fe"
+  },
+  "web.help.contact_support": {
+    "text": "Contact Support",
+    "content_hash": "f8d47b82"
+  }
+}

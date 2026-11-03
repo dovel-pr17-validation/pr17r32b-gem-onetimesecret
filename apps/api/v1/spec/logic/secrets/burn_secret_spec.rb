@@ -1,0 +1,269 @@
+# apps/api/v1/spec/logic/secrets/burn_secret_spec.rb
+#
+# frozen_string_literal: true
+
+require_relative '../../../application'
+require_relative File.join(Onetime::HOME, 'spec', 'spec_helper')
+require_relative File.join(Onetime::HOME, 'spec', 'support', 'model_test_helper.rb')
+
+RSpec.describe V1::Logic::Secrets::BurnSecret do
+  let(:session) { double('Session') }
+  let(:customer) { double('Onetime::Customer', anonymous?: false, custid: 'cust123', objid: 'cust_obj123', increment_field: nil) }
+  let(:owner) { double('Owner', custid: 'owner123', verified?: false, anonymous?: false, increment_field: nil) }
+
+  let(:secret) do
+    double('Onetime::Secret',
+      key: 'secret123',
+      state?: true,
+      owner?: false,
+      viewable?: true,
+      has_passphrase?: false,
+      passphrase?: true)
+  end
+
+  let(:receipt) do
+    double('Onetime::Receipt',
+      key: 'receipt123',
+      identifier: 'receipt123',
+      secret_key: 'secret123',
+      share_domain: '',
+      recipients: '',
+      default_expiration: '86400',
+      created: Time.now.to_i.to_s,
+      safe_dump: { key: 'receipt123' },
+      load_secret: secret)
+  end
+
+  let(:base_params) do
+    {
+      'key' => 'receipt123',
+      'passphrase' => 'pass123',
+      'continue' => 'true'
+    }
+  end
+
+  subject { described_class.new(session, customer, base_params) }
+
+  before(:all) do
+    OT.boot!(:test)
+  end
+
+  before do
+    allow(Onetime::Receipt).to receive(:load).with('receipt123').and_return(receipt)
+    # Stub load_owner on the secret — process calls it to resolve the owner
+    # before incrementing their secrets_burned counter.
+    allow(secret).to receive(:load_owner).and_return(owner)
+  end
+
+  describe '#process' do
+    context 'when secret is viewable and passphrase is correct' do
+      before do
+        allow(secret).to receive(:burned!).and_return(true)
+      end
+
+      it 'calls load_owner on the secret to retrieve the owner' do
+        subject.process
+
+        expect(secret).to have_received(:load_owner)
+      end
+
+      it 'increments secrets_burned on the owner' do
+        subject.process
+
+        expect(owner).to have_received(:increment_field).with(:secrets_burned)
+      end
+
+      it 'marks the secret as burned' do
+        subject.process
+
+        expect(secret).to have_received(:burned!)
+      end
+
+      # v1 burns thread actor attribution into the lifecycle event the same
+      # way v2 does (#3639); without it every v1 burn fell to the trail's
+      # fail-safe actor even when the caller was authenticated (ADR-023).
+      it 'threads actor attribution into burned! (authenticated non-owner)' do
+        subject.process
+
+        expect(secret).to have_received(:burned!).with(
+          actor_context: { 'actor' => 'authenticated_other', 'actor_id' => 'cust_obj123' },
+        )
+      end
+
+      it 'threads actor=anonymous for an anonymous caller (never creator)' do
+        allow(customer).to receive(:anonymous?).and_return(true)
+
+        subject.process
+
+        expect(secret).to have_received(:burned!).with(
+          actor_context: { 'actor' => 'anonymous' },
+        )
+      end
+
+      # #4835: burned! cascades through its own freshly loaded receipt, and
+      # the controller renders logic.receipt, so the logic must swap in the
+      # persisted post-burn receipt rather than keep the pre-burn instance.
+      it 'reloads the receipt after the burn' do
+        burned_receipt = double('Onetime::Receipt (post-burn)')
+        allow(Onetime::Receipt).to receive(:load).with('receipt123').and_return(receipt, burned_receipt)
+
+        subject.process
+
+        expect(subject.receipt).to be(burned_receipt)
+      end
+
+      # The receipt expired or was deleted mid-burn: answer not found (as a
+      # follow-up fetch would) instead of rendering the stale instance. The
+      # burn itself happened, so its bookkeeping still runs.
+      it 'raises MissingSecret after counting the burn when the receipt is gone' do
+        allow(Onetime::Receipt).to receive(:load).with('receipt123').and_return(receipt, nil)
+
+        expect { subject.process }.to raise_error(OT::MissingSecret)
+
+        expect(secret).to have_received(:burned!)
+        expect(owner).to have_received(:increment_field).with(:secrets_burned)
+      end
+    end
+
+    # The double-reveal race, burn variant: Secret#burned! performs an atomic
+    # compare-and-set claim and returns true only to the caller that won it. A
+    # burn that loses the claim (a concurrent reveal or burn already consumed
+    # the secret) must not count the burn nor report success.
+    context 'when the burn loses the race to a concurrent reveal or burn' do
+      before do
+        allow(secret).to receive(:burned!).and_return(false)
+      end
+
+      it 'does not increment secrets_burned on the owner' do
+        subject.process
+
+        expect(secret).to have_received(:burned!)
+        expect(owner).not_to have_received(:increment_field)
+      end
+
+      it 'is not greenlighted' do
+        subject.process
+
+        expect(subject.greenlighted).to be false
+        # Proves it was the gate (burned! returning false), not the
+        # viewable?/continue guard, that withheld the greenlight -- the guard
+        # path never calls burned! at all.
+        expect(secret).to have_received(:burned!)
+      end
+    end
+
+    # Regression: the greenlight must honor the parsed `continue` boolean, not
+    # the raw param. The string "false" is truthy in Ruby, so the previous
+    # `continue_result = params['continue']` would burn a secret even when the
+    # caller explicitly passed continue=false.
+    context 'when continue is the string "false"' do
+      subject { described_class.new(session, customer, base_params.merge('continue' => 'false')) }
+
+      before do
+        allow(secret).to receive(:burned!).and_return(true)
+      end
+
+      it 'does not burn the secret' do
+        subject.process
+
+        expect(secret).not_to have_received(:burned!)
+      end
+
+      it 'is not greenlighted' do
+        subject.process
+
+        expect(subject.greenlighted).to be_falsey
+      end
+    end
+
+    # v1 burn shares the passphrase rate limiter with show/reveal so the burn
+    # endpoint cannot be used as a free brute-force oracle.
+    context 'when the secret is passphrase-protected' do
+      let(:secret_identifier) { "burnrl_#{SecureRandom.hex(6)}" }
+      let(:secret) do
+        double('Onetime::Secret',
+          key: 'secret123',
+          identifier: secret_identifier,
+          state?: true,
+          owner?: false,
+          viewable?: true,
+          has_passphrase?: true,
+          passphrase?: false)
+      end
+
+      before do
+        allow(secret).to receive(:burned!)
+      end
+
+      it 'records a failed attempt and raises a form error on a wrong guess' do
+        expect { subject.process }.to raise_error(OT::FormError)
+
+        attempts = Onetime::Secret.dbclient.get("passphrase:attempts:#{secret_identifier}")
+        expect(attempts.to_i).to eq(1)
+        expect(secret).not_to have_received(:burned!)
+      end
+
+      # Passphrase oracle regression: the guess is verified ONLY on a committed
+      # burn (continue=true). A continue=false probe must not distinguish a
+      # right guess from a wrong one, and must not spend a rate-limit attempt
+      # on a guess that was never checked.
+      context 'when continue is false' do
+        subject { described_class.new(session, customer, base_params.merge('continue' => 'false')) }
+
+        it 'does not check the guess, does not burn, and records no attempt' do
+          expect(secret).not_to receive(:passphrase?)
+
+          expect { subject.process }.not_to raise_error
+
+          expect(subject.greenlighted).to be_falsey
+          expect(secret).not_to have_received(:burned!)
+          expect(Onetime::Secret.dbclient.get("passphrase:attempts:#{secret_identifier}")).to be_nil
+        end
+      end
+
+      it 'rejects further attempts once locked out, before checking the passphrase' do
+        Onetime::Secret.dbclient.setex("passphrase:locked:#{secret_identifier}", 60, '1')
+
+        expect { subject.process }.to raise_error(Onetime::LimitExceeded)
+        expect(secret).not_to have_received(:burned!)
+      end
+
+      context 'with the correct passphrase' do
+        let(:secret) do
+          double('Onetime::Secret',
+            key: 'secret123',
+            identifier: secret_identifier,
+            state?: true,
+            owner?: false,
+            viewable?: true,
+            has_passphrase?: true,
+            passphrase?: true)
+        end
+
+        before do
+          allow(secret).to receive(:burned!).and_return(true)
+        end
+
+        it 'does not burn, or check the guess, when continue is false' do
+          probe = described_class.new(session, customer, base_params.merge('continue' => 'false'))
+          expect(secret).not_to receive(:passphrase?)
+
+          probe.process
+
+          expect(probe.greenlighted).to be_falsey
+          expect(secret).not_to have_received(:burned!)
+        end
+
+        it 'clears rate limit state and burns' do
+          Onetime::Secret.dbclient.set("passphrase:attempts:#{secret_identifier}", '3')
+
+          subject.process
+
+          expect(secret).to have_received(:burned!)
+          expect(subject.greenlighted).to be true
+          expect(Onetime::Secret.dbclient.get("passphrase:attempts:#{secret_identifier}")).to be_nil
+        end
+      end
+    end
+  end
+end

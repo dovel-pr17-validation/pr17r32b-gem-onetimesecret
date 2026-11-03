@@ -1,0 +1,819 @@
+# Test Lanes
+
+A lane is the supported contract for running a Ruby test suite: one named
+execution environment, one process boundary, and one CI job or matrix row.
+`tests/lanes/` and the root `compose.test.yml` define the services and
+environment required by those tests. Run tests through `tests/lanes/run` so
+local and CI execution use that contract.
+
+## Quick start
+
+```console
+$ docker compose -f compose.test.yml up --wait -d   # or: podman compose
+$ tests/lanes/run --list
+$ tests/lanes/run unit
+$ tests/lanes/run full-pg --overlay billing
+$ tests/lanes/run --which spec/api/v2                # which lane runs a path
+$ tests/lanes/run --only spec/api/v2/secret_ttl_entitlement_spec.rb:20   # one example, lane inferred
+$ tests/lanes/run-all --parallel
+$ tests/lanes/run-all --parallel --changed           # lanes owning the diff since origin/main
+$ tests/lanes/run full-sqlite --console              # app console on the lane's datastore
+$ docker compose -f compose.test.yml down
+```
+
+Prerequisites: bash 5+, `bundle install`, `pnpm install`, and `python3`.
+macOS's system bash is 3.2; install a newer version with `brew install bash`.
+`unit` and `smoke` also require built frontend assets in `public/web/dist/`
+(`pnpm run build` locally; CI supplies them). `browser` also requires the
+Playwright browser binaries (`pnpm exec playwright install chromium firefox
+webkit`; `bin/setup --test` installs them) and, on Linux, their OS packages
+(`pnpm exec playwright install-deps`, which uses sudo/apt and is therefore
+left to the contributor and to CI). The lane's tasks preflight the binaries
+and fail with that command when one is missing.
+
+### Iterating on one file: `--only`
+
+`--only <path>` runs one or more test files in a lane's environment without
+running that lane's `tasks` file:
+
+```console
+$ tests/lanes/run simple --only apps/api/domains/spec/integration/simple/domain_sso_config_spec.rb
+$ tests/lanes/run full-sqlite --only apps/web/auth/spec/integration/full/omniauth_csrf_spec.rb:145
+$ tests/lanes/run unit --only try/logic/sso_config/ssrf_protection_transition_try.rb
+$ tests/lanes/run --only spec/api/v2/secret_ttl_entitlement_spec.rb:20          # lane inferred: api
+```
+
+- The lane is the one whose tasks run the file (`--which`, below). Leave the
+  lane out and the runner infers it from the path; when several lanes run the
+  path (`spec/integration/full` is run by `full-sqlite`, `full-pg` and
+  `full-pg-agnostic`, split by tag) it exits 64 listing them, and when no
+  lane runs it (`try/web`, a docs file) it exits 64 saying so — name the lane
+  to run the file there anyway. Several `--only` paths must agree on one lane.
+- `*_try.rb` files use `try --agent`; other files use `rspec`. Do not mix both
+  kinds in one invocation. RSpec directories are valid paths; Tryouts
+  directories (any `try/` tree) are rejected because RSpec would otherwise
+  report a false-green zero-example run. Pass individual `_try.rb` files or
+  run the complete lane.
+- `path:LINE` narrows a file. Both runners take it; the runner forwards the
+  argument untouched. RSpec: a list is allowed (`path:12:34`), and a line
+  inside a `describe`/`context` body selects every example nested in that
+  group, so one line per top-level group chunks a file. Tryouts: one line
+  or one range (`path:19`, `path:19-45`, `path:L19-L45`), matching every
+  test case whose span overlaps it. Repeating the same tryouts file with
+  different lines keeps only the last one; use a range instead.
+- `--only` preserves the lane's isolation and environment guarantees, but skips
+  generated prerequisites and every other task. Run the complete lane before
+  pushing; CI validates lanes, not individual files.
+- A fresh worktree needs one full lane run (without `--skip-codegen`) before
+  `--only` works: `spec/spec_helper.rb` exits 1 while `generated/locales` is
+  empty, and the `unit` lane's schemas codegen additionally needs
+  `node_modules` (`pnpm install`).
+
+For agents and humans alike: the first command on a CI failure is
+`tests/lanes/run --only <path>:<LINE>` with the path and line from the CI
+log (the lane is inferred); the full lane runs once, before the push.
+
+#### Which lane runs a file: `--which`
+
+```console
+$ tests/lanes/run --which spec/api/v2
+api
+$ tests/lanes/run --which apps/web/auth/spec/integration/full/omniauth_csrf_spec.rb
+full-sqlite
+full-pg
+full-pg-agnostic
+$ tests/lanes/run --which lib/onetime/session.rb
+note: 'lib/onetime/session.rb' is shared by every lane
+api
+disabled
+...
+$ tests/lanes/run --which try/web/core/x_try.rb
+error: no lane runs 'try/web/core/x_try.rb' (see tests/lanes/ownership)
+```
+
+One lane per line, exit 64 when no lane runs the path. The answer comes from
+`tests/lanes/ownership`, a sourced bash table that transcribes the directory
+conventions the lanes' rake tasks dispatch on (`lib/tasks/spec.rake`), per
+lane — the same table lane inference and `run-all --changed` read, so the
+three cannot disagree. Ownership means "this lane's task loads the file", as
+the tasks are path lists: inside `spec/integration/full` the
+`postgres_database` tag decides which of the three full lanes runs an
+example, and the table names every lane that loads the file — `full-pg` for
+`database_triggers/sqlite_spec.rb` too, though its tag filter then runs
+none of it. A task's `--exclude-pattern` is a path rule and is modelled
+(`full-pg-agnostic` drops `**/{postgres,sqlite}*_spec.rb` and
+`**/migrations/*_{postgres,sqlite}_spec.rb`). `spec/unit/lanes/ownership_spec.rb`
+derives each lane's selection from the rake tasks themselves (invoked with
+`sh` captured, resolved through rspec's own configuration) and checks
+`--which` against it, so the table cannot drift from `lib/tasks/spec.rake`
+unnoticed. Support files (`spec/support`, an app's `spec/support`, `spec/spec_helper.rb`,
+`try/support`) and application code (`lib/`, `apps/*` outside test trees,
+`config/`, `etc/`, `locales/`, `Gemfile.lock`, `tests/lanes/`) are _shared_:
+every lane but `smoke` runs them. The same spec checks the table against
+every lane's tasks file and every `spec/` and `try/` directory on disk, so
+a directory no lane claims fails there rather than running nowhere.
+
+#### rspec passthrough: `-- <args>`
+
+Everything after `--` is forwarded to rspec verbatim, never to tryouts. It
+requires `--only`; a tryouts target combined with `--` exits 64.
+
+```console
+$ tests/lanes/run simple --only apps/api/domains/spec/integration/simple -- --only-failures
+$ tests/lanes/run simple --only apps/api/domains/spec/integration/simple -- --next-failure
+$ tests/lanes/run full-sqlite --only spec/integration/full -- -e 'rejects a stale token'
+```
+
+`--only-failures` and `--next-failure` work because the runner points rspec's
+example-status file at `tmp/lanes/<lane>/<overlays>/rspec-status.txt`
+(`base` when no overlay is set; gitignored; `--print-key` prints the path).
+Every rspec run in that lane, full or `--only`, updates the file, so a full
+lane run followed by `--only <dir> -- --only-failures` reruns exactly the
+failures the lane recorded. Plain rspec outside the runner leaves
+`LANES_RSPEC_STATUS_FILE` unset and records nothing.
+
+A lane run with workers (`--workers`, below) records per worker: worker `k`
+writes `rspec-status.w<k>.txt` beside the lane's file, and
+`tests/lanes/support/merge_rspec_status.rb` folds those back into
+`rspec-status.txt` once the workers finish, so `--only <dir> -- --only-failures`
+after a parallel lane run reruns the same failure set. An `--only` run is one
+process and records straight to the lane's file.
+
+### Quiet output: `--quiet`
+
+```console
+$ tests/lanes/run full-sqlite --quiet
+$ tests/lanes/run simple --quiet --only apps/api/domains/spec/integration/simple
+```
+
+`--quiet` makes every rspec invocation in the run print failures (with their
+diffs, locations and rerun lines), pending examples, the summary and the
+seed — nothing per passing example
+(`tests/lanes/support/quiet_formatter.rb`). The runner exports
+`LANES_RSPEC_CONSOLE=quiet` and chooses no formatter itself:
+`tests/lanes/support/rspec_format.rb` turns the name into flags wherever an
+rspec command line is put together — the rake tasks (`rspec_format_options`
+in `lib/tasks/spec.rake`), the `browser` lane's tasks file, and `--only`.
+Without the flag the name is not set and the output is exactly what it was.
+
+The quiet formatter replaces the console formatter only. A run with
+`RSPEC_OUTPUT_FILE` set (CI plumbing, on the keep-list) still gets
+`--format json --out <file>` on the same command line, so `--quiet` and a
+results file go together. Nothing is put into `SPEC_OPTS`: a `--format` there
+replaces every formatter of every command line, the JSON one included, which
+is why `--quiet` used to exit 64 beside a results file.
+
+Each rspec invocation writes a results file of its own:
+
+- A lane whose rake task runs rspec more than once suffixes the stem: `unit`
+  writes `<stem>_root_fast.json`, `<stem>_apps_fast.json` and
+  `<stem>_apps_config_ru.json`.
+- A lane with a single invocation writes `<stem>.json` (`full-mfa` and
+  `full-saml-platform` write `<stem>_mfa.json` and
+  `<stem>_saml_platform.json`). `full-webauthn-verify` runs rspec twice, MFA
+  off and on, and writes `<stem>_webauthn_verify.json` and
+  `<stem>_webauthn_verify_mfa.json`.
+- An `--only` run writes `<stem>_only.json`, a name no lane uses. Without
+  `--quiet` or a results file it adds no formatter and `.rspec` decides, as
+  for plain rspec.
+- A task that normally runs alone takes a suffix from its own name when one
+  rake process runs it beside others (`rake spec:integration:all` writes
+  `<stem>_integration_simple.json`, and so on), so no invocation truncates a
+  file another one wrote.
+- An invocation whose process dies before rspec finishes leaves its file
+  empty. Its examples are in no results file; the run's exit status is what
+  reports that.
+
+Tryouts are not affected by `--quiet` and write no results file. `try:unit`
+and `try:integration:simple` already pass `--agent` outside CI, and `--only`
+on a `*_try.rb` file always does, so a quiet `--only` run of tryouts prints
+what a plain one prints: the failures and the summary.
+
+Without `--capture-logs`, `--quiet` also floors the application's own log
+at `error`. The app's log lines
+(`2026-09-26 01:23:45.678901 W [pid:tid] HTTP -- ...`) are most of a
+full lane's output — a default `simple` run is ~55k lines, ~50k of them the
+seven `HTTP -- [Security] ... DISABLED` warnings each app boot logs — and
+the rspec formatter cannot touch them. Under the flag the runner exports
+`LOG_LEVEL=error` and `DEBUG_LOGGERS=App:error,Auth:error,...` (every
+category in `setup_loggers.rb`'s logger table), the two knobs
+`lib/onetime/initializers/setup_loggers.rb` already reads on every boot.
+Both are needed: the per-category levels `spec/logging.test.yaml` pins
+(`HTTP: warn`, `Auth: info`, ...) override `LOG_LEVEL` alone, and
+`DEBUG_LOGGERS` is applied after them and accepts any level despite its
+name. Errors and fatals still print, so a real failure's log line stays
+beside its rspec failure, and so does the `ColonelAudit` stream, which
+`Onetime::ColonelAuditEvent` pins at `info` on purpose (the audit sink must
+not be silenceable by a level change); a `simple --quiet` run is ~2.5k
+lines. Without the flag the app logs exactly as before.
+
+The floor discards events where they are generated, so nothing can recover
+them afterwards. With `--capture-logs` (below) the runner sets neither
+variable and the events go to a file instead. The floor does not reach the
+logger mail backend, which prints every delivered email; `--capture-logs`
+moves those into a file too.
+
+To read the rspec part of a default run back out of `last.log`, drop the
+timestamped lines:
+
+```console
+$ grep -vE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:.]+ [A-Z] \[' tmp/lanes/simple/base/last.log
+```
+
+### Captured logs: `--capture-logs` and `--log-console`
+
+```console
+$ tests/lanes/run full-pg-agnostic --capture-logs --log-console off
+$ tests/lanes/run simple --capture-logs --log-console warn --quiet
+$ tests/lanes/run --capture-logs --only spec/api/v2/secret_ttl_entitlement_spec.rb:20
+```
+
+`--capture-logs` gives the run two more files in its run directory
+(`tmp/lanes/<lane>/<overlays>/`, `base` when no overlay is set), beside
+`last.log`. A full lane and an `--only` run get the same files.
+
+| File       | Holds                                                                                                                             |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `app.log`  | The application's log events, appended by every process of the run. Plain text, full backtraces, passed through the log scrubber. |
+| `mail.log` | The emails the logger mail backend delivers, which it otherwise prints to stdout. Raw content that no log scrubbing has seen.     |
+| `last.log` | The console transcript: what the run printed. Every run writes it, with or without these flags ("Last run output" below).         |
+
+`--log-console <off|trace|debug|info|warn|error|fatal>` filters what the
+application's log prints on the console and does not affect `app.log`: `off`
+removes the console destination, a level shows that level and above. `off`
+without `--capture-logs` exits 64, because the events would have no
+destination.
+
+`app.log` is not a transcript of the run. These are in `last.log` only:
+
+- rspec's and tryouts' own output;
+- anything written directly to stdout or stderr.
+
+OmniAuth logs through a logger of its own on stdout, not through the
+application's. In an rspec process of a captured run that logger is pointed
+at the application's logging before each example, under the name
+`Auth::OmniAuth`: its lines are then in `app.log`, pass the log scrubber and
+follow `--log-console`. Without `--capture-logs`, in tryouts, and in a server
+process a spec starts, they stay on stdout. This is a test-profile setting;
+what a deployment's OmniAuth prints is unchanged.
+
+Events that `--log-console` kept off the console are in `app.log` only.
+
+The file destination is installed by `spec/spec_helper.rb`,
+`try/support/test_helpers.rb`, or the application's boot, whichever comes
+first. A tryout file run alone with `--only` that loads neither helper and
+never boots is not captured: `app.log` stays empty. Such a process has no
+log appender at all, so its log events are written nowhere, with or without
+these flags. Nothing that would have been printed is missing.
+
+#### Levels: what is generated, and what a destination shows
+
+Two controls, applied in this order:
+
+1. Category levels decide which events are generated: `loggers:` in
+   `spec/logging.test.yaml` (`Auth: info`, `HTTP: warn`, ...), and
+   `default_level: warn` for every other category and for specs that never
+   boot the application.
+2. A destination level decides which of those events one destination writes.
+   `--log-console warn` is the console's. `app.log` has none and receives
+   every generated event.
+
+A destination cannot bring back an event its category rejected. With
+`Auth: info` no Auth debug event is generated, so none reaches `app.log`
+whatever the console is set to. The profile raises no level either, with or
+without `--quiet`, so the expected error-level events are in `app.log`.
+
+#### A debug rerun of one failure
+
+The scrub removes `DEBUG_LOGGERS` and `LOG_LEVEL` from the calling shell. To
+lower a category for one rerun, put it in a throwaway overlay and capture the
+run:
+
+```console
+$ echo 'DEBUG_LOGGERS=Auth:debug,Session:debug' > tests/lanes/overlays/debug.env
+$ tests/lanes/run full-sqlite --overlay debug --capture-logs --log-console off \
+    --only apps/web/auth/spec/integration/full/omniauth_csrf_spec.rb:145
+$ less tmp/lanes/full-sqlite/debug/app.log
+$ rm tests/lanes/overlays/debug.env
+```
+
+`DEBUG_LOGGERS` takes `<Category>:<level>` pairs and is applied after the
+levels in `spec/logging.test.yaml`. The overlay is part of the run's identity:
+its files are in `tmp/lanes/<lane>/debug/`, and outside CI it uses a datastore
+index of its own. Do not commit the overlay file.
+
+#### File ownership and limits
+
+The runner owns `app.log` and `mail.log`:
+
+- They are created empty at the start of every run that asks for them, full
+  lane or `--only`. Disk use is therefore bounded across runs and unbounded
+  within one.
+- A run without the flag removes them, so a file found beside `last.log` is
+  always from the run `last.log` describes. A `--console` session leaves them
+  alone. `run-all` passes none of these flags to the lanes it starts.
+- Two runs of the same lane and overlay set in one checkout share the files,
+  the second truncating under the first. That is not supported.
+- A file that cannot be created (the path is a directory, a symbolic link
+  or not a regular file, the directory is not writable) ends the run with
+  exit 73 before any task, with the reason on stderr and in `last.log`.
+- A capture that did not stay whole is an error. The runner says so, marks
+  the `app log:` line `(incomplete)`, and turns an otherwise green run into
+  exit 74; a run that already failed keeps its own exit code. Three things
+  are checked at the end of the run:
+  - Either file is gone.
+  - Either file is not the one the run started with: it was removed and a
+    later process created it again, so the earlier events are not in it. The
+    runner hard-links each file at the start (`.app.log.anchor`,
+    `.mail.log.anchor`) and compares at the end. A link that still matches
+    its file is removed. One that does not is left in place and named in the
+    error: it holds what was written before the removal, until the next run
+    starts. The run directory therefore needs a file system with hard links.
+  - A write to `app.log` failed with an I/O error. A test process records
+    it in `app.log.write-failed`, and the application prints
+    `[SetupLoggers] Cannot write to the log file <path>` on stderr, which
+    the runner looks for in `last.log` when there is no marker.
+
+  SemanticLogger's own `Failed to log to appender` line is not treated as a
+  failed write. It is printed for any exception raised while an appender
+  runs, including a thread interrupted while logging (Bunny's reader thread
+  at session close).
+
+  Not detected: a failed write in a process that loaded neither test helper
+  and whose stderr did not reach `last.log`, and a file truncated in place.
+- The path of `app.log` is printed just above the `log:` line and recorded in
+  `last.log`, including when setup fails after the files were created.
+  `--print-key` shows both paths and the console settings.
+
+The flags reach the test processes as `LANES_APP_LOG_FILE`,
+`LANES_MAIL_LOG_FILE`, `LANES_APP_LOG_CONSOLE` and, for `--quiet`,
+`LANES_RSPEC_CONSOLE`, exported below the scrub. The three log names are
+read by `spec/logging.test.yaml` and `tests/lanes/support/log_capture.rb`
+(loaded by `spec/spec_helper.rb` and `try/support/test_helpers.rb`), and
+`LANES_RSPEC_CONSOLE` by `tests/lanes/support/rspec_format.rb`; nothing
+under `lib/onetime` reads any of the four. The runner assigns them: an
+exported value in the calling shell is scrubbed like any other, and a lane
+`env` file or overlay that sets one exits 64.
+
+The same holds for the runner's own variables. A lane `env` file or overlay
+is sourced in the runner's shell, so a line such as `LOG_CONSOLE=warn`,
+`QUIET=1` or `CAPTURE_LOGS=1` would change what the run does with no flag on
+the command line. A file that sets, exports or unsets one of them exits 64
+and is named with the variable and the flag to pass instead. A `SPEC_OPTS`
+in one of these files that selects a formatter (`--format`, `-f`, `--out`,
+`-o`) also exits 64: rspec reads `SPEC_OPTS` last, and a formatter there
+replaces the run's formatters, the JSON results one included. Other
+`SPEC_OPTS` options (`--seed`, `--fail-fast`) are accepted.
+
+#### In CI
+
+The composite action (`.github/actions/run-test-lane`) runs every lane with
+`--capture-logs --log-console off --quiet` and uploads `app.log` and
+`last.log` as one artifact, `lane-logs-<lane>-<overlay or base>`
+(`lane-logs-unit-base`, `lane-logs-full-pg-billing`). The upload runs when the
+lane passes, when it fails, and when it dies before rspec writes any results.
+The job summary links the artifact and names the directory on the runner.
+
+- `mail.log` is not uploaded.
+- The artifact is kept for 3 days.
+- A re-run attempt uploads its own artifact under the same name, and the
+  earlier attempt's is not replaced. This is what this repository's runs
+  show (CI run 37408734822, three attempts, lists `unified-test-report`
+  three times and `rspec-unit-results` twice); GitHub's documentation does
+  not state it. If it stopped holding, the upload step would fail on a
+  re-run with a name conflict.
+- Anyone with read access to the repository can download the artifact while
+  it exists, as they can read the job log (GitHub Docs, "Downloading workflow
+  artifacts", lists read access to the repository as the requirement).
+  `app.log` passed the log scrubber. `last.log` is the job's console output,
+  and nothing scrubs it.
+- The job summary gives the size in bytes of `last.log` (the console
+  output), `app.log` and `mail.log`, and the lane's elapsed seconds, for
+  every run.
+- `ci.yml`, `migration-tests.yml` and `ruby-4-preview.yml` all run lanes
+  through the action. `fresh-clone.yml` does not: it runs
+  `tests/lanes/run unit` and `tests/lanes/run browser` exactly as
+  `CONTRIBUTING.md` documents them, with the default output and no log
+  artifact.
+- To roll back, remove the three flags from the action's `Run lane` step.
+  Lanes then print their full output as before, and `last.log` is still
+  uploaded. Nothing else needs to change: without the flags the application
+  logs to the console only.
+
+Measured on one CI run of `full-pg-agnostic` (2,976 examples) with default
+output: 8.9 MB, of which 3.5 MB was 581 printed emails and 2.5 MB was info
+and warn log lines.
+
+### Last run output: `tmp/lanes/<lane>/<overlays>/last.log`
+
+Every run, full lane or `--only`, is also written to
+`tmp/lanes/<lane>/<overlays>/last.log` (`base` when no overlay is set; the
+same directory as the rspec status file, gitignored). The file is truncated
+at the start of each run and seeded with the run's banner line. PostgreSQL and
+RabbitMQ provisioning, codegen, and task output are appended from that point.
+The runner prints the absolute path with the exit code as its last line, on
+success and on failure — including setup failures before tasks start. The
+same line also ends the log itself, after the mid-run service-loss verdict
+when there is one, so the file says how the run ended:
+
+```text
+[lane:simple] log: /path/to/checkout/tmp/lanes/simple/base/last.log (exit 1)
+```
+
+The task's stderr joins its stdout in the log, so the two streams arrive in
+order rather than as separate outputs. The exit code is the task's, read
+through the tee, so a red run stays red. When the runner's own stdout is a
+terminal it sets `--force-color` (rspec) and `FORCE_COLOR` (tryouts) so
+colors survive the pipe; the log then contains the escape codes too
+(`less -R`). CI and `run-all` pipe the runner and get plain output as
+before.
+
+### Wall-clock per phase
+
+Every run (full lane or `--only`, in every output mode) ends with one line
+on stderr, just above the log line, giving the wall-clock of each phase:
+
+```text
+[lane:simple] time: preflight 1.2s codegen 4.6s tasks 198.2s (total 204.0s)
+[lane:unit] time: preflight 0.5s codegen skipped only 7.2s (total 7.8s)
+```
+
+`preflight` is everything before the codegen phase: argument handling, the
+service probes and autostart, the owner marker and liveness token, and the
+PostgreSQL database and RabbitMQ vhost provisioning. `codegen` is the
+lane's `LANES_CODEGEN` phase, `skipped` when it did not run (`--only`,
+`--skip-codegen`, or a lane that declares none). The third phase is the
+lane's `tasks` file or the `--only` command, measured around the process
+through the `tee` into `last.log`. Tenths of a second, from `EPOCHREALTIME`.
+The line is not in `last.log` (it is the runner's, not the task's output).
+
+### Lane console: `--console`
+
+```console
+$ tests/lanes/run full-sqlite --console
+$ tests/lanes/run full-pg --overlay billing --console
+$ echo 'puts Familia.uri' | tests/lanes/run simple --console     # non-interactive
+```
+
+`--console` starts the app console (`bin/ots console`, the command behind
+`bin/console`) in the lane's environment instead of running its tasks: the
+same scrub, `base.env` -> lane `env` -> overlays, the same derived datastore
+index (`REDIS_URL`, `AUTH_DATABASE_URL` and `RABBITMQ_URL` rewritten to it,
+the PostgreSQL database and vhost provisioned), the same liveness token and
+the same `env -u` strip at the exec. `--print-key` for the same lane and
+overlays reports the addressing the console will see, so a question about
+what a lane's specs left in the datastore is asked of that datastore and
+nothing else. RabbitMQ provisioning creates a missing vhost and reapplies its
+permissions without deleting an existing vhost's queues, exchanges, or
+messages; test runs retain their destructive reset. A plain `bin/console`
+inherits the shell, direnv included,
+which is how test-mode settings have leaked before.
+
+A console is not a run: it skips the codegen phase like `--only` (a missing
+generated locale is a logged line at boot, not a failure), leaves
+`last.log` untouched, and prints no timing line. It takes the lane name and
+overlays only; `--only`, `--quiet`, `--capture-logs`, `--log-console`,
+`--skip-codegen` and `--` exit 64 with it. Under `sqlite::memory:`
+(`full-sqlite`, `full-mfa`, `full-saml-platform`, `full-webauthn-verify`) the auth database is empty
+and unmigrated in a fresh process, so the console logs
+`no such table: accounts` at boot; the PostgreSQL lanes address the
+per-worktree database the lane's runs use.
+The console claims the lane's same-lane liveness token exactly as a run
+does, so while a run of that lane and overlay set is live it exits 69
+(`another lane run already holds valkey DB ...`); open it after the run.
+
+### Workers: `--workers <n>`
+
+A lane's tasks can fan out over `n` processes inside one run (#4551). The
+lane's `env` file sets the default (`LANES_WORKERS`; it is part of the
+workload the lane defines, so an overlay may set it too), `--workers <n>`
+overrides it, and absent or `1` is the serial run every lane had before.
+
+```console
+$ tests/lanes/run full-sqlite                 # the lane's default: 4 workers
+$ tests/lanes/run full-sqlite --workers 1     # serial
+$ tests/lanes/run unit --workers 2 --print-key
+lane=unit overlays=none db=19374 workers=2 worker_dbs=19374,19375 redis=... key=...
+```
+
+Each worker gets a valkey index of its own, next to the lane's: worker 1 is
+the lane's own index and worker `k` is the `(k-1)`th after it, wrapping inside
+`1..65535` (the formula is in "Per-worktree datastore isolation" below;
+`--print-key` prints the list as `worker_dbs`). The PG database and the
+RabbitMQ vhost stay one per lane, which is why `--workers` above 1 is refused
+for a lane whose `AUTH_DATABASE_URL` is the test Postgres, and for `smoke`
+(one `pnpm` command). `--only` and `--console` are one process and ignore the
+count.
+
+The per-worker environment is handed out by `tests/lanes/support/worker-env
+<k|auto> <command>`: it derives the worker's index and URLs from the lane's,
+points `LANES_RSPEC_STATUS_FILE` at `rspec-status.w<k>.txt`, suffixes any
+`--out <path>` in the command with `_w<k>` (so `n` workers write `n` results
+files, `tmp/<stem>_w<k>.json`, which CI's `tmp/<stem>*.json` glob already
+collects) and exports `LANES_WORKER=k`. `auto` reads `TEST_ENV_NUMBER`, so
+the same file is the `PARALLEL_TESTS_EXECUTABLE` the rake tasks hand
+`parallel_rspec`; the `unit` lane's tasks file calls it by number, one leg
+per worker, and ends with one `[lane:unit] legs:` line giving each leg's
+seconds and the wall clock, so a CI sample shows whether running `try:unit`
+beside `spec:fast` pays on that runner. Results durations are summed per worker in
+`.github/scripts/aggregate-test-results.sh`, so a parallel lane's reported
+duration exceeds its wall clock.
+
+## Lanes
+
+| Lane                 | Services                   | Runs                                                          | Workers | CI job                                           |
+| -------------------- | -------------------------- | ------------------------------------------------------------- | ------- | ------------------------------------------------ |
+| `unit`               | valkey, rabbitmq           | `try:unit`, `spec:fast`                                       | 2 (one leg each) | ruby-unit (T2)                          |
+| `billing`            | valkey, rabbitmq           | `try:billing`, `spec:billing`                                 | 1       | ruby-billing (T2, nightly only)                  |
+| `billing-integration` | valkey, rabbitmq          | `try:integration:billing`, `spec:integration:billing`         | 1       | ruby-billing-integration (T3, nightly only)      |
+| `browser`            | valkey, rabbitmq           | `rspec tests/browser` (Playwright: chromium, firefox, webkit) | 1       | ruby-auth-browser (T2)                           |
+| `simple`             | valkey, rabbitmq           | `try:integration:simple`, `spec:integration:simple`           | 4 (rspec)| ruby-integration-simple (T3)                    |
+| `full-sqlite`        | valkey, rabbitmq           | `spec:integration:full`                                       | 4       | ruby-integration-full — SQLite row               |
+| `full-mfa`           | valkey, rabbitmq           | `spec:integration:full:mfa`                                   | 1       | ruby-integration-auth — SQLite MFA row           |
+| `full-saml-platform` | valkey, rabbitmq           | `spec:integration:full:saml_platform`                         | 1       | ruby-integration-auth — SQLite platform SAML row |
+| `full-webauthn-verify` | valkey, rabbitmq         | `spec:integration:full:webauthn_verify`                       | 1       | ruby-integration-auth — SQLite passkey signup row |
+| `full-pg`            | valkey, rabbitmq, postgres | `spec:integration:full:postgres`                              | 1 (PG)  | ruby-integration-full — PG row                   |
+| `full-pg-agnostic`   | valkey, rabbitmq, postgres | `spec:integration:full:agnostic_on_pg`                        | 1 (PG)  | ruby-integration-auth — PG agnostic row          |
+| `disabled`           | valkey, rabbitmq           | `spec:integration:disabled`                                   | 1       | ruby-integration-disabled (T3)                   |
+| `api`                | valkey, rabbitmq           | `spec:api`                                                    | 4       | blocking step, T3 simple job                     |
+| `smoke`              | valkey, rabbitmq           | `pnpm test:smoke`                                             | 1 (refused above) | local-only                             |
+| `migrations-sqlite`  | valkey, rabbitmq           | `spec:integration:migrations:sqlite`                          | 1       | migration-tests.yml — SQLite job                 |
+| `migrations-pg`      | valkey, rabbitmq, postgres | `spec:integration:migrations:postgres` plus dual-URL check    | 1 (PG)  | migration-tests.yml — PostgreSQL job             |
+| `harness`            | valkey, rabbitmq           | `spec:lanes` (`spec/unit/lanes`, the runner's own specs)      | 1       | ruby-unit (T2), second step, path-gated          |
+| `selftest`           | none                       | boundary fixture                                              | 1       | none — driven by `spec/unit/lanes/`              |
+
+Start every service named for a lane. This includes RabbitMQ for `api`,
+`browser` and `smoke`, whose lane environment still declares its endpoint.
+`selftest` is the only service-free exception. The Workers column is the
+lane's `LANES_WORKERS` default (`--workers` overrides it; PG lanes and
+`smoke` refuse more than one).
+
+A lane with several legs (`unit`, `billing`, `billing-integration`, `simple`,
+`migrations-pg`) runs every leg even when an earlier one fails, then exits
+non-zero naming the red legs; the same holds for the three rspec legs inside
+`rake spec:fast`. A red leg never silently skips the ones after it.
+
+The `harness` lane is the runner's own specs, `spec/unit/lanes/`, carved out
+of `unit` (`HARNESS_SPEC_PATHS` in `lib/tasks/spec.rake`): nearly every
+example starts `tests/lanes/run` as a subprocess, so the directory costs about
+20 seconds in CI for tests of the runner, not the application. The ruby-unit
+job runs it as a second step only when a path those specs exercise changed:
+`spec/unit/lanes/`, `tests/lanes/`, the two spec rake files, `spec_helper.rb`,
+the test logging config and the run-test-lane action (the `harness` filter in
+`ci.yml`; any `.github/` change or a run-all event selects it too). Locally it
+is in `run-all`'s default set, and `tests/lanes/run --only` on one of its
+files infers it.
+
+The `billing` lane is billing's own tests, carved out of `unit`: the billing
+app's spec and tryouts trees plus the root trees named for billing
+(`BILLING_SPEC_PATHS` and `BILLING_TRY_PATHS` in `lib/tasks/spec.rake`), in
+the same simple-mode, billing-off environment. The lane runs no `--tag`
+filter: the `:integration`-tagged billing examples belong to it. In CI it is
+nightly only, like every billing job (`docs/development/auth-ci.md`).
+
+The `billing-integration` lane is billing's integration tests: the mode-less
+spec files directly under `apps/web/billing/spec/integration/`
+(`BILLING_INTEGRATION_SPEC_PATTERN`; `spec:billing` excludes that subtree)
+and the `try/integration/billing` tryouts, which `simple` used to run. Same
+environment as `billing`, and nightly only in CI too, so a pull request, a
+push to `main` or a merge-queue check skips it (`docs/development/auth-ci.md`).
+`rake spec:verify_selection` proves `spec:fast`, `spec:billing` and
+`spec:integration:billing` partition what `spec:fast` alone used to select.
+
+Use `--overlay billing` only with full-mode lanes. Billing requires
+`AUTHENTICATION_MODE=full`; other lanes reject the overlay, the two billing
+lanes included — the lane and the overlay are different axes. In CI the
+overlay rows are the `ruby-integration-billing` job, nightly only like
+`ruby-billing-integration` (`docs/development/auth-ci.md`).
+
+Create a lane when a change selects a different test suite or a materially
+different runtime (such as authentication mode or database engine). Use an
+overlay for an environment-only toggle. Vitest, lint, and type checking do not
+need lane services or environment, so run them with pnpm directly.
+
+## Service safety boundary
+
+Test services bind only to `127.0.0.1` ports beginning with `21`. Development
+services retain their canonical ports, so lane configuration cannot target a
+development datastore by accident.
+
+| Service                 | Test port | Canonical port |
+| ----------------------- | --------- | -------------- |
+| valkey                  | 2163      | 6379           |
+| postgres                | 2154      | 5432           |
+| rabbitmq (AMQP)         | 2156      | 5672           |
+| rabbitmq management API | 12156     | 15672          |
+
+Define mappings only in `compose.test.yml`. Lane URLs use `21xx` service
+ports; the runner-only RabbitMQ management endpoint is the loopback-only
+`12156` exception. Any other endpoint is a safety defect.
+
+## Per-worktree datastore isolation
+
+Outside CI, lanes isolate each checkout—including Git worktrees—from sibling
+checkouts while sharing the local test service instances:
+
+- Valkey uses a deterministic index (`1..65535`) derived from the lane,
+  normalized overlay set, and checkout root, exposed as `LANES_DATASTORE_DB`.
+  Its host and port remain the test service.
+- A run with `n` workers (`LANES_WORKERS`, `--workers`) uses `n` consecutive
+  indexes: worker `k` gets `1 + ((index - 1 + (k - 1)) mod 65535)`, so worker
+  1 is the lane's own index and the list wraps past 65535 back to 1, never
+  onto 0. In CI (index 0) the workers are `0..n-1`. The runner claims every
+  worker index (owner marker and liveness token each), `--print-key` prints
+  the list as `worker_dbs`, and `tests/lanes/support/worker-env` derives one
+  worker's index and URLs from the lane's for the task side. Only worker 1's
+  marker outlives the run: the other workers' indexes are borrowed, and
+  their markers expire 60s after the last refresh and are removed when the
+  run ends. A run whose range overlaps a live run's indexes, or another
+  lane's own index, is refused like any other collision (exit 69, naming
+  the index), not rearranged.
+- PostgreSQL uses the corresponding `onetime_auth_test_w<index>` database
+  (one per lane: workers share it, which is why Postgres-backed lanes refuse
+  `--workers` above 1).
+- RabbitMQ uses the corresponding `w<index>` vhost, one per lane (workers
+  share it: the live-AMQP specs that use production queue names sit in one
+  file, so one worker). Before a test run, the runner recreates and grants
+  the vhost through RabbitMQ's loopback-only management API, preventing stale
+  queues/messages from a prior run. Before a console, it creates the vhost if
+  absent and reapplies permissions without deleting existing state.
+- CI and direct rspec commands outside the lane runner use the shared index,
+  database, and vhost (`0` / `onetime_auth_test` / `/`). Do not rely on that
+  mode for concurrent local worktrees. Direct TRYOUT commands are the
+  exception on the Valkey axis only: `try/support/test_helpers.rb` derives a
+  per-checkout index of its own (key `try||<root>`, see
+  `try/support/datastore_db.rb`, which `pnpm run test:database:clean` also
+  consults so cleanup reaches that database) — but they still share
+  `onetime_auth_test` and the `/` vhost.
+- A collision between derived Valkey indexes fails loudly rather than allowing
+  fixture contamination. Pin `LANES_DATASTORE_DB` in a lane `env` file or an
+  overlay if the runner reports a collision; a shell export is intentionally
+  ignored.
+- Worktree PostgreSQL databases persist after the worktree is deleted. To
+  identify stale databases, review this query's output before executing any
+  generated `DROP DATABASE` statements:
+
+  ```console
+  $ psql -h 127.0.0.1 -p 2154 -U onetime_migrator -d postgres -tAc \
+      "SELECT 'DROP DATABASE ' || quote_ident(datname) || ';' \
+         FROM pg_database WHERE datname LIKE 'onetime_auth_test\\_w%'"
+  ```
+
+The shared `onetime_auth_test` database does not match this query.
+
+## Datastore connections in a test process
+
+A process that runs the application's `SetupConnectionPool` initializer (an
+integration spec, a tryout that boots with the database) serves every
+`Familia.dbclient` lookup from the boot's connection pool. A process that
+does not (unit specs never boot; unit tryouts boot with `connect_to_db:
+false`) would fall through to Familia's fallback, which opens a fresh
+connection per lookup (familia 2.12, delano/familia#456). One datastore-heavy
+spec file made thousands of such connections, exhausted the ephemeral port
+range on macOS (`Errno::EADDRNOTAVAIL ... 127.0.0.1:2163`), and the runner
+reported the test services lost mid-run (exit 69) although valkey was fine.
+
+`spec/spec_helper.rb` and `try/support/test_helpers.rb` therefore install a
+bounded pool on load (`tests/lanes/support/datastore_pool.rb`), with the
+same provider a full boot installs: the pinned-connection stack first,
+otherwise a pool checkout. Each helper passes the test datastore URL, which
+becomes `Familia.uri` and the target of every pooled connection; connections
+are created lazily, with the initializer's reconnect attempts. A later full
+boot replaces the provider with its own pool. `FAMILIA_POOL_SIZE` and
+`FAMILIA_POOL_TIMEOUT` size it, as they do the initializer's pool, except
+that a value that is not an integer stops the test process at load.
+
+## Hermetic environment boundary
+
+`tests/lanes/run` does not inherit development-shell configuration. It creates
+a test environment from `base.env`, the selected lane's `env`, and requested
+overlays. This protects test behavior and datastores from ambient variables,
+including connection URLs and application feature settings.
+
+Only these caller variables are retained:
+
+```text
+PATH HOME CI LANES_NO_AUTOSTART RSPEC_OUTPUT_FILE COVERAGE
+```
+
+Consequences for callers:
+
+- Put required test configuration in `base.env` (all lanes) or a lane `env`
+  file (one lane). Do not add application configuration to the retained list.
+- Container-client connection settings are used only to start services; they
+  are not exposed to the test process.
+- Exported shell functions are not available inside lanes.
+- `NODE_ENV=test` and `TZ=UTC` are lane invariants. Interactive lane shells
+  receive them too; locale settings are constrained only for runner execution.
+- Set `LANES_DEBUG_ENV=1` to print removed variables and exported functions.
+  A listed variable must be declared in lane configuration, not exempted.
+
+For interactive work, enter a lane directory and run `direnv allow` once. The
+lane shell intentionally excludes the repository's development environment.
+To enable a local, gitignored overlay for that shell, write its name to
+`.overlays`, for example `echo billing > .overlays`.
+
+## Parallel local runs
+
+`tests/lanes/run-all` composes direct lane runs. With no lane names it runs
+`unit billing simple disabled full-sqlite harness`; use `--parallel` to fan
+them out:
+
+```console
+$ docker compose -f compose.test.yml up --wait -d
+$ tests/lanes/run-all --parallel
+$ tests/lanes/run-all --parallel unit full-sqlite
+```
+
+It generates the union of requested `LANES_CODEGEN` prerequisites once before
+starting children, then starts each child with `--skip-codegen`. This prevents
+parallel writes to shared `generated/` files. Logs and RSpec JSON results are
+written below `tmp/lanes/<timestamp>-<pid>/`; use `--dry-run` to inspect the
+plan without generating or running tests — it prints each child command as it
+will run.
+
+Under `--parallel` every child also gets `--workers 1`: the lanes are the
+parallelism, and each one's `LANES_WORKERS` default on top of that would fork
+four rspec processes per lane and claim as many valkey indexes. A serial
+`run-all` starts one lane at a time and leaves each its own default.
+
+`--parallel` requires test services to already be running and is rejected when
+`CI` is set. It also rejects a duplicate lane: two copies derive the same
+isolation key and would share a datastore. The `smoke` lane is local-only and
+cannot be used with `--parallel`, because its task regenerates locales itself
+and can race with other lanes. Run it alone (normally
+`tests/lanes/run smoke`).
+
+### Only the lanes a change touches: `--changed`
+
+```console
+$ tests/lanes/run-all --parallel --changed
+[run-all] changed: since origin/main (merge-base), plus uncommitted changes
+[run-all] changed: api <- spec/api/v2/secret_ttl_entitlement_spec.rb (+2 more)
+[run-all] changed: simple <- apps/api/v1/spec/integration/simple/x_spec.rb
+[run-all] changed: 3 path(s) no lane runs, e.g. docs/x.md
+[run-all] parallel: api simple
+$ tests/lanes/run-all --parallel --changed origin/develop
+$ tests/lanes/run-all --dry-run --changed         # selection only, nothing runs
+```
+
+`--changed [<base>]` replaces the lane list with the lanes that run the paths
+changed since `<base>` — `git diff --name-only <base>...HEAD` (merge-base)
+plus staged, unstaged and untracked files — resolved through
+`tests/lanes/ownership` (see `--which`). The default base is `origin/main`,
+or `main` when there is no remote. Every selection is printed with the first
+path that caused it. One shared path (`lib/`, `Gemfile.lock`,
+`tests/lanes/`, ...) selects every lane except `smoke`, and the plan says
+which path did it. When no lane runs any changed path there is nothing to
+run and the command exits 0 saying so — it never falls back to the default
+set. Lane names cannot be combined with `--changed`. `spec/unit/lanes/run_all_spec.rb`
+exercises the selection with a stubbed diff (`LANES_CHANGED_STUB`, honored
+only together with `--dry-run`; set without it, the command exits 64 rather
+than run a substituted diff).
+
+## Rules
+
+1. Endpoints in this tree target only loopback test ports: application services
+   use the `21xx` range, with RabbitMQ management as the runner-only `12156`
+   exception.
+2. Commit no real secrets. `base.env` contains public deterministic dummy
+   values; real environment configuration remains outside the repository.
+3. Each lane's `env` file declares generated prerequisites through
+   `LANES_CODEGEN`; direct runs execute them, while `run-all` owns the shared
+   one-time phase before children start.
+4. Lanes define the test environment and workload, in-lane workers included
+   (`LANES_WORKERS` in the lane's `env` is part of its workload definition,
+   like its tasks). CI owns gating, which lanes run beside each other,
+   artifacts, and reporting policy.
+
+## CI contract
+
+Ruby suites in CI use the lane runner and `compose.test.yml`; local lane runs
+therefore exercise the same service and environment contract. CI runs whole
+lanes, never `--only`: a suite that CI needs is a lane (the `browser` lane
+exists for that reason), so the command CI runs is the command a contributor
+runs. Toolchain prerequisites a lane cannot generate — built frontend assets,
+Playwright browsers — are installed by the CI job and by `bin/setup --test`;
+the lane preflights them rather than installing them.
+
+What CI sees of a run is what a local
+`--capture-logs --log-console off --quiet` run prints: the task's stderr
+merged into its stdout through the `tee` into
+`tmp/lanes/<lane>/<overlays>/last.log` (written in CI too, with the rspec
+status file beside it), then the runner's timing line, its `app log:` line and
+its `log: ... (exit N)` line on stderr. A reader of the runner's stdout alone
+(`2>/dev/null`, `Open3.capture2`) therefore sees the task's stderr as well.
+The tty-only color flags do not apply there. The application's log is in the
+`lane-logs-*` artifact, not in the job output (see "Captured logs", "In CI").
+The supported CI exceptions are constrained environments that cannot run the
+compose topology: `devcontainer-ci.yml` and macOS `installer.yml` run the fast
+suite directly, without the lane runner and so without the capture profile.
+They validate installation paths, not lane behavior.
+
+`ci-verdict` is the required CI check for `main`. It runs on every pull
+request, whatever the PR touches, and passes only when every test job in
+`ci.yml` succeeded or was skipped because the `changes` job found nothing in
+its path. A job skipped although its path changed (a failed lint or build, a
+cancelled run), a failed or cancelled `changes` job, or `[ci-skip]` fails it.
+Add a row to `.github/scripts/ci-verdict.sh` when adding a test job;
+`tools/testsuite/ci-verdict-test.sh` fails otherwise.

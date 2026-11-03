@@ -1,0 +1,1206 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://api.stripe.com/v1/customers?limit=100
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - Stripe/v1 RubyBindings/18.4.2
+      Authorization:
+      - "<STRIPE_API_KEY>"
+      X-Stripe-Client-Telemetry:
+      - '{"last_request_metrics":{"request_id":"req_A3AaUTf8AQcDEQ","request_duration_ms":168}}'
+      Stripe-Version:
+      - "<STRIPE_VERSION>"
+      X-Stripe-Client-User-Agent:
+      - '{"bindings_version":"18.4.2","lang":"ruby","lang_version":"3.4.9 p82 (2026-03-11)","platform":"arm64-darwin25","engine":"ruby","publisher":"stripe","uname":"Darwin
+        Tundra.local 25.4.0 Darwin Kernel Version 25.4.0: Thu Mar 19 19:31:17 PDT
+        2026; root:xnu-12377.101.15~1/RELEASE_ARM64_T6020 arm64","hostname":"Tundra.local"}'
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 20 May 2026 02:01:59 GMT
+      Content-Type:
+      - application/json
+      Content-Length:
+      - '28371'
+      Connection:
+      - keep-alive
+      Access-Control-Allow-Credentials:
+      - 'true'
+      Access-Control-Allow-Methods:
+      - GET, HEAD, PUT, PATCH, POST, DELETE
+      Access-Control-Allow-Origin:
+      - "*"
+      Access-Control-Expose-Headers:
+      - Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required,
+        X-Stripe-Privileged-Session-Required
+      Access-Control-Max-Age:
+      - '300'
+      Cache-Control:
+      - no-cache, no-store,no-cache, no-store
+      Content-Security-Policy:
+      - base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none';
+        img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src
+        'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=Ci-zefdVO71aS8iBiYUcrfaRVPWoqssSAvPH-MtWFf1zMbHjT6_TNULos_-EiMrZqoUmNWAGNR_-h6_e;
+        report-to csp
+      Report-To:
+      - '{"group":"csp","max_age":8640,"endpoints":[{"url":"https://q.stripe.com/csp-report-v2?q=Ci-zefdVO71aS8iBiYUcrfaRVPWoqssSAvPH-MtWFf1zMbHjT6_TNULos_-EiMrZqoUmNWAGNR_-h6_e&t=1"}],"include_subdomains":true}'
+      Reporting-Endpoints:
+      - csp="https://q.stripe.com/csp-report-v2?q=Ci-zefdVO71aS8iBiYUcrfaRVPWoqssSAvPH-MtWFf1zMbHjT6_TNULos_-EiMrZqoUmNWAGNR_-h6_e&t=1"
+      Stripe-Version:
+      - "<STRIPE_VERSION>"
+      Vary:
+      - Origin
+      X-Stripe-Priority-Routing-Enabled:
+      - 'true'
+      X-Stripe-Routing-Context-Priority-Tier:
+      - api-testmode
+      X-Wc:
+      - 3c3
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains; preload
+    body:
+      encoding: UTF-8
+      string: |-
+        {
+          "object": "list",
+          "data": [
+            {
+              "id": "cus_UY5d9dkEfBvlbv",
+              "object": "customer",
+              "address": null,
+              "balance": 0,
+              "created": 1779242516,
+              "currency": null,
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "timestamp-format@example.com",
+              "invoice_prefix": "V1W5DNO3",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Timestamp Format Test",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UY5dpWC9LIb7Bk",
+              "object": "customer",
+              "address": null,
+              "balance": 0,
+              "created": 1779242515,
+              "currency": null,
+              "customer_account": null,
+              "default_source": "card_1TYzSJH7zmouMIBXiRhoTyoU",
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "payment-methods@example.com",
+              "invoice_prefix": "HPCZHG0Q",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Payment Methods Test",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UY5dspEzFCoV60",
+              "object": "customer",
+              "address": null,
+              "balance": 0,
+              "created": 1779242514,
+              "currency": null,
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "currency-format@example.com",
+              "invoice_prefix": "YOFFBWIE",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Currency Format Test",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UY5dYWvH39Weor",
+              "object": "customer",
+              "address": null,
+              "balance": 0,
+              "created": 1779242513,
+              "currency": null,
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "subscriptions-section@example.com",
+              "invoice_prefix": "ZAQNUUZJ",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Subscriptions Section Test",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UY5dP6nXFdhXsR",
+              "object": "customer",
+              "address": null,
+              "balance": 0,
+              "created": 1779242512,
+              "currency": null,
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "show-details@example.com",
+              "invoice_prefix": "57C977KN",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Show Details Test",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UY5deXCnvibg8B",
+              "object": "customer",
+              "address": null,
+              "balance": 0,
+              "created": 1779242507,
+              "currency": "cad",
+              "customer_account": null,
+              "default_source": "card_1TYzSBH7zmouMIBXBJNgBHd2",
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "delete-warn@example.com",
+              "invoice_prefix": "X9ZLRC5W",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Delete Warning Test",
+              "next_invoice_sequence": 2,
+              "phone": null,
+              "preferred_locales": [],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UY5cAIVkBAg8ZZ",
+              "object": "customer",
+              "address": null,
+              "balance": 0,
+              "created": 1779242451,
+              "currency": "cad",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "invoice-pagination-2@example.com",
+              "invoice_prefix": "ZMXLSCIF",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": null,
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UY5cFSC3b26RB0",
+              "object": "customer",
+              "address": null,
+              "balance": 0,
+              "created": 1779242449,
+              "currency": "cad",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "invoice-pagination-1@example.com",
+              "invoice_prefix": "XUBOCUWZ",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": null,
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UY5cAE6eyfdbAa",
+              "object": "customer",
+              "address": null,
+              "balance": 0,
+              "created": 1779242448,
+              "currency": "cad",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "invoice-pagination-0@example.com",
+              "invoice_prefix": "ITMFYRFQ",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": null,
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UXnNmZ0hHg5do2",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1779174586,
+              "currency": "cad",
+              "customer_account": "acct_1TYhmfH7zmt5NU5w",
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "may182026-1@onetime.dev",
+              "invoice_prefix": "N2W4W4PR",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {
+                "email_hash": "3c902c653d0ffdd3c3cbb3a70a716ca6",
+                "email_hash_created_at": "1779174592",
+                "region": "CA"
+              },
+              "name": "Greg Proops",
+              "next_invoice_sequence": 2,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_USltEaOM2viPbN",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1778015844,
+              "currency": "cad",
+              "customer_account": "acct_1TTqLIH7zmoNotI9",
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "identity@onetime.dev",
+              "invoice_prefix": "QORXCRIT",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {
+                "region": "CA"
+              },
+              "name": "Greg Proops",
+              "next_invoice_sequence": 2,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_USNRcfyeTXn4rA",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "DE",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1777924916,
+              "currency": "cad",
+              "customer_account": "acct_1TTSgiH7zmA8fjZO",
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "zitadel-admin@zitadel.auth.onetime.dev",
+              "invoice_prefix": "ZUDVZECC",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {
+                "region": "CA"
+              },
+              "name": "Greg Proops",
+              "next_invoice_sequence": 2,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_USJC37OMYCv2uW",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "DE",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1777909154,
+              "currency": "cad",
+              "customer_account": "acct_1TTOaUH7zmi6Wc6x",
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "colonel@onetime.dev",
+              "invoice_prefix": "BQSQGCTY",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {
+                "region": "CA"
+              },
+              "name": "Greg Proops",
+              "next_invoice_sequence": 2,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UKpLR3NjQ9LBGN",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "US",
+                "line1": null,
+                "line2": null,
+                "postal_code": "22222",
+                "state": null
+              },
+              "balance": 0,
+              "created": 1776183582,
+              "currency": "cad",
+              "customer_account": "acct_1TM9ggH7zm6tmTLN",
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "identity@onetime.dev",
+              "invoice_prefix": "YXVOA0J9",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 2,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UIFZJBhxRBqRtJ",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": -1106,
+              "created": 1775589207,
+              "currency": "cad",
+              "customer_account": "acct_1TJf3yH7zmqxkWyf",
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "delano.mandelbaum2@outlook.com",
+              "invoice_prefix": "S51XIXNN",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 3,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UEPdalAi7Vh7JB",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1774704117,
+              "currency": "cad",
+              "customer_account": "acct_1TFwoLH7zmhiqXkd",
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "delbo2@solutious.com",
+              "invoice_prefix": "ADBLSJER",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 3,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_UDBGmt9yfpEtUg",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1774420009,
+              "currency": "eur",
+              "customer_account": "acct_1TEktwH7zmI9pScT",
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "delbo20@solutious.com",
+              "invoice_prefix": "A0D1GBSR",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 3,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_U3lbwud2m9btSN",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1772248806,
+              "currency": "eur",
+              "customer_account": "acct_1T5e4YH7zmGrPbk1",
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "del2@onetime.dev",
+              "invoice_prefix": "0N8VZ3OD",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 5,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_TqwG1JspGFGDn1",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1769290116,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "zitadel-dude@auth.onetime.dev",
+              "invoice_prefix": "2F6BZ4TK",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 4,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_Tp7P87tVYB5bqI",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1768870302,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "billing-test2@onetime.dev",
+              "invoice_prefix": "EDV9GYQU",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Test User",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_To61OT7J8tVR35",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1768634538,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "orgowner@onetime.dev",
+              "invoice_prefix": "ZEEGLHMQ",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Test Owner",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_TmzvnkWHoiTDev",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1768381179,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "delano1@solutious.com",
+              "invoice_prefix": "7VJHO9OF",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Blank Point",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-CA",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_Tm8CBduvPoYnVO",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1768181346,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "teamplusyearly@onetime.dev",
+              "invoice_prefix": "R2WJADGI",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Delano Mandelbaum",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_Tlmr18H3eM5JKd",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1768101951,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "colonel@solutious.com",
+              "invoice_prefix": "ZV4BB5RU",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_TllmSbzVy1vsNH",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1768097916,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "colonel@solutious.com",
+              "invoice_prefix": "DM9A9R12",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_TlII5N7L5rWkb6",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1767988269,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "delano-plop@solutious.com",
+              "invoice_prefix": "8MYQT6I3",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_Tklgap5SVjGjJt",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1767866901,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "delano@solutious.com",
+              "invoice_prefix": "NHLEDSXD",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_TkDvn5fwPdqvKh",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1767741367,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "delano12@solutious.com",
+              "invoice_prefix": "FVCROKGF",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_ThcL5LvIqkoNxb",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1767140242,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "delano@solutious.com",
+              "invoice_prefix": "D63BKYRW",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            },
+            {
+              "id": "cus_Thc6wXECgLfza7",
+              "object": "customer",
+              "address": {
+                "city": null,
+                "country": "CA",
+                "line1": null,
+                "line2": null,
+                "postal_code": null,
+                "state": null
+              },
+              "balance": 0,
+              "created": 1767139346,
+              "currency": "usd",
+              "customer_account": null,
+              "default_source": null,
+              "delinquent": false,
+              "description": null,
+              "discount": null,
+              "email": "delano@solutious.com",
+              "invoice_prefix": "O4PTMDVX",
+              "invoice_settings": {
+                "custom_fields": null,
+                "default_payment_method": null,
+                "footer": null,
+                "rendering_options": null
+              },
+              "livemode": false,
+              "metadata": {},
+              "name": "Greg Proops",
+              "next_invoice_sequence": 1,
+              "phone": null,
+              "preferred_locales": [
+                "en-US",
+                "en"
+              ],
+              "shipping": null,
+              "tax_exempt": "none",
+              "test_clock": null
+            }
+          ],
+          "has_more": false,
+          "url": "/v1/customers"
+        }
+  recorded_at: Wed, 20 May 2026 02:01:59 GMT
+recorded_with: VCR 6.4.0

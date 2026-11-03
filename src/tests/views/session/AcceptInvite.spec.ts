@@ -1,0 +1,956 @@
+// src/tests/views/session/AcceptInvite.spec.ts
+
+import InviteSignUpForm from '@/apps/session/components/InviteSignUpForm.vue';
+import AcceptInvite from '@/apps/session/views/AcceptInvite.vue';
+import { organizationSchema } from '@/schemas/shapes/organizations/organization';
+import { useAuthStore } from '@/shared/stores/authStore';
+import { useBootstrapStore } from '@/shared/stores/bootstrapStore';
+import { useOrganizationStore } from '@/shared/stores/organizationStore';
+import {
+  anonymousBootstrap,
+  applyBootstrap,
+  authenticatedBootstrap,
+  mockCustomer,
+} from '@tests/fixtures/bootstrap.fixture';
+import { createTestI18n } from '@tests/setup';
+import { RouterLinkStub, flushPromises, mount, type Stubs } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useRealRouter } from '@/tests/utils/routerSetup';
+import { createMemoryHistory, createRouter } from 'vue-router';
+import { createSharedApiInstance, getGlobalAxiosMock } from '../../setup-stores';
+
+// Mounts with a real router; see useRealRouter.
+useRealRouter();
+
+// Mock components
+vi.mock('@/shared/components/icons/OIcon.vue', () => ({
+  default: {
+    name: 'OIcon',
+    template: '<span class="mock-icon"></span>',
+    props: ['collection', 'name'],
+  },
+}));
+
+vi.mock('@/shared/components/forms/BasicFormAlerts.vue', () => ({
+  default: {
+    name: 'BasicFormAlerts',
+    template:
+      '<div class="form-alerts" :class="{ \'error-alert\': error, \'success-alert\': success }">{{ error || success }}</div>',
+    props: ['error', 'success'],
+  },
+}));
+
+// Stubbed so the restricted-host assertions can read the routing props
+// directly. The real button POSTs a form to /auth/sso/:provider, which jsdom
+// cannot follow and which would tell us nothing about this component.
+vi.mock('@/apps/session/components/SsoButton.vue', () => ({
+  default: {
+    name: 'SsoButton',
+    template: '<button type="button" data-testid="sso-button"></button>',
+    props: ['routeName', 'displayName', 'redirect'],
+  },
+}));
+
+// The full page load the view falls back to when the tab cannot be brought
+// into line with the server's organization selection.
+const hardNavigateMock = vi.fn();
+vi.mock('@/utils/navigation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/utils/navigation')>()),
+  hardNavigate: (...args: unknown[]) => hardNavigateMock(...args),
+}));
+
+const i18n = createTestI18n();
+
+describe('AcceptInvite', () => {
+  let pinia: ReturnType<typeof createPinia>;
+  let authStore: ReturnType<typeof useAuthStore>;
+  let bootstrapStore: ReturnType<typeof useBootstrapStore>;
+  let router: ReturnType<typeof createRouter>;
+
+  const mockInvitation = {
+    organization_name: 'Acme Corp',
+    organization_id: 'on%orgacme123', // ExtId format for organization reference
+    email: 'invitee@example.com',
+    role: 'member',
+    // Backend emits a masked inviter value, never the raw email (AZ7)
+    invited_by: 'a***@a***.com',
+    expires_at: Math.floor(Date.now() / 1000) + 604800, // 7 days from now
+    status: 'pending',
+    actionable: true, // Invitation can be acted upon
+  };
+
+  const mockExpiredInvitation = {
+    ...mockInvitation,
+    status: 'expired',
+    actionable: false, // Expired invitations cannot be acted upon
+  };
+
+  /**
+   * The host's resolved sign-in restriction (ADR-034#resolution-is-model-owned), as GET
+   * /api/invite/:token now reports it. Server-owned and read verbatim — the
+   * component never re-derives it, so these fixtures are the only input that
+   * drives the restricted states.
+   */
+  const unrestricted = { state: 'unrestricted', restrict_to: null, source: 'global' };
+  const restrictedTo = (method: string, source = 'global') => ({
+    state: 'restricted',
+    restrict_to: method,
+    source,
+  });
+  const unavailable = (method: string | null, source = 'global') => ({
+    state: 'unavailable',
+    restrict_to: method,
+    source,
+  });
+
+  /** The SSO entry the server leaves in auth_methods on a custom-domain host. */
+  const ssoAuthMethod = {
+    type: 'sso',
+    enabled: true,
+    provider_type: 'oidc',
+    display_name: 'Acme SSO',
+    platform_route_name: 'oidc',
+  };
+
+  beforeEach(() => {
+    pinia = createPinia();
+    setActivePinia(pinia);
+    authStore = useAuthStore();
+    bootstrapStore = useBootstrapStore();
+
+    // Reset axios mock
+    const axiosMock = getGlobalAxiosMock();
+    axiosMock.reset();
+
+    router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/invite/:token', name: 'Accept Invite', component: AcceptInvite },
+        { path: '/signin', name: 'Sign In', component: { template: '<div></div>' } },
+        { path: '/dashboard', name: 'Dashboard', component: { template: '<div></div>' } },
+        {
+          path: '/org/:extid/:tab?',
+          name: 'Organization Settings',
+          component: { template: '<div></div>' },
+        },
+        { path: '/', name: 'Home', component: { template: '<div></div>' } },
+      ],
+    });
+
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    getGlobalAxiosMock().reset();
+  });
+
+  const mountComponent = async (token = 'test-token-123', stubs: Stubs = {}) => {
+    await router.push(`/invite/${token}`);
+    await router.isReady();
+
+    const wrapper = mount(AcceptInvite, {
+      global: {
+        plugins: [i18n, pinia, router],
+        provide: {
+          api: createSharedApiInstance(),
+        },
+        stubs,
+      },
+    });
+    await flushPromises();
+    return wrapper;
+  };
+
+  describe('Invitation Display', () => {
+    it('displays invitation details correctly', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+
+      const wrapper = await mountComponent();
+
+      expect(wrapper.text()).toContain('Acme Corp');
+      // Invitee email is in a readonly input value, not text content
+      const emailInput = wrapper.find('[data-testid="invite-signup-email-input"]');
+      expect(emailInput.exists()).toBe(true);
+      expect(emailInput.attributes('value')).toBe('invitee@example.com');
+      expect(wrapper.text()).toContain('a***@a***.com');
+    });
+
+    it('displays member role correctly', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+
+      const wrapper = await mountComponent();
+
+      expect(wrapper.text()).toContain('web.organizations.invitations.roles.member');
+    });
+
+    it('displays admin role correctly', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: { ...mockInvitation, role: 'admin' },
+      });
+
+      const wrapper = await mountComponent();
+
+      expect(wrapper.text()).toContain('web.organizations.invitations.roles.admin');
+    });
+
+    it('shows accept and decline buttons for authenticated user with pending invitation', async () => {
+      // Must be authenticated to see direct Accept/Decline buttons
+      // isAuthenticated lives on authStore; the customer record and current
+      // email live on bootstrapStore (see authStore.ts's CUSTOMER OBJECT
+      // STATE notes) — emailMismatch in AcceptInvite.vue reads
+      // bootstrapStore.email, not authStore, so both must be set here.
+      applyBootstrap(bootstrapStore, authenticatedBootstrap, {
+        email: 'invitee@example.com',
+        cust: { ...mockCustomer, email: 'invitee@example.com' },
+      });
+
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+
+      const wrapper = await mountComponent();
+
+      const buttons = wrapper.findAll('button');
+      const buttonTexts = buttons.map((b) => b.text());
+
+      expect(
+        buttonTexts.some((t) => t.includes('web.organizations.invitations.accept_invitation'))
+      ).toBe(true);
+      expect(
+        buttonTexts.some((t) => t.includes('web.organizations.invitations.decline_invitation'))
+      ).toBe(true);
+    });
+  });
+
+  describe('Expired Invitation', () => {
+    it('shows error message for expired invitation', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockExpiredInvitation,
+      });
+
+      const wrapper = await mountComponent();
+
+      expect(wrapper.text()).toContain('web.organizations.invitations.expired_message');
+    });
+  });
+
+  describe('Invalid Token', () => {
+    it('shows error message for invalid token', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/invalid-token').reply(404, {
+        error: 'Not found',
+      });
+
+      const wrapper = await mountComponent('invalid-token');
+      // Multiple flushPromises to allow all async cycles to complete
+      await flushPromises();
+      await flushPromises();
+
+      // Component should show invalid state with error message
+      expect(wrapper.find('[data-testid="invite-invalid"]').exists()).toBe(true);
+      expect(wrapper.text()).toContain('web.organizations.invitations.invalid_token');
+    });
+
+    it('shows error message for API errors', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/error-token').reply(500, {
+        error: 'Server error',
+      });
+
+      const wrapper = await mountComponent('error-token');
+      // Multiple flushPromises to allow all async cycles to complete
+      await flushPromises();
+      await flushPromises();
+
+      // Component should show invalid state with error message
+      expect(wrapper.find('[data-testid="invite-invalid"]').exists()).toBe(true);
+      expect(wrapper.text()).toContain('web.organizations.invitations.invalid_token');
+    });
+  });
+
+  describe('Unauthenticated User', () => {
+    it('shows signup form by default when user is not authenticated', async () => {
+      // The show endpoint deliberately carries no account_exists signal (AZ7),
+      // so unauthenticated users always start in the signup flow.
+      // cust lives on bootstrapStore, not authStore (see CUSTOMER OBJECT
+      // STATE notes in authStore.ts) — it already defaults to null, this is
+      // an explicit reset in case an earlier test in this file left it set.
+      bootstrapStore.$patch({ cust: null });
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+
+      const wrapper = await mountComponent();
+
+      // Component should show the signup_required state testid
+      expect(wrapper.find('[data-testid="invite-signup-required"]').exists()).toBe(true);
+    });
+
+    it('switches to sign-in notice after signup reports signup unavailable', async () => {
+      // cust lives on bootstrapStore, not authStore (see CUSTOMER OBJECT
+      // STATE notes in authStore.ts) — it already defaults to null, this is
+      // an explicit reset in case an earlier test in this file left it set.
+      bootstrapStore.$patch({ cust: null });
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+
+      const wrapper = await mountComponent();
+      expect(wrapper.find('[data-testid="invite-signup-required"]').exists()).toBe(true);
+
+      // The signup attempt comes back with the generic signup_unavailable
+      // error (#3856) and the form emits signin-required; the state machine
+      // flips to signin_required.
+      wrapper.findComponent(InviteSignUpForm).vm.$emit('signin-required');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('web.organizations.invitations.must_sign_in');
+    });
+  });
+
+  /**
+   * ADR-034#invite-signup-is-gated (#4139). POST /api/invite/:token/signup 404s
+   * and creates nothing on a host that does not permit password. These cover
+   * the UX half: the page must render the method the host actually offers
+   * rather than a password form whose submit dies.
+   */
+  describe('Host sign-in restriction (ADR-034#invite-signup-is-gated)', () => {
+    beforeEach(() => {
+      applyBootstrap(bootstrapStore, anonymousBootstrap);
+    });
+
+    const replyWith = (record: Record<string, unknown>, token = 'test-token-123') => {
+      getGlobalAxiosMock().onGet(`/api/invite/${token}`).reply(200, { record });
+    };
+
+    describe('host permits password (unchanged behaviour)', () => {
+      it('renders the signup form when the host is unrestricted', async () => {
+        replyWith({ ...mockInvitation, effective_restrict_to: unrestricted });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-signup-required"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="invite-signin-unavailable"]').exists()).toBe(false);
+      });
+
+      it('renders the signup form when the host is restricted to password', async () => {
+        replyWith({ ...mockInvitation, effective_restrict_to: restrictedTo('password') });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-signup-required"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(false);
+      });
+
+      it('renders the signup form when the field is absent (pre-#4139 backend)', async () => {
+        // Absent is treated as unrestricted on purpose: failing closed on a
+        // missing field would take the invite page dark on every older install.
+        replyWith(mockInvitation);
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-signup-required"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(false);
+      });
+    });
+
+    describe('host restricted to sso', () => {
+      it('explains SSO and routes to the provider from auth_methods', async () => {
+        replyWith({
+          ...mockInvitation,
+          effective_restrict_to: restrictedTo('sso', 'domain'),
+          auth_methods: [ssoAuthMethod],
+        });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(true);
+        // The dead password form must be gone, not merely supplemented.
+        expect(wrapper.find('[data-testid="invite-signup-required"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="invite-signup-email-input"]').exists()).toBe(false);
+        expect(wrapper.text()).toContain('web.organizations.invitations.restricted_sso_body');
+
+        const sso = wrapper.findComponent({ name: 'SsoButton' });
+        expect(sso.exists()).toBe(true);
+        expect(sso.props('routeName')).toBe('oidc');
+        expect(sso.props('displayName')).toBe('Acme SSO');
+        // Comes back here to accept — the ADR-034#invite-signup-is-gated flow
+        // is sign in, then join.
+        expect(sso.props('redirect')).toBe('/invite/test-token-123');
+      });
+
+      it('does not imply the invitation was lost', async () => {
+        replyWith({
+          ...mockInvitation,
+          effective_restrict_to: restrictedTo('sso'),
+          auth_methods: [ssoAuthMethod],
+        });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.text()).toContain('web.organizations.invitations.invitation_stays_pending');
+      });
+
+      it('falls back to the sign-in page when no auth_methods entry is present', async () => {
+        // Canonical host: the invite response has no provider route to name but
+        // the restriction is still reported.
+        replyWith({ ...mockInvitation, effective_restrict_to: restrictedTo('sso') });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(true);
+        expect(wrapper.findComponent({ name: 'SsoButton' }).exists()).toBe(false);
+
+        // router-link renders as router-link-stub here, so `to` is the only
+        // assertable surface — hence the string path in the component.
+        const link = wrapper.find('[data-testid="restricted-signin-link"]');
+        expect(link.exists()).toBe(true);
+        expect(link.attributes('to')).toBe('/signin?redirect=%2Finvite%2Ftest-token-123');
+      });
+
+      it('renders every platform-fallback provider supplied by the API', async () => {
+        replyWith({
+          ...mockInvitation,
+          effective_restrict_to: restrictedTo('sso', 'domain'),
+          auth_methods: [
+            { ...ssoAuthMethod, platform_route_name: 'oidc', display_name: 'Platform SSO' },
+            { ...ssoAuthMethod, platform_route_name: 'github', display_name: 'GitHub' },
+          ],
+        });
+
+        const wrapper = await mountComponent();
+        const buttons = wrapper.findAllComponents({ name: 'SsoButton' });
+
+        expect(buttons.map((button) => button.props('routeName'))).toEqual(['oidc', 'github']);
+        expect(
+          buttons.every((button) => button.props('redirect') === '/invite/test-token-123')
+        ).toBe(true);
+        expect(wrapper.find('[data-testid="restricted-signin-link"]').exists()).toBe(false);
+      });
+    });
+
+    describe('host restricted to a method completed on the sign-in page', () => {
+      it.each(['email_auth', 'webauthn'])(
+        'offers an actionable sign-in handoff for %s without exposing password signup',
+        async (method) => {
+          replyWith({ ...mockInvitation, effective_restrict_to: restrictedTo(method) });
+
+          const wrapper = await mountComponent();
+
+          expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(true);
+          expect(wrapper.find('[data-testid="invite-signup-required"]').exists()).toBe(false);
+          expect(wrapper.find('[data-testid="invite-signup-email-input"]').exists()).toBe(false);
+          expect(wrapper.text()).toContain('web.organizations.invitations.restricted_host_body');
+          expect(wrapper.findComponent({ name: 'SsoButton' }).exists()).toBe(false);
+
+          const link = wrapper.find('[data-testid="restricted-signin-link"]');
+          expect(link.exists()).toBe(true);
+          expect(link.attributes('to')).toBe('/signin?redirect=%2Finvite%2Ftest-token-123');
+        }
+      );
+
+      it('still hides the form when the method is unrecognized', async () => {
+        // The schema degrades an unknown method to null while `state` keeps
+        // carrying the truth. A method we cannot name is still one we cannot
+        // offer — treating it as unrestricted would put the password form back
+        // in front of the ADR-034#invite-signup-is-gated gate.
+        replyWith({ ...mockInvitation, effective_restrict_to: restrictedTo('passkey_v2') });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="invite-signup-required"]').exists()).toBe(false);
+        expect(wrapper.text()).toContain(
+          'web.organizations.invitations.restricted_host_unknown_body'
+        );
+        expect(wrapper.find('[data-testid="restricted-signin-link"]').exists()).toBe(true);
+      });
+    });
+
+    describe('sign-in unavailable on this host', () => {
+      it('reports an honest message rather than a form or a blank screen', async () => {
+        replyWith({ ...mockInvitation, effective_restrict_to: unavailable('sso') });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-signin-unavailable"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="invite-signup-required"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(false);
+        expect(wrapper.text()).toContain('web.organizations.invitations.signin_unavailable_body');
+        // Still tells them the invitation survives.
+        expect(wrapper.text()).toContain('web.organizations.invitations.invitation_stays_pending');
+      });
+
+      it('names the conflict rather than showing either side as the winner', async () => {
+        replyWith({ ...mockInvitation, effective_restrict_to: unavailable('sso', 'conflict') });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-signin-unavailable"]').exists()).toBe(true);
+        expect(wrapper.text()).toContain(
+          'web.organizations.invitations.signin_unavailable_conflict_body'
+        );
+      });
+
+      it('falls back to unnamed copy when the method is unrecognized', async () => {
+        replyWith({ ...mockInvitation, effective_restrict_to: unavailable('passkey_v2') });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.text()).toContain(
+          'web.organizations.invitations.signin_unavailable_unknown_body'
+        );
+      });
+    });
+
+    describe('restriction never masks a token failure', () => {
+      it('renders the bad-token error, not a restriction, for an unknown token', async () => {
+        // A genuine 404 from GET must still read as a bad token. It cannot be
+        // confused with the gated-signup 404 of
+        // ADR-034#invite-signup-is-gated: the restriction is known BEFORE
+        // any form renders, so `invalid` keeps sole ownership of token failures.
+        getGlobalAxiosMock().onGet('/api/invite/invalid-token').reply(404, { error: 'Not found' });
+
+        const wrapper = await mountComponent('invalid-token');
+        await flushPromises();
+
+        expect(wrapper.find('[data-testid="invite-invalid"]').exists()).toBe(true);
+        expect(wrapper.text()).toContain('web.organizations.invitations.invalid_token');
+        expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="invite-signin-unavailable"]').exists()).toBe(false);
+      });
+
+      it('reports an expired invitation as expired even on a restricted host', async () => {
+        // Ordering guard: non-actionable is checked before the restriction, so
+        // an expired token on an SSO-only host reads as expired.
+        replyWith({
+          ...mockExpiredInvitation,
+          effective_restrict_to: restrictedTo('sso'),
+          auth_methods: [ssoAuthMethod],
+        });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-invalid"]').exists()).toBe(true);
+        expect(wrapper.text()).toContain('web.organizations.invitations.expired_message');
+        expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(false);
+      });
+
+      it('reports an unavailable host as unavailable, not as a bad token', async () => {
+        replyWith({ ...mockInvitation, effective_restrict_to: unavailable('sso') });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-invalid"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain('web.organizations.invitations.invalid_token');
+      });
+    });
+
+    describe('authenticated invitee', () => {
+      it('can still accept on a restricted host', async () => {
+        // POST /:token/accept is deliberately ungated (account-scoped, per
+        // ADR-034#reject-as-not-found-not-forbidden), so
+        // the restriction is spent once a session exists. This is what lets
+        // the ADR-034#invite-signup-is-gated flow terminate: SSO signs them in,
+        // they return here, they join.
+        applyBootstrap(bootstrapStore, authenticatedBootstrap, {
+          email: 'invitee@example.com',
+          cust: { ...mockCustomer, email: 'invitee@example.com' },
+        });
+        replyWith({
+          ...mockInvitation,
+          effective_restrict_to: restrictedTo('sso'),
+          auth_methods: [ssoAuthMethod],
+        });
+
+        const wrapper = await mountComponent();
+
+        expect(wrapper.find('[data-testid="invite-direct-accept"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="accept-invitation-btn"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="invite-restricted-host"]').exists()).toBe(false);
+      });
+    });
+
+    describe('accessibility', () => {
+      it('announces the restriction rather than relying on color', async () => {
+        replyWith({
+          ...mockInvitation,
+          effective_restrict_to: restrictedTo('sso'),
+          auth_methods: [ssoAuthMethod],
+        });
+
+        const wrapper = await mountComponent();
+
+        const notice = wrapper.find('[data-testid="restricted-host-notice"]');
+        expect(notice.attributes('role')).toBe('status');
+        expect(notice.attributes('aria-live')).toBe('polite');
+        // The meaning is in the text, not the hue.
+        expect(notice.text()).toContain('web.organizations.invitations.restricted_host_title');
+      });
+
+      it('announces the unavailable dead end assertively', async () => {
+        replyWith({ ...mockInvitation, effective_restrict_to: unavailable('sso') });
+
+        const wrapper = await mountComponent();
+
+        const notice = wrapper.find('[data-testid="signin-unavailable-notice"]');
+        expect(notice.attributes('role')).toBe('alert');
+        expect(notice.text()).toContain('web.organizations.invitations.signin_unavailable_title');
+      });
+    });
+  });
+
+  describe('Authenticated User - Accept Flow', () => {
+    beforeEach(() => {
+      // isAuthenticated lives on authStore; the customer record and current
+      // email live on bootstrapStore (see authStore.ts's CUSTOMER OBJECT
+      // STATE notes) — emailMismatch in AcceptInvite.vue reads
+      // bootstrapStore.email, not authStore, so both must be set here.
+      applyBootstrap(bootstrapStore, authenticatedBootstrap, {
+        email: 'invitee@example.com',
+        cust: { ...mockCustomer, email: 'invitee@example.com' },
+      });
+    });
+
+    /** An organizations-list wire record */
+    const orgRecord = (objid: string, extid: string, over: Record<string, unknown> = {}) => ({
+      objid,
+      extid,
+      display_name: objid,
+      description: null,
+      owner_id: 'cust-owner',
+      contact_email: null,
+      planid: 'free_v1',
+      is_default: false,
+      created: 1700000000,
+      updated: 1700000000,
+      ...over,
+    });
+    // The invitee's own default workspace, and the org they are joining
+    const ownDefault = orgRecord('org-own', 'on%ownorg', {
+      is_default: true,
+      is_current_user_default: true,
+    });
+    const joined = orgRecord('org-acme', mockInvitation.organization_id, { is_default: true });
+    const acceptBody = {
+      user_id: 'ur-invitee',
+      organization: {
+        id: mockInvitation.organization_id,
+        objid: 'org-acme',
+        display_name: 'Acme Corp',
+      },
+      role: 'member',
+      joined_at: 1700000000.5,
+      organization_selected: true,
+    };
+
+    it('accepts invitation successfully', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+      axiosMock.onPost('/api/invite/test-token-123/accept').reply(200, acceptBody);
+      axiosMock.onGet('/api/organizations').reply(200, { records: [ownDefault, joined], count: 2 });
+
+      const wrapper = await mountComponent();
+      const acceptButton = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('web.organizations.invitations.accept_invitation'));
+      await acceptButton?.trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('web.organizations.invitations.accept_success');
+      // Action row must be torn down once accepted — prevents flicker during redirect delay
+      expect(wrapper.find('[data-testid="accept-invitation-btn"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="decline-invitation-btn"]').exists()).toBe(false);
+    });
+
+    /**
+     * Post-accept target (#4566). /orgs is owner-only and an invitee owns
+     * nothing through the invite, so it bounced them to /dashboard without a
+     * word. The target now follows the role the invitation grants: an admin
+     * may open /org/:extid, a member has no org page and goes to /dashboard.
+     *
+     * Only setTimeout is faked, and only after mount: flushPromises schedules
+     * on setImmediate, and the mount itself must settle on real timers.
+     */
+    const acceptAndAdvance = async (invitation: Record<string, unknown>) => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, { record: invitation });
+      axiosMock.onPost('/api/invite/test-token-123/accept').reply(200, acceptBody);
+      axiosMock.onGet('/api/organizations').reply(200, { records: [ownDefault, joined], count: 2 });
+
+      const wrapper = await mountComponent();
+      const push = vi.spyOn(router, 'push');
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+
+      await wrapper.find('[data-testid="accept-invitation-btn"]').trigger('click');
+      await flushPromises();
+      expect(wrapper.text()).toContain('web.organizations.invitations.accept_success');
+      expect(push).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(2000);
+      return push;
+    };
+
+    it('sends a new member to the dashboard after the redirect delay', async () => {
+      const push = await acceptAndAdvance({ ...mockInvitation, role: 'member' });
+      expect(push).toHaveBeenCalledTimes(1);
+      expect(push).toHaveBeenCalledWith('/dashboard');
+    });
+
+    it('sends a new admin to the organization they joined', async () => {
+      const push = await acceptAndAdvance({ ...mockInvitation, role: 'admin' });
+      expect(push).toHaveBeenCalledTimes(1);
+      expect(push).toHaveBeenCalledWith(`/org/${mockInvitation.organization_id}`);
+    });
+
+    /**
+     * Accepting selects the joined org in the server session. The tab has to
+     * agree before it navigates: otherwise it falls back to the user's own
+     * default and the request interceptor sends that as O-Organization-ID,
+     * which the server ranks above the session.
+     */
+    describe('the joined organization', () => {
+      const acceptWith = async (body: unknown, listStatus = 200) => {
+        const axiosMock = getGlobalAxiosMock();
+        axiosMock.onGet('/api/invite/test-token-123').reply(200, { record: mockInvitation });
+        axiosMock.onPost('/api/invite/test-token-123/accept').reply(200, body);
+        axiosMock
+          .onGet('/api/organizations')
+          .reply(listStatus, { records: [ownDefault, joined], count: 2 });
+
+        const wrapper = await mountComponent();
+        const push = vi.spyOn(router, 'push');
+        vi.useFakeTimers({ toFake: ['setTimeout'] });
+        await wrapper.find('[data-testid="accept-invitation-btn"]').trigger('click');
+        await flushPromises();
+        vi.advanceTimersByTime(2000);
+        return { axiosMock, push };
+      };
+
+      it('becomes current in this tab before the redirect, without a selection write', async () => {
+        // Seeded from the page's bootstrap: the user's own default
+        const store = useOrganizationStore();
+        store.setCurrentOrganization(organizationSchema.parse(ownDefault));
+
+        const { axiosMock, push } = await acceptWith(acceptBody);
+
+        expect(store.currentOrganization?.objid).toBe('org-acme');
+        expect(push).toHaveBeenCalledWith('/dashboard');
+        const selectionWrites = axiosMock.history.post.filter(
+          (r) => r.url === '/api/account/update-organization-context'
+        );
+        expect(selectionWrites).toHaveLength(0);
+      });
+
+      // In the cases below the tab cannot match the server's selection. A
+      // client-side push would let the header fall back to the user's own
+      // default and override the session, so the next page loads in full.
+      it('loads the next page in full when the server did not select the org', async () => {
+        hardNavigateMock.mockClear();
+
+        const { push } = await acceptWith({ ...acceptBody, organization_selected: false });
+
+        expect(useOrganizationStore().currentOrganization).toBeNull();
+        expect(push).not.toHaveBeenCalled();
+        expect(hardNavigateMock).toHaveBeenCalledWith('/dashboard', '/dashboard');
+      });
+
+      it('loads the next page in full when the list fails to load', async () => {
+        hardNavigateMock.mockClear();
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        const { push } = await acceptWith(acceptBody, 500);
+
+        expect(warn).toHaveBeenCalled();
+        expect(useOrganizationStore().currentOrganization).toBeNull();
+        expect(push).not.toHaveBeenCalled();
+        expect(hardNavigateMock).toHaveBeenCalledWith('/dashboard', '/dashboard');
+      });
+    });
+
+    it('shows error when accept fails', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+      axiosMock.onPost('/api/invite/test-token-123/accept').reply(400, {
+        error: 'Email mismatch',
+      });
+
+      const wrapper = await mountComponent();
+      const acceptButton = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('web.organizations.invitations.accept_invitation'));
+      await acceptButton?.trigger('click');
+      await flushPromises();
+
+      expect(wrapper.find('.error-alert').exists()).toBe(true);
+    });
+  });
+
+  describe('Already Accepted Invitation', () => {
+    // status 'active' with actionable false: the state machine lands on
+    // already_accepted, whose link follows the same role rule as the
+    // post-accept redirect (#4566). The global router-link stub (setupRouter)
+    // renders no slot content, so these mount VTU's RouterLinkStub instead: it
+    // exposes `to` as a prop and renders the label.
+    const alreadyAccepted = { ...mockInvitation, status: 'active', actionable: false };
+
+    const linkFor = async (invitation: Record<string, unknown>) => {
+      getGlobalAxiosMock().onGet('/api/invite/test-token-123').reply(200, { record: invitation });
+      const wrapper = await mountComponent('test-token-123', { RouterLink: RouterLinkStub });
+      expect(wrapper.find('[data-testid="invite-already-accepted"]').exists()).toBe(true);
+      const link = wrapper
+        .findAllComponents(RouterLinkStub)
+        .find((c) => c.attributes('data-testid') === 'invite-already-accepted-link');
+      expect(link, 'the already-accepted link').toBeTruthy();
+      return link!;
+    };
+
+    it('links a member to the dashboard', async () => {
+      const link = await linkFor({ ...alreadyAccepted, role: 'member' });
+      expect(link.props('to')).toBe('/dashboard');
+      expect(link.text()).toContain('web.organizations.invitations.go_to_dashboard');
+    });
+
+    it('links an admin to the organization', async () => {
+      const link = await linkFor({ ...alreadyAccepted, role: 'admin' });
+      expect(link.props('to')).toBe(`/org/${mockInvitation.organization_id}`);
+      expect(link.text()).toContain('web.organizations.invitations.go_to_organization');
+    });
+  });
+
+  describe('Authenticated User - Decline Flow', () => {
+    beforeEach(() => {
+      // isAuthenticated lives on authStore; the customer record and current
+      // email live on bootstrapStore (see authStore.ts's CUSTOMER OBJECT
+      // STATE notes) — emailMismatch in AcceptInvite.vue reads
+      // bootstrapStore.email, not authStore, so both must be set here.
+      applyBootstrap(bootstrapStore, authenticatedBootstrap, {
+        email: 'invitee@example.com',
+        cust: { ...mockCustomer, email: 'invitee@example.com' },
+      });
+    });
+
+    it('declines invitation successfully', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+      axiosMock.onPost('/api/invite/test-token-123/decline').reply(200, {});
+
+      const wrapper = await mountComponent();
+      const declineButton = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('web.organizations.invitations.decline_invitation'));
+      await declineButton?.trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('web.organizations.invitations.decline_success');
+      // Action row must be torn down once declined — prevents flicker during redirect delay
+      expect(wrapper.find('[data-testid="accept-invitation-btn"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="decline-invitation-btn"]').exists()).toBe(false);
+    });
+
+    it('shows error when decline fails', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+      axiosMock.onPost('/api/invite/test-token-123/decline').reply(500, {
+        error: 'Server error',
+      });
+
+      const wrapper = await mountComponent();
+      const declineButton = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('web.organizations.invitations.decline_invitation'));
+      await declineButton?.trigger('click');
+      await flushPromises();
+
+      expect(wrapper.find('.error-alert').exists()).toBe(true);
+    });
+  });
+
+  describe('UI Layout', () => {
+    it('renders invitation header correctly for authenticated user', async () => {
+      // Authenticated user sees "Invitation Details" header in direct_accept state
+      // isAuthenticated lives on authStore; the customer record and current
+      // email live on bootstrapStore (see authStore.ts's CUSTOMER OBJECT
+      // STATE notes) — emailMismatch in AcceptInvite.vue reads
+      // bootstrapStore.email, not authStore, so both must be set here.
+      applyBootstrap(bootstrapStore, authenticatedBootstrap, {
+        email: 'invitee@example.com',
+        cust: { ...mockCustomer, email: 'invitee@example.com' },
+      });
+
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+
+      const wrapper = await mountComponent();
+
+      expect(wrapper.find('h1').text()).toContain(
+        'web.organizations.invitations.invitation_details'
+      );
+    });
+
+    it('has proper container styling', async () => {
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+
+      const wrapper = await mountComponent();
+
+      expect(wrapper.find('.max-w-md').exists()).toBe(true);
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('has accessible buttons with type attributes', async () => {
+      // Use authenticated user to see direct Accept/Decline buttons (type="button")
+      // isAuthenticated lives on authStore; the customer record and current
+      // email live on bootstrapStore (see authStore.ts's CUSTOMER OBJECT
+      // STATE notes) — emailMismatch in AcceptInvite.vue reads
+      // bootstrapStore.email, not authStore, so both must be set here.
+      applyBootstrap(bootstrapStore, authenticatedBootstrap, {
+        email: 'invitee@example.com',
+        cust: { ...mockCustomer, email: 'invitee@example.com' },
+      });
+
+      const axiosMock = getGlobalAxiosMock();
+      axiosMock.onGet('/api/invite/test-token-123').reply(200, {
+        record: mockInvitation,
+      });
+
+      const wrapper = await mountComponent();
+
+      const buttons = wrapper.findAll('button');
+      expect(buttons.length).toBeGreaterThan(0);
+
+      // Check all buttons have explicit type attribute (either "button" or "submit")
+      buttons.forEach((button) => {
+        const type = button.attributes('type');
+        expect(['button', 'submit']).toContain(type);
+      });
+    });
+  });
+});

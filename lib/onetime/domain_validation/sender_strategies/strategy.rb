@@ -1,0 +1,89 @@
+# lib/onetime/domain_validation/sender_strategies/strategy.rb
+#
+# frozen_string_literal: true
+
+#
+# Sender Domain Validation Strategy Pattern
+#
+# Provides an abstraction layer for different mail provider DNS validation
+# requirements. Each provider (SES, SendGrid, Lettermint) needs specific
+# DNS records (DKIM, SPF, MX) configured for the sending domain.
+#
+# Usage:
+#   strategy = Onetime::DomainValidation::SenderStrategies::SenderStrategy.for_provider('ses')
+#   records  = strategy.required_dns_records(mailer_config)
+#   results  = strategy.verify_dns_records(mailer_config)
+#
+
+require_relative '../../mail/provider_registry'
+require_relative '../record_normalizer'
+require_relative 'base_strategy'
+require_relative 'provider_config'
+require_relative 'ses_validation'
+require_relative 'sendgrid_validation'
+require_relative 'lettermint_validation'
+require_relative 'smtp2go_validation'
+
+module Onetime
+  module DomainValidation
+    module SenderStrategies
+      # Factory class for creating sender domain validation strategies
+      class SenderStrategy
+        # Derived from the authoritative Mail::ProviderRegistry: every
+        # provider with a validation strategy (smtp has none — its DNS is
+        # configured manually). The validation files are required above, so
+        # class resolution here is safe.
+        PROVIDER_MAP = Onetime::Mail::ProviderRegistry.descriptors
+          .reject { |descriptor| descriptor.validation_strategy_class_name.nil? }
+          .to_h { |descriptor| [descriptor.name, descriptor.validation_strategy_class] }
+          .freeze
+
+        # Factory method to create appropriate strategy based on provider type.
+        #
+        # Options are merged with precedence: defaults < config < explicit options.
+        # This allows:
+        #   - Hardcoded defaults for backward compatibility
+        #   - YAML config (OT.conf['email_providers']) for deployment customization
+        #   - Explicit options for per-call overrides
+        #
+        # @param provider_type [String] One of 'ses', 'sendgrid', 'lettermint'
+        # @param options [Hash] Provider-specific options forwarded to the
+        #   strategy constructor (e.g. region: for SES, subdomain: for SendGrid).
+        #   These override both defaults and config values.
+        # @return [BaseStrategy] Appropriate strategy instance
+        # @raise [ArgumentError] If provider type is unknown
+        #
+        def self.for_provider(provider_type, options = {})
+          normalized = provider_type.to_s.downcase.strip
+
+          strategy_class = PROVIDER_MAP[normalized]
+
+          unless strategy_class
+            raise ArgumentError,
+              "Unknown mail provider: '#{provider_type}'. " \
+              "Valid providers: #{PROVIDER_MAP.keys.join(', ')}"
+          end
+
+          # Merge config defaults with explicit options.
+          # ProviderConfig handles: hardcoded defaults < YAML config < options
+          merged_options = ProviderConfig.for(normalized, **options)
+
+          # Validate merged options against the strategy's declared whitelist.
+          # Reject unknown keys at the factory boundary with a clear
+          # error message naming the provider, rather than letting Ruby's
+          # kwarg check leak constructor details.
+          accepted = strategy_class.accepted_options
+          unknown  = options.keys - accepted
+          unless unknown.empty?
+            raise ArgumentError,
+              "Unknown option(s) #{unknown.inspect} for provider '#{normalized}'. " \
+              "Accepted: #{accepted.empty? ? 'none' : accepted.inspect}"
+          end
+
+          # Only pass accepted options to the constructor
+          strategy_class.new(**merged_options.slice(*accepted))
+        end
+      end
+    end
+  end
+end

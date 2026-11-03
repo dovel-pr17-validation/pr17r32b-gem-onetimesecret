@@ -1,0 +1,95 @@
+# apps/api/domains/logic/base.rb
+#
+# frozen_string_literal: true
+
+# Domains API Logic Base Class
+#
+# Extends V2 logic with modern API patterns for Domains API.
+#
+# Key differences from v2:
+# 1. Native JSON types (numbers, booleans, null) instead of string-serialized values
+# 2. Pure REST semantics - no "success" field (use HTTP status codes)
+# 3. Modern naming - "user_id" instead of "custid"
+#
+# Domains API uses same modern conventions as v3 API for consistency.
+
+require 'onetime/logic/base'
+
+module DomainsAPI
+  module Logic
+    class Base < Onetime::Logic::Base
+      # Transform v2 response data to Domains API format
+      #
+      # Domains API changes (same as v3):
+      # - Remove "success" field (use HTTP status codes)
+      # - Rename "custid" to "user_id" (modern naming)
+      #
+      # @return [Hash] Domains API-formatted response data
+      def success_data
+        # Get the v2 response data
+        v2_data = super
+
+        # Transform for Domains API
+        domains_data = v2_data.dup
+
+        # Remove success field (Domains API uses HTTP status codes)
+        domains_data.delete(:success)
+        domains_data.delete('success')
+
+        # Rename custid to user_id (modern naming)
+        if domains_data.key?(:custid)
+          domains_data[:user_id] = domains_data.delete(:custid)
+        elsif domains_data.key?('custid')
+          domains_data['user_id'] = domains_data.delete('custid')
+        end
+
+        domains_data
+      end
+
+      private
+
+      # Runs a write through the per-domain config models' guarded methods
+      # (Onetime::Models::Features::GuardedConfigWrites) and reports a
+      # concurrent writer that got there first as a conflict: the record was
+      # deleted, created, or still changing after the retries. Nothing was
+      # written and nothing should be logged as written.
+      def guarded_config_write
+        yield
+      rescue Familia::KeyNotFoundError, Familia::OptimisticLockError,
+             Onetime::Models::Features::GuardedConfigWrites::ConfigExistsError
+        raise_form_error(
+          'The configuration was changed or removed while this update was being saved. Reload it and try again.',
+          field: :domain_id,
+          error_type: :conflict,
+        )
+      end
+
+      # Validates that an external ID contains only lowercase alphanumeric characters.
+      #
+      # @param extid [String] The external ID to validate
+      # @return [Boolean]
+      def valid_extid?(extid)
+        extid.match?(/\A[a-z0-9]+\z/)
+      end
+
+      # Resolve an explicit org_id param to an organization the caller belongs to.
+      #
+      # Accepts an objid or extid. Both lookups return nil for an unknown or
+      # blank identifier rather than raising; a datastore error propagates as
+      # it would anywhere else in a logic class, so a caller that gates
+      # authorization on the answer never sees an outage as "not found".
+      #
+      # @param org_id [String] Organization ID (objid or extid)
+      # @return [Onetime::Organization, nil] nil when not found or @cust is not a member
+      def resolve_target_organization(org_id)
+        org   = Onetime::Organization.load(org_id)
+        org ||= Onetime::Organization.find_by_extid(org_id)
+
+        return nil unless org
+        return nil unless org.member?(@cust)
+
+        org
+      end
+    end
+  end
+end

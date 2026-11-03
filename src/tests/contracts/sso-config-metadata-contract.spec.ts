@@ -1,0 +1,640 @@
+// src/tests/contracts/sso-config-metadata-contract.spec.ts
+//
+// Contract tests for the SSO provider constants and the
+// customDomainSsoConfigCanonical schema. Verifies the frontend mirrors of
+// PROVIDER_TYPES, PROVIDER_METADATA, CLIENT_CREDENTIAL_PROVIDER_TYPES,
+// PROVIDER_ROUTE_MAP and SAML_FIELDS in
+// lib/onetime/models/custom_domain/sso_config.rb, and of the
+// CLIENT_AUTH_METHODS keys in lib/onetime/sso_provider/oidc.rb (#4764).
+//
+// The Ruby constants are READ FROM SOURCE (same approach as
+// customer-role-contract.spec.ts), so a backend provider type, route default
+// or credential rule the frontend does not know about fails CI instead of
+// shipping a form that hides a required field or previews the wrong callback
+// URL. Before #4450 the form carried an untested third copy of the route map.
+//
+// Note: SSO config is per-domain. Model is CustomDomain::SsoConfig (#2786, #2801).
+
+import {
+  customDomainSsoConfigCanonical,
+  patchSsoConfigPayloadSchema,
+  putSsoConfigPayloadSchema,
+  putSsoConfigPayloadStrictSchema,
+  SSO_CLIENT_CREDENTIAL_PROVIDER_TYPES,
+  SSO_PROVIDER_METADATA,
+  SSO_PROVIDER_ROUTE_NAMES,
+  SSO_SAML_FIELDS,
+  SSO_TOKEN_ENDPOINT_AUTH_METHODS,
+  ssoProviderTypeSchema,
+  ssoProviderUsesClientCredentials,
+  tokenEndpointAuthMethodSchema,
+  type SsoProviderType,
+} from '@/schemas/contracts/custom-domain/sso-config';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+
+describe('SAML policy payloads', () => {
+  it('preserves explicit policy values and PATCH omissions', () => {
+    expect(
+      patchSsoConfigPayloadSchema.parse({ name_id_format: 'omit', callback_origins: [] })
+    ).toEqual({ name_id_format: 'omit', callback_origins: [] });
+    expect(patchSsoConfigPayloadSchema.parse({})).not.toHaveProperty('callback_origins');
+    expect(patchSsoConfigPayloadSchema.parse({})).not.toHaveProperty('name_id_format');
+  });
+
+  it('refuses null, wildcard and non-origin callback entries', () => {
+    for (const origin of [
+      'null',
+      'http://idp.example',
+      'https://idp.example/',
+      'https://idp.example:443',
+    ]) {
+      expect(patchSsoConfigPayloadSchema.safeParse({ callback_origins: [origin] }).success).toBe(
+        false
+      );
+    }
+    expect(patchSsoConfigPayloadSchema.safeParse({ name_id_format: 'bad' }).success).toBe(false);
+    // Tenant records have no uid attribute; the API refuses transient at save time.
+    expect(
+      patchSsoConfigPayloadSchema.safeParse({
+        name_id_format: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
+      }).success
+    ).toBe(false);
+    expect(patchSsoConfigPayloadSchema.safeParse({ name_id_format: null }).success).toBe(false);
+    expect(
+      patchSsoConfigPayloadSchema.safeParse({
+        callback_origins: ['https://login.corp.example:8443'],
+      }).success
+    ).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Backend source extraction
+// ---------------------------------------------------------------------------
+
+const SSO_CONFIG_SOURCE_PATH = fileURLToPath(
+  new URL('../../../lib/onetime/models/custom_domain/sso_config.rb', import.meta.url)
+);
+
+const rubySource = readFileSync(SSO_CONFIG_SOURCE_PATH, 'utf8');
+
+const OIDC_PROVIDER_SOURCE_PATH = fileURLToPath(
+  new URL('../../../lib/onetime/sso_provider/oidc.rb', import.meta.url)
+);
+
+const oidcProviderSource = readFileSync(OIDC_PROVIDER_SOURCE_PATH, 'utf8');
+
+/**
+ * Extracts a `%w[...]` word list constant from the Ruby model. Throws
+ * (failing the suite loudly) if the declaration moved or changed shape — a
+ * silent empty list would make the assertions below vacuously pass.
+ */
+function rubyWordList(constant: string): string[] {
+  const match = rubySource.match(new RegExp(`${constant}\\s*=\\s*%w\\[([^\\]]*)\\]`));
+  if (!match) {
+    throw new Error(
+      `Could not extract ${constant} from ${SSO_CONFIG_SOURCE_PATH}. ` +
+        'If the declaration moved or changed shape, update this test AND ' +
+        'verify the frontend mirror still matches.'
+    );
+  }
+  return match[1].trim().split(/\s+/).filter(Boolean);
+}
+
+/** `SAML_FIELDS = [:a, :b, :c].freeze` → ['a', 'b', 'c'] */
+function rubySymbolList(constant: string): string[] {
+  const match = rubySource.match(new RegExp(`${constant}\\s*=\\s*\\[([^\\]]*)\\]`));
+  if (!match) {
+    throw new Error(`Could not extract ${constant} from ${SSO_CONFIG_SOURCE_PATH}.`);
+  }
+  return match[1]
+    .split(',')
+    .map((s) => s.trim().replace(/^:/, ''))
+    .filter(Boolean);
+}
+
+/**
+ * `CLIENT_AUTH_METHODS = { 'name' => :symbol, ... }.freeze` in oidc.rb →
+ * ['name', ...]. The model's TOKEN_ENDPOINT_AUTH_METHODS is `.keys` of this
+ * hash (asserted separately), so the keys are the wire values (#4764).
+ */
+function rubyClientAuthMethodKeys(): string[] {
+  const block = oidcProviderSource.match(/CLIENT_AUTH_METHODS\s*=\s*\{([\s\S]*?)\}\.freeze/);
+  if (!block) {
+    throw new Error(`Could not extract CLIENT_AUTH_METHODS from ${OIDC_PROVIDER_SOURCE_PATH}.`);
+  }
+  const keys = [...block[1].matchAll(/'([a-z_]+)'\s*=>/g)].map(([, key]) => key);
+  if (keys.length === 0) {
+    throw new Error('CLIENT_AUTH_METHODS matched but no entries were parsed.');
+  }
+  return keys;
+}
+
+/**
+ * PROVIDER_ROUTE_MAP `'type' => { env_var: 'X', default: 'route' }` entries.
+ * Every provider type must have one, so the count is asserted too.
+ */
+function rubyRouteDefaults(): Record<string, string> {
+  const block = rubySource.match(/PROVIDER_ROUTE_MAP\s*=\s*\{([\s\S]*?)\}\.freeze/);
+  if (!block) {
+    throw new Error(`Could not extract PROVIDER_ROUTE_MAP from ${SSO_CONFIG_SOURCE_PATH}.`);
+  }
+  const entries = [...block[1].matchAll(/'([a-z_]+)'\s*=>\s*\{[^}]*default:\s*'([a-z_]+)'/g)];
+  if (entries.length === 0) {
+    throw new Error('PROVIDER_ROUTE_MAP matched but no entries were parsed.');
+  }
+  return Object.fromEntries(entries.map(([, type, route]) => [type, route]));
+}
+
+/**
+ * PROVIDER_METADATA booleans per type. Description strings are not compared
+ * (the frontend uses typographic dashes); the two booleans drive UI
+ * behaviour and must agree exactly.
+ */
+function rubyMetadataBooleans(): Record<
+  string,
+  { requiresDomainFilter: boolean; idpControlsAccess: boolean }
+> {
+  const block = rubySource.match(/PROVIDER_METADATA\s*=\s*\{([\s\S]*?)\n\s*\}\.freeze/);
+  if (!block) {
+    throw new Error(`Could not extract PROVIDER_METADATA from ${SSO_CONFIG_SOURCE_PATH}.`);
+  }
+  const entries = [
+    ...block[1].matchAll(
+      /'([a-z_]+)'\s*=>\s*\{[^}]*requires_domain_filter:\s*(true|false)[^}]*idp_controls_access:\s*(true|false)/g
+    ),
+  ];
+  if (entries.length === 0) {
+    throw new Error('PROVIDER_METADATA matched but no entries were parsed.');
+  }
+  return Object.fromEntries(
+    entries.map(([, type, rdf, ica]) => [
+      type,
+      { requiresDomainFilter: rdf === 'true', idpControlsAccess: ica === 'true' },
+    ])
+  );
+}
+
+describe('Backend constant sync (read from sso_config.rb)', () => {
+  it('ssoProviderTypeSchema equals PROVIDER_TYPES', () => {
+    expect([...ssoProviderTypeSchema.options].sort()).toEqual(
+      rubyWordList('PROVIDER_TYPES').sort()
+    );
+  });
+
+  it('SSO_CLIENT_CREDENTIAL_PROVIDER_TYPES equals CLIENT_CREDENTIAL_PROVIDER_TYPES', () => {
+    expect([...SSO_CLIENT_CREDENTIAL_PROVIDER_TYPES].sort()).toEqual(
+      rubyWordList('CLIENT_CREDENTIAL_PROVIDER_TYPES').sort()
+    );
+  });
+
+  it('SSO_PROVIDER_ROUTE_NAMES equals the PROVIDER_ROUTE_MAP defaults, one per provider type', () => {
+    const defaults = rubyRouteDefaults();
+    expect(Object.keys(defaults).sort()).toEqual([...ssoProviderTypeSchema.options].sort());
+    expect(SSO_PROVIDER_ROUTE_NAMES).toEqual(defaults);
+  });
+
+  it('SSO_PROVIDER_METADATA booleans equal PROVIDER_METADATA, one per provider type', () => {
+    const backend = rubyMetadataBooleans();
+    expect(Object.keys(backend).sort()).toEqual([...ssoProviderTypeSchema.options].sort());
+    for (const [type, booleans] of Object.entries(backend)) {
+      const frontend = SSO_PROVIDER_METADATA[type as SsoProviderType];
+      expect(frontend.requiresDomainFilter, `${type}.requiresDomainFilter`).toBe(
+        booleans.requiresDomainFilter
+      );
+      expect(frontend.idpControlsAccess, `${type}.idpControlsAccess`).toBe(
+        booleans.idpControlsAccess
+      );
+    }
+  });
+
+  it('SSO_SAML_FIELDS equals SAML_FIELDS', () => {
+    expect([...SSO_SAML_FIELDS]).toEqual(rubySymbolList('SAML_FIELDS'));
+  });
+
+  it('tokenEndpointAuthMethodSchema equals the CLIENT_AUTH_METHODS keys (oidc.rb)', () => {
+    const keys = rubyClientAuthMethodKeys();
+    expect([...tokenEndpointAuthMethodSchema.options].sort()).toEqual([...keys].sort());
+    expect([...SSO_TOKEN_ENDPOINT_AUTH_METHODS].sort()).toEqual([...keys].sort());
+  });
+
+  it('the model derives TOKEN_ENDPOINT_AUTH_METHODS from CLIENT_AUTH_METHODS.keys', () => {
+    // If the model ever grows its own list, this mirror must be re-pointed.
+    expect(rubySource).toMatch(
+      /TOKEN_ENDPOINT_AUTH_METHODS\s*=\s*Onetime::SsoProvider::Oidc::CLIENT_AUTH_METHODS\.keys/
+    );
+  });
+
+  it('token_endpoint_auth_method is enum-or-null on the canonical schema and enum-or-blank on requests', () => {
+    const field = customDomainSsoConfigCanonical.shape.token_endpoint_auth_method;
+    expect(field.safeParse(null).success).toBe(true);
+    expect(field.safeParse(undefined).success).toBe(true);
+    expect(field.safeParse('client_secret_post').success).toBe(true);
+    expect(field.safeParse('').success).toBe(false);
+    expect(field.safeParse('private_key_jwt').success).toBe(false);
+
+    for (const schema of [patchSsoConfigPayloadSchema, putSsoConfigPayloadSchema]) {
+      expect(schema.shape.token_endpoint_auth_method.safeParse('').success).toBe(true);
+      expect(schema.shape.token_endpoint_auth_method.safeParse('client_secret_basic').success).toBe(
+        true
+      );
+      expect(schema.shape.token_endpoint_auth_method.safeParse(null).success).toBe(false);
+      expect(schema.shape.token_endpoint_auth_method.safeParse('private_key_jwt').success).toBe(
+        false
+      );
+    }
+    // PATCH: absent key is "keep" — the schema must not inject one.
+    expect(patchSsoConfigPayloadSchema.parse({})).not.toHaveProperty('token_endpoint_auth_method');
+  });
+
+  it('every SAML field is declared nullable on the canonical schema', () => {
+    for (const field of SSO_SAML_FIELDS) {
+      expect(customDomainSsoConfigCanonical.shape[field].safeParse(null).success, field).toBe(true);
+      expect(customDomainSsoConfigCanonical.shape[field].safeParse('x').success, field).toBe(true);
+    }
+  });
+});
+
+describe('ssoProviderUsesClientCredentials', () => {
+  it('is true for oidc and entra_id, false for saml', () => {
+    expect(ssoProviderUsesClientCredentials('oidc')).toBe(true);
+    expect(ssoProviderUsesClientCredentials('entra_id')).toBe(true);
+    expect(ssoProviderUsesClientCredentials('saml')).toBe(false);
+  });
+});
+
+describe('SSO_PROVIDER_METADATA constant', () => {
+  describe('structure', () => {
+    it('defines metadata for all supported provider types', () => {
+      const supportedProviders = ssoProviderTypeSchema.options;
+      const metadataProviders = Object.keys(SSO_PROVIDER_METADATA);
+
+      expect(metadataProviders.sort()).toEqual([...supportedProviders].sort());
+    });
+
+    it('each provider has requiresDomainFilter boolean', () => {
+      for (const [_provider, metadata] of Object.entries(SSO_PROVIDER_METADATA)) {
+        expect(typeof metadata.requiresDomainFilter).toBe('boolean');
+      }
+    });
+
+    it('each provider has idpControlsAccess boolean', () => {
+      for (const [_provider, metadata] of Object.entries(SSO_PROVIDER_METADATA)) {
+        expect(typeof metadata.idpControlsAccess).toBe('boolean');
+      }
+    });
+
+    it('each provider has description string', () => {
+      for (const [_provider, metadata] of Object.entries(SSO_PROVIDER_METADATA)) {
+        expect(typeof metadata.description).toBe('string');
+        expect(metadata.description.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe('provider-specific values (mirrors backend PROVIDER_METADATA)', () => {
+    // Values must match lib/onetime/models/custom_domain/sso_config.rb PROVIDER_METADATA
+
+    describe('oidc', () => {
+      it('requires domain filter (generic OIDC has no app assignment)', () => {
+        expect(SSO_PROVIDER_METADATA.oidc.requiresDomainFilter).toBe(true);
+      });
+
+      it('does NOT have IdP-controlled access', () => {
+        expect(SSO_PROVIDER_METADATA.oidc.idpControlsAccess).toBe(false);
+      });
+    });
+
+    describe('entra_id', () => {
+      it('does not require domain filter (Azure app assignment controls access)', () => {
+        expect(SSO_PROVIDER_METADATA.entra_id.requiresDomainFilter).toBe(false);
+      });
+
+      it('has IdP-controlled access', () => {
+        expect(SSO_PROVIDER_METADATA.entra_id.idpControlsAccess).toBe(true);
+      });
+    });
+
+    // Tenant SSO is OIDC/Entra-only: issuerless providers (google, github)
+    // cannot satisfy per-tenant identity partitioning keyed
+    // (provider, issuer, uid) and were removed from the tenant surface
+    // (#3902, PR #3900). Platform-level SSO retains them separately.
+    describe('removed issuerless providers', () => {
+      it('does not define metadata for google or github', () => {
+        expect(SSO_PROVIDER_METADATA).not.toHaveProperty('google');
+        expect(SSO_PROVIDER_METADATA).not.toHaveProperty('github');
+      });
+
+      it('rejects google and github as provider types', () => {
+        expect(ssoProviderTypeSchema.safeParse('google').success).toBe(false);
+        expect(ssoProviderTypeSchema.safeParse('github').success).toBe(false);
+      });
+    });
+  });
+
+  describe('consistency rules', () => {
+    it('requiresDomainFilter and idpControlsAccess are mutually exclusive', () => {
+      // If IdP controls access, app-side domain filter is not required
+      // If IdP does not control access, domain filter IS required
+      for (const [_provider, metadata] of Object.entries(SSO_PROVIDER_METADATA)) {
+        expect(metadata.requiresDomainFilter).toBe(!metadata.idpControlsAccess);
+      }
+    });
+  });
+});
+
+describe('customDomainSsoConfigCanonical schema', () => {
+  describe('metadata fields', () => {
+    it('declares requires_domain_filter field', () => {
+      expect(customDomainSsoConfigCanonical.shape.requires_domain_filter).toBeDefined();
+    });
+
+    it('declares idp_controls_access field', () => {
+      expect(customDomainSsoConfigCanonical.shape.idp_controls_access).toBeDefined();
+    });
+
+    it('requires_domain_filter is a boolean', () => {
+      const result = customDomainSsoConfigCanonical.shape.requires_domain_filter.safeParse(true);
+      expect(result.success).toBe(true);
+
+      const invalidResult =
+        customDomainSsoConfigCanonical.shape.requires_domain_filter.safeParse('true');
+      expect(invalidResult.success).toBe(false);
+    });
+
+    it('idp_controls_access is a boolean', () => {
+      const result = customDomainSsoConfigCanonical.shape.idp_controls_access.safeParse(false);
+      expect(result.success).toBe(true);
+
+      const invalidResult =
+        customDomainSsoConfigCanonical.shape.idp_controls_access.safeParse('false');
+      expect(invalidResult.success).toBe(false);
+    });
+  });
+
+  describe('enforce_sso_only field', () => {
+    it('declares enforce_sso_only field', () => {
+      expect(customDomainSsoConfigCanonical.shape.enforce_sso_only).toBeDefined();
+    });
+
+    it('enforce_sso_only is a boolean', () => {
+      const result = customDomainSsoConfigCanonical.shape.enforce_sso_only.safeParse(true);
+      expect(result.success).toBe(true);
+
+      const invalidResult = customDomainSsoConfigCanonical.shape.enforce_sso_only.safeParse('true');
+      expect(invalidResult.success).toBe(false);
+    });
+
+    it('enforce_sso_only accepts false value', () => {
+      const result = customDomainSsoConfigCanonical.shape.enforce_sso_only.safeParse(false);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('full payload parsing with metadata fields', () => {
+    // Schema: customDomainSsoConfigCanonical (keyed by domain_id)
+    // Every field populated, to exercise full-payload parsing.
+    const validPayload = {
+      domain_id: 'dm_123',
+      provider_type: 'entra_id' as SsoProviderType,
+      enabled: true,
+      display_name: 'Entra ID SSO',
+      client_id: 'client-abc',
+      client_secret_masked: '****5678',
+      tenant_id: 'tenant-123',
+      issuer: null,
+      // SAML trio + SP identifiers are null for a non-saml record (#4450);
+      // unreadable_fields is [] for a healthy one.
+      idp_sso_service_url: null,
+      idp_entity_id: null,
+      idp_cert: null,
+      sp_entity_id: null,
+      acs_url: null,
+      unreadable_fields: [],
+      allowed_domains: [],
+      requires_domain_filter: false,
+      idp_controls_access: true,
+      last_sign_in: null,
+      enforce_sso_only: false,
+      grant_org_scope: false,
+      created_at: 1700000000,
+      updated_at: 1700000000,
+    };
+
+    it('parses payload with Entra ID metadata values', () => {
+      const result = customDomainSsoConfigCanonical.safeParse(validPayload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.requires_domain_filter).toBe(false);
+        expect(result.data.idp_controls_access).toBe(true);
+      }
+    });
+
+    it('parses payload with generic OIDC metadata values', () => {
+      const oidcPayload = {
+        ...validPayload,
+        provider_type: 'oidc' as SsoProviderType,
+        tenant_id: null,
+        issuer: 'https://idp.example.com',
+        requires_domain_filter: true,
+        idp_controls_access: false,
+        last_sign_in: null,
+      };
+      const result = customDomainSsoConfigCanonical.safeParse(oidcPayload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.requires_domain_filter).toBe(true);
+        expect(result.data.idp_controls_access).toBe(false);
+      }
+    });
+
+    it('rejects payloads with removed issuerless provider types (#3902)', () => {
+      for (const removed of ['google', 'github']) {
+        const result = customDomainSsoConfigCanonical.safeParse({
+          ...validPayload,
+          provider_type: removed,
+        });
+        expect(result.success).toBe(false);
+      }
+    });
+
+    it('parses payload with enforce_sso_only enabled', () => {
+      const enforcePayload = {
+        ...validPayload,
+        enforce_sso_only: true,
+      };
+      const result = customDomainSsoConfigCanonical.safeParse(enforcePayload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.enforce_sso_only).toBe(true);
+      }
+    });
+
+    it('parses payload with enforce_sso_only disabled (default)', () => {
+      const result = customDomainSsoConfigCanonical.safeParse(validPayload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.enforce_sso_only).toBe(false);
+      }
+    });
+
+    it('fails when requires_domain_filter is missing', () => {
+      const { requires_domain_filter: _rdm, ...incomplete } = validPayload;
+      const result = customDomainSsoConfigCanonical.safeParse(incomplete);
+      expect(result.success).toBe(false);
+    });
+
+    it('fails when idp_controls_access is missing', () => {
+      const { idp_controls_access: _ica, ...incomplete } = validPayload;
+      const result = customDomainSsoConfigCanonical.safeParse(incomplete);
+      expect(result.success).toBe(false);
+    });
+
+    it('fails when enforce_sso_only is missing', () => {
+      const { enforce_sso_only: _eso, ...incomplete } = validPayload;
+      const result = customDomainSsoConfigCanonical.safeParse(incomplete);
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+describe('PUT/PATCH payload schemas with enforce_sso_only', () => {
+  describe('patchSsoConfigPayloadSchema', () => {
+    it('accepts enforce_sso_only as optional boolean', () => {
+      const payload = { enforce_sso_only: true };
+      const result = patchSsoConfigPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.enforce_sso_only).toBe(true);
+      }
+    });
+
+    it('accepts payload without enforce_sso_only (partial update)', () => {
+      const payload = { display_name: 'Updated SSO' };
+      const result = patchSsoConfigPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.enforce_sso_only).toBeUndefined();
+      }
+    });
+
+    it('rejects non-boolean enforce_sso_only', () => {
+      const payload = { enforce_sso_only: 'true' };
+      const result = patchSsoConfigPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(false);
+    });
+
+    it('accepts enforce_sso_only=false explicitly', () => {
+      const payload = { enforce_sso_only: false };
+      const result = patchSsoConfigPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.enforce_sso_only).toBe(false);
+      }
+    });
+  });
+
+  describe('putSsoConfigPayloadSchema', () => {
+    const validPutPayload = {
+      provider_type: 'entra_id' as SsoProviderType,
+      display_name: 'Test SSO',
+      client_id: 'client-123',
+      client_secret: 'secret-456',
+      tenant_id: 'tenant-789',
+    };
+
+    it('accepts enforce_sso_only in PUT payload', () => {
+      const payload = { ...validPutPayload, enforce_sso_only: true };
+      const result = putSsoConfigPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.enforce_sso_only).toBe(true);
+      }
+    });
+
+    it('allows PUT payload without enforce_sso_only (defaults to false)', () => {
+      const result = putSsoConfigPayloadSchema.safeParse(validPutPayload);
+      expect(result.success).toBe(true);
+      // Schema should allow omission; backend defaults to false
+    });
+
+    it('accepts enforce_sso_only=false in PUT payload', () => {
+      const payload = { ...validPutPayload, enforce_sso_only: false };
+      const result = putSsoConfigPayloadSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.enforce_sso_only).toBe(false);
+      }
+    });
+  });
+
+  // The per-provider superRefine branches the request schema
+  // (src/schemas/api/domains/requests/sso-config.ts) applies at runtime.
+  // client_id is optional on the base schema since #4450 (SAML has no client
+  // credential), so the refine is the only client-side thing that still
+  // requires it for oidc / entra_id — and the only thing that requires the
+  // SAML trio. Each branch is exercised so deleting it fails here, not at the
+  // API's 422.
+  describe('putSsoConfigPayloadStrictSchema', () => {
+    const samlPayload = {
+      provider_type: 'saml' as SsoProviderType,
+      display_name: 'Corp SAML',
+      idp_sso_service_url: 'https://idp.example.com/saml/sso',
+      idp_entity_id: 'https://idp.example.com/saml/metadata',
+      idp_cert: '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----',
+    };
+
+    const issuePaths = (payload: unknown): string[][] => {
+      const result = putSsoConfigPayloadStrictSchema.safeParse(payload);
+      return result.success ? [] : result.error.issues.map((issue) => issue.path.map(String));
+    };
+
+    it('accepts a saml payload with the trio and NO client_id', () => {
+      expect('client_id' in samlPayload).toBe(false);
+      expect(putSsoConfigPayloadStrictSchema.safeParse(samlPayload).success).toBe(true);
+    });
+
+    it.each(SSO_SAML_FIELDS)('rejects a saml payload missing %s at that path', (field) => {
+      const { [field]: _omitted, ...payload } = samlPayload;
+      expect(issuePaths(payload)).toContainEqual([field]);
+    });
+
+    it.each(SSO_SAML_FIELDS)('rejects a saml payload with an empty %s at that path', (field) => {
+      expect(issuePaths({ ...samlPayload, [field]: '' })).toContainEqual([field]);
+    });
+
+    it('rejects an oidc payload with an issuer but no client_id at client_id', () => {
+      const payload = {
+        provider_type: 'oidc' as SsoProviderType,
+        display_name: 'Corp OIDC',
+        issuer: 'https://auth.example.com',
+      };
+      expect(issuePaths(payload)).toContainEqual(['client_id']);
+    });
+
+    it('rejects an entra_id payload with a client_id but no tenant_id at tenant_id (regression control)', () => {
+      const payload = {
+        provider_type: 'entra_id' as SsoProviderType,
+        display_name: 'Corp Entra',
+        client_id: 'client-123',
+        client_secret: 'secret-456',
+      };
+      const paths = issuePaths(payload);
+      expect(paths).toContainEqual(['tenant_id']);
+      expect(paths).not.toContainEqual(['client_id']);
+    });
+
+    it('does not demand the SAML trio of a credential provider', () => {
+      const payload = {
+        provider_type: 'oidc' as SsoProviderType,
+        display_name: 'Corp OIDC',
+        issuer: 'https://auth.example.com',
+        client_id: 'client-123',
+        client_secret: 'secret-456',
+      };
+      expect(putSsoConfigPayloadStrictSchema.safeParse(payload).success).toBe(true);
+    });
+  });
+});

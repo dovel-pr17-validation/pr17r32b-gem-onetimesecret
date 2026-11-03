@@ -1,0 +1,514 @@
+# spec/unit/onetime/operations/domains/remove_spec.rb
+#
+# frozen_string_literal: true
+
+# Unit tests for Onetime::Operations::Domains::Remove (#3731 P3) — the single
+# toolbox implementation of the domain remove verb behind the colonel endpoint
+# and 'bin/ots domains remove'.
+#
+# Two layers:
+#
+#   1. Mocked contract — dry-run skips teardown, apply delegates to the shared
+#      Teardown operation, emits EXACTLY ONE ColonelAuditEvent,
+#      and never calls org.remove_domain
+#      (destroy! owns org participation). No datastore.
+#
+#   2. Real datastore — index entries. CustomDomain#destroy! releases its
+#      display_domain_index and ascii_display_domain_index entries
+#      ownership-checked, so removing a drift-shadow leaves the surviving
+#      owner's entries in place. These examples build REAL CustomDomain
+#      records and prove the survivor's entries survive, that a normal removal
+#      clears both entries (not resurrected), and that a pre-drifted nil owner
+#      is a no-op.
+#
+# Run: tests/lanes/run --only spec/unit/onetime/operations/domains/remove_spec.rb
+
+require 'spec_helper'
+require 'onetime/models/colonel_audit_event'
+require 'onetime/operations/domains/remove'
+require 'onetime/operations/domains/teardown'
+
+RSpec.describe Onetime::Operations::Domains::Remove do
+  # ------------------------------------------------------------------ #
+  # Layer 1 — mocked contract (no datastore)
+  # ------------------------------------------------------------------ #
+  describe 'mocked contract' do
+    let(:actor) { 'ur_col_public_extid' } # PUBLIC identity (extid), never an objid
+
+    let(:mailer_config) { double('MailerConfig') }
+
+    let(:domain) do
+      instance_double(
+        Onetime::CustomDomain,
+        objid: 'cd-obj-1',
+        identifier: 'cd-obj-1',
+        domainid: 'cd-obj-1',
+        extid: 'cd_ext1',
+        display_domain: 'secrets.example.com',
+        org_id: 'org-1',
+        mailer_config: mailer_config,
+        destroy!: true,
+      )
+    end
+
+    let(:org) { double('Organization', display_name: 'Acme Inc', remove_domain: nil) }
+
+    let(:teardown_result) do
+      Onetime::Operations::Domains::Teardown::Result.new(removal_committed: true, lease_error: nil, sender_cleanup: :deleted)
+    end
+    let(:teardown) { instance_double(Onetime::Operations::Domains::Teardown, call: teardown_result) }
+    let(:lease_error) { Onetime::Operations::SenderIdentityLease::Lost.new('Sender identity lock lost') }
+
+    before do
+      allow(Onetime::ColonelAuditEvent).to receive(:record)
+      allow(Onetime::Operations::Domains::Teardown).to receive(:new).with(domain: domain, keep_vhost: false, keep_sender_identity: false).and_return(teardown)
+      allow(Onetime::Organization).to receive(:load).with('org-1').and_return(org)
+    end
+
+    # 1. dry-run (default) previews everything, mutates and audits nothing.
+    describe 'dry run (default)' do
+      it 'returns status :planned with the full echoed Result and mutates nothing' do
+        result = described_class.new(domain: domain, actor: actor).call
+
+        expect(result.status).to eq(:planned)
+        expect(result.dry_run).to be true
+        expect(result.domain_id).to eq('cd-obj-1')
+        expect(result.extid).to eq('cd_ext1')
+        expect(result.display_domain).to eq('secrets.example.com')
+        expect(result.org_id).to eq('org-1')
+        expect(result.org_name).to eq('Acme Inc')
+
+        expect(domain).not_to have_received(:destroy!)
+        expect(Onetime::ColonelAuditEvent).not_to have_received(:record)
+        expect(Onetime::Operations::Domains::Teardown).not_to have_received(:new)
+        expect(teardown).not_to have_received(:call)
+      end
+    end
+
+    it 'audits sender preservation on the preview without tearing anything down' do
+      operation = described_class.new(domain: domain, actor: actor, keep_sender_identity: true)
+      expect(operation).to receive(:record_preview_observation)
+        .with(hash_including(sender_identity_kept: true))
+
+      expect(operation.call.status).to eq(:planned)
+      expect(teardown).not_to have_received(:call)
+    end
+
+    it 'omits the sender preservation detail on ordinary previews' do
+      operation = described_class.new(domain: domain, actor: actor)
+      expect(operation).to receive(:record_preview_observation) do |detail|
+        expect(detail).not_to have_key(:sender_identity_kept)
+      end
+      operation.call
+    end
+
+    # 2. apply delegation + exactly-one audit + no org.remove_domain.
+    describe 'apply (dry_run: false)' do
+      it 'delegates teardown exactly once to the shared operation' do
+        described_class.new(domain: domain, actor: actor, dry_run: false).call
+
+        expect(Onetime::Operations::Domains::Teardown).to have_received(:new).with(domain: domain, keep_vhost: false, keep_sender_identity: false).once
+        expect(teardown).to have_received(:call).once
+        expect(domain).not_to have_received(:destroy!)
+      end
+
+      it 'forwards keep_vhost to the teardown and records it in the audit detail' do
+        allow(Onetime::Operations::Domains::Teardown).to receive(:new)
+          .with(domain: domain, keep_vhost: true, keep_sender_identity: false).and_return(teardown)
+
+        described_class.new(domain: domain, actor: actor, dry_run: false, keep_vhost: true).call
+
+        expect(Onetime::Operations::Domains::Teardown).to have_received(:new).with(domain: domain, keep_vhost: true, keep_sender_identity: false).once
+        expect(Onetime::ColonelAuditEvent).to have_received(:record)
+          .with(hash_including(verb: 'domain.remove', result: :success, detail: hash_including(vhost_kept: true)))
+      end
+
+      it 'forwards sender preservation independently of keep_vhost and audits it' do
+        allow(Onetime::Operations::Domains::Teardown).to receive(:new)
+          .with(domain: domain, keep_vhost: false, keep_sender_identity: true).and_return(teardown)
+
+        described_class.new(domain: domain, actor: actor, dry_run: false, keep_sender_identity: true).call
+
+        expect(Onetime::Operations::Domains::Teardown).to have_received(:new)
+          .with(domain: domain, keep_vhost: false, keep_sender_identity: true).once
+        expect(Onetime::ColonelAuditEvent).to have_received(:record)
+          .with(hash_including(result: :success, detail: hash_including(sender_identity_kept: true)))
+      end
+
+      it 'records EXACTLY ONE audit event (verb domain.remove, success)' do
+        result = described_class.new(domain: domain, actor: actor, dry_run: false).call
+
+        expect(result.status).to eq(:removed)
+        expect(result.sender_cleanup).to eq(:deleted)
+        expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(
+          actor: actor,
+          verb: 'domain.remove',
+          target: 'cd_ext1',
+          result: :success,
+          detail: hash_including(org_id: 'org-1', sender_cleanup: 'deleted'),
+          # #4333: destroy! has committed by now, so the write is fail-closed.
+          fail_closed: true,
+        )
+      end
+
+      [:failed, :absent, :skipped, :kept].each do |cleanup|
+        it "records sender_cleanup #{cleanup} in the result and the success audit" do
+          allow(teardown).to receive(:call).and_return(
+            Onetime::Operations::Domains::Teardown::Result.new(removal_committed: true, lease_error: nil, sender_cleanup: cleanup)
+          )
+
+          result = described_class.new(domain: domain, actor: actor, dry_run: false).call
+
+          expect(result).to have_attributes(status: :removed, sender_cleanup: cleanup)
+          expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(
+            hash_including(verb: 'domain.remove', result: :success, detail: hash_including(sender_cleanup: cleanup.to_s)),
+          )
+        end
+      end
+
+      it 'reports no sender cleanup on a dry run' do
+        expect(described_class.new(domain: domain, actor: actor).call.sender_cleanup).to be_nil
+      end
+
+      it 'does NOT call org.remove_domain (destroy! owns org participation)' do
+        described_class.new(domain: domain, actor: actor, dry_run: false).call
+
+        expect(org).not_to have_received(:remove_domain)
+      end
+    end
+
+    # Provisioning, a sender config delete, or another removal holds the lock:
+    # refuse before any teardown, and record the refused attempt.
+    describe 'while another holder has the sender identity lock' do
+      let(:busy_message) { 'Another change to the sender configuration of secrets.example.com is in progress. Try again.' }
+      before do
+        allow(teardown).to receive(:call)
+          .and_raise(Onetime::Operations::Domains::Teardown::Busy, busy_message)
+      end
+
+      it 'raises SenderIdentityBusy and tears nothing down' do
+        expect do
+          described_class.new(domain: domain, actor: actor, dry_run: false).call
+        end.to raise_error(described_class::SenderIdentityBusy, busy_message) { |ex|
+          expect(ex.class.name).to eq("Onetime::Operations::Domains::Remove::SenderIdentityBusy")
+        }
+
+        expect(domain).not_to have_received(:destroy!)
+      end
+
+      it 'records one domain.remove failure' do
+        expect do
+          described_class.new(domain: domain, actor: actor, dry_run: false).call
+        end.to raise_error(described_class::SenderIdentityBusy)
+
+        expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(
+          hash_including(
+            verb: 'domain.remove',
+            target: 'cd_ext1',
+            result: :failure,
+            detail: hash_including(error: described_class::SenderIdentityBusy.name, dry_run: false),
+          ),
+        )
+      end
+    end
+
+    describe 'when shared teardown loses the lease before commitment' do
+      it 'propagates the same loss and audits the failed removal once' do
+        allow(teardown).to receive(:call).and_raise(lease_error)
+
+        expect do
+          described_class.new(domain: domain, actor: actor, dry_run: false).call
+        end.to raise_error { |ex| expect(ex).to equal(lease_error) }
+
+        expect(domain).not_to have_received(:destroy!)
+        expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(
+          hash_including(verb: 'domain.remove', result: :failure,
+            detail: hash_including(error: Onetime::Operations::SenderIdentityLease::Lost.name))
+        )
+      end
+    end
+
+    describe 'when shared teardown returns committed lease loss' do
+      let(:teardown_result) do
+        Onetime::Operations::Domains::Teardown::Result.new(removal_committed: true, lease_error: lease_error, sender_cleanup: :failed)
+      end
+
+      it 'carries the removed result and original cause, auditing success rather than failure' do
+        expect do
+          described_class.new(domain: domain, actor: actor, dry_run: false).call
+        end.to raise_error(described_class::RemovalCommitted) { |ex|
+          expect(ex.result).to be_a(described_class::Result)
+          expect(ex.result.status).to eq(:removed)
+          expect(ex.result.sender_cleanup).to eq(:failed)
+          expect(ex.result.extid).to eq('cd_ext1')
+          expect(ex.message).to include('removal committed', lease_error.message)
+          expect(ex.cause).to equal(lease_error)
+        }
+        expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(hash_including(
+          result: :success, fail_closed: true,
+          detail: hash_including(removal_committed: true, lease_lost: true, sender_cleanup: 'failed')
+        ))
+      end
+    end
+
+    # 3. orphaned domain (blank org_id) — org loads nil, still destroys + audits.
+    describe 'orphaned domain (blank org_id)' do
+      let(:domain) do
+        instance_double(
+          Onetime::CustomDomain,
+          objid: 'cd-orphan',
+          identifier: 'cd-orphan',
+          domainid: 'cd-orphan',
+          extid: 'cd_orphan',
+          display_domain: 'orphan.example.com',
+          org_id: '',
+          mailer_config: mailer_config,
+          destroy!: true,
+        )
+      end
+      it 'delegates teardown, audits once, and reports org_name nil' do
+        result = described_class.new(domain: domain, actor: actor, dry_run: false).call
+
+        expect(Onetime::Organization).not_to have_received(:load)
+        expect(result.status).to eq(:removed)
+        expect(result.org_name).to be_nil
+        expect(teardown).to have_received(:call).once
+        expect(Onetime::ColonelAuditEvent).to have_received(:record).once
+      end
+    end
+
+    it 'does not relabel a committed removal as failed when its committed-outcome audit write fails' do
+      allow(teardown).to receive(:call).and_return(
+        Onetime::Operations::Domains::Teardown::Result.new(removal_committed: true, lease_error: lease_error, sender_cleanup: :deleted)
+      )
+      allow(Onetime::ColonelAuditEvent).to receive(:record)
+        .with(hash_including(verb: 'domain.remove'))
+        .and_raise(Onetime::AuditWriteFailure.new(verb: 'domain.remove', target: 'cd_ext1'))
+
+      operation = described_class.new(domain: domain, actor: actor, dry_run: false)
+      expect(operation.sender_cleanup).to be_nil
+      expect { operation.call }.to raise_error(Onetime::AuditWriteFailure)
+      expect(operation.sender_cleanup).to eq(:deleted)
+
+      expect(Onetime::ColonelAuditEvent).to have_received(:record).with(hash_including(
+        verb: 'domain.remove', result: :success,
+        detail: hash_including(removal_committed: true, lease_lost: true), fail_closed: true
+      ))
+      expect(Onetime::ColonelAuditEvent).to have_received(:record).with(hash_including(
+        verb: 'audit.write_failure', target: 'cd_ext1', result: :failure
+      ))
+    end
+
+    # Unexpected shared-operation failures are audited and re-raised unchanged.
+    describe 'when shared teardown raises an unexpected error' do
+      let(:error) { Familia::Problem.new('datastore gone') }
+      before { allow(teardown).to receive(:call).and_raise(error) }
+
+      it 'records one domain.remove failure at the extid, then re-raises' do
+        expect do
+          described_class.new(domain: domain, actor: actor, dry_run: false).call
+        end.to raise_error { |ex| expect(ex).to equal(error) }
+
+        expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(
+          hash_including(
+            actor: actor,
+            verb: 'domain.remove',
+            target: 'cd_ext1',
+            result: :failure,
+            detail: hash_including(error: 'Familia::Problem', dry_run: false),
+          ),
+        )
+      end
+
+    end
+
+    # dry_run defaults to TRUE and the success event is applied-path-only (a
+    # preview mutates and audits nothing), so without this flag in the detail a
+    # blown-up PREVIEW would be indistinguishable from a blown-up removal.
+    describe 'when a dry-run preview raises' do
+      before { allow(Onetime::Organization).to receive(:load).and_raise(Familia::Problem, 'organization read failed') }
+
+      it 'marks the failure dry_run: true' do
+        expect do
+          described_class.new(domain: domain, actor: actor).call
+        end.to raise_error(Familia::Problem, 'organization read failed')
+
+        expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(
+          hash_including(
+            verb: 'domain.remove',
+            result: :failure,
+            detail: hash_including(dry_run: true),
+          ),
+        )
+      end
+    end
+  end
+
+  # ------------------------------------------------------------------ #
+  # Layer 2 — real datastore (index entries left by destroy!)
+  #
+  # These require the test Valkey (spec/config.test.yaml -> :2163). No blanket
+  # flush: each example registers its records/fqdns and the after(:each) hook
+  # tears down only those, so nothing clobbers another example's fixtures.
+  # ------------------------------------------------------------------ #
+  describe 'real datastore', :datastore do
+    let(:index) { Onetime::CustomDomain.display_domain_index }
+
+    before do
+      # Stub only the audit sink so we can count/inspect events without writing
+      # to the shared capped audit set. Everything else (destroy!, the index,
+      # the passthrough strategy, DeleteSenderDomain) runs for real.
+      allow(Onetime::ColonelAuditEvent).to receive(:record)
+      @records = []
+      @fqdns   = []
+    end
+
+    after do
+      @records.each do |rec|
+        rec.destroy! if rec.exists?
+      rescue StandardError => ex
+        warn "[remove_spec cleanup] #{ex.class}: #{ex.message}"
+      end
+      @fqdns.uniq.each { |fqdn| index.remove(fqdn) }
+    end
+
+    # Create a real, fully-persisted ascii_name domain and register it for cleanup.
+    def create_domain(fqdn, org_id)
+      rec = Onetime::CustomDomain.create!(fqdn, org_id)
+      @records << rec
+      @fqdns << fqdn
+      rec
+    end
+
+    # Fabricate a drift SHADOW hash for an fqdn already owned by `survivor`.
+    #
+    # Familia 2.11's save now guards unique indexes (RecordExistsError if the
+    # index already points at another record), and CustomDomain's save claims
+    # the ASCII name (CustomDomain::IdentityGuard), so the raw "parse +
+    # save" bypass the op's docstring describes no longer works directly. We
+    # reproduce the SAME end state deterministically: drop both index entries
+    # so the guards pass, save the shadow (which points both at itself), then
+    # FORCE both back to the survivor. Result: two live hashes for one fqdn,
+    # both indexes -> survivor.
+    def create_shadow(fqdn, org_id, survivor)
+      ascii_index = Onetime::CustomDomain.ascii_display_domain_index
+      ascii_name       = Onetime::CustomDomain.ascii_display_domain(fqdn)
+      index.remove(fqdn)
+      ascii_index.remove_field(ascii_name)
+      shadow = Onetime::CustomDomain.parse(fqdn, org_id)
+      shadow.save
+      @records << shadow
+      index.put(fqdn, survivor.objid)
+      ascii_index.put(ascii_name, survivor.objid)
+      shadow
+    end
+
+    def unique_fqdn(prefix)
+      fqdn = "#{prefix}-#{SecureRandom.hex(4)}.example.com"
+      @fqdns << fqdn
+      fqdn
+    end
+
+    # 5. Removing a shadow leaves the survivor's index entries in place:
+    #    destroy! releases its entries ownership-checked, so nothing is repaired.
+    it 'leaves the survivor pointer in place after destroying a shared-hostname shadow' do
+      fqdn       = unique_fqdn('shadow')
+      survivor   = create_domain(fqdn, "orgA-#{SecureRandom.hex(3)}")
+      shadow_org = "orgB-#{SecureRandom.hex(3)}"
+      shadow     = create_shadow(fqdn, shadow_org, survivor)
+      ascii_name = Onetime::CustomDomain.ascii_display_domain(fqdn)
+
+      result = described_class.new(domain: shadow, actor: 'cli', dry_run: false).call
+
+      expect(result.status).to eq(:removed)
+      # (a) the shadow hash is gone
+      expect(shadow.exists?).to be false
+      # (b) both index entries still name the survivor
+      expect(index.get(fqdn)).to eq(survivor.objid)
+      expect(Onetime::CustomDomain.ascii_display_domain_index.get(ascii_name)).to eq(survivor.objid)
+      # (c) resolution follows the index to the survivor
+      expect(Onetime::CustomDomain.load_by_display_domain(fqdn).objid).to eq(survivor.objid)
+      # (d) exactly one audit
+      expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(
+        hash_including(verb: 'domain.remove', result: :success, detail: hash_including(org_id: shadow_org))
+      )
+    end
+
+    [false, true].each do |shadow_removal|
+      it "finalizes and audits a committed #{shadow_removal ? 'shadow' : 'normal'} removal before reporting post-destroy lease loss" do
+        fqdn = unique_fqdn('committed')
+        survivor = create_domain(fqdn, "org-#{SecureRandom.hex(3)}") if shadow_removal
+        domain = shadow_removal ? create_shadow(fqdn, 'shadow-org', survivor) : create_domain(fqdn, 'victim-org')
+        extid = domain.extid
+        lock = Onetime::CustomDomain::MailerConfig.sender_identity_lock(domain.identifier)
+        sender_op = double('DeleteSenderDomain', call: Onetime::Operations::DeleteSenderDomain::Result.new(
+          success: true, message: 'deleted', error: nil, outcome: :deleted,
+        ))
+        allow(Onetime::Operations::DeleteSenderDomain).to receive(:new).and_return(sender_op)
+        allow(domain).to receive(:destroy!).and_wrap_original do |original|
+          value = original.call
+          lock.force_unlock!
+          value
+        end
+
+        expect do
+          described_class.new(domain: domain, actor: 'cli', dry_run: false).call
+        end.to raise_error(described_class::RemovalCommitted) { |ex|
+          expect(ex.result.status).to eq(:removed)
+          expect(ex.result.extid).to eq(extid)
+          expect(ex.message).to include('removal committed', 'lock lost')
+        }
+
+        expect(domain.exists?).to be false
+        expect(index.get(fqdn)).to eq(shadow_removal ? survivor.objid : nil)
+        expect(sender_op).to have_received(:call).once
+        expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(hash_including(
+          verb: 'domain.remove', target: extid, result: :success,
+          detail: hash_including(removal_committed: true, lease_lost: true),
+          fail_closed: true
+        ))
+      end
+    end
+
+    # 6. Normal removal clears both index entries.
+    it 'clears the index entries on a normal removal' do
+      fqdn       = unique_fqdn('clear')
+      org_id     = "org-#{SecureRandom.hex(3)}"
+      domain     = create_domain(fqdn, org_id)
+      ascii_name = Onetime::CustomDomain.ascii_display_domain(fqdn)
+
+      expect(index.get(fqdn)).to eq(domain.objid) # sanity: index points at it
+
+      result = described_class.new(domain: domain, actor: 'cli', dry_run: false).call
+
+      expect(result.status).to eq(:removed)
+      expect(index.get(fqdn)).to be_nil
+      expect(Onetime::CustomDomain.ascii_display_domain_index.get(ascii_name)).to be_nil
+      expect(Onetime::ColonelAuditEvent).to have_received(:record).once.with(
+        hash_including(detail: hash_including(org_id: org_id))
+      )
+    end
+
+    # 7. Pre-drifted index (owner already nil): removal is a clean no-op re index.
+    it 'handles a pre-drifted nil index owner without error' do
+      fqdn   = unique_fqdn('predrift')
+      domain = create_domain(fqdn, "org-#{SecureRandom.hex(3)}")
+
+      # Drift: HDEL the index entry directly, leaving the record hash intact.
+      index.remove(fqdn)
+      expect(index.get(fqdn)).to be_nil
+      expect(domain.exists?).to be true
+
+      result = nil
+      expect {
+        result = described_class.new(domain: domain, actor: 'cli', dry_run: false).call
+      }.not_to raise_error
+
+      expect(result.status).to eq(:removed)
+      expect(index.get(fqdn)).to be_nil
+      expect(domain.exists?).to be false
+      expect(Onetime::ColonelAuditEvent).to have_received(:record).once
+    end
+
+  end
+end

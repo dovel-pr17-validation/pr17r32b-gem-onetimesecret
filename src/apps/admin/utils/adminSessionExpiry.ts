@@ -1,0 +1,147 @@
+// src/apps/admin/utils/adminSessionExpiry.ts
+
+import { parseSessionFailure } from '@/schemas/contracts/session-failure';
+import { ref, type Ref } from 'vue';
+
+/**
+ * The console's one view of "this admin session is over" (#4331).
+ *
+ * The server bounds the ADMIN API SURFACE (/api/colonel) with an idle and an
+ * absolute timeout while leaving the shared onetime.session cookie alone. So the
+ * /colonel shell keeps loading, the tenant app keeps working, and the only
+ * signal the console gets is a 401 on its own API calls carrying the stable
+ * code {@link ADMIN_SESSION_EXPIRED_CODE} in scope `admin_session` (#4462).
+ *
+ * The customer session is intact, so this recovery stays on the admin surface
+ * (#4460): the shared refresh coordinator ignores the `admin_session` scope
+ * and nothing here touches customer authentication state.
+ *
+ * ## Two ways back
+ *
+ * 1. Re-enter the password (`useColonelElevation().reauthenticate`): POST
+ *    /api/colonel/reauthenticate is exempt from the admin bound, re-stamps
+ *    `authenticated_at` under a new session id, and the console reloads in
+ *    place. This is the banner's primary action.
+ * 2. {@link recoverAdminSession}: clear the session and sign in again. The
+ *    only way back for an account with no password (SSO-only), which the
+ *    re-authentication cannot verify.
+ *
+ * ## Why a module-level ref and not a store
+ *
+ * Every admin request path — the paginated list fetch, the detail loader, every
+ * mutation, and the elevation status read the console makes on entry — funnels
+ * its catch through {@link noteAdminSessionExpiry}, and ONE banner in
+ * AdminLayout renders the result. A per-component flag would let a list view
+ * know the session is gone while a detail view beside it kept retrying.
+ *
+ * ## Why not a global Axios interceptor
+ *
+ * `errorInterceptor` is shared by every app and deliberately does no
+ * gate-keeping; teaching it about an admin-only header would put admin policy in
+ * everyone's request path. The four admin call sites are the whole surface.
+ *
+ * Nothing here polls. The flag is set by traffic the operator already caused,
+ * which is the same reason the elevation composable has no timer: any periodic
+ * request would refresh the server-side activity clock the idle bound reads and
+ * silently disable it.
+ */
+
+/**
+ * The stable failure code, from `Onetime::SessionFailureCode`
+ * (lib/onetime/session/failure_code.rb), mirrored in
+ * `src/schemas/contracts/session-failure.ts`. This is the contract.
+ */
+export const ADMIN_SESSION_EXPIRED_CODE = 'admin_session_expired';
+
+/**
+ * The bracket marker a backend that predates the codes puts in `message`
+ * (`base_session_auth_strategy.rb`). Matched only as a fallback: on a
+ * `sessionauth,basicauth` route Otto renders the LAST strategy's failure, so
+ * `message` reads `[AUTH_HEADER_MISSING]` whatever the session strategy said.
+ * It works here only because /api/colonel is `sessionauth`-only.
+ */
+export const ADMIN_SESSION_EXPIRED_PREFIX = '[ADMIN_SESSION_EXPIRED]';
+
+/** True once any admin request has been refused for an expired admin window. */
+export const adminSessionExpired: Ref<boolean> = ref(false);
+
+/** Where to send the operator to replace the session, after it is cleared. */
+export const ADMIN_SIGN_IN_PATH = '/signin?redirect=/colonel';
+
+/**
+ * Recover from an expired admin window (#4331) by signing in again — the
+ * fallback to a password re-authentication (see "Two ways back" above).
+ *
+ * A bare link to {@link ADMIN_SIGN_IN_PATH} does NOT clear the window in simple
+ * mode: while the shared `onetime.session` cookie still reads `authenticated`,
+ * `GET /signin` short-circuits to "already logged in" WITHOUT re-stamping
+ * `authenticated_at`
+ * (`apps/web/core/controllers/authentication.rb#handle_already_authenticated`),
+ * so the admin idle/absolute bound stays tripped and every `/api/colonel` call
+ * keeps 401ing. The session must be CLEARED first; only then does the sign-in
+ * actually re-authenticate and re-stamp (in full mode too: if the session were
+ * left intact the router's isAuthenticated guard would bounce /signin straight
+ * back to /colonel without ever reaching a login form).
+ *
+ * Best-effort `GET /logout` — the CORE app's logout, which does session.clear +
+ * sid renew and is served in BOTH modes (`apps/web/core/routes.txt`). NOT
+ * `/auth/logout`: in full mode the Rodauth app owns the `/auth` prefix and its
+ * logout only destroys the session on POST, so a GET there clears nothing. Then
+ * a HARD navigation to sign-in — deliberately not the SPA router — so the
+ * sign-in page loads under the freshly cleared cookie.
+ */
+export async function recoverAdminSession(): Promise<void> {
+  try {
+    await fetch('/logout', {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    });
+  } catch {
+    // Even if logout fails (offline, blocked), still send them onward: the worst
+    // case is the same dead-end they are already in, never worse.
+  }
+  window.location.assign(ADMIN_SIGN_IN_PATH);
+}
+
+interface ErrorBodyLike {
+  status?: number;
+  data?: { error?: unknown; message?: unknown };
+}
+
+function responseOf(error: unknown): ErrorBodyLike | undefined {
+  return (error as { response?: ErrorBodyLike } | null)?.response;
+}
+
+/**
+ * Flip the shared flag when `error` is the admin-session-expired 401.
+ *
+ * Keyed on the stable `code` (#4462). For a backend without codes it falls
+ * back to the bracket marker: Otto renders an auth failure as `{error:
+ * 'Authentication Required', message: '<reason>'}`, so the marker arrives in
+ * `message`; `error` is checked too.
+ *
+ * @returns true when this error was the expired-admin-session 401
+ */
+export function noteAdminSessionExpiry(error: unknown): boolean {
+  const response = responseOf(error);
+  if (response?.status !== 401) return false;
+
+  const failure = parseSessionFailure(error);
+  // A coded 401 is decided by its code alone: any other code is some other
+  // failure, whatever the message says.
+  const expired = failure
+    ? failure.code === ADMIN_SESSION_EXPIRED_CODE
+    : [response.data?.message, response.data?.error].some(
+        (value) => typeof value === 'string' && value.startsWith(ADMIN_SESSION_EXPIRED_PREFIX)
+      );
+  if (!expired) return false;
+
+  adminSessionExpired.value = true;
+  return true;
+}
+
+/** Called once a password re-authentication renews the admin window; also a test seam. */
+export function clearAdminSessionExpired(): void {
+  adminSessionExpired.value = false;
+}

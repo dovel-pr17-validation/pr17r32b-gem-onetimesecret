@@ -1,0 +1,162 @@
+{
+  "incoming.page_title": {
+    "text": "Gizli Mesaj Gönder",
+    "source_hash": "f83b6303"
+  },
+  "incoming.page_description": {
+    "text": "Hassas bilgileri destek ekibimizle güvenli bir şekilde paylaşın",
+    "source_hash": "08beca74"
+  },
+  "incoming.loading_config": {
+    "text": "Yükleniyor...",
+    "source_hash": "47d2a515"
+  },
+  "incoming.config_error_title": {
+    "text": "Yapılandırma yüklenemedi",
+    "source_hash": "6410ad42"
+  },
+  "incoming.feature_disabled_title": {
+    "text": "Özellik Kullanılamıyor",
+    "source_hash": "bfd624f7"
+  },
+  "incoming.feature_disabled_description": {
+    "text": "Bu özellik şu anda devre dışıdır. Yardım için lütfen destekle iletişime geçin.",
+    "source_hash": "f13fbf2b"
+  },
+  "incoming.memo_label": {
+    "text": "Not",
+    "source_hash": "64cecb8a"
+  },
+  "incoming.memo_placeholder": {
+    "text": "Kısa açıklama (örn., Parola sıfırlama isteği)",
+    "source_hash": "16bf83fd"
+  },
+  "incoming.memo_hint": {
+    "text": "Mesajınızı doğru kişiye yönlendirmemize yardımcı olun",
+    "source_hash": "185a207e"
+  },
+  "incoming.recipient_label": {
+    "text": "Gönderilecek Kişi",
+    "source_hash": "9bcbb3bc"
+  },
+  "incoming.recipient_placeholder": {
+    "text": "Bir alıcı seçin",
+    "source_hash": "4eb1ed54"
+  },
+  "incoming.recipient_aria_label": {
+    "text": "Bu gizli mesaj için bir alıcı seçin",
+    "source_hash": "c98ac75f"
+  },
+  "incoming.recipient_hint": {
+    "text": "Bu güvenli mesajı kimin alacağını seçin",
+    "source_hash": "0dfafc45"
+  },
+  "incoming.no_recipients_available": {
+    "text": "Kullanılabilir alıcı yok",
+    "source_hash": "62834334"
+  },
+  "incoming.secret_content_label": {
+    "text": "Gizli Bilgi",
+    "source_hash": "b4f8c120"
+  },
+  "incoming.secret_content_placeholder": {
+    "text": "Hassas bilgileri buraya yapıştırın (parolalar, anahtarlar, vb.)",
+    "source_hash": "7d7abb48"
+  },
+  "incoming.secret_content_hint": {
+    "text": "Bu bilgi şifrelenecek ve yalnızca bir kez görüntülenebilecektir",
+    "source_hash": "f9151d61"
+  },
+  "incoming.submit_button": {
+    "text": "Gizli Mesaj Gönder",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submit_secret": {
+    "text": "Gizli Mesaj Gönder",
+    "source_hash": "2a09f5e0"
+  },
+  "incoming.submitting_button": {
+    "text": "Gönderiliyor...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.submitting": {
+    "text": "Gönderiliyor...",
+    "source_hash": "286a3af7"
+  },
+  "incoming.reset_button": {
+    "text": "Formu Temizle",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.reset_form": {
+    "text": "Formu Temizle",
+    "source_hash": "f6c2bb83"
+  },
+  "incoming.success_title": {
+    "text": "Başarıyla Gönderildi",
+    "source_hash": "261e9a7e"
+  },
+  "incoming.success_description": {
+    "text": "Güvenli mesajınız teslim edildi.",
+    "source_hash": "e1538e3e"
+  },
+  "incoming.reference_id": {
+    "text": "Referans Kimliği",
+    "source_hash": "293aba9f"
+  },
+  "incoming.success_info_title": {
+    "text": "Bundan sonra ne olacak?",
+    "source_hash": "c72895ba"
+  },
+  "incoming.success_info_description": {
+    "text": "Alıcı bu gizli mesajı yalnızca bir kez görüntüleyebilecektir. Görüntüledikten sonra gizli mesaj kalıcı olarak silinecektir.",
+    "source_hash": "8120bd40"
+  },
+  "incoming.create_another": {
+    "text": "Başka Bir Gizli Mesaj Gönder",
+    "source_hash": "8a61d95c"
+  },
+  "incoming.tagline1": {
+    "text": "Hassas bilgileri güvenli bir şekilde paylaşın",
+    "source_hash": "099ff0c7"
+  },
+  "incoming.tagline2": {
+    "text": "Parolaları ve özel verileri e-posta ve sohbet günlüklerinden uzak tutun",
+    "source_hash": "55566199"
+  },
+  "incoming.end_of_experience_suggestion": {
+    "text": "Kayıtlarınız için {receipt} dosyanızı saklayın.",
+    "source_hash": "db3d9c98"
+  },
+  "incoming.receipt_link_text": {
+    "text": "makbuz",
+    "source_hash": "6f328609"
+  },
+  "incoming.upgrade_required_title": {
+    "text": "Yükseltme Gerekli",
+    "source_hash": "16487236"
+  },
+  "incoming.upgrade_required_description": {
+    "text": "Bu özellik için planınızı yükseltmeniz gerekir. Gelen gizli mesajları etkinleştirmek için lütfen hesap sahibiyle iletişime geçin.",
+    "source_hash": "5df7f715"
+  },
+  "incoming.validation_memo_too_long": {
+    "text": "Not en fazla {max} karakter olmalıdır",
+    "source_hash": "5727f2d3"
+  },
+  "incoming.validation_secret_required": {
+    "text": "Gizli mesaj içeriği gerekli",
+    "source_hash": "699783c9"
+  },
+  "incoming.validation_recipient_required": {
+    "text": "Lütfen bir alıcı seçin",
+    "source_hash": "67bb4666"
+  },
+  "incoming.validation_feature_disabled": {
+    "text": "Gelen gizli mesajlar özelliği etkin değil",
+    "source_hash": "0616d3f4"
+  },
+  "incoming.validation_form_errors": {
+    "text": "Lütfen formu hatalara karşı kontrol edin",
+    "source_hash": "9056e064"
+  }
+}

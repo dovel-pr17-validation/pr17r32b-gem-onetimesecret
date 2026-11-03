@@ -1,0 +1,95 @@
+# compose.test.yml — service dependencies for the test lanes.
+#
+# Root compose files (CP-13 naming convention): this file starts backing
+# services for the TEST suites only and never runs the app. Deployment
+# stacks live in docker-compose.yml, which includes docker/compose/*.yml.
+#
+# SINGLE SOURCE OF TRUTH for test service images, versions, and host ports.
+# CI and local dev both start services from this file; the lane env files
+# under tests/lanes/ carry the matching URLs.
+#
+#   docker compose -f compose.test.yml up --wait -d
+#   podman compose -f compose.test.yml up --wait -d
+#   docker compose -f compose.test.yml down
+#
+# PORT SCHEME: application test services publish on 127.0.0.1 with a port
+# that starts with 21. New application services take "21 + last two digits of
+# the canonical port"; valkey predates the scheme and keeps its established
+# 2163. RabbitMQ's management API is a runner-only control-plane exception on
+# 12156:
+#
+#   valkey     2163   (canonical 6379; grandfathered, not 2179)
+#   postgres   2154   (canonical 5432)
+#   rabbitmq   2156   (canonical 5672)
+#   rabbitmq   12156  (canonical 15672; management HTTP API)
+#   mailpit    2125/12125 — see compose.e2e.yml (e2e-only; kept out of this
+#              file so bin/setup's port probe and the lanes' bare `up` never
+#              depend on it)
+#
+# Dev services keep canonical ports, so a leaked dev config can never reach
+# a test service and a test run can never reach dev data. If a URL in the
+# test tree doesn't point at an approved test port, that's a bug.
+#
+# This file is where test-service images are pinned. The one remaining
+# copy of a pin lives in ci.yml's container-validation job (its valkey
+# must publish beyond loopback, so it can't use this file); update that
+# together with this file.
+
+name: ots-test
+
+services:
+  valkey:
+    image: ghcr.io/valkey-io/valkey:8.1.3-bookworm@sha256:fea8b3e67b15729d4bb70589eb03367bab9ad1ee89c876f54327fc7c6e618571
+    # No persistence: test data is disposable by design.
+    # --databases 65536: tests/lanes/run assigns each worktree its own DB
+    # index (hashed from the repo root path, range 1..65535) so concurrent
+    # lane runs in a worktree forest never share keys (#4168). The space is
+    # wide because hash collisions abort a run rather than being resolved.
+    # Database slots are pre-allocated; see
+    # docs/specs/testing-lanes/valkey-max-dbsize.md.
+    command: ['valkey-server', '--save', '', '--appendonly', 'no', '--databases', '65536']
+    ports:
+      - '127.0.0.1:2163:6379'
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  postgres:
+    image: postgres:17@sha256:b994732fcf33f73776c65d3a5bf1f80c00120ba5007e8ab90307b1a743c1fc16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: onetime_auth_test
+    # Creates onetime_user/onetime_migrator roles (testpass/migratepass)
+    # on first boot — the same SQL CI used to run as a separate psql step.
+    volumes:
+      - ./apps/web/auth/migrations/schemas/postgres/initialize_test_db.sql:/docker-entrypoint-initdb.d/10-initialize-test-db.sql:ro
+    # Data lives in RAM: fast, and guaranteed gone on `down`.
+    tmpfs:
+      - /var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:2154:5432'
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4.2@sha256:0ea64c69ef2ced52e7188c6db826152d42f78e448433ed8b4e570170c427a437
+    # The management plugin ships in the pinned image but is not enabled.
+    # Mounting an enabled_plugins file turns it on without changing the pin;
+    # tests/lanes/run provisions a per-worktree vhost over its HTTP API so
+    # concurrent lane runs in a worktree forest never share queues (#4168).
+    volumes:
+      - ./tests/lanes/support/rabbitmq-enabled-plugins:/etc/rabbitmq/enabled_plugins:ro
+    ports:
+      - '127.0.0.1:2156:5672'
+      - '127.0.0.1:12156:15672'
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'check_port_connectivity']
+      interval: 10s
+      timeout: 10s
+      retries: 5
