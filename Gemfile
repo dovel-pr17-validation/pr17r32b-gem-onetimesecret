@@ -248,7 +248,7 @@ gem 'rufus-scheduler', '~> 3.9'  # Cron-style job scheduling
 # Third-Party Service Integrations
 # ====================================
 
-gem 'aws-sdk-sesv2', '~> 1.74', require: false
+gem 'aws-sdk-sesv2', '~> 1.117', require: false
 gem 'lettermint', '~> 0.2.1', require: false
 gem 'sendgrid-ruby', require: false
 gem 'sentry-ruby', require: false
